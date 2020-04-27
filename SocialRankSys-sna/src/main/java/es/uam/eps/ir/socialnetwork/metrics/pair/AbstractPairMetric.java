@@ -42,7 +42,7 @@ public abstract class AbstractPairMetric<U> implements PairMetric<U>
     @Override
     public double averageValue(Graph<U> graph)
     {
-        double value = this.compute(graph).values().stream().reduce(0.0, Double::sum);
+        double value = this.compute(graph).entrySet().stream().filter(x -> !x.getKey().v1().equals(x.getKey().v2())).mapToDouble(Map.Entry::getValue).sum();
         return value/(graph.getVertexCount()*(graph.getVertexCount()-1));
     }
 

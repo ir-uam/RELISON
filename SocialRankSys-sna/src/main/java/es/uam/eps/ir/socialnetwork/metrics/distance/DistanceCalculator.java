@@ -19,7 +19,6 @@ import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
 
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -125,7 +124,7 @@ public class DistanceCalculator<U>
 
         // Then, for each user u, apply BFS to obtain the distances to other nodes.
         // We compute this in parallel to obtain much faster results.
-        graph.getAllNodes().parallel().forEach(u ->
+        graph.getAllNodes().forEach(u ->
         {
             // We want to create a tree.
             DirectedGraph<U> tree;

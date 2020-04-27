@@ -11,6 +11,8 @@
     <modules>
         <module>SocialRankSys-core</module>
         <module>SocialRankSys-sna</module>
+        <module>SocialRankSys-examples</module>
+        <module>SocialRankSys-linkpred</module>
     </modules>
 
 
