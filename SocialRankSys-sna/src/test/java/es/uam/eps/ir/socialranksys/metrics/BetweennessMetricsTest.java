@@ -8,24 +8,20 @@
  */
 package es.uam.eps.ir.socialranksys.metrics;
 
-import es.uam.eps.ir.socialnetwork.metrics.EdgeMetric;
-import es.uam.eps.ir.socialnetwork.metrics.GraphMetric;
-import es.uam.eps.ir.socialnetwork.metrics.PairMetric;
-import es.uam.eps.ir.socialnetwork.metrics.VertexMetric;
-import es.uam.eps.ir.socialnetwork.metrics.distance.DistanceCalculator;
-import es.uam.eps.ir.socialnetwork.metrics.distance.edge.EdgeBetweenness;
-import es.uam.eps.ir.socialnetwork.metrics.distance.graph.ASL;
-import es.uam.eps.ir.socialnetwork.metrics.distance.graph.Diameter;
-import es.uam.eps.ir.socialnetwork.metrics.distance.graph.Eccentricity;
-import es.uam.eps.ir.socialnetwork.metrics.distance.modes.ASLMode;
-import es.uam.eps.ir.socialnetwork.metrics.distance.modes.ClosenessMode;
-import es.uam.eps.ir.socialnetwork.metrics.distance.pair.Geodesics;
-import es.uam.eps.ir.socialnetwork.metrics.distance.vertex.Closeness;
-import es.uam.eps.ir.socialnetwork.metrics.distance.vertex.NodeBetweenness;
 import es.uam.eps.ir.socialranksys.graph.DirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.UndirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastDirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastUndirectedUnweightedGraph;
+import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.socialranksys.metrics.distance.edge.EdgeBetweenness;
+import es.uam.eps.ir.socialranksys.metrics.distance.graph.ASL;
+import es.uam.eps.ir.socialranksys.metrics.distance.graph.Diameter;
+import es.uam.eps.ir.socialranksys.metrics.distance.modes.ASLMode;
+import es.uam.eps.ir.socialranksys.metrics.distance.modes.ClosenessMode;
+import es.uam.eps.ir.socialranksys.metrics.distance.pair.Geodesics;
+import es.uam.eps.ir.socialranksys.metrics.distance.vertex.Closeness;
+import es.uam.eps.ir.socialranksys.metrics.distance.vertex.Eccentricity;
+import es.uam.eps.ir.socialranksys.metrics.distance.vertex.NodeBetweenness;
 import org.junit.*;
 
 /**

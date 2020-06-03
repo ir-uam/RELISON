@@ -10,8 +10,6 @@ package es.uam.eps.ir.socialranksys.links.recommendation.standalone.distance;
 
 import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.impl.SparseDoubleMatrix2D;
-import es.uam.eps.ir.socialnetwork.metrics.PairMetric;
-import es.uam.eps.ir.socialnetwork.metrics.distance.pair.Distance;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
@@ -20,6 +18,8 @@ import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
 import es.uam.eps.ir.socialranksys.links.recommendation.UserFastRankingRecommender;
+import es.uam.eps.ir.socialranksys.metrics.PairMetric;
+import es.uam.eps.ir.socialranksys.metrics.distance.pair.Distance;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;

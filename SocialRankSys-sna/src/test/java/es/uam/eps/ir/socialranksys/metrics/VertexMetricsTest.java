@@ -9,15 +9,14 @@
 package es.uam.eps.ir.socialranksys.metrics;
 
 
-import es.uam.eps.ir.socialnetwork.metrics.VertexMetric;
-import es.uam.eps.ir.socialnetwork.metrics.vertex.Degree;
-import es.uam.eps.ir.socialnetwork.metrics.vertex.InverseDegree;
-import es.uam.eps.ir.socialnetwork.metrics.vertex.LocalClusteringCoefficient;
 import es.uam.eps.ir.socialranksys.graph.DirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.UndirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastDirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastUndirectedUnweightedGraph;
+import es.uam.eps.ir.socialranksys.metrics.vertex.Degree;
+import es.uam.eps.ir.socialranksys.metrics.vertex.InverseDegree;
+import es.uam.eps.ir.socialranksys.metrics.vertex.LocalClusteringCoefficient;
 import org.junit.*;
 
 /**

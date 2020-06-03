@@ -8,13 +8,12 @@
  */
 package es.uam.eps.ir.socialranksys.metrics;
 
-import es.uam.eps.ir.socialnetwork.metrics.GraphMetric;
-import es.uam.eps.ir.socialnetwork.metrics.graph.*;
 import es.uam.eps.ir.socialranksys.graph.DirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.UndirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastDirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastUndirectedUnweightedGraph;
+import es.uam.eps.ir.socialranksys.metrics.graph.*;
 import org.junit.*;
 
 import static java.lang.Double.NaN;

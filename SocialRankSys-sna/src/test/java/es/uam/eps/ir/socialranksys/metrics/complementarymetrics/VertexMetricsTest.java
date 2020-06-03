@@ -8,15 +8,15 @@
  */
 package es.uam.eps.ir.socialranksys.metrics.complementarymetrics;
 
-import es.uam.eps.ir.socialnetwork.metrics.VertexMetric;
-import es.uam.eps.ir.socialnetwork.metrics.complementary.vertex.ComplementaryDegree;
-import es.uam.eps.ir.socialnetwork.metrics.complementary.vertex.ComplementaryInverseDegree;
-import es.uam.eps.ir.socialnetwork.metrics.complementary.vertex.ComplementaryLocalClusteringCoefficient;
 import es.uam.eps.ir.socialranksys.graph.DirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.UndirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastDirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastUndirectedUnweightedGraph;
+import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
+import es.uam.eps.ir.socialranksys.metrics.complementary.vertex.ComplementaryDegree;
+import es.uam.eps.ir.socialranksys.metrics.complementary.vertex.ComplementaryInverseDegree;
+import es.uam.eps.ir.socialranksys.metrics.complementary.vertex.ComplementaryLocalClusteringCoefficient;
 import org.junit.*;
 
 /**
