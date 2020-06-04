@@ -9,8 +9,8 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.propagation;
 
 
-import es.uam.eps.socialranksys.diffusion.propagation.PropagationMechanism;
-import es.uam.eps.socialranksys.diffusion.propagation.PullStrategyPropagationMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.propagation.PropagationMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.propagation.PullStrategyPropagationMechanism;
 
 import java.io.Serializable;
 
@@ -20,7 +20,7 @@ import java.io.Serializable;
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
- * @see es.uam.eps.socialranksys.diffusion.propagation.PullStrategyPropagationMechanism
+ * @see PullStrategyPropagationMechanism
  */
 public class PullPropagationConfigurator<U extends Serializable,I extends Serializable,P> implements PropagationConfigurator<U,I,P> 
 {

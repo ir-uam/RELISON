@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.metrics.distributions;
 
-import es.uam.eps.socialranksys.diffusion.metrics.distributions.Distribution;
-import es.uam.eps.socialranksys.diffusion.metrics.distributions.InfoPiecesDistribution;
+import es.uam.eps.ir.socialranksys.diffusion.metrics.distributions.Distribution;
+import es.uam.eps.ir.socialranksys.diffusion.metrics.distributions.InfoPiecesDistribution;
 
 import java.io.Serializable;
 

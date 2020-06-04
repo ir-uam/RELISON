@@ -8,10 +8,10 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.metrics.users;
 
+import es.uam.eps.ir.socialranksys.diffusion.metrics.SimulationMetric;
+import es.uam.eps.ir.socialranksys.diffusion.metrics.user.individual.UserRecall;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricConfigurator;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricParamReader;
-import es.uam.eps.socialranksys.diffusion.metrics.SimulationMetric;
-import es.uam.eps.socialranksys.diffusion.metrics.user.individual.UserRecall;
 
 import java.io.Serializable;
 

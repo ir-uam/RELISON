@@ -8,9 +8,9 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.selection;
 
+import es.uam.eps.ir.socialranksys.diffusion.selections.PureRecommenderSelectionMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.selections.SelectionMechanism;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
-import es.uam.eps.socialranksys.diffusion.selections.PureRecommenderSelectionMechanism;
-import es.uam.eps.socialranksys.diffusion.selections.SelectionMechanism;
 
 import java.io.Serializable;
 

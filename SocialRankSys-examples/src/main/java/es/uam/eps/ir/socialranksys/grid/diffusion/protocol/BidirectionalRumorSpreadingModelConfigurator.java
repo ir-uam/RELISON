@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.protocol;
 
-import es.uam.eps.socialranksys.diffusion.protocols.BidirectionalRumorSpreadingModelProtocol;
-import es.uam.eps.socialranksys.diffusion.protocols.Protocol;
+import es.uam.eps.ir.socialranksys.diffusion.protocols.BidirectionalRumorSpreadingModelProtocol;
+import es.uam.eps.ir.socialranksys.diffusion.protocols.Protocol;
 
 import java.io.Serializable;
 

@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.sight;
 
-import es.uam.eps.socialranksys.diffusion.sight.AllRecommendedSightMechanism;
-import es.uam.eps.socialranksys.diffusion.sight.SightMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.sight.AllRecommendedSightMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.sight.SightMechanism;
 
 import java.io.Serializable;
 

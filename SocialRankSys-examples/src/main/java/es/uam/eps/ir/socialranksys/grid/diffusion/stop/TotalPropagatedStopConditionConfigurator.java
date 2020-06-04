@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.stop;
 
-import es.uam.eps.socialranksys.diffusion.stop.StopCondition;
-import es.uam.eps.socialranksys.diffusion.stop.TotalPropagatedStopCondition;
+import es.uam.eps.ir.socialranksys.diffusion.stop.StopCondition;
+import es.uam.eps.ir.socialranksys.diffusion.stop.TotalPropagatedStopCondition;
 
 import java.io.Serializable;
 

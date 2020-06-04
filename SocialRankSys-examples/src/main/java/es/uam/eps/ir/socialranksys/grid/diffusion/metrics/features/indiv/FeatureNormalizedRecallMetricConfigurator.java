@@ -8,10 +8,10 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.metrics.features.indiv;
 
+import es.uam.eps.ir.socialranksys.diffusion.metrics.SimulationMetric;
+import es.uam.eps.ir.socialranksys.diffusion.metrics.features.indiv.FeatureNormalizedRecall;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricConfigurator;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricParamReader;
-import es.uam.eps.socialranksys.diffusion.metrics.SimulationMetric;
-import es.uam.eps.socialranksys.diffusion.metrics.features.indiv.FeatureNormalizedRecall;
 
 import java.io.Serializable;
 

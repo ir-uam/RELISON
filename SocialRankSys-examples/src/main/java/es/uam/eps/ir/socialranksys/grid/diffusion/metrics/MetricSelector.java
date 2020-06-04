@@ -8,6 +8,7 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.metrics;
 
+import es.uam.eps.ir.socialranksys.diffusion.metrics.SimulationMetric;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.features.global.*;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.features.indiv.*;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.informationpieces.*;
@@ -15,7 +16,6 @@ import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.users.UserGlobalEntrop
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.users.UserGlobalGiniMetricConfigurator;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.users.UserRecallMetricConfigurator;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
-import es.uam.eps.socialranksys.diffusion.metrics.SimulationMetric;
 
 import java.io.Serializable;
 

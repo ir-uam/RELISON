@@ -9,8 +9,8 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.protocol;
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import es.uam.eps.socialranksys.diffusion.protocols.Protocol;
-import es.uam.eps.socialranksys.diffusion.protocols.SimpleProtocol;
+import es.uam.eps.ir.socialranksys.diffusion.protocols.Protocol;
+import es.uam.eps.ir.socialranksys.diffusion.protocols.SimpleProtocol;
 
 import java.io.Serializable;
 

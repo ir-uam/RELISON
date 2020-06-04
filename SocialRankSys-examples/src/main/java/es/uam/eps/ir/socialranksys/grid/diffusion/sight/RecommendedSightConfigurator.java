@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.sight;
 
-import es.uam.eps.socialranksys.diffusion.sight.RecommendedSightMechanism;
-import es.uam.eps.socialranksys.diffusion.sight.SightMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.sight.RecommendedSightMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.sight.SightMechanism;
 
 import java.io.Serializable;
 
@@ -20,7 +20,7 @@ import java.io.Serializable;
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
  * 
- * @see es.uam.eps.socialranksys.diffusion.sight.RecommendedSightMechanism
+ * @see RecommendedSightMechanism
  */
 public class RecommendedSightConfigurator<U extends Serializable, I extends Serializable, P> implements SightConfigurator<U,I,P> {
 

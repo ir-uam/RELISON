@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.filter;
 
-import es.uam.eps.socialranksys.diffusion.data.filter.DataFilter;
-import es.uam.eps.socialranksys.diffusion.data.filter.InformationFeatureSelectionFilter;
+import es.uam.eps.ir.socialranksys.diffusion.data.filter.DataFilter;
+import es.uam.eps.ir.socialranksys.diffusion.data.filter.InformationFeatureSelectionFilter;
 import org.openide.util.Exceptions;
 import org.ranksys.formats.parsing.Parser;
 

@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.selection;
 
-import es.uam.eps.socialranksys.diffusion.selections.CountThresholdSelectionMechanism;
-import es.uam.eps.socialranksys.diffusion.selections.SelectionMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.selections.CountThresholdSelectionMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.selections.SelectionMechanism;
 
 import java.io.Serializable;
 
@@ -19,7 +19,7 @@ import java.io.Serializable;
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
- * @see es.uam.eps.socialranksys.diffusion.selections.CountThresholdSelectionMechanism
+ * @see CountThresholdSelectionMechanism
  */
 public class CountThresholdSelectionConfigurator<U extends Serializable,I extends Serializable,P> implements SelectionConfigurator<U,I,P>
 {

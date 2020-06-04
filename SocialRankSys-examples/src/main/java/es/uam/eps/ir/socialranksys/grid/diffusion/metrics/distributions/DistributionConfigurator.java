@@ -8,7 +8,7 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.metrics.distributions;
 
-import es.uam.eps.socialranksys.diffusion.metrics.distributions.Distribution;
+import es.uam.eps.ir.socialranksys.diffusion.metrics.distributions.Distribution;
 
 import java.io.Serializable;
 
@@ -18,7 +18,7 @@ import java.io.Serializable;
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
- * @see es.uam.eps.socialranksys.diffusion.metrics.distributions.Distribution
+ * @see Distribution
  */
 public interface DistributionConfigurator<U extends Serializable,I extends Serializable,P> 
 {

@@ -9,8 +9,8 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.stop;
 
 
-import es.uam.eps.socialranksys.diffusion.stop.MaxTimestampStopCondition;
-import es.uam.eps.socialranksys.diffusion.stop.StopCondition;
+import es.uam.eps.ir.socialranksys.diffusion.stop.MaxTimestampStopCondition;
+import es.uam.eps.ir.socialranksys.diffusion.stop.StopCondition;
 
 import java.io.Serializable;
 
@@ -20,7 +20,7 @@ import java.io.Serializable;
  * @param <U> Type of the users
  * @param <I> Type of the information pieces
  * @param <P> Type of the features.
- * @see es.uam.eps.socialranksys.diffusion.stop.MaxTimestampStopCondition
+ * @see MaxTimestampStopCondition
  */
 public class MaxTimestampStopConditionConfigurator<U extends Serializable,I extends Serializable,P> implements StopConditionConfigurator<U,I,P>
 {

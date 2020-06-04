@@ -8,17 +8,17 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion;
 
+import es.uam.eps.ir.socialranksys.diffusion.data.filter.CombinedFilter;
+import es.uam.eps.ir.socialranksys.diffusion.data.filter.DataFilter;
+import es.uam.eps.ir.socialranksys.diffusion.protocols.Protocol;
+import es.uam.eps.ir.socialranksys.diffusion.simulation.Simulator;
+import es.uam.eps.ir.socialranksys.diffusion.stop.StopCondition;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.grid.diffusion.filter.FilterParamReader;
 import es.uam.eps.ir.socialranksys.grid.diffusion.filter.FilterSelector;
 import es.uam.eps.ir.socialranksys.grid.diffusion.protocol.ProtocolSelector;
 import es.uam.eps.ir.socialranksys.grid.diffusion.stop.StopConditionSelector;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
-import es.uam.eps.socialranksys.diffusion.data.filter.CombinedFilter;
-import es.uam.eps.socialranksys.diffusion.data.filter.DataFilter;
-import es.uam.eps.socialranksys.diffusion.protocols.Protocol;
-import es.uam.eps.socialranksys.diffusion.simulation.Simulator;
-import es.uam.eps.socialranksys.diffusion.stop.StopCondition;
 import org.ranksys.formats.parsing.Parser;
 
 import java.io.Serializable;

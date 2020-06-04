@@ -9,8 +9,8 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.update;
 
 
-import es.uam.eps.socialranksys.diffusion.update.IndependentCascadeModelUpdateMechanism;
-import es.uam.eps.socialranksys.diffusion.update.UpdateMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.update.IndependentCascadeModelUpdateMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.update.UpdateMechanism;
 
 /**
  * Configures a Independent Cascade Model update mechanism.

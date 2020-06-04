@@ -9,7 +9,7 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.stop;
 
 
-import es.uam.eps.socialranksys.diffusion.stop.StopCondition;
+import es.uam.eps.ir.socialranksys.diffusion.stop.StopCondition;
 
 import java.io.Serializable;
 

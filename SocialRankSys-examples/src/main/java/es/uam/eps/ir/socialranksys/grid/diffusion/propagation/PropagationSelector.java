@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.propagation;
 
+import es.uam.eps.ir.socialranksys.diffusion.propagation.PropagationMechanism;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
-import es.uam.eps.socialranksys.diffusion.propagation.PropagationMechanism;
 
 import java.io.Serializable;
 

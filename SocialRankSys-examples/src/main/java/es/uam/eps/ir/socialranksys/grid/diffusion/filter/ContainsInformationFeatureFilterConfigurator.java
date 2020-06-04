@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.filter;
 
-import es.uam.eps.socialranksys.diffusion.data.filter.ContainsInformationFeatureFilter;
-import es.uam.eps.socialranksys.diffusion.data.filter.DataFilter;
+import es.uam.eps.ir.socialranksys.diffusion.data.filter.ContainsInformationFeatureFilter;
+import es.uam.eps.ir.socialranksys.diffusion.data.filter.DataFilter;
 
 import java.io.Serializable;
 

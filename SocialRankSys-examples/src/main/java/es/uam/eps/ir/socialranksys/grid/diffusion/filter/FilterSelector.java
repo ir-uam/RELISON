@@ -8,9 +8,9 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.filter;
 
+import es.uam.eps.ir.socialranksys.diffusion.data.filter.DataFilter;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
-import es.uam.eps.socialranksys.diffusion.data.filter.DataFilter;
 import org.ranksys.formats.parsing.Parser;
 
 import java.io.Serializable;

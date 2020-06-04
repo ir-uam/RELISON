@@ -8,19 +8,19 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.protocol;
 
+import es.uam.eps.ir.socialranksys.diffusion.expiration.ExpirationMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.propagation.PropagationMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.protocols.CustomProtocol;
+import es.uam.eps.ir.socialranksys.diffusion.protocols.Protocol;
+import es.uam.eps.ir.socialranksys.diffusion.selections.SelectionMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.sight.SightMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.update.UpdateMechanism;
 import es.uam.eps.ir.socialranksys.grid.diffusion.expiration.ExpirationSelector;
 import es.uam.eps.ir.socialranksys.grid.diffusion.propagation.PropagationSelector;
 import es.uam.eps.ir.socialranksys.grid.diffusion.selection.SelectionSelector;
 import es.uam.eps.ir.socialranksys.grid.diffusion.sight.SightSelector;
 import es.uam.eps.ir.socialranksys.grid.diffusion.update.UpdateSelector;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
-import es.uam.eps.socialranksys.diffusion.expiration.ExpirationMechanism;
-import es.uam.eps.socialranksys.diffusion.propagation.PropagationMechanism;
-import es.uam.eps.socialranksys.diffusion.protocols.CustomProtocol;
-import es.uam.eps.socialranksys.diffusion.protocols.Protocol;
-import es.uam.eps.socialranksys.diffusion.selections.SelectionMechanism;
-import es.uam.eps.socialranksys.diffusion.sight.SightMechanism;
-import es.uam.eps.socialranksys.diffusion.update.UpdateMechanism;
 
 import java.io.Serializable;
 
