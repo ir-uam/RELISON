@@ -13,7 +13,7 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.graph.generator.EmptyGraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
 import es.uam.eps.ir.socialranksys.links.recommendation.UserFastRankingRecommender;
-import es.uam.eps.ir.socialranksys.links.recommendation.standalone.randomwalk.PageRank;
+import es.uam.eps.ir.socialranksys.metrics.vertex.PageRank;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.*;

@@ -10,16 +10,16 @@ package es.uam.eps.ir.socialranksys.links.recommendation.standalone.twitter;
 
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.links.recommendation.standalone.bipartite.BipartiteRecommender;
-import es.uam.eps.ir.socialranksys.links.recommendation.standalone.randomwalk.PersonalizedSALSA;
+import es.uam.eps.ir.socialranksys.links.recommendation.standalone.randomwalk.PersonalizedHITS;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
  * Twitter Money algorithm.
  * @author Javier Sanz-Cruzado Puig
- * @param <U> type of the users.
+ * @param <U> Type of the users
  */
-public class MoneyRecommender<U> extends TwitterRecommender<U> 
+public class Love<U> extends TwitterRecommender<U>
 {
     /**
      * True for authorities, false for hubs
@@ -37,7 +37,7 @@ public class MoneyRecommender<U> extends TwitterRecommender<U>
      * @param mode true for recommending authorities, false for recommending hubs.
      * @param alpha teleport rate for the Money algorithm.
      */
-    public MoneyRecommender(FastGraph<U> graph, int circlesize, double r, boolean mode, double alpha) {
+    public Love(FastGraph<U> graph, int circlesize, double r, boolean mode, double alpha) {
         super(graph, circlesize, r);
         
         this.mode = mode;
@@ -51,7 +51,7 @@ public class MoneyRecommender<U> extends TwitterRecommender<U>
         U u = uIndex.uidx2user(uIdx);
         
         FastGraph<U> graph = this.circles.get(u);
-        BipartiteRecommender<U> rec = new PersonalizedSALSA<>(graph, mode, alpha);
+        BipartiteRecommender<U> rec = new PersonalizedHITS<>(graph, mode, alpha);
         Int2DoubleMap scores = rec.getScoresMap(rec.user2uidx(u));
         
         iIndex.getAllIidx().forEach(iIdx -> {

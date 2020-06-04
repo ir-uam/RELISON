@@ -10,6 +10,7 @@ package es.uam.eps.ir.socialranksys.links.recommendation.standalone.randomwalk;
 
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.links.recommendation.UserFastRankingRecommender;
+import es.uam.eps.ir.socialranksys.metrics.vertex.PageRank;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
@@ -43,7 +44,7 @@ public class PersonalizedPageRank<U> extends UserFastRankingRecommender<U>
     public Int2DoubleMap getScoresMap(int i) {
         U u = this.uIndex.uidx2user(i);
         Int2DoubleMap scores = new Int2DoubleOpenHashMap();
-        PageRank<U> pageRank = new PageRank<>(this.r,u);
+        PageRank<U> pageRank = new PageRank<>(this.r, u);
         Map<U, Double> pageRanks = pageRank.compute(this.getGraph());
         pageRanks.forEach((key, value) -> scores.put(uIndex.user2uidx(key), value.doubleValue()));
         return scores;

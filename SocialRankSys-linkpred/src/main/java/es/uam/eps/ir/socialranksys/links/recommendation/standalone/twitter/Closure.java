@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  * @author Javier Sanz-Cruzado Puig
  * @param <U> Type of the users
  */
-public class ClosureRecommender<U> extends UserFastRankingRecommender<U>
+public class Closure<U> extends UserFastRankingRecommender<U>
 {
     
     /**
@@ -31,7 +31,7 @@ public class ClosureRecommender<U> extends UserFastRankingRecommender<U>
      * @param graph Graph.
 
      */
-    public ClosureRecommender(FastGraph<U> graph)
+    public Closure(FastGraph<U> graph)
     {
         super(graph);
 
