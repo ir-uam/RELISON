@@ -10,8 +10,6 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>SocialRankSys-sna</artifactId>
-    <packaging>pom</packaging>
-
     <build>
         <plugins>
             <plugin>
@@ -25,6 +23,7 @@
             </plugin>
         </plugins>
     </build>
+
 
     <dependencies>
         <dependency>
@@ -54,4 +53,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+
 </project>

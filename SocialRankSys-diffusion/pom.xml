@@ -27,9 +27,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>es.uam.eps.ir</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>SocialRankSys-core</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 
