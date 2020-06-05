@@ -37,7 +37,6 @@ import java.util.logging.Logger;
 
 import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
-
 /**
  * Lucene implementation of a Twittomender index.
  * @author Javier Sanz-Cruzado Puig

@@ -64,6 +64,11 @@
             <artifactId>RankSys-novdiv</artifactId>
             <version>0.4.3</version>
         </dependency>
+        <dependency>
+            <groupId>org.ranksys</groupId>
+            <artifactId>RankSys-novelty</artifactId>
+            <version>0.4.3</version>
+        </dependency>
     </dependencies>
 
 </project>

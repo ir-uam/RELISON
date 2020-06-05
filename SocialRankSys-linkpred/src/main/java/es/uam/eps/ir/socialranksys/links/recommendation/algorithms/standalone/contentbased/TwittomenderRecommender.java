@@ -45,7 +45,7 @@ public class TwittomenderRecommender<U> extends UserFastRankingRecommender<U>
      * Similarity method to compare the different users.
      */
     private final ContentSimilarity similarity;
-    
+
     /**
      * Constructor
      * @param graph The training graph.

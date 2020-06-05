@@ -56,5 +56,10 @@
             <artifactId>SocialRankSys-diffusion</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.ranksys</groupId>
+            <artifactId>RankSys-diversity</artifactId>
+            <version>0.4.3</version>
+        </dependency>
     </dependencies>
 </project>
