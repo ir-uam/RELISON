@@ -23,7 +23,7 @@ import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.Algorith
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityGridSelector;
-import es.uam.eps.ir.socialranksys.links.recommendation.knn.similarities.SpecificUserSimilarity;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.SpecificUserSimilarity;
 
 import java.util.HashMap;
 import java.util.List;

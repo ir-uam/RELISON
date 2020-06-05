@@ -17,9 +17,9 @@ import es.uam.eps.ir.ranksys.rec.Recommender;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastDirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
-import es.uam.eps.ir.socialranksys.links.recommendation.standalone.distance.ShortestDistance;
-import es.uam.eps.ir.socialranksys.links.recommendation.standalone.foaf.*;
-import es.uam.eps.ir.socialranksys.links.recommendation.standalone.ir.*;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.distance.ShortestDistance;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.foaf.*;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.ir.*;
 import org.junit.*;
 
 import java.util.ArrayList;

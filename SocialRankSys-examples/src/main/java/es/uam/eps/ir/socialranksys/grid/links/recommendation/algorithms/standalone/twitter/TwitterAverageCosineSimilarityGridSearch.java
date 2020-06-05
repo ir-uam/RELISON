@@ -14,7 +14,7 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
-import es.uam.eps.ir.socialranksys.links.recommendation.standalone.twitter.TwitterAverageCosineSimilarity;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.twitter.TwitterAverageCosineSimilarity;
 
 import java.util.HashMap;
 import java.util.List;

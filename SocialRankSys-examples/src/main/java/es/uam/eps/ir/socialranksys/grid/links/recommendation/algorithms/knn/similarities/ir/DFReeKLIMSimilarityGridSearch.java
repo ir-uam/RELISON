@@ -16,7 +16,7 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityGridSearch;
-import es.uam.eps.ir.socialranksys.links.recommendation.knn.similarities.ir.DFReeKLIMSimilarity;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.ir.DFReeKLIMSimilarity;
 
 import java.util.HashMap;
 import java.util.List;

@@ -17,7 +17,7 @@ import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmIdentifiers;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
-import es.uam.eps.ir.socialranksys.links.recommendation.standalone.ir.BM25;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.ir.BM25;
 
 import java.util.HashMap;
 import java.util.List;
