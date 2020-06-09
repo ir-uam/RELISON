@@ -72,9 +72,14 @@ public class PageRank<U> implements VertexMetric<U>
     @Override
     public Map<U, Double> compute(Graph<U> graph) 
     {
-        Set<U> users = graph.getAllNodes().collect(Collectors.toCollection(HashSet::new));
+        Set<U> users = new HashSet<>();
         Map<U, Integer> ids = new HashMap<>();
-        
+        graph.getAllNodes().forEach(node ->
+        {
+            users.add(node);
+            ids.put(node, ids.size());
+        });
+
         int N = users.size();
 
         // data
@@ -84,18 +89,17 @@ public class PageRank<U> implements VertexMetric<U>
         Double[] prAux = new Double[N];
 
         // ini
-        int index = 0;
-        for (U v : users) 
+        for (U v : users)
         {
-            ids.put(v, index);
-
-            Map<U, Double> inWeights = null;
+            int index = ids.get(v);
+            Map<U, Double> inWeights = new HashMap<>();
             double outSum = 0.0;
 
             Set<U> inUsers = graph.getIncidentNodes(v).collect(Collectors.toCollection(HashSet::new));
-            if (!inUsers.isEmpty()) {
-                inWeights = new HashMap<>();
-                for (U w : inUsers) {
+            if (!inUsers.isEmpty())
+            {
+                for (U w : inUsers)
+                {
                     inWeights.put(w, 1.0);
                 }
             }
@@ -108,8 +112,6 @@ public class PageRank<U> implements VertexMetric<U>
             out[index] = outSum;
 
             pr[index] = 1.0/(N+0.0);
-
-            index++;
         }
 
         // iterations
@@ -125,13 +127,15 @@ public class PageRank<U> implements VertexMetric<U>
                 for (int w = 0; w < N; w++) {
                     prAux[w] = 0.0;
                 }
-                index = ids.get(u);
+                int index = ids.get(u);
                 prAux[index] = r;
             }
            
             // calculate
-            for (int u : in.keySet()) {
-                for (U vId : in.get(u).keySet()) {
+            for (int u : in.keySet())
+            {
+                for (U vId : in.get(u).keySet())
+                {
                     int v = ids.get(vId);
                     prAux[u] += (1 - r) * pr[v] * in.get(u).get(vId) / out[v];
                 }
