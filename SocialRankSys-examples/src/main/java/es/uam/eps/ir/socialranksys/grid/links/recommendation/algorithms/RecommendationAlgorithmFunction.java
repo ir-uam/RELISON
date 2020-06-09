@@ -35,4 +35,10 @@ public interface RecommendationAlgorithmFunction<U>
      * @return the trained recommender.
      */
     Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData);
+
+    /**
+     * Indicates if the algorithm version to use is weighted or not.
+     * @return true if the algorithm version is weighted, false otherwise.
+     */
+    default boolean isWeighted() { return false;}
 }

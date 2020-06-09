@@ -52,6 +52,10 @@ public class ImplicitMFGridSearch<U> implements AlgorithmGridSearch<U>
      * Number of iterations for the algorithm
      */
     private final static int NUMITER = 20;
+    /**
+     * Identifier for indicating whether the result is weighted or not.
+     */
+    private static final String WEIGHTED = "weighted";
 
     @Override
     public Map<String, RecommendationAlgorithmFunction<U>> grid(Grid grid)
@@ -61,19 +65,46 @@ public class ImplicitMFGridSearch<U> implements AlgorithmGridSearch<U>
         List<Double> lambdas = grid.getDoubleValues(LAMBDA);
         List<Double> alphas = grid.getDoubleValues(ALPHA);
         List<Integer> ks = grid.getIntegerValues(K);
-        
-        alphas.forEach(alpha ->
-        {
-            DoubleUnaryOperator confidence = (double x) -> 1 + alpha*x;
-            ks.forEach(k ->
-                lambdas.forEach(lambda ->
-                    recs.put(IMF + "_" + k + "_" + lambda + "_" + alpha, (graph, prefData) ->
-                    {
-                       Factorizer<U, U> factorizer = new HKVFactorizer<>(lambda, confidence, NUMITER);
-                       Factorization<U, U> factorization = factorizer.factorize(k, prefData);
-                       return new MFRecommender<>(prefData, prefData, factorization);
-                    })));
-        });
+        List<Boolean> weighted = grid.getBooleanValues(WEIGHTED);
+
+        if(weighted.isEmpty())
+            alphas.forEach(alpha ->
+            {
+                DoubleUnaryOperator confidence = (double x) -> 1 + alpha*x;
+                ks.forEach(k ->
+                    lambdas.forEach(lambda ->
+                        recs.put(IMF + "_" + k + "_" + lambda + "_" + alpha, (graph, prefData) ->
+                        {
+                           Factorizer<U, U> factorizer = new HKVFactorizer<>(lambda, confidence, NUMITER);
+                           Factorization<U, U> factorization = factorizer.factorize(k, prefData);
+                           return new MFRecommender<>(prefData, prefData, factorization);
+                        })));
+            });
+        else
+            alphas.forEach(alpha ->
+            {
+                DoubleUnaryOperator confidence = (double x) -> 1 + alpha*x;
+                ks.forEach(k ->
+                    lambdas.forEach(lambda ->
+                        weighted.forEach(weight ->
+                            recs.put(IMF + "_" + (weight ? "wei" : "unw") + "_" + k + "_" + lambda + "_" + alpha, new RecommendationAlgorithmFunction<>()
+                            {
+                                @Override
+                                public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
+                                {
+                                    Factorizer<U, U> factorizer = new HKVFactorizer<>(lambda, confidence, NUMITER);
+                                    Factorization<U, U> factorization = factorizer.factorize(k, prefData);
+                                    return new MFRecommender<>(prefData, prefData, factorization);
+                                }
+
+                                @Override
+                                public boolean isWeighted()
+                                {
+                                    return weight;
+                                }
+                            }
+                            ))));
+            });
         return recs;
     }
 

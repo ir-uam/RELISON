@@ -9,10 +9,12 @@
  */
 package es.uam.eps.ir.socialranksys.graph;
 
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.generator.EmptyGraphGenerator;
+import es.uam.eps.ir.socialranksys.graph.generator.GraphCloneGenerator;
+import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
-import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 
 /**
  * Methods for filtering the users and edges from a graph.
@@ -131,6 +133,63 @@ public class Adapters
             return auxGraph;
         }
         catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException ex)
+        {
+            return null;
+        }
+    }
+
+    /**
+     * Given a weighted network, returns the unweighted version.
+     * @param graph the original graph.
+     * @param <U> type of the users.
+     * @return the unweighted network if everything is OK, null otherwise.
+     */
+    public static <U> Graph<U> unweighted(Graph<U> graph)
+    {
+        try
+        {
+            GraphGenerator<U> ggen = new EmptyGraphGenerator<>();
+            ggen.configure(graph.isDirected(), false);
+            Graph<U> auxGraph = ggen.generate();
+
+            graph.getAllNodes().forEach(auxGraph::addNode);
+            graph.getAllNodes().forEach(u -> graph.getAdjacentNodes(u).forEach(v -> auxGraph.addEdge(u,v)));
+            return auxGraph;
+        }
+        catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException ex)
+        {
+            return null;
+        }
+    }
+
+    /**
+     * Given a directed network, returns the undirected version
+     * @param graph the original graph.
+     * @param <U> type of the users
+     * @return the graph.
+     */
+    public static <U> Graph<U> undirected(Graph<U> graph)
+    {
+        try
+        {
+            if(!graph.isDirected())
+            {
+                GraphGenerator<U> ggen = new GraphCloneGenerator<>();
+                ggen.configure(graph);
+                return ggen.generate();
+            }
+            else
+            {
+                GraphGenerator<U> ggen = new EmptyGraphGenerator<>();
+                ggen.configure(false, graph.isWeighted());
+                Graph<U> auxGraph = ggen.generate();
+
+                graph.getAllNodes().forEach(auxGraph::addNode);
+                graph.getAllNodes().forEach(u -> graph.getNeighbourhoodWeights(u, EdgeOrientation.UND).forEach(v -> auxGraph.addEdge(u, v.getIdx(), v.getValue())));
+                return auxGraph;
+            }
+        }
+        catch(GeneratorNotConfiguredException | GeneratorBadConfiguredException ex)
         {
             return null;
         }

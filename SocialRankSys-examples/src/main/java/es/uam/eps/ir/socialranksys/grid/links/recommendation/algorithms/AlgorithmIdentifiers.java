@@ -59,6 +59,8 @@ public class AlgorithmIdentifiers
     public final static String PERSSALSA = "Personalized SALSA";
     public final static String PERSHITS = "Personalized HITS";
 
+    public final static String PROPFLOW = "PropFlow";
+
     // Twitter
     public final static String CLOSURE = "Closure";
     public final static String MONEY = "Money";

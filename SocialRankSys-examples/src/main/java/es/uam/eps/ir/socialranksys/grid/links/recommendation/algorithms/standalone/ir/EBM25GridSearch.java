@@ -53,6 +53,10 @@ public class EBM25GridSearch<U> implements AlgorithmGridSearch<U>
      * Identifier for the orientation for the document length
      */
     private static final String DLSEL = "dlSel";
+    /**
+     * Identifier for indicating whether the result is weighted or not.
+     */
+    private static final String WEIGHTED = "weighted";
 
     @Override
     public Map<String, Supplier<Recommender<U, U>>> grid(Grid grid, FastGraph<U> graph, FastPreferenceData<U, U> prefData)
@@ -80,12 +84,35 @@ public class EBM25GridSearch<U> implements AlgorithmGridSearch<U>
         List<EdgeOrientation> uSels = grid.getOrientationValues(USEL);
         List<EdgeOrientation> vSels = grid.getOrientationValues(VSEL);
         List<EdgeOrientation> dlSels = grid.getOrientationValues(DLSEL);
+        List<Boolean> weighted = grid.getBooleanValues(WEIGHTED);
 
-        bs.forEach(b ->
-            uSels.forEach(uSel ->
-                vSels.forEach(vSel ->
-                    dlSels.forEach(dlSel ->
-                        recs.put(AlgorithmIdentifiers.EBM25 + "_" + uSel + "_" + vSel + "_" + dlSel + "_" + b, (graph, prefData) -> new EBM25<>(graph, uSel, vSel, dlSel, b))))));
+        if(weighted.isEmpty())
+            bs.forEach(b ->
+                uSels.forEach(uSel ->
+                    vSels.forEach(vSel ->
+                        dlSels.forEach(dlSel ->
+                            recs.put(AlgorithmIdentifiers.EBM25 + "_" + uSel + "_" + vSel + "_" + dlSel + "_" + b, (graph, prefData) -> new EBM25<>(graph, uSel, vSel, dlSel, b))))));
+        else
+            bs.forEach(b ->
+                uSels.forEach(uSel ->
+                    vSels.forEach(vSel ->
+                        dlSels.forEach(dlSel ->
+                            weighted.forEach(weight ->
+                                recs.put(AlgorithmIdentifiers.EBM25 + "_" + (weight ? "wei" : "unw") +"_" + uSel + "_" + vSel + "_" + dlSel + "_" + b,
+                                    new RecommendationAlgorithmFunction<>()
+                                    {
+                                        @Override
+                                        public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
+                                        {
+                                            return new EBM25<>(graph, uSel, vSel, dlSel, b);
+                                        }
+
+                                        @Override
+                                        public boolean isWeighted()
+                                        {
+                                            return weight;
+                                        }
+                                    }))))));
 
         return recs;
     }

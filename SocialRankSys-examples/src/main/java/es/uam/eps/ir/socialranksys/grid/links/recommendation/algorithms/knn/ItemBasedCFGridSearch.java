@@ -51,6 +51,10 @@ public class ItemBasedCFGridSearch<U> implements AlgorithmGridSearch<U>
      * Exponent of the similarity.
      */
     private final static String Q = "q";
+    /**
+     * Identifier for indicating whether the result is weighted or not.
+     */
+    private static final String WEIGHTED = "weighted";
     
     @Override
     public Map<String, Supplier<Recommender<U, U>>> grid(Grid grid, FastGraph<U> graph, FastPreferenceData<U,U> prefData)
@@ -83,26 +87,52 @@ public class ItemBasedCFGridSearch<U> implements AlgorithmGridSearch<U>
     public Map<String, RecommendationAlgorithmFunction<U>> grid(Grid grid)
     {
         Map<String, RecommendationAlgorithmFunction<U>> recs = new HashMap<>();
-        
+
         Map<String, Grid> similarities = grid.getGridValues(SIM);
         List<Integer> ks = grid.getIntegerValues(K);
         List<Integer> qs = grid.getIntegerValues(Q);
-        
+        List<Boolean> weighted = grid.getBooleanValues(WEIGHTED);
         SimilarityGridSelector<U> selector = new SimilarityGridSelector<>();
-        
-        ks.forEach(k ->
-            qs.forEach(q ->
-                similarities.forEach((simname, simgrid) ->
-                {
-                    Map<String, SimilarityFunction<U>> sims = selector.getSimilarities(simname, simgrid);
-                    sims.forEach((name, sim) ->
-                        recs.put(IB + "_" + name + "_" + k + "_" + q, (FastGraph<U> graph, FastPreferenceData<U, U> prefData) ->
-                        {
-                            ItemSimilarity<U> similarity = new SpecificItemSimilarity<>(prefData, sim.apply(graph, prefData));
-                            ItemNeighborhood<U> neighborhood = new CachedItemNeighborhood<>(new TopKItemNeighborhood<>(similarity, k));
-                            return new ItemNeighborhoodRecommender<>(prefData, neighborhood, q);
-                        }));
-                })));
+
+        if(weighted.isEmpty())
+            ks.forEach(k ->
+                qs.forEach(q ->
+                    similarities.forEach((simname, simgrid) ->
+                    {
+                        Map<String, SimilarityFunction<U>> sims = selector.getSimilarities(simname, simgrid);
+                        sims.forEach((name, sim) ->
+                            recs.put(IB + "_" + name + "_" + k + "_" + q, (FastGraph<U> graph, FastPreferenceData<U, U> prefData) ->
+                            {
+                                ItemSimilarity<U> similarity = new SpecificItemSimilarity<>(prefData, sim.apply(graph, prefData));
+                                ItemNeighborhood<U> neighborhood = new CachedItemNeighborhood<>(new TopKItemNeighborhood<>(similarity, k));
+                                return new ItemNeighborhoodRecommender<>(prefData, neighborhood, q);
+                            }));
+                    })));
+        else
+            ks.forEach(k ->
+                qs.forEach(q ->
+                    similarities.forEach((simname, simgrid) ->
+                    {
+                        Map<String, SimilarityFunction<U>> sims = selector.getSimilarities(simname, simgrid);
+                        sims.forEach((name, sim) ->
+                            weighted.forEach( weight ->
+                                recs.put(IB + "_" + (weight ? "wei" : "unw") + "_" + name + "_" + k + "_" + q, new RecommendationAlgorithmFunction<>()
+                                {
+                                    @Override
+                                    public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
+                                    {
+                                        ItemSimilarity<U> similarity = new SpecificItemSimilarity<>(prefData, sim.apply(graph, prefData));
+                                        ItemNeighborhood<U> neighborhood = new CachedItemNeighborhood<>(new TopKItemNeighborhood<>(similarity, k));
+                                        return new ItemNeighborhoodRecommender<>(prefData, neighborhood, q);
+                                    }
+
+                                    @Override
+                                    public boolean isWeighted()
+                                    {
+                                        return weight;
+                                    }
+                                })));
+                    })));
         return recs;
     }
 }

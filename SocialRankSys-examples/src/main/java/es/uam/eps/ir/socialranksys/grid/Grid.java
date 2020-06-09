@@ -10,6 +10,7 @@ package es.uam.eps.ir.socialranksys.grid;
 
 
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
+import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -213,5 +214,127 @@ public class Grid
     public Map<String, Grid> getGridValues(String paramName)
     {
         return this.gridValues.getOrDefault(paramName, new HashMap<>());
+    }
+
+    /**
+     * Given a grid, gets all the possible configurations of those parameters.
+     *
+     * @return the set of configurations
+     */
+    public Configurations getConfigurations()
+    {
+        return new Configurations(this.getListParameters());
+    }
+
+    private static <T> List<Map<String, T>> getMaps(Map<String, List<T>> allValues)
+    {
+        List<Map<String, T>> mapsList = new ArrayList<>();
+        for (String variable : allValues.keySet())
+        {
+            List<Map<String, T>> aux = new ArrayList<>();
+            for (T value : allValues.get(variable))
+            {
+                if (!mapsList.isEmpty())
+                {
+                    for (Map<String, T> auxMap : mapsList)
+                    {
+                        Map<String, T> map = new HashMap<>(auxMap);
+                        map.put(variable, value);
+                        aux.add(map);
+                    }
+                }
+                else
+                {
+                    Map<String, T> map = new HashMap<>();
+                    map.put(variable, value);
+                    aux.add(map);
+                }
+            }
+            mapsList = aux;
+        }
+
+        if (mapsList.isEmpty()) mapsList.add(new HashMap<>());
+
+        return mapsList;
+    }
+
+    private static List<Map<String, Tuple2oo<String, Parameters>>> getMapsFromGrids(Map<String, Map<String, Grid>> allValues)
+    {
+        List<Map<String, Tuple2oo<String, Parameters>>> mapList = new ArrayList<>();
+        for (String variable : allValues.keySet())
+        {
+            List<Map<String, Tuple2oo<String, Parameters>>> aux = new ArrayList<>();
+
+            Map<String, Grid> values = allValues.get(variable);
+            for (String name : values.keySet())
+            {
+                Grid grid = values.get(name);
+                List<Parameters> parameters = grid.getListParameters();
+
+                for (Parameters params : parameters)
+                {
+                    if (!mapList.isEmpty())
+                    {
+                        for (Map<String, Tuple2oo<String, Parameters>> auxMap : mapList)
+                        {
+                            Map<String, Tuple2oo<String, Parameters>> map = new HashMap<>(auxMap);
+                            map.put(variable, new Tuple2oo<>(name, params));
+                            aux.add(map);
+                        }
+                    }
+                    else
+                    {
+                        Map<String, Tuple2oo<String, Parameters>> map = new HashMap<>();
+                        map.put(variable, new Tuple2oo<>(name, params));
+                        aux.add(map);
+                    }
+                }
+            }
+
+            mapList = aux;
+        }
+
+        if (mapList.isEmpty()) mapList.add(new HashMap<>());
+
+        return mapList;
+    }
+
+    private List<Parameters> getListParameters()
+    {
+        List<Map<String, Double>> doubleMapsList = getMaps(doubleValues);
+        List<Map<String, EdgeOrientation>> orientationMapsList = getMaps(orientationValues);
+        List<Map<String, String>> stringMapsList = getMaps(stringValues);
+        List<Map<String, Integer>> intMapsList = getMaps(integerValues);
+        List<Map<String, Boolean>> booleanMapsList = getMaps(booleanValues);
+        List<Map<String, Long>> longMapsList = getMaps(longValues);
+        List<Map<String, Tuple2oo<String, Parameters>>> parametersList = getMapsFromGrids(gridValues);
+
+        List<Parameters> parameterList = new ArrayList<>();
+
+        for (Map<String, Double> doubles : doubleMapsList)
+        {
+            for (Map<String, EdgeOrientation> orientations : orientationMapsList)
+            {
+                for (Map<String, String> strings : stringMapsList)
+                {
+                    for (Map<String, Integer> integers : intMapsList)
+                    {
+                        for (Map<String, Boolean> booleans : booleanMapsList)
+                        {
+                            for (Map<String, Long> longs : longMapsList)
+                            {
+                                for (Map<String, Tuple2oo<String, Parameters>> parameters : parametersList)
+                                {
+                                    Parameters params = new Parameters(doubles, orientations, strings, integers, booleans, longs, parameters);
+                                    parameterList.add(params);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return parameterList;
     }
 }

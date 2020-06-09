@@ -50,6 +50,10 @@ public class QLDGridSearch<U> implements AlgorithmGridSearch<U>
      * Identifier for the orientation of the target user neighborhood
      */
     private static final String VSEL = "vSel";
+    /**
+     * Identifier for indicating whether the result is weighted or not.
+     */
+    private static final String WEIGHTED = "weighted";
 
     @Override
     public Map<String, Supplier<Recommender<U, U>>> grid(Grid grid, FastGraph<U> graph, FastPreferenceData<U, U> prefData)
@@ -74,11 +78,31 @@ public class QLDGridSearch<U> implements AlgorithmGridSearch<U>
         List<Double> mus = grid.getDoubleValues(MU);
         List<EdgeOrientation> uSels = grid.getOrientationValues(USEL);
         List<EdgeOrientation> vSels = grid.getOrientationValues(VSEL);
-
-        mus.forEach(mu ->
+        List<Boolean> weighted = grid.getBooleanValues(WEIGHTED);
+        if(weighted.isEmpty())
+            mus.forEach(mu ->
                 uSels.forEach(uSel ->
-                        vSels.forEach(vSel ->
-                                recs.put(AlgorithmIdentifiers.QLD + "_" + uSel + "_" + vSel + "_" + mu, (graph, prefData) -> new QLD<>(graph, uSel, vSel, mu)))));
+                    vSels.forEach(vSel ->
+                        recs.put(AlgorithmIdentifiers.QLD + "_" + uSel + "_" + vSel + "_" + mu, (graph, prefData) -> new QLD<>(graph, uSel, vSel, mu)))));
+        else
+            mus.forEach(mu ->
+                uSels.forEach(uSel ->
+                    vSels.forEach(vSel ->
+                        weighted.forEach(weight ->
+                            recs.put(AlgorithmIdentifiers.QLD +"_" + (weight ? "wei" : "unw") + "_" + uSel + "_" + vSel + "_" + mu, new RecommendationAlgorithmFunction<>()
+                            {
+                                @Override
+                                public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
+                                {
+                                    return new QLD<>(graph, uSel, vSel, mu);
+                                }
+
+                                @Override
+                                public boolean isWeighted()
+                                {
+                                    return weight;
+                                }
+                            })))));
 
         return recs;
     }

@@ -38,6 +38,8 @@ import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.A
  */
 public class CosineGridSearch<U> implements AlgorithmGridSearch<U>
 {
+
+    private static final String WEIGHTED = "weighted";
     /**
      * Identifier for the orientation of the target user neighborhood
      */
@@ -54,10 +56,41 @@ public class CosineGridSearch<U> implements AlgorithmGridSearch<U>
 
         List<EdgeOrientation> uSels = grid.getOrientationValues(USEL);
         List<EdgeOrientation> vSels = grid.getOrientationValues(VSEL);
+        List<Boolean> weighted = grid.getBooleanValues(WEIGHTED);
 
-        uSels.forEach(uSel ->
-            vSels.forEach(vSel ->
-                recs.put(COSINE + "_" + uSel + "_" + vSel, (graph, prefData) -> new Cosine<>(graph, uSel, vSel))));
+        if(weighted.isEmpty()) // We assume unweighted
+        {
+            uSels.forEach(uSel ->
+                vSels.forEach(vSel ->
+                    recs.put(COSINE + "_" + uSel + "_" + vSel, (graph, prefData) -> new Cosine<>(graph, uSel, vSel))));
+        }
+        else
+        {
+            uSels.forEach(uSel ->
+                vSels.forEach(vSel ->
+                    weighted.forEach(weight ->
+                        recs.put(COSINE + "_" + (weight ? "wei" : "unw") + "_" + uSel + "_" + vSel,
+                             new RecommendationAlgorithmFunction<>()
+                             {
+                                 @Override
+                                 public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
+                                 {
+                                     return new Cosine<>(graph, uSel, vSel);
+                                 }
+
+                                 @Override
+                                 public boolean isWeighted()
+                                 {
+                                     return weight;
+                                 }
+                             }
+                         )
+                    )
+                )
+            );
+
+        }
+
 
         return recs;
     }

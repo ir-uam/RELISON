@@ -27,6 +27,7 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridReader;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSelector;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.links.data.FastGraphIndex;
 import es.uam.eps.ir.socialranksys.links.data.GraphIndex;
@@ -44,9 +45,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static es.uam.eps.ir.socialranksys.AuxiliarMethods.computeAndEvaluate;
 import static org.ranksys.formats.parsing.Parsers.lp;
 
 /**
@@ -111,10 +112,8 @@ public class Recommendation
         // First, we do create the directories.
         if (printRecommenders)
         {
-            File weightedDirectory = new File(outputPath + "weighted" + File.separator);
-            weightedDirectory.mkdirs();
-            File unweightedDirectory = new File(outputPath + "unweighted" + File.separator);
-            unweightedDirectory.mkdirs();
+            File directory = new File(outputPath + "recs" + File.separator);
+            directory.mkdirs();
         }
 
         // Read the test graph
@@ -127,18 +126,29 @@ public class Recommendation
             return;
         }
 
-
         System.out.println("-------- Started " + (weighted ? "weighted" : "unweighted") + " variants --------");
         long timea = System.currentTimeMillis();
 
         // Read the training graph.
-        TextGraphReader<Long> greader = new TextGraphReader<>(directed, weighted, false, "\t", Parsers.lp);
-        FastGraph<Long> graph = (FastGraph<Long>) greader.read(trainDataPath);
-        if (graph == null)
+        TextGraphReader<Long> weightedReader = new TextGraphReader<>(directed, weighted, false, "\t", Parsers.lp);
+        FastGraph<Long> weightedGraph = (FastGraph<Long>) weightedReader.read(trainDataPath, true, false);
+        if (weightedGraph == null)
         {
             System.err.println("ERROR: Could not read the training graph");
             return;
         }
+
+        // Generate the unweighted network.
+        FastGraph<Long> unweightedGraph;
+        if(!weighted)
+        {
+            unweightedGraph = weightedGraph;
+        }
+        else
+        {
+            unweightedGraph = (FastGraph<Long>) Adapters.unweighted(weightedGraph);
+        }
+
 
         // Read the test graph.
         long timeb = System.currentTimeMillis();
@@ -146,44 +156,44 @@ public class Recommendation
         timea = System.currentTimeMillis();
 
         // Prepare the training and test data
-        FastPreferenceData<Long, Long> trainData;
-        trainData = GraphSimpleFastPreferenceData.load(graph);
+        FastPreferenceData<Long, Long> weightedTrainData = GraphSimpleFastPreferenceData.load(weightedGraph);
+        FastPreferenceData<Long, Long> unweightedTrainData = weighted ? GraphSimpleFastPreferenceData.load(unweightedGraph) : weightedTrainData;
 
         // Clean the test graph.
-        FastGraph<Long> testGraph = (FastGraph<Long>) Adapters.onlyTrainUsers(auxTestGraph, graph);
+        FastGraph<Long> testGraph = (FastGraph<Long>) Adapters.onlyTrainUsers(auxTestGraph, weightedGraph);
         FastPreferenceData<Long, Long> testData;
         testData = GraphSimpleFastPreferenceData.load(testGraph);
-        GraphIndex<Long> index = new FastGraphIndex<>(graph);
+        GraphIndex<Long> index = new FastGraphIndex<>(weightedGraph);
 
         // Read the XML containing the parameter grid for each algorithm
         AlgorithmGridReader gridreader = new AlgorithmGridReader(algorithmsPath);
         gridreader.readDocument();
 
-        Map<String, Supplier<Recommender<Long, Long>>> recMap = new HashMap<>();
+        Map<String, RecommendationAlgorithmFunction<Long>> recMap = new HashMap<>();
         // Get the different recommenders to execute
         gridreader.getAlgorithms().forEach(algorithm ->
         {
             AlgorithmGridSelector<Long> ags = new AlgorithmGridSelector<>();
-            Map<String, Supplier<Recommender<Long, Long>>> suppliers = ags.getRecommenders(algorithm, gridreader.getGrid(algorithm), graph, trainData);
+            Map<String, RecommendationAlgorithmFunction<Long>> suppliers = ags.getRecommenders(algorithm, gridreader.getGrid(algorithm));
             if (suppliers == null)
             {
                 System.err.println("ERROR: Algorithm " + algorithm + " could not be read");
             }
             else
             {
-                recMap.putAll(ags.getRecommenders(algorithm, gridreader.getGrid(algorithm), graph, trainData));
+                recMap.putAll(ags.getRecommenders(algorithm, gridreader.getGrid(algorithm)));
             }
         });
 
         timeb = System.currentTimeMillis();
         System.out.println("Algorithms selected (" + (timeb - timea) + " ms.)");
         // Select the set of users to be recommended, the format, and the filters to apply to the recommendation
-        Set<Long> targetUsers = allUsers ? trainData.getAllUsers().collect(Collectors.toCollection(HashSet::new)) : testData.getUsersWithPreferences().collect(Collectors.toCollection(HashSet::new));
+        Set<Long> targetUsers = allUsers ? weightedTrainData.getAllUsers().collect(Collectors.toCollection(HashSet::new)) : testData.getUsersWithPreferences().collect(Collectors.toCollection(HashSet::new));
         System.out.println("Num. target users: " + targetUsers.size());
 
         // Prepare the elements for the recommendation:
         RecommendationFormat<Long, Long> format = new TRECRecommendationFormat<>(lp, lp);
-        @SuppressWarnings("unchecked") Function<Long, IntPredicate> filter = FastFilters.and(FastFilters.notInTrain(trainData), FastFilters.notSelf(index), SocialFastFilters.notReciprocal(graph, index));
+        @SuppressWarnings("unchecked") Function<Long, IntPredicate> filter = FastFilters.and(FastFilters.notInTrain(weightedTrainData), FastFilters.notSelf(index), SocialFastFilters.notReciprocal(weightedGraph, index));
         RecommenderRunner<Long, Long> runner = new FastFilterRecommenderRunner<>(index, index, targetUsers.stream(), filter, maxLength);
         int numUsers = testData.numUsersWithPreferences();
 
@@ -198,8 +208,6 @@ public class Recommendation
             long a = System.currentTimeMillis();
             String name = entry.getKey();
 
-            String path = outputPath + File.separator + (weighted ? "weighted" : "unweighted") + File.separator + name + ".txt";
-
             // First, create the nDCG metric (for measuring accuracy)
             SystemMetric<Long, Long> P = new AverageRecommendationMetric<>(new Precision<>(maxLength, idealModel), numUsers);
             SystemMetric<Long, Long> R = new AverageRecommendationMetric<>(new Recall<>(maxLength, idealModel), numUsers);
@@ -212,18 +220,19 @@ public class Recommendation
             metrics.put("map", MAP);
 
             // Prepare the recommender
-            Supplier<Recommender<Long, Long>> recomm = entry.getValue();
-            Recommender<Long, Long> rec = recomm.get();
+            RecommendationAlgorithmFunction<Long> supplier = entry.getValue();
+            boolean isWeighted = supplier.isWeighted();
+            Recommender<Long, Long> rec = isWeighted ? supplier.apply(weightedGraph, weightedTrainData) : supplier.apply(unweightedGraph, unweightedTrainData);
+
+            String path = outputPath + File.separator + name + ".txt";
 
             // Obtain the nDCG value
             Map<String, Double> values;
             try
             {
-
-
                 if (printRecommenders)
                 {
-                    values = AuxiliarMethods.computeAndEvaluate(path, rec, runner, metrics);
+                    values = computeAndEvaluate(path, rec, runner, metrics);
 
                     PValues.put(name, values.get("p"));
                     RValues.put(name, values.get("r"));
@@ -232,7 +241,7 @@ public class Recommendation
                 }
                 else
                 {
-                    values = AuxiliarMethods.computeAndEvaluate(rec, runner, metrics);
+                    values = computeAndEvaluate(rec, runner, metrics);
 
                     PValues.put(name, values.get("p"));
                     RValues.put(name, values.get("r"));

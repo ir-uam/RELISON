@@ -46,6 +46,10 @@ public class DFReeKLIMGridSearch<U> implements AlgorithmGridSearch<U>
      * Identifier for the orientation of the target user neighborhood
      */
     private static final String VSEL = "vSel";
+    /**
+     * Identifier for indicating whether the result is weighted or not.
+     */
+    private static final String WEIGHTED = "weighted";
 
     @Override
     public Map<String, Supplier<Recommender<U, U>>> grid(Grid grid, FastGraph<U> graph, FastPreferenceData<U, U> prefData)
@@ -69,10 +73,30 @@ public class DFReeKLIMGridSearch<U> implements AlgorithmGridSearch<U>
 
         List<EdgeOrientation> uSels = grid.getOrientationValues(USEL);
         List<EdgeOrientation> vSels = grid.getOrientationValues(VSEL);
+        List<Boolean> weighted = grid.getBooleanValues(WEIGHTED);
 
-        uSels.forEach(uSel ->
+        if(weighted.isEmpty())
+            uSels.forEach(uSel ->
                 vSels.forEach(vSel ->
-                        recs.put(DFREEKLIM + "_" + uSel + "_" + vSel, (graph, prefData) -> new DFReeKLIM<>(graph, uSel, vSel))));
+                    recs.put(DFREEKLIM + "_" + uSel + "_" + vSel, (graph, prefData) -> new DFReeKLIM<>(graph, uSel, vSel))));
+        else
+            uSels.forEach(uSel ->
+                vSels.forEach(vSel ->
+                    weighted.forEach(weight ->
+                        recs.put(DFREEKLIM + "_" + (weight ? "wei" : "unw") +"_" + uSel + "_" + vSel, new RecommendationAlgorithmFunction<>()
+                        {
+                            @Override
+                            public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
+                            {
+                                return new DFReeKLIM<>(graph, uSel, vSel);
+                            }
+
+                            @Override
+                            public boolean isWeighted()
+                            {
+                                return weight;
+                            }
+                        }))));
 
         return recs;
     }

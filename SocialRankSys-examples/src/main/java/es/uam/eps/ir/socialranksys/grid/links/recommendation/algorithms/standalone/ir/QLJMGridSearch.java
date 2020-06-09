@@ -49,6 +49,10 @@ public class QLJMGridSearch<U> implements AlgorithmGridSearch<U>
      * Identifier for the orientation of the target user neighborhood
      */
     private static final String VSEL = "vSel";
+    /**
+     * Identifier for indicating whether the result is weighted or not.
+     */
+    private static final String WEIGHTED = "weighted";
 
     @Override
     public Map<String, Supplier<Recommender<U, U>>> grid(Grid grid, FastGraph<U> graph, FastPreferenceData<U, U> prefData)
@@ -73,12 +77,32 @@ public class QLJMGridSearch<U> implements AlgorithmGridSearch<U>
         List<Double> lambdas = grid.getDoubleValues(LAMBDA);
         List<EdgeOrientation> uSels = grid.getOrientationValues(USEL);
         List<EdgeOrientation> vSels = grid.getOrientationValues(VSEL);
+        List<Boolean> weighted = grid.getBooleanValues(WEIGHTED);
 
-        lambdas.forEach(lambda ->
+        if(weighted.isEmpty())
+            lambdas.forEach(lambda ->
                 uSels.forEach(uSel ->
-                        vSels.forEach(vSel ->
-                                recs.put(AlgorithmIdentifiers.QLJM + "_" + uSel + "_" + vSel + "_" + lambda, (graph, prefData) -> new QLJM<>(graph, uSel, vSel, lambda)))));
+                    vSels.forEach(vSel ->
+                        recs.put(AlgorithmIdentifiers.QLJM + "_" + uSel + "_" + vSel + "_" + lambda, (graph, prefData) -> new QLJM<>(graph, uSel, vSel, lambda)))));
+        else
+            lambdas.forEach(lambda ->
+                uSels.forEach(uSel ->
+                    vSels.forEach(vSel ->
+                        weighted.forEach(weight ->
+                            recs.put(AlgorithmIdentifiers.QLJM + "_" + (weight ? "wei" : "unw") +"_" + uSel + "_" + vSel + "_" + lambda, new RecommendationAlgorithmFunction<>()
+                            {
+                                @Override
+                                public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
+                                {
+                                    return new QLJM<>(graph, uSel, vSel, lambda);
+                                }
 
+                                @Override
+                                public boolean isWeighted()
+                                {
+                                    return weight;
+                                }
+                            })))));
         return recs;
     }
 

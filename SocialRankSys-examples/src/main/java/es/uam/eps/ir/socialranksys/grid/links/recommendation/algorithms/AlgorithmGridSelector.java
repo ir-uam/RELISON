@@ -26,6 +26,7 @@ import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalo
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.PersonalizedHITSGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.PersonalizedPageRankGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.PersonalizedSALSAGridSearch;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.PropFlowGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.twitter.*;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
 
@@ -242,6 +243,7 @@ public class AlgorithmGridSelector<U>
             case PERSPAGERANK -> new PersonalizedPageRankGridSearch<>();
             case PERSHITS -> new PersonalizedHITSGridSearch<>();
             case PERSSALSA -> new PersonalizedSALSAGridSearch<>();
+            case PROPFLOW -> new PropFlowGridSearch<>();
 
             // Twitter algorithms
             case MONEY -> new MoneyGridSearch<>();

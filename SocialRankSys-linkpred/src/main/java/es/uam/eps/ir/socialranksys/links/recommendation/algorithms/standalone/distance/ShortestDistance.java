@@ -10,22 +10,17 @@ package es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.d
 
 import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.impl.SparseDoubleMatrix2D;
+import es.uam.eps.ir.socialranksys.graph.Adapters;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
-import es.uam.eps.ir.socialranksys.graph.generator.EmptyGraphGenerator;
-import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
-import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
-import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
 import es.uam.eps.ir.socialranksys.links.recommendation.UserFastRankingRecommender;
 import es.uam.eps.ir.socialranksys.metrics.PairMetric;
 import es.uam.eps.ir.socialranksys.metrics.distance.pair.Distance;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
-import org.openide.util.Exceptions;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
@@ -36,7 +31,6 @@ import java.util.Random;
  */
 public class ShortestDistance<U> extends UserFastRankingRecommender<U>
 {
-
     /**
      * Distance map.
      */
@@ -55,32 +49,15 @@ public class ShortestDistance<U> extends UserFastRankingRecommender<U>
     {
         super(graph);
         PairMetric<U> pairMetric = new Distance<>();
-        Map<Pair<U>, Double> values = new HashMap<>();
+        Map<Pair<U>, Double> values;
         if(dir != EdgeOrientation.UND || !graph.isDirected())
         {
             values = pairMetric.compute(graph);
         }
         else
         {
-            try
-            {
-                GraphGenerator<U> graphGen = new EmptyGraphGenerator<>();
-                graphGen.configure(true, graph.isWeighted());
-                Graph<U> aux = graphGen.generate();
-                
-                graph.getAllNodes().forEach(aux::addNode);
-                
-                graph.getAllNodes().forEach(u -> graph.getAdjacentNodes(u).forEach(v ->
-                {
-                    aux.addEdge(u, v, 1.0);
-                    aux.addEdge(v, u, 1.0);
-                }));
-                
-                values = pairMetric.compute(aux);
-            } catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException ex) {
-                Exceptions.printStackTrace(ex);
-            }
-            
+            Graph<U> aux = Adapters.undirected(graph);
+            values = pairMetric.compute(aux);
         }
         
         this.orientation = dir;
@@ -111,7 +88,7 @@ public class ShortestDistance<U> extends UserFastRankingRecommender<U>
     @Override
     public Int2DoubleMap getScoresMap(int i) 
     {
-        Random r = new Random();
+        Random r = new Random(0);
         Int2DoubleMap scores = new Int2DoubleOpenHashMap();
         for(int j = 0; j < iIndex.numItems(); ++j)
         {

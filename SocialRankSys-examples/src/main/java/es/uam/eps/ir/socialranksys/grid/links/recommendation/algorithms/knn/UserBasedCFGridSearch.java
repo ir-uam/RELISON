@@ -10,6 +10,11 @@ package es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn;
 
 
 import es.uam.eps.ir.ranksys.fast.preference.FastPreferenceData;
+import es.uam.eps.ir.ranksys.nn.item.ItemNeighborhoodRecommender;
+import es.uam.eps.ir.ranksys.nn.item.neighborhood.CachedItemNeighborhood;
+import es.uam.eps.ir.ranksys.nn.item.neighborhood.ItemNeighborhood;
+import es.uam.eps.ir.ranksys.nn.item.neighborhood.TopKItemNeighborhood;
+import es.uam.eps.ir.ranksys.nn.item.sim.ItemSimilarity;
 import es.uam.eps.ir.ranksys.nn.sim.Similarity;
 import es.uam.eps.ir.ranksys.nn.user.UserNeighborhoodRecommender;
 import es.uam.eps.ir.ranksys.nn.user.neighborhood.CachedUserNeighborhood;
@@ -23,6 +28,7 @@ import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.Algorith
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityGridSelector;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.SpecificItemSimilarity;
 import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.SpecificUserSimilarity;
 
 import java.util.HashMap;
@@ -51,6 +57,10 @@ public class UserBasedCFGridSearch<U> implements AlgorithmGridSearch<U>
      * Exponent of the similarity.
      */
     private final static String Q = "q";
+    /**
+     * Identifier for indicating whether the result is weighted or not.
+     */
+    private static final String WEIGHTED = "weighted";
     
     @Override
     public Map<String, Supplier<Recommender<U, U>>> grid(Grid grid, FastGraph<U> graph, FastPreferenceData<U,U> prefData)
@@ -87,22 +97,52 @@ public class UserBasedCFGridSearch<U> implements AlgorithmGridSearch<U>
         Map<String, Grid> similarities = grid.getGridValues(SIM);
         List<Integer> ks = grid.getIntegerValues(K);
         List<Integer> qs = grid.getIntegerValues(Q);
-        
+        List<Boolean> weighted = grid.getBooleanValues(WEIGHTED);
         SimilarityGridSelector<U> selector = new SimilarityGridSelector<>();
 
-        ks.forEach(k ->
-            qs.forEach(q ->
-                similarities.forEach((simname, simgrid) ->
-                {
-                    Map<String, SimilarityFunction<U>> sims = selector.getSimilarities(simname, simgrid);
-                    sims.forEach((name, sim) ->
-                        recs.put(UB + "_" + name + "_" + k + "_" + q, (FastGraph<U> graph, FastPreferenceData<U,U> prefData) ->
-                        {
-                            UserSimilarity<U> similarity = new SpecificUserSimilarity<>(prefData, sim.apply(graph, prefData));
-                            UserNeighborhood<U> neighborhood = new CachedUserNeighborhood<>(new TopKUserNeighborhood<>(similarity, k));
-                            return new UserNeighborhoodRecommender<>(prefData, neighborhood, q);
-                        }));
-                })));
+        if(weighted.isEmpty())
+            ks.forEach(k ->
+                qs.forEach(q ->
+                    similarities.forEach((simname, simgrid) ->
+                    {
+                        Map<String, SimilarityFunction<U>> sims = selector.getSimilarities(simname, simgrid);
+                        sims.forEach((name, sim) ->
+                            recs.put(UB + "_" + name + "_" + k + "_" + q, (FastGraph<U> graph, FastPreferenceData<U,U> prefData) ->
+                            {
+                                UserSimilarity<U> similarity = new SpecificUserSimilarity<>(prefData, sim.apply(graph, prefData));
+                                UserNeighborhood<U> neighborhood = new CachedUserNeighborhood<>(new TopKUserNeighborhood<>(similarity, k));
+                                return new UserNeighborhoodRecommender<>(prefData, neighborhood, q);
+                            }));
+                    })));
+        else
+            ks.forEach(k ->
+                qs.forEach(q ->
+                    similarities.forEach((simname, simgrid) ->
+                    {
+                        Map<String, SimilarityFunction<U>> sims = selector.getSimilarities(simname, simgrid);
+                            sims.forEach((name, sim) ->
+                                weighted.forEach( weight ->
+                                    recs.put(UB + "_" + (weight ? "wei" : "unw") + "_" + name + "_" + k + "_" + q, new RecommendationAlgorithmFunction<>()
+                                    {
+                                        @Override
+                                        public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
+                                        {
+                                            ItemSimilarity<U> similarity = new SpecificItemSimilarity<>(prefData, sim.apply(graph, prefData));
+                                            ItemNeighborhood<U> neighborhood = new CachedItemNeighborhood<>(new TopKItemNeighborhood<>(similarity, k));
+                                            return new ItemNeighborhoodRecommender<>(prefData, neighborhood, q);
+                                        }
+
+                                        @Override
+                                        public boolean isWeighted()
+                                        {
+                                            return weight;
+                                        }
+                                    })
+                                )
+                            );
+                    })
+                )
+            );
         return recs;
     }
 }
