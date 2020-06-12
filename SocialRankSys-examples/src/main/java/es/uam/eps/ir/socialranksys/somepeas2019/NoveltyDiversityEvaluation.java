@@ -11,9 +11,18 @@ package es.uam.eps.ir.socialranksys.somepeas2019;
 
 import es.uam.eps.ir.ranksys.core.feature.FeatureData;
 import es.uam.eps.ir.ranksys.core.feature.SimpleFeatureData;
+import es.uam.eps.ir.ranksys.core.preference.ConcatPreferenceData;
+import es.uam.eps.ir.ranksys.core.preference.PreferenceData;
+import es.uam.eps.ir.ranksys.diversity.intentaware.FeatureIntentModel;
+import es.uam.eps.ir.ranksys.diversity.intentaware.IntentModel;
+import es.uam.eps.ir.ranksys.diversity.intentaware.metrics.ERRIA;
+import es.uam.eps.ir.ranksys.diversity.other.metrics.SRecall;
 import es.uam.eps.ir.ranksys.diversity.sales.metrics.GiniIndex;
 import es.uam.eps.ir.ranksys.fast.preference.FastPreferenceData;
 import es.uam.eps.ir.ranksys.metrics.SystemMetric;
+import es.uam.eps.ir.ranksys.metrics.basic.AverageRecommendationMetric;
+import es.uam.eps.ir.ranksys.metrics.rel.NoRelevanceModel;
+import es.uam.eps.ir.ranksys.metrics.rel.RelevanceModel;
 import es.uam.eps.ir.ranksys.novdiv.distance.CosineFeatureItemDistanceModel;
 import es.uam.eps.ir.ranksys.novdiv.distance.ItemDistanceModel;
 import es.uam.eps.ir.ranksys.novelty.longtail.PCItemNovelty;
@@ -26,7 +35,7 @@ import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.links.data.FastGraphIndex;
 import es.uam.eps.ir.socialranksys.links.data.GraphIndex;
 import es.uam.eps.ir.socialranksys.links.data.GraphSimpleFastPreferenceData;
-import es.uam.eps.ir.socialranksys.links.recommendation.features.LuceneFeaturesReader;
+import es.uam.eps.ir.socialranksys.links.recommendation.features.LuceneTfIdfFeaturesReader;
 import es.uam.eps.ir.socialranksys.links.recommendation.metrics.novdiv.ILD;
 import es.uam.eps.ir.socialranksys.links.recommendation.metrics.novdiv.LTN;
 import es.uam.eps.ir.socialranksys.links.recommendation.metrics.novdiv.MeanPredictionDistance;
@@ -107,6 +116,8 @@ public class NoveltyDiversityEvaluation
         Map<String, Double> ILDValues = new ConcurrentHashMap<>();
         Map<String, Double> GiniPValues = new ConcurrentHashMap<>();
         Map<String, Double> MPDValues = new ConcurrentHashMap<>();
+        Map<String, Double> CRecallValues = new ConcurrentHashMap<>();
+        Map<String, Double> ERRIAValues = new ConcurrentHashMap<>();
 
         // Read the test graph
         TextGraphReader<Long> testGraphReader = new TextGraphReader<>(directed, false, false, "\t", Parsers.lp);
@@ -160,7 +171,9 @@ public class NoveltyDiversityEvaluation
             return;
         }
 
-        FeatureData<Long, String, Double> indexData = SimpleFeatureData.load(LuceneFeaturesReader.load(indexFeatures, graph));
+        PreferenceData<Long, Long> totalData = new ConcatPreferenceData<>(trainData, testData);
+
+        FeatureData<Long, String, Double> indexData = SimpleFeatureData.load(LuceneTfIdfFeaturesReader.load(indexFeatures, graph, Parsers.lp));
         FeatureData<Long, String, Double> commData = SimpleFeatureData.load(SimpleFeaturesReader.get().read(commFeatures, Parsers.lp, Parsers.sp));
         DistanceCalculator<Long> calculator = new DistanceCalculator<>();
 
@@ -182,6 +195,11 @@ public class NoveltyDiversityEvaluation
 
             System.out.println("Evaluating " + rec + " (" + i + "/" + numFiles + ")");
 
+            RelevanceModel<Long, Long> relModel = new NoRelevanceModel<>();
+            ERRIA.ERRRelevanceModel<Long, Long> erriamodel = new ERRIA.ERRRelevanceModel<>(false, testData, 0.5);
+            IntentModel<Long, Long, String> intentModel = new FeatureIntentModel<>(totalData, commData);
+
+
             SystemMetric<Long, Long> LTN = new LTN<>(maxLength, new PCItemNovelty<>(trainData));
             ItemDistanceModel<Long> itemDistanceModel = new CosineFeatureItemDistanceModel<>(indexData);
             SystemMetric<Long, Long> Unexp = new Unexpectedness<>(maxLength, new PDItemNovelty<>(true, trainData, itemDistanceModel));
@@ -189,12 +207,18 @@ public class NoveltyDiversityEvaluation
             SystemMetric<Long, Long> Gini = new GiniIndex<>(maxLength, trainData.numItems());
             SystemMetric<Long, Long> MPD = new MeanPredictionDistance<>(graph, calculator, maxLength);
 
+            int totalNumUsers = Long.valueOf(graph.getVertexCount()).intValue();
+            SystemMetric<Long, Long> CommRecall = new AverageRecommendationMetric<>(new SRecall<>(commData,10, relModel), totalNumUsers);
+            SystemMetric<Long, Long> ERRIA = new AverageRecommendationMetric<>(new ERRIA<>(10,intentModel, erriamodel), numUsers);
+
             Map<String, SystemMetric<Long, Long>> metrics = new HashMap<>();
             metrics.put("LTN", LTN);
             metrics.put("Unexpectedness", Unexp);
             metrics.put("ILD", ILD);
             metrics.put("Gini", Gini);
             metrics.put("MPD", MPD);
+            metrics.put("CommRecall", CommRecall);
+            metrics.put("ERRIA", ERRIA);
 
             format.getReader(recPath+rec).readAll().forEach(recom ->
             {
@@ -209,6 +233,8 @@ public class NoveltyDiversityEvaluation
             ILDValues.put(rec, metrics.get("ILD").evaluate());
             GiniPValues.put(rec, metrics.get("Gini").evaluate());
             MPDValues.put(rec, metrics.get("MPD").evaluate());
+            CRecallValues.put(rec, metrics.get("CommRecall").evaluate());
+            ERRIAValues.put(rec, metrics.get("ERRIA").evaluate());
             System.out.println("Finished evaluating " + rec + " (" + i + "/" + numFiles + ")");
 
         }
@@ -220,6 +246,8 @@ public class NoveltyDiversityEvaluation
         ids.add("ILD"); values.add(ILDValues);
         ids.add("Gini"); values.add(GiniPValues);
         ids.add("MPD"); values.add(MPDValues);
+        ids.add("CRecall"); values.add(CRecallValues);
+        ids.add("ERRIA"); values.add(ERRIAValues);
         // Print the file.
         AuxiliarMethods.printFile(outputPath + "evaluation.txt", values, ids, maxLength);
 

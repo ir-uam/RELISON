@@ -61,5 +61,15 @@
             <artifactId>RankSys-diversity</artifactId>
             <version>0.4.3</version>
         </dependency>
+        <dependency>
+            <groupId>org.ranksys</groupId>
+            <artifactId>RankSys-formats</artifactId>
+            <version>0.4.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ranksys</groupId>
+            <artifactId>RankSys-rec</artifactId>
+            <version>0.4.3</version>
+        </dependency>
     </dependencies>
 </project>

@@ -28,6 +28,7 @@ import es.uam.eps.ir.socialranksys.links.data.GraphSimpleFastPreferenceData;
 import es.uam.eps.ir.socialranksys.links.recommendation.metrics.accuracy.TRECAveragePrecision;
 import org.ranksys.formats.parsing.Parsers;
 import org.ranksys.formats.rec.RecommendationFormat;
+import org.ranksys.formats.rec.SimpleRecommendationFormat;
 import org.ranksys.formats.rec.TRECRecommendationFormat;
 
 import java.io.File;
@@ -84,12 +85,11 @@ public class Evaluation
         // Read the execution arguments:
         String trainDataPath = args[0];
         String testDataPath = args[1];
-        String algorithmsPath = args[2];
-        String recPath = args[3];
-        String outputPath = args[4];
-        boolean directed = args[5].equalsIgnoreCase("true");
-        int maxLength = Parsers.ip.parse(args[6]);
-        boolean allUsers = args[7].equalsIgnoreCase("true");
+        String recPath = args[2];
+        String outputPath = args[3];
+        boolean directed = args[4].equalsIgnoreCase("true");
+        int maxLength = Parsers.ip.parse(args[5]);
+        String formatName = args[6];
 
         // Initialize the maps to store the accuracy values.
         Map<String, Double> PValues = new ConcurrentHashMap<>();
@@ -149,7 +149,7 @@ public class Evaluation
             return;
         }
 
-        RecommendationFormat<Long, Long> format = new TRECRecommendationFormat<>(lp,lp);
+        RecommendationFormat<Long, Long> format = (formatName.equalsIgnoreCase("trec") ? new TRECRecommendationFormat<>(lp,lp) : new SimpleRecommendationFormat<>(lp,lp));
         int numUsers = testData.numUsersWithPreferences();
         IdealRelevanceModel<Long, Long> idealModel = new BinaryRelevanceModel<>(true, testData, 0.5);
         NDCG.NDCGRelevanceModel<Long, Long> ndcgModel = new NDCG.NDCGRelevanceModel<>(false, testData, 0.5);
@@ -157,15 +157,17 @@ public class Evaluation
         int numFiles = 0;
         for(String rec : recList)
         {
-            File auxFile = new File(rec);
+            File auxFile = new File(recPath+rec);
             if(!auxFile.isDirectory()) numFiles++;
         }
+
+        System.out.println("Number of recommenders to evaluate: " + numFiles);
 
         int i = 0;
         for(String rec : recList)
         {
-            File auxFile = new File(rec);
-            if(!auxFile.isDirectory()) continue;
+            File auxFile = new File(recPath + rec);
+            if(auxFile.isDirectory()) continue;
 
             System.out.println("Evaluating " + rec + " (" + i + "/" + numFiles + ")");
 
@@ -192,6 +194,7 @@ public class Evaluation
             nDCGValues.put(rec, metrics.get("ndcg").evaluate());
             MAPValues.put(rec, metrics.get("map").evaluate());
 
+            ++i;
             System.out.println("Finished evaluating " + rec + " (" + i + "/" + numFiles + ")");
 
         }

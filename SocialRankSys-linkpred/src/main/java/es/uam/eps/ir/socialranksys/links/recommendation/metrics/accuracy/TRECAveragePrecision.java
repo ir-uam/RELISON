@@ -74,6 +74,7 @@ public class TRECAveragePrecision<U, I> extends AbstractRecommendationMetric<U, 
             }
         }
 
+        if(userRelModel.getRelevantItems().isEmpty()) return 0.0;
         return ap / (double) userRelModel.getRelevantItems().size();
     }
 }

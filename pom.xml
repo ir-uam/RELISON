@@ -29,6 +29,7 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>SocialRankSys-core</module>
+        <module>SocialRankSys-content</module>
         <module>SocialRankSys-sna</module>
         <module>SocialRankSys-examples</module>
         <module>SocialRankSys-linkpred</module>

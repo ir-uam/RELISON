@@ -10,11 +10,6 @@ package es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn;
 
 
 import es.uam.eps.ir.ranksys.fast.preference.FastPreferenceData;
-import es.uam.eps.ir.ranksys.nn.item.ItemNeighborhoodRecommender;
-import es.uam.eps.ir.ranksys.nn.item.neighborhood.CachedItemNeighborhood;
-import es.uam.eps.ir.ranksys.nn.item.neighborhood.ItemNeighborhood;
-import es.uam.eps.ir.ranksys.nn.item.neighborhood.TopKItemNeighborhood;
-import es.uam.eps.ir.ranksys.nn.item.sim.ItemSimilarity;
 import es.uam.eps.ir.ranksys.nn.sim.Similarity;
 import es.uam.eps.ir.ranksys.nn.user.UserNeighborhoodRecommender;
 import es.uam.eps.ir.ranksys.nn.user.neighborhood.CachedUserNeighborhood;
@@ -28,7 +23,6 @@ import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.Algorith
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityGridSelector;
-import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.SpecificItemSimilarity;
 import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.SpecificUserSimilarity;
 
 import java.util.HashMap;
@@ -127,9 +121,9 @@ public class UserBasedCFGridSearch<U> implements AlgorithmGridSearch<U>
                                         @Override
                                         public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
                                         {
-                                            ItemSimilarity<U> similarity = new SpecificItemSimilarity<>(prefData, sim.apply(graph, prefData));
-                                            ItemNeighborhood<U> neighborhood = new CachedItemNeighborhood<>(new TopKItemNeighborhood<>(similarity, k));
-                                            return new ItemNeighborhoodRecommender<>(prefData, neighborhood, q);
+                                            UserSimilarity<U> similarity = new SpecificUserSimilarity<>(prefData, sim.apply(graph, prefData));
+                                            UserNeighborhood<U> neighborhood = new CachedUserNeighborhood<>(new TopKUserNeighborhood<>(similarity, k));
+                                            return new UserNeighborhoodRecommender<>(prefData, neighborhood, q);
                                         }
 
                                         @Override

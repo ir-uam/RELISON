@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Computes the PageRank values of the different nodes in the grah.
+ * Computes the PageRank values of the different nodes in the graph.
  * @author Javier Sanz-Cruzado Puig
  * @param <U> type of the nodes.
  */

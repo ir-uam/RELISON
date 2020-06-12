@@ -8,9 +8,8 @@
  */
 package es.uam.eps.ir.socialranksys.examples.content;
 
-import es.uam.eps.ir.socialranksys.content.index.exceptions.WrongModeException;
-import es.uam.eps.ir.socialranksys.content.index.twittomender.LuceneTwittomenderIndex;
-import es.uam.eps.ir.socialranksys.content.index.twittomender.TwittomenderIndex;
+import es.uam.eps.ir.socialranksys.content.index.IndexBuilder;
+import es.uam.eps.ir.socialranksys.content.index.lucene.LuceneForwardIndexBuilder;
 import es.uam.eps.ir.socialranksys.content.parsing.TextParser;
 import es.uam.eps.ir.socialranksys.content.parsing.ToLowerParser;
 import es.uam.eps.ir.socialranksys.graph.Graph;
@@ -46,10 +45,9 @@ public class TwittomenderIndexGenerator
      *     <li><b>Orientation: </b> Selection of pieces: IN for the pieces of the incoming neighbors, OUT for the outgoing ones, UND for both, "own" for only the users' pieces</li>
      *     <li><b>Index route:</b> Folder in which to store the index.</li>
      * </ol>
-     * @throws IOException
-     * @throws WrongModeException
+     * @throws IOException if something goes wrong while reading the contents file / creating the index.
      */
-    public static void main(String[] args) throws IOException, WrongModeException
+    public static void main(String[] args) throws IOException
     {
         if(args.length < 3)
         {
@@ -67,8 +65,8 @@ public class TwittomenderIndexGenerator
         String indexRoute = args[4];
 
         // Create the Twittomender Index.
-        TwittomenderIndex<Long> index = new LuceneTwittomenderIndex(indexRoute, false);
-        index.setWriteMode();
+        IndexBuilder<Long> index = new LuceneForwardIndexBuilder<>();
+        index.init(indexRoute);
         TextParser tparser = new ToLowerParser();
 
         // Read the graph.
@@ -127,11 +125,13 @@ public class TwittomenderIndexGenerator
                     .reduce(" ", (x,y) -> x + " " + y));
             }
 
-            index.writeContent(node, builder.toString(), tparser);
+            String text = tparser.parse(builder.toString());
+
+            index.indexText(text, node);
             ++j;
         }
 
-        index.close();
+        index.close(indexRoute);
         b = System.currentTimeMillis();
         System.out.println("Index created (" + (b-a) + " ms.)");
     }
