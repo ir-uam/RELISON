@@ -108,7 +108,6 @@ public class NoveltyDiversityEvaluation
         String outputPath = args[5];
         boolean directed = args[6].equalsIgnoreCase("true");
         int maxLength = Parsers.ip.parse(args[7]);
-        boolean allUsers = args[8].equalsIgnoreCase("true");
 
         // Initialize the maps to store the accuracy values.
         Map<String, Double> LTNValues = new ConcurrentHashMap<>();
@@ -145,7 +144,6 @@ public class NoveltyDiversityEvaluation
         // Read the test graph.
         long timeb = System.currentTimeMillis();
         System.out.println("Data read (" + (timeb - timea) + " ms.)");
-        timea = System.currentTimeMillis();
 
         // Prepare the training and test data
         FastPreferenceData<Long, Long> trainData;

@@ -3,6 +3,7 @@ package es.uam.eps.ir.socialranksys.content.index.lucene;
 import es.uam.eps.ir.socialranksys.content.index.ForwardIndex;
 import es.uam.eps.ir.socialranksys.content.index.freq.FreqVector;
 import es.uam.eps.ir.socialranksys.content.index.freq.lucene.LuceneFreqVector;
+import org.apache.lucene.index.Terms;
 import org.ranksys.formats.parsing.Parser;
 
 import java.io.IOException;
@@ -28,7 +29,10 @@ public class LuceneForwardIndex<C> extends LuceneIndex<C> implements ForwardInde
     @Override
     public FreqVector getContentVector(int docID) throws IOException
     {
-        return new LuceneFreqVector(index.getTermVector(docID, "text"));
+        Terms terms = index.getTermVector(docID, "text");
+        if(terms != null)
+            return new LuceneFreqVector(terms);
+        return null;
     }
 
     @Override

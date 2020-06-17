@@ -59,7 +59,7 @@ import static org.ranksys.formats.parsing.Parsers.lp;
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class TwittRecommendation
+public class TwittomenderValidation
 {
     /**
      * Program that reproduces the experiments for the EWC1 axiom.
@@ -144,7 +144,6 @@ public class TwittRecommendation
         // Read the test graph.
         long timeb = System.currentTimeMillis();
         System.out.println("Data read (" + (timeb - timea) + " ms.)");
-        timea = System.currentTimeMillis();
 
         // Prepare the training and test data
         FastPreferenceData<Long, Long> trainData;
@@ -176,7 +175,7 @@ public class TwittRecommendation
         AtomicInteger counter = new AtomicInteger(0);
         int totalCount = vars.length;
         // Execute the different recommenders
-        indexes.parallelStream().forEach(var ->
+        for(String var : vars)
         {
             try
             {
@@ -237,7 +236,7 @@ public class TwittRecommendation
             {
                 System.err.println("Something failed while reading index " + indexFolder + var);
             }
-        });
+        }
 
         List<String> ids = new ArrayList<>();
         List<Map<String, Double>> values = new ArrayList<>();

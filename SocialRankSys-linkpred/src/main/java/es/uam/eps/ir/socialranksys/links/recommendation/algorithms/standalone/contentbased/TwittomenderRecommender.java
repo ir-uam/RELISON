@@ -69,8 +69,11 @@ public class TwittomenderRecommender<U> extends UserFastRankingRecommender<U>
             for(Map.Entry<Integer, Double> entry : searchRes.entrySet())
             {
                 U v = index.getContent(entry.getKey());
-                int vidx = this.graph.object2idx(v);
-                map.put(vidx, entry.getValue().doubleValue());
+                if(graph.containsVertex(v))
+                {
+                    int vidx = this.graph.object2idx(v);
+                    map.put(vidx, entry.getValue().doubleValue());
+                }
             }
         }
         catch (IOException ioe)
