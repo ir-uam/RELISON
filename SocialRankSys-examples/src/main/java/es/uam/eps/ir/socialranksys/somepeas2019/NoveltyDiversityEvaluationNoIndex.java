@@ -35,7 +35,6 @@ import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.links.data.FastGraphIndex;
 import es.uam.eps.ir.socialranksys.links.data.GraphIndex;
 import es.uam.eps.ir.socialranksys.links.data.GraphSimpleFastPreferenceData;
-import es.uam.eps.ir.socialranksys.links.recommendation.features.LuceneTfIdfFeaturesReader;
 import es.uam.eps.ir.socialranksys.links.recommendation.metrics.novdiv.ILD;
 import es.uam.eps.ir.socialranksys.links.recommendation.metrics.novdiv.LTN;
 import es.uam.eps.ir.socialranksys.links.recommendation.metrics.novdiv.MeanPredictionDistance;
@@ -48,10 +47,11 @@ import org.ranksys.formats.rec.SimpleRecommendationFormat;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 import static org.ranksys.formats.parsing.Parsers.lp;
 
@@ -63,7 +63,7 @@ import static org.ranksys.formats.parsing.Parsers.lp;
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class NoveltyDiversityEvaluation
+public class NoveltyDiversityEvaluationNoIndex
 {
     /**
      * Program that reproduces the experiments for the EWC1 axiom.
@@ -102,11 +102,10 @@ public class NoveltyDiversityEvaluation
         String trainDataPath = args[0];
         String testDataPath = args[1];
         String recPath = args[2];
-        String indexFeatures = args[3];
-        String commFeatures = args[4];
-        String outputPath = args[5];
-        boolean directed = args[6].equalsIgnoreCase("true");
-        int maxLength = Parsers.ip.parse(args[7]);
+        String commFeatures = args[3];
+        String outputPath = args[4];
+        boolean directed = args[5].equalsIgnoreCase("true");
+        int maxLength = Parsers.ip.parse(args[6]);
 
         // Initialize the maps to store the accuracy values.
         Map<String, Double> LTNValues = new ConcurrentHashMap<>();
@@ -145,7 +144,7 @@ public class NoveltyDiversityEvaluation
         System.out.println("Data read (" + (timeb - timea) + " ms.)");
 
         // Prepare the training and test data
-        GraphSimpleFastPreferenceData<Long> trainData;
+        FastPreferenceData<Long, Long> trainData;
         trainData = GraphSimpleFastPreferenceData.load(graph);
 
         // Clean the test graph.
@@ -170,7 +169,6 @@ public class NoveltyDiversityEvaluation
 
         PreferenceData<Long, Long> totalData = new ConcatPreferenceData<>(trainData, testData);
 
-        FeatureData<Long, String, Double> indexData = SimpleFeatureData.load(LuceneTfIdfFeaturesReader.load(indexFeatures, graph, Parsers.lp));
         FeatureData<Long, String, Double> commData = SimpleFeatureData.load(SimpleFeaturesReader.get().read(commFeatures, Parsers.lp, Parsers.sp));
         FastDistanceCalculator<Long> calculator = new FastDistanceCalculator<>();
 
@@ -184,18 +182,11 @@ public class NoveltyDiversityEvaluation
             if(!auxFile.isDirectory()) numFiles++;
         }
 
-        Function<Long, Predicate<Long>> filter = x -> y ->  !graph.containsEdge(x,y) && !x.equals(y) && !graph.containsEdge(y, x);
-
         int i = 0;
         for(String rec : recList)
         {
-
-            Set<Long> users = new HashSet<>();
-            graph.getAllNodes().forEach(users::add);
             File auxFile = new File(rec);
             if(auxFile.isDirectory()) continue;
-
-            //FastFiller<Long,Long> filler = new RandomFiller<>(trainData, 0);
 
             System.out.println("Evaluating " + rec + " (" + i + "/" + numFiles + ")");
 
@@ -203,7 +194,7 @@ public class NoveltyDiversityEvaluation
             ERRIA.ERRRelevanceModel<Long, Long> erriamodel = new ERRIA.ERRRelevanceModel<>(false, testData, 0.5);
             IntentModel<Long, Long, String> intentModel = new FeatureIntentModel<>(totalData, commData);
 
-            ItemDistanceModel<Long> itemDistanceModel = new CosineFeatureItemDistanceModel<>(indexData);
+            ItemDistanceModel<Long> itemDistanceModel = new CosineFeatureItemDistanceModel<>(commData);
             SystemMetric<Long, Long> LTN = new LTN<>(maxLength, new PCItemNovelty<>(trainData));
             SystemMetric<Long, Long> Unexp = new Unexpectedness<>(maxLength, new PDItemNovelty<>(true, trainData, itemDistanceModel));
             SystemMetric<Long, Long> ILD = new ILD<>(maxLength, itemDistanceModel);
@@ -227,22 +218,9 @@ public class NoveltyDiversityEvaluation
             {
                 if (recom != null && recom.getItems() != null && !recom.getItems().isEmpty())
                 {
-                    //Recommendation<Long,Long> defRecom = filler.fill(recom, maxLength, filter);
                     metrics.values().forEach(metric -> metric.add(recom));
-                    users.remove(recom.getUser());
                 }
             });
-
-            // Fill the remaining users:
-            /*for(long user : users)
-            {
-                Recommendation<Long, Long> recom = new Recommendation<>(user, new ArrayList<>());
-                Recommendation<Long,Long> defRecom = filler.fill(recom, maxLength, filter);
-                if (defRecom != null && defRecom.getItems() != null && !defRecom.getItems().isEmpty())
-                {
-                    metrics.values().forEach(metric -> metric.add(recom));
-                }
-            }*/
 
             LTNValues.put(rec, metrics.get("LTN").evaluate());
             UnexpValues.put(rec, metrics.get("Unexpectedness").evaluate());

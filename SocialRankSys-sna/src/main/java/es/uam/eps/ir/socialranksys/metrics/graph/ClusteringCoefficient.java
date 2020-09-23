@@ -66,7 +66,7 @@ public class ClusteringCoefficient<U> implements GraphMetric<U>
         this.triangles = 0;
         this.triplets = 0;
         
-        graph.getAllNodes().forEach((u)-> graph.getNeighbourhood(u, vSel).forEach((v)-> graph.getNeighbourhood(u, wSel).forEach((w)->
+        graph.getAllNodes().forEach((u)-> graph.getNeighbourhood(u, vSel).forEach(v-> graph.getNeighbourhood(u, wSel).forEach(w->
         {
             if(!w.equals(v) && !u.equals(v) && !u.equals(w))
             {

@@ -5,6 +5,7 @@ import es.uam.eps.ir.socialranksys.content.index.Index;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -56,7 +57,10 @@ public class LuceneBuilder<C> extends AbstractIndexBuilder<C>
     {
         indexFolder = indexPath;
         clear(indexPath);
-        IndexWriterConfig iwc = new IndexWriterConfig(new StandardAnalyzer(CharArraySet.EMPTY_SET));
+        CharArraySet set = CharArraySet.copy(EnglishAnalyzer.ENGLISH_STOP_WORDS_SET);
+        set.add("RT");
+        
+        IndexWriterConfig iwc = new IndexWriterConfig(new StandardAnalyzer(set));
         iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
         builder = new IndexWriter(FSDirectory.open(Paths.get(indexPath)), iwc);
         map = new Int2ObjectOpenHashMap<>();

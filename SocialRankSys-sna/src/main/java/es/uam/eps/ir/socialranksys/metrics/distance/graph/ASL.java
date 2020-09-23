@@ -12,6 +12,7 @@ import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.distance.modes.ASLMode;
 
 import java.util.OptionalDouble;
@@ -59,7 +60,7 @@ public class ASL<U> implements GraphMetric<U>
      */
     public ASL(ASLMode mode)
     {
-        this(new DistanceCalculator<>(), mode);
+        this(new FastDistanceCalculator<>(), mode);
     }
     
     /**
@@ -67,7 +68,7 @@ public class ASL<U> implements GraphMetric<U>
      */
     public ASL()
     {
-        this(new DistanceCalculator<>(), ASLMode.NONINFINITEDISTANCES);
+        this(new FastDistanceCalculator<>(), ASLMode.NONINFINITEDISTANCES);
     }
         
     @Override
@@ -82,7 +83,7 @@ public class ASL<U> implements GraphMetric<U>
         counter.set(0);
         switch(this.mode)
         {
-            case NONINFINITEDISTANCES: // Averages over the pairs of distinct nodes without infinite distances
+            case NONINFINITEDISTANCES -> {// Averages over the pairs of distinct nodes without infinite distances
                 asl = this.dc.getDistances().values().stream().mapToDouble(uDoubleMap -> uDoubleMap.values().stream().mapToDouble(aDouble ->
                 {
                     if (aDouble.isInfinite() || aDouble.equals(0.0))
@@ -91,8 +92,8 @@ public class ASL<U> implements GraphMetric<U>
                     return aDouble;
                 }).sum()).sum();
                 asl /= (counter.get() + 0.0);
-            break;
-            case COMPONENTS: // Computes the metric for each strongly connected component, and averages
+            }
+            case COMPONENTS -> { // Computes the metric for each strongly connected component, and averages
                 Communities<U> scc = this.dc.getSCC();
                 OptionalDouble optional = scc.getCommunities().mapToDouble(comm ->
                 {
@@ -104,8 +105,8 @@ public class ASL<U> implements GraphMetric<U>
                 }).average();
 
                 asl = optional.isPresent() ? optional.getAsDouble() : 0.0;
-                break;
-            
+            }
+
         }
         
         return asl;

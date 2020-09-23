@@ -12,6 +12,7 @@ import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.distance.modes.ClosenessMode;
 
 import java.util.HashMap;
@@ -42,7 +43,7 @@ public class Closeness<U> implements VertexMetric<U>
      */
     public Closeness()
     {
-        this(new DistanceCalculator<>(), ClosenessMode.HARMONICMEAN);
+        this(new FastDistanceCalculator<>(), ClosenessMode.HARMONICMEAN);
     }
     
     /**
@@ -51,7 +52,7 @@ public class Closeness<U> implements VertexMetric<U>
      */
     public Closeness(ClosenessMode mode)
     {
-        this(new DistanceCalculator<>(),  mode);
+        this(new FastDistanceCalculator<>(), mode);
     }
     
     
@@ -79,19 +80,19 @@ public class Closeness<U> implements VertexMetric<U>
     public double compute(Graph<U> graph, U user) {
         this.dc.computeDistances(graph);
         double value = 0.0;
-        switch(this.mode)
+        switch (this.mode)
         {
-            case HARMONICMEAN:
-                value = this.dc.getDistancesFrom(user).values().stream().mapToDouble(dist -> (dist.isInfinite() || dist == 0) ? 0.0 : 1.0/dist).sum();
-                value /= (graph.getVertexCount()-1.0);
-            break;
-            case COMPONENTS:
+            case HARMONICMEAN -> {
+                value = this.dc.getDistancesFrom(user).values().stream().mapToDouble(dist -> (dist.isInfinite() || dist == 0) ? 0.0 : 1.0 / dist).sum();
+                value /= (graph.getVertexCount() - 1.0);
+            }
+            case COMPONENTS -> {
                 Communities<U> scc = this.dc.getSCC();
                 int comm = scc.getCommunity(user);
                 long numComm = scc.getUsers(comm).count();
-                if(numComm > 1.0)
+                if (numComm > 1.0)
                     value = (numComm - 1.0) / scc.getUsers(comm).mapToDouble(v -> this.dc.getDistances(user, v)).sum();
-            break;
+            }
         }
         return value;
     }

@@ -161,6 +161,9 @@ public class DiffusionEvaluationWithRecommendation
         // For each simulation, evaluate:
         for(String file : folder.list())
         {
+            File f = new File(file);
+            if(f.isDirectory()) continue;
+
             String[] split = file.split("/");
             //String[] split = file.split("\\Q\\\\E");
             String outputFile = split[split.length - 1];

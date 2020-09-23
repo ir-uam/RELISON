@@ -243,7 +243,7 @@ public class AuxiliarMethods
             {
                 i += 1;
                 bw.write("\n" + variant);
-                bw.write(variant + "\t" + i/(numVariants + 0.0));
+                bw.write("\t" + i/(numVariants + 0.0));
                 for(int j = 0; j < numIds; ++j)
                 {
                     bw.write("\t" + values.get(j).get(variant));

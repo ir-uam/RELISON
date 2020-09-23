@@ -11,6 +11,7 @@ package es.uam.eps.ir.socialranksys.metrics.distance.pair;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.pair.AbstractPairMetric;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 
@@ -46,7 +47,7 @@ public class ShrinkingASLNeighbors<U> extends AbstractPairMetric<U>
      */
     public ShrinkingASLNeighbors(EdgeOrientation uSel, EdgeOrientation vSel)
     {
-        dc = new DistanceCalculator<>();
+        dc = new FastDistanceCalculator<>();
         this.uSel = uSel;
         this.vSel = vSel;
 

@@ -24,7 +24,7 @@ import es.uam.eps.ir.socialranksys.utils.datatypes.Triplet;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
 import org.ranksys.formats.parsing.Parser;
 import org.ranksys.formats.rec.RecommendationFormat;
-import org.ranksys.formats.rec.TRECRecommendationFormat;
+import org.ranksys.formats.rec.SimpleRecommendationFormat;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -101,7 +101,7 @@ public class DataReader<U extends Serializable,I extends Serializable,P>
         GraphReader<U> greader = multigraph ? new TextMultiGraphReader<>(directed, weighted, false, "\t", uParser) : new TextGraphReader<>(directed, weighted, false, "\t", uParser);
         Graph<U> graph = greader.read(graphFile, weighted, false);
        
-        RecommendationFormat<U,U> format = new TRECRecommendationFormat<>(uParser, uParser);
+        RecommendationFormat<U,U> format = new SimpleRecommendationFormat<>(uParser, uParser);
         
         format.getReader(recFile).readAll().forEach(rec -> 
         {
@@ -202,7 +202,7 @@ public class DataReader<U extends Serializable,I extends Serializable,P>
         Graph<U> graph = greader.read(graphFile, weighted, readtypes);
  
         
-        RecommendationFormat<U,U> format = new TRECRecommendationFormat<>(uParser, uParser);
+        RecommendationFormat<U,U> format = new SimpleRecommendationFormat<>(uParser, uParser);
                 
         Tuple2oo<Map<Integer, Information<I>>, Relation<Integer>> information = this.readUserInformation(infoFile, userIndex, itemIndex, uParser, iParser);
         
@@ -266,7 +266,7 @@ public class DataReader<U extends Serializable,I extends Serializable,P>
         Graph<U> graph = greader.read(graphFile, weighted, readtypes);
  
         
-        RecommendationFormat<U,U> format = new TRECRecommendationFormat<>(uParser, uParser);
+        RecommendationFormat<U,U> format = new SimpleRecommendationFormat<>(uParser, uParser);
         
         format.getReader(recFile).readAll().forEach(rec -> 
         {
@@ -335,9 +335,9 @@ public class DataReader<U extends Serializable,I extends Serializable,P>
         Graph<U> graph = greader.read(graphFile, weighted, readtypes);
  
         
-        RecommendationFormat<U,U> format = new TRECRecommendationFormat<>(uParser, uParser);
-        
-        format.getReader(recFile).readAll().forEach(rec -> 
+        RecommendationFormat<U,U> format = new SimpleRecommendationFormat<>(uParser, uParser);
+
+        format.getReader(recFile).readAll().forEach(rec ->
         {
            U u = rec.getUser();
            rec.getItems().stream().limit(topN).forEach(r -> graph.addEdge(u, r.v1, 1.0, SimulationEdgeTypes.RECOMMEND));

@@ -11,6 +11,7 @@ package es.uam.eps.ir.socialranksys.metrics.distance.vertex;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +34,7 @@ public class Eccentricity<U> implements VertexMetric<U>
      */
     public Eccentricity()
     {
-        this.dc = new DistanceCalculator<>();
+        this.dc = new FastDistanceCalculator<>();
     }
     
     /**

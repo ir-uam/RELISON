@@ -12,7 +12,7 @@ import es.uam.eps.ir.socialranksys.graph.DirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.UndirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastDirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastUndirectedUnweightedGraph;
-import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.socialranksys.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.distance.edge.EdgeBetweenness;
 import es.uam.eps.ir.socialranksys.metrics.distance.graph.ASL;
 import es.uam.eps.ir.socialranksys.metrics.distance.graph.Diameter;
@@ -67,15 +67,15 @@ public class BetweennessMetricsTest {
      */
     private final UndirectedGraph<Integer> undirectedEmpty;
     
-    DistanceCalculator<Integer> dscBetweennessCalculator;
-    DistanceCalculator<Integer> dwcBetweennessCalculator;
-    DistanceCalculator<Integer> dncBetweennessCalculator;
-    DistanceCalculator<Integer> uscBetweennessCalculator;
-    DistanceCalculator<Integer> uncBetweennessCalculator;
-    DistanceCalculator<Integer> dcBetweennessCalculator;
-    DistanceCalculator<Integer> ucBetweennessCalculator;
-    DistanceCalculator<Integer> deBetweennessCalculator;
-    DistanceCalculator<Integer> ueBetweennessCalculator;
+    CompleteDistanceCalculator<Integer> dscBetweennessCalculator;
+    CompleteDistanceCalculator<Integer> dwcBetweennessCalculator;
+    CompleteDistanceCalculator<Integer> dncBetweennessCalculator;
+    CompleteDistanceCalculator<Integer> uscBetweennessCalculator;
+    CompleteDistanceCalculator<Integer> uncBetweennessCalculator;
+    CompleteDistanceCalculator<Integer> dcBetweennessCalculator;
+    CompleteDistanceCalculator<Integer> ucBetweennessCalculator;
+    CompleteDistanceCalculator<Integer> deBetweennessCalculator;
+    CompleteDistanceCalculator<Integer> ueBetweennessCalculator;
     
     
     
@@ -87,7 +87,7 @@ public class BetweennessMetricsTest {
         this.directedEmpty.addNode(2);
         this.directedEmpty.addNode(3);
         
-        deBetweennessCalculator = new DistanceCalculator<>();
+        deBetweennessCalculator = new CompleteDistanceCalculator<>();
         
         deBetweennessCalculator.computeDistances(this.directedEmpty);
         
@@ -97,7 +97,7 @@ public class BetweennessMetricsTest {
         this.undirectedEmpty.addNode(2);
         this.undirectedEmpty.addNode(3);
         
-        ueBetweennessCalculator = new DistanceCalculator<>();
+        ueBetweennessCalculator = new CompleteDistanceCalculator<>();
         ueBetweennessCalculator.computeDistances(this.undirectedEmpty);
         
         // Directed Complete Graph
@@ -119,7 +119,7 @@ public class BetweennessMetricsTest {
         this.directedComplete.addEdge(4, 2);
         this.directedComplete.addEdge(4, 3);
         
-        dcBetweennessCalculator = new DistanceCalculator<>();
+        dcBetweennessCalculator = new CompleteDistanceCalculator<>();
         dcBetweennessCalculator.computeDistances(this.directedComplete);
         
         // Undirected Complete Graph
@@ -135,7 +135,7 @@ public class BetweennessMetricsTest {
         this.undirectedComplete.addEdge(2,4);
         this.undirectedComplete.addEdge(3,4);
         
-        ucBetweennessCalculator = new DistanceCalculator<>();
+        ucBetweennessCalculator = new CompleteDistanceCalculator<>();
         ucBetweennessCalculator.computeDistances(this.undirectedComplete);
         
         // Directed Strongly Connected
@@ -159,7 +159,7 @@ public class BetweennessMetricsTest {
         this.directedStronglyConnected.addEdge(6, 7);
         this.directedStronglyConnected.addEdge(7, 2);
         
-        dscBetweennessCalculator = new DistanceCalculator<>();
+        dscBetweennessCalculator = new CompleteDistanceCalculator<>();
         dscBetweennessCalculator.computeDistances(this.directedStronglyConnected);
         
         // Directed Weakly Connected
@@ -180,7 +180,7 @@ public class BetweennessMetricsTest {
         this.directedWeaklyConnected.addEdge(5, 6);
         this.directedWeaklyConnected.addEdge(7, 2);
         
-        dwcBetweennessCalculator = new DistanceCalculator<>();
+        dwcBetweennessCalculator = new CompleteDistanceCalculator<>();
         dwcBetweennessCalculator.computeDistances(this.directedWeaklyConnected);
         
         // Directed Non Connected
@@ -198,7 +198,7 @@ public class BetweennessMetricsTest {
         this.directedNonConnected.addEdge(5,6);
         this.directedNonConnected.addEdge(6,4);
 
-        dncBetweennessCalculator = new DistanceCalculator<>();
+        dncBetweennessCalculator = new CompleteDistanceCalculator<>();
         dncBetweennessCalculator.computeDistances(this.directedNonConnected);
         
         // Undirected Connected
@@ -218,7 +218,7 @@ public class BetweennessMetricsTest {
         this.undirectedConnected.addEdge(4,6);
         this.undirectedConnected.addEdge(5,6);
         
-        uscBetweennessCalculator = new DistanceCalculator<>();
+        uscBetweennessCalculator = new CompleteDistanceCalculator<>();
         uscBetweennessCalculator.computeDistances(this.undirectedConnected);
         
         // Undirected Non Connected
@@ -236,7 +236,7 @@ public class BetweennessMetricsTest {
         this.undirectedNonConnected.addEdge(4,6);
         this.undirectedNonConnected.addEdge(5,6);
         
-        uncBetweennessCalculator = new DistanceCalculator<>();
+        uncBetweennessCalculator = new CompleteDistanceCalculator<>();
         uncBetweennessCalculator.computeDistances(this.undirectedNonConnected);
     }
     

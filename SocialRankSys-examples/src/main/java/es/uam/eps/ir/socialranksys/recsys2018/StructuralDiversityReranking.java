@@ -21,7 +21,7 @@ import org.jooq.lambda.Unchecked;
 import org.openide.util.Exceptions;
 import org.ranksys.formats.parsing.Parsers;
 import org.ranksys.formats.rec.RecommendationFormat;
-import org.ranksys.formats.rec.TRECRecommendationFormat;
+import org.ranksys.formats.rec.SimpleRecommendationFormat;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,8 +36,8 @@ import java.util.stream.Collectors;
 import static org.ranksys.formats.parsing.Parsers.lp;
 
 /**
- *
- * @author Javier
+ * Program for reranking recommendation results.
+ * @author Javier Sanz-Cruzado
  */
 public class StructuralDiversityReranking
 {
@@ -134,41 +134,46 @@ public class StructuralDiversityReranking
 
         
         // Perform the reranking.
-        RecommendationFormat<Long,Long> format = new TRECRecommendationFormat<>(lp, lp);
+        RecommendationFormat<Long,Long> format = new SimpleRecommendationFormat<>(lp, lp);
         recFiles.forEach(rec -> 
         {
-            String[] split = rec.split("/");
-            //String[] split =  rec.split("\\Q\\\\E");
-            String recName = split[split.length - 1];
-            try 
+            File f = new File(rec);
+            if(!f.isDirectory())
             {
-                System.out.println("Starting algorithm " + recName);
-                
-                List<Recommendation<Long,Long>> recommendations = format.getReader(rec).readAll().collect(Collectors.toCollection(ArrayList::new));
-                rerankerMap.forEach((name, rerankerSupplier) ->
+                String[] split = rec.split("/");
+                //String[] split =  rec.split("\\Q\\\\E");
+                String recName = split[split.length - 1];
+                try
                 {
-                    System.out.println("Running " + name);
-                    String recOut = String.format("%s_%s", outputPath + recName, name + ".txt");
-                    GlobalReranker<Long,Long> reranker = rerankerSupplier.get();
-                    try(RecommendationFormat.Writer<Long, Long> writer = format.getWriter(recOut))
+                    System.out.println("Starting algorithm " + recName);
+
+                    List<Recommendation<Long, Long>> recommendations = format.getReader(rec).readAll().collect(Collectors.toCollection(ArrayList::new));
+                    rerankerMap.forEach((name, rerankerSupplier) ->
                     {
-                        long startTime = System.nanoTime();
-                        reranker.rerankRecommendations(recommendations.stream(), cutoff)
-                                .forEach(Unchecked.consumer(writer::write));
-                        long difference = System.nanoTime() - startTime;
-                        System.out.println(name + ": " + TimeUnit.NANOSECONDS.toSeconds(difference) + "," + (TimeUnit.NANOSECONDS.toMillis(difference) - TimeUnit.NANOSECONDS.toSeconds(difference)*1000) + " s.");
-                    }
-                    catch(IOException ioe)
-                    {
-                        Exceptions.printStackTrace(ioe);
-                    }
-                });
-                
-                System.out.println("Ending algorithm " + rec);
-            } 
-            catch (IOException ex) 
-            {
-                Exceptions.printStackTrace(ex);
+                        System.out.println("Running " + name);
+                        String recOut = String.format("%s_%s", outputPath + recName, name + ".txt");
+                        GlobalReranker<Long, Long> reranker = rerankerSupplier.get();
+                        try (RecommendationFormat.Writer<Long, Long> writer = format.getWriter(recOut))
+                        {
+                            long startTime = System.nanoTime();
+                            reranker.rerankRecommendations(recommendations.stream(), cutoff)
+                                    .forEach(Unchecked.consumer(writer::write));
+                            long difference = System.nanoTime() - startTime;
+                            System.out.println(name + ": " + TimeUnit.NANOSECONDS.toSeconds(difference) + "," + (TimeUnit.NANOSECONDS.toMillis(difference) - TimeUnit.NANOSECONDS.toSeconds(difference) * 1000) + " s.");
+                        }
+                        catch (IOException ioe)
+                        {
+                            Exceptions.printStackTrace(ioe);
+                        }
+                    });
+
+                    System.out.println("Ending algorithm " + rec);
+
+                }
+                catch (IOException ex)
+                {
+                    Exceptions.printStackTrace(ex);
+                }
             }
         });
         

@@ -27,7 +27,8 @@ import static es.uam.eps.ir.socialranksys.grid.metrics.pair.PairMetricIdentifier
  * @author Javier Sanz-Cruzado Puig
  * @param <U> Type of the users
  */
-public class ShrinkingASLNeighborsGridSearch<U> implements PairMetricGridSearch<U> 
+public class
+ShrinkingASLNeighborsGridSearch<U> implements PairMetricGridSearch<U>
 {    
 
     /**

@@ -10,6 +10,7 @@ package es.uam.eps.ir.socialranksys.metrics.distance.pair;
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.distance.modes.ASLMode;
 import es.uam.eps.ir.socialranksys.metrics.pair.AbstractPairMetric;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
@@ -52,7 +53,7 @@ public class Distance<U> extends AbstractPairMetric<U>
      */
     public Distance()
     {
-        this.dc = new DistanceCalculator<>();
+        this.dc = new FastDistanceCalculator<>();
         this.aslMode = ASLMode.NONINFINITEDISTANCES;
     }
     
@@ -62,7 +63,7 @@ public class Distance<U> extends AbstractPairMetric<U>
      */
     public Distance(ASLMode aslMode)
     {
-        this.dc = new DistanceCalculator<>();
+        this.dc = new FastDistanceCalculator<>();
         this.aslMode = aslMode;
     }
     

@@ -45,7 +45,7 @@ public class ShrinkingDiameterNeighbors<U> extends AbstractPairMetric<U>
      */
     public ShrinkingDiameterNeighbors(EdgeOrientation uSel, EdgeOrientation vSel)
     {
-        dc = new DistanceCalculator<>();
+        dc = new CompleteDistanceCalculator<>();
         this.uSel = uSel;
         this.vSel = vSel;
 

@@ -135,7 +135,7 @@ public class VSMSearchEngine extends AbstractSearchEngine
         double auxIDF = 0.0;
         if(freq > 0.0)
         {
-            auxTF = Math.log(1.0 + freq)/Math.log(2.0);
+            auxTF = 1.0 + Math.log(freq)/Math.log(2.0);
         }
         if(df > 0.0)
         {

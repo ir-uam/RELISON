@@ -4,6 +4,7 @@ import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.ranksys.metrics.SystemMetric;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ public class MeanPredictionDistance<U> implements SystemMetric<U,U>
      */
     public MeanPredictionDistance(Graph<U> graph, int cutoff)
     {
-        this(graph, new DistanceCalculator<>(), cutoff);
+        this(graph, new FastDistanceCalculator<>(), cutoff);
     }
 
     /**

@@ -11,6 +11,7 @@ package es.uam.eps.ir.socialranksys.metrics.distance.graph;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
 
 /**
  * Computes the Average Reciprocal Shortest path Length of graphs.
@@ -40,7 +41,7 @@ public class AverageReciprocalShortestPathLength<U> implements GraphMetric<U>
      */
     public AverageReciprocalShortestPathLength()
     {
-        this(new DistanceCalculator<>());
+        this(new FastDistanceCalculator<>());
     }
         
     @Override

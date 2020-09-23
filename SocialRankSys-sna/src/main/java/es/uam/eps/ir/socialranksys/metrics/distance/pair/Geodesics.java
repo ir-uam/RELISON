@@ -9,6 +9,7 @@
 package es.uam.eps.ir.socialranksys.metrics.distance.pair;
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.pair.AbstractPairMetric;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
@@ -35,7 +36,7 @@ public class Geodesics<U> extends AbstractPairMetric<U>
      */
     public Geodesics()
     {
-        dc = new DistanceCalculator<>();
+        dc = new CompleteDistanceCalculator<>();
     }
     
     /**

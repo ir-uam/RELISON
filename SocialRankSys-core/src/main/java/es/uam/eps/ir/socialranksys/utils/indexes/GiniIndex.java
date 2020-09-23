@@ -8,11 +8,10 @@
  */
 package es.uam.eps.ir.socialranksys.utils.indexes;
 
-import it.unimi.dsi.fastutil.doubles.Double2DoubleMap;
-import it.unimi.dsi.fastutil.doubles.Double2DoubleOpenHashMap;
-
-import java.util.*;
-import java.util.Map.Entry;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -62,7 +61,48 @@ public class GiniIndex
      */
     private double computeUnsorted(List<Double> values)
     {
+        List<Double> list = new ArrayList<>(values);
+        Collections.sort(list);
+        int numItems = values.size();
+        double value = 0.0;
+        double sum = 0.0;
+        for(int i = 0; i < numItems; ++i)
+        {
+            value += (2*(i+1) - numItems - 1.0)*values.get(i);
+            sum += values.get(i);
+        }
+
+        return value/(sum*(numItems - 1.0));
+
+        /*
+
         Double2DoubleMap freqs = new Double2DoubleOpenHashMap();
+        int numValues = values.size();
+
+        double sum = 0.0;
+        for(double d : values)
+        {
+            freqs.put(d, freqs.getOrDefault(d, 0.0) + 1.0);
+            sum += d;
+        }
+
+        Set<Double> entries = new TreeSet<>();
+        entries.addAll(freqs.keySet());
+
+        double min;
+        double max = 0;
+        double value = 0.0;
+        for(double key : entries)
+        {
+            min = max + 1.0;
+            max = max + freqs.get(key);
+            value += (max - min + 1)*(max+min - numValues - 1)*key;
+        }
+
+        value /= (sum*(numValues-1.0));
+        return value;
+
+       /* Double2DoubleMap freqs = new Double2DoubleOpenHashMap();
         int numValues = values.size();
         for(double d : values)
         {
@@ -87,7 +127,7 @@ public class GiniIndex
         }
         
         value /= (sum*(numValues - 1.0));
-        return value;
+        return value;*/
     }
     
     /**

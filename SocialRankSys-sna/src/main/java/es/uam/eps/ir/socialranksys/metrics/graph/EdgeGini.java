@@ -85,21 +85,21 @@ public class EdgeGini<U> implements GraphMetric<U>
         
         long vertexCount;
         long edgeCount;
-        
-        switch(this.mode)
+
+        switch (this.mode)
         {
-            case COMPLETE:
-                vertexCount = graph.getVertexCount()*graph.getVertexCount();
+            case COMPLETE -> {
+                vertexCount = graph.getVertexCount() * graph.getVertexCount();
                 edgeCount = graph.getEdgeCount();
-                break;
-            case SEMICOMPLETE:
-                vertexCount = graph.getVertexCount()*(graph.getVertexCount()-1) + 1;
+            }
+            case SEMICOMPLETE -> {
+                vertexCount = graph.getVertexCount() * (graph.getVertexCount() - 1) + 1;
                 edgeCount = graph.getEdgeCount();
-                break;
-            case INTERLINKS:
-            default:
-                vertexCount = graph.getVertexCount()*(graph.getVertexCount() - 1);
+            }
+            default -> {
+                vertexCount = graph.getVertexCount() * (graph.getVertexCount() - 1);
                 edgeCount = graph.getEdgeCount() - sumAutoLoops;
+            }
         }
                 
         GiniIndex gi = new GiniIndex();
@@ -114,24 +114,25 @@ public class EdgeGini<U> implements GraphMetric<U>
      */
     private double computeUndirected(UndirectedMultiGraph<U> graph)
     {
+
         List<Double> degrees = new ArrayList<>();
         List<U> visited = new ArrayList<>();
-        graph.getAllNodes().forEach((orig)->
+        graph.getAllNodes().forEach(orig ->
         {
-            graph.getAllNodes().forEach((dest)->
+            graph.getAllNodes().forEach(dest ->
             {
-               if(!visited.contains(dest) && !orig.equals(dest))
-               {
-                   degrees.add(graph.getNumEdges(orig, dest)+0.0);
-               }
+                if(!visited.contains(dest) && !orig.equals(dest))
+                {
+                    degrees.add(graph.getNumEdges(orig, dest)+0.0);
+                }
             });
             visited.add(orig);
         });
-        
-        long sumAutoLoops = graph.getAllNodes().mapToLong(u -> graph.getNumEdges(u,u)).sum();
+
+        long sumAutoloops = graph.getAllNodes().mapToLong(u -> graph.getNumEdges(u,u)).sum();
         if(this.mode.equals(EdgeGiniMode.SEMICOMPLETE))
         {
-            degrees.add(sumAutoLoops + 0.0);
+            degrees.add(sumAutoloops + 0.0);
         }
         else if(this.mode.equals(EdgeGiniMode.COMPLETE))
         {
@@ -140,21 +141,21 @@ public class EdgeGini<U> implements GraphMetric<U>
         
         long vertexCount;
         long edgeCount;
-        
-        switch(this.mode)
+
+        switch (this.mode)
         {
-            case COMPLETE:
-                vertexCount = graph.getVertexCount()*graph.getVertexCount();
+            case COMPLETE -> {
+                vertexCount = graph.getVertexCount() * (graph.getVertexCount() + 1) / 2;
                 edgeCount = graph.getEdgeCount();
-                break;
-            case SEMICOMPLETE:
-                vertexCount = graph.getVertexCount()*(graph.getVertexCount()-1) + 1;
+            }
+            case SEMICOMPLETE -> {
+                vertexCount = graph.getVertexCount() * (graph.getVertexCount() - 1) / 2 + 1;
                 edgeCount = graph.getEdgeCount();
-                break;
-            case INTERLINKS:
-            default:
-                vertexCount = graph.getVertexCount()*(graph.getVertexCount() - 1);
-                edgeCount = graph.getEdgeCount() - sumAutoLoops;
+            }
+            default -> {
+                vertexCount = graph.getVertexCount() * (graph.getVertexCount() - 1) / 2;
+                edgeCount = graph.getEdgeCount() - sumAutoloops;
+            }
         }
         
         GiniIndex gi = new GiniIndex();

@@ -11,13 +11,12 @@ package es.uam.eps.ir.socialranksys.diffusion.metrics.features.global;
 import es.uam.eps.ir.socialranksys.diffusion.metrics.features.AbstractFeatureGlobalSimulationMetric;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.Iteration;
 import es.uam.eps.ir.socialranksys.index.Index;
-import es.uam.eps.ir.socialranksys.index.Relation;
-import es.uam.eps.ir.socialranksys.index.fast.FastWeightedPairwiseRelation;
 import es.uam.eps.ir.socialranksys.utils.indexes.GiniIndex;
 
 import java.io.Serializable;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * Computes the number of pieces of information propagated and seen in all the iterations.
@@ -37,7 +36,7 @@ public class FeatureGlobalUserGini<U extends Serializable,I extends Serializable
     /**
      * Times each parameter has been received.
      */
-    private Relation<Integer> relation;
+    private Map<Integer, Set<Integer>> relation;
       
     /**
      * Constructor.
@@ -55,9 +54,14 @@ public class FeatureGlobalUserGini<U extends Serializable,I extends Serializable
         if(!this.isInitialized())
             return Double.NaN;
         
-        Stream<Double> values = this.relation.getAllSecond().mapToDouble(p -> this.relation.numFirst(p) + 0.0).boxed();
+        List<Double> values = this.relation.values().stream().mapToDouble(Set::size).boxed().collect(Collectors.toCollection(ArrayList::new));
+        long size = values.size();
+        double sum = values.stream().mapToDouble(x -> x).sum();
+
+        System.out.println("Size: " + size + " sum: " + sum);
+
         GiniIndex giniIndex = new GiniIndex();
-        return 1.0 - giniIndex.compute(values, true);
+        return 1.0 - giniIndex.compute(values, true, size, sum);
     }
     
     @Override
@@ -73,7 +77,7 @@ public class FeatureGlobalUserGini<U extends Serializable,I extends Serializable
                 data.getCreators(i.v1()).forEach(creator ->
                     data.getUserFeatures(creator, this.getParameter()).forEach(p -> {
                         int pidx = pIndex.object2idx(p.v1);
-                        this.relation.updatePair(uidx, pidx, 1, true);
+                        this.relation.get(pidx).add(uidx);
                     })
                 );
             })
@@ -94,7 +98,7 @@ public class FeatureGlobalUserGini<U extends Serializable,I extends Serializable
                 data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p ->
                 {
                     int pidx = pIndex.object2idx(p.v1);
-                    this.relation.updatePair(uidx, pidx, 1, true);
+                    this.relation.get(pidx).add(uidx);
                 });
             })
         );
@@ -113,9 +117,8 @@ public class FeatureGlobalUserGini<U extends Serializable,I extends Serializable
     {
         if(!this.isInitialized())
         {
-            this.relation = new FastWeightedPairwiseRelation<>();
-            IntStream.range(0, data.numUsers()).forEach(uidx -> relation.addFirstItem(uidx));
-            IntStream.range(0, data.numFeatureValues(this.getParameter())).forEach(pidx -> relation.addSecondItem(pidx));
+            this.relation = new HashMap<>();
+            IntStream.range(0, data.numFeatureValues(this.getParameter())).forEach(pidx -> relation.put(pidx, new HashSet<>()));
             this.initialized = true;
         }
     }

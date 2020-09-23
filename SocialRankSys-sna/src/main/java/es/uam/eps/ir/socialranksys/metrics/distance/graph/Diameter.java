@@ -12,6 +12,7 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
 import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.distance.vertex.Eccentricity;
 
 import java.util.Map;
@@ -42,7 +43,7 @@ public class Diameter<U> implements GraphMetric<U>
      */
     public Diameter()
     {
-        this.dc = new DistanceCalculator<>();
+        this.dc = new FastDistanceCalculator<>();
     }
     
     @Override

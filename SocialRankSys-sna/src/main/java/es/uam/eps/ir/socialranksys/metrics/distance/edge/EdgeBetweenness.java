@@ -10,6 +10,7 @@ package es.uam.eps.ir.socialranksys.metrics.distance.edge;
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.metrics.EdgeMetric;
+import es.uam.eps.ir.socialranksys.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.exception.InexistentEdgeException;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
@@ -47,7 +48,7 @@ public class EdgeBetweenness<U> implements EdgeMetric<U>
      */
     public EdgeBetweenness()
     {
-        this.dc = new DistanceCalculator<>();
+        this.dc = new CompleteDistanceCalculator<>();
     }
     
     

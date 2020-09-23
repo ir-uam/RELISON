@@ -8,9 +8,11 @@
  */
 package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap;
 
-import com.rits.cloning.Cloner;
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.graph.generator.GraphCloneGenerator;
+import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
+import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.*;
@@ -34,7 +36,7 @@ public abstract class SwapRerankerGraph<U> extends SwapLambdaReranker<U,U>
      */
     protected final Map<U, Set<U>> recs;
     
-    /**qq
+    /**
      * Constructor
      * @param cutOff Cutoff of the reranker.
      * @param lambda Trade-off between relevance and the global metric.
@@ -45,8 +47,20 @@ public abstract class SwapRerankerGraph<U> extends SwapLambdaReranker<U,U>
     public SwapRerankerGraph(double lambda, int cutOff, boolean norm, boolean rank, Graph<U> graph)
     {
         super(lambda, cutOff, norm, rank);
-        Cloner cloner = new Cloner();
-        this.graph = cloner.deepClone(graph);
+        Graph<U> graph1;
+        GraphCloneGenerator<U> cloner = new GraphCloneGenerator<>();
+        cloner.configure(graph);
+        try
+        {
+            graph1 = cloner.generate();
+        }
+        catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException e)
+        {
+            e.printStackTrace();
+            graph1 = null;
+        }
+
+        this.graph = graph1;
         this.recs = new HashMap<>();
     }
 
@@ -113,7 +127,12 @@ public abstract class SwapRerankerGraph<U> extends SwapLambdaReranker<U,U>
             U u = rec.getUser();
             this.recs.put(u, new HashSet<>());
             List<Tuple2od<U>> items = rec.getItems();
-            for(int i = 0; i < Math.min(maxLength, cutOff);++i)
+
+            int length = items.size();
+            length = Math.min(maxLength, length);
+
+
+            for(int i = 0; i < Math.min(length, cutOff);++i)
             {
                 Tuple2od<U> val = items.get(i);
                 U v = val.v1;

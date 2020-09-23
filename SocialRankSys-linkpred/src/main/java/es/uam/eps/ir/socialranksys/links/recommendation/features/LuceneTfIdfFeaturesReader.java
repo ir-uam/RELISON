@@ -51,16 +51,18 @@ public class LuceneTfIdfFeaturesReader<U>
                     // Load the frequency vector
                     int uidx = luceneIndex.getContentId(u);
                     FreqVector fv = luceneIndex.getContentVector(uidx);
-
-                    // Find the tf-idf coordinates for each of those vectors.
-                    for(TermFreq freq : fv)
+                    if(fv != null)
                     {
-                        double tf = freq.getFreq() + 0.0;
-                        String term = freq.getTerm();
-                        double df = luceneIndex.getDocFreq(term);
+                        // Find the tf-idf coordinates for each of those vectors.
+                        for (TermFreq freq : fv)
+                        {
+                            double tf = freq.getFreq() + 0.0;
+                            String term = freq.getTerm();
+                            double df = luceneIndex.getDocFreq(term);
 
-                        // add to the features list.
-                        features.add(new Tuple3<>(u, term, VSMSearchEngine.tfidf(tf, df, numUsers+0.0)));
+                            // add to the features list.
+                            features.add(new Tuple3<>(u, term, VSMSearchEngine.tfidf(tf, df, numUsers + 0.0)));
+                        }
                     }
                 }
                 catch(IOException aux)

@@ -10,6 +10,7 @@ package es.uam.eps.ir.socialranksys.metrics.distance.vertex;
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
+import es.uam.eps.ir.socialranksys.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
 
 import java.util.Map;
@@ -33,7 +34,7 @@ public class NodeBetweenness<U> implements VertexMetric<U>
      */
     public NodeBetweenness()
     {
-        this.dc = new DistanceCalculator<>();
+        this.dc = new CompleteDistanceCalculator<>();
     }
     
     /**

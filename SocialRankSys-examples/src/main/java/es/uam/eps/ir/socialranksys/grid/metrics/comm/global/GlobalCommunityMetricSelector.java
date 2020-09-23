@@ -43,73 +43,36 @@ public class GlobalCommunityMetricSelector<U>
      */
     public GlobalCommunityMetricGridSearch<U> getGridSearch(String metric)
     {
-        GlobalCommunityMetricGridSearch<U> gridsearch;
-        switch(metric)
+        // Comm. Degree Gini
+        // Size-norm. Comm. Degree Gini
+        // Comm. Edge Gini
+        // Dice Comm. Edge Gini
+        // Size-norm. Comm. Edge Gini
+        // Other metrics
+        // Default behavior
+        GlobalCommunityMetricGridSearch<U> gridsearch = switch (metric)
         {
-            // Comm. Degree Gini
-            case INTERCOMMUNITYDEGREEGINI:
-                gridsearch = new InterCommunityDegreeGiniGridSearch<>();
-                break;
-            case COMPLETECOMMUNITYDEGREEGINI:
-                gridsearch = new CompleteCommunityDegreeGiniGridSearch<>();
-                break;
-            // Size-norm. Comm. Degree Gini
-            case SIZENORMINTERCOMMUNITYDEGREEGINI:
-                gridsearch = new SizeNormalizedInterCommunityDegreeGiniGridSearch<>();
-                break;
-            case SIZENORMCOMPLETECOMMUNITYDEGREEGINI:
-                gridsearch = new SizeNormalizedCompleteCommunityDegreeGiniGridSearch<>();
-                break;
-            // Comm. Edge Gini
-            case INTERCOMMUNITYEDGEGINI:
-                gridsearch = new InterCommunityEdgeGiniGridSearch<>();
-                break;
-            case COMPLETECOMMUNITYEDGEGINI:
-                gridsearch = new CompleteCommunityEdgeGiniGridSearch<>();
-                break;
-            case SEMICOMPLETECOMMUNITYEDGEGINI:
-                gridsearch = new SemiCompleteCommunityEdgeGiniGridSearch<>();
-                break;
-            // Dice Comm. Edge Gini
-            case DICEINTERCOMMUNITYEDGEGINI:
-                gridsearch = new DiceInterCommunityEdgeGiniGridSearch<>();
-                break;
-            case DICECOMPLETECOMMUNITYEDGEGINI:
-                gridsearch = new DiceCompleteCommunityEdgeGiniGridSearch<>();
-                break;
-            case DICESEMICOMPLETECOMMUNITYEDGEGINI:
-                gridsearch = new DiceSemiCompleteCommunityEdgeGiniGridSearch<>();
-                break;
-            // Size-norm. Comm. Edge Gini
-            case SIZENORMINTERCOMMUNITYEDGEGINI:
-                gridsearch = new SizeNormalizedInterCommunityEdgeGiniGridSearch<>();
-                break;
-            case SIZENORMCOMPLETECOMMUNITYEDGEGINI:
-                gridsearch = new SizeNormalizedCompleteCommunityEdgeGiniGridSearch<>();
-                break;
-            case SIZENORMSEMICOMPLETECOMMUNITYEDGEGINI:
-                gridsearch = new SizeNormalizedSemiCompleteCommunityEdgeGiniGridSearch<>();
-                break;       
-            // Other metrics
-            case NUMCOMMS:
-                gridsearch = new NumCommunitiesGridSearch<>();
-                break;
-            case MODULARITY:
-                gridsearch = new ModularityGridSearch<>();
-                break;
-            case WEAKTIES:
-                gridsearch = new WeakTiesGridSearch<>();
-                break;
-            case COMMDESTSIZE:
-                gridsearch = new CommunityDestinySizeGridSearch<>();
-                break;
-            case COMMSIZEGINI:
-                gridsearch = new CommunitySizeGiniGridSearch<>();
-                break;
-            // Default behavior
-            default:
-                gridsearch = null;
-        }
+            case INTERCOMMUNITYDEGREEGINI -> new InterCommunityDegreeGiniGridSearch<>();
+            case COMPLETECOMMUNITYDEGREEGINI -> new CompleteCommunityDegreeGiniGridSearch<>();
+            case SIZENORMINTERCOMMUNITYDEGREEGINI -> new SizeNormalizedInterCommunityDegreeGiniGridSearch<>();
+            case SIZENORMCOMPLETECOMMUNITYDEGREEGINI -> new SizeNormalizedCompleteCommunityDegreeGiniGridSearch<>();
+            case INTERCOMMUNITYEDGEGINI -> new InterCommunityEdgeGiniGridSearch<>();
+            case COMPLETECOMMUNITYEDGEGINI -> new CompleteCommunityEdgeGiniGridSearch<>();
+            case SEMICOMPLETECOMMUNITYEDGEGINI -> new SemiCompleteCommunityEdgeGiniGridSearch<>();
+            case DICEINTERCOMMUNITYEDGEGINI -> new DiceInterCommunityEdgeGiniGridSearch<>();
+            case DICECOMPLETECOMMUNITYEDGEGINI -> new DiceCompleteCommunityEdgeGiniGridSearch<>();
+            case DICESEMICOMPLETECOMMUNITYEDGEGINI -> new DiceSemiCompleteCommunityEdgeGiniGridSearch<>();
+            case SIZENORMINTERCOMMUNITYEDGEGINI -> new SizeNormalizedInterCommunityEdgeGiniGridSearch<>();
+            case SIZENORMCOMPLETECOMMUNITYEDGEGINI -> new SizeNormalizedCompleteCommunityEdgeGiniGridSearch<>();
+            case SIZENORMSEMICOMPLETECOMMUNITYEDGEGINI -> new SizeNormalizedSemiCompleteCommunityEdgeGiniGridSearch<>();
+            case NUMCOMMS -> new NumCommunitiesGridSearch<>();
+            case MODULARITY -> new ModularityGridSearch<>();
+            case MODULARITYCOMPL -> new ModularityComplementGridSearch<>();
+            case WEAKTIES -> new WeakTiesGridSearch<>();
+            case COMMDESTSIZE -> new CommunityDestinySizeGridSearch<>();
+            case COMMSIZEGINI -> new CommunitySizeGiniGridSearch<>();
+            default -> null;
+        };
         return gridsearch;
     }
     

@@ -14,10 +14,6 @@ import es.uam.eps.ir.socialranksys.community.io.CommunitiesReader;
 import es.uam.eps.ir.socialranksys.graph.Adapters;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
-import es.uam.eps.ir.socialranksys.graph.generator.GraphCloneGenerator;
-import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
-import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
-import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
 import es.uam.eps.ir.socialranksys.grid.metrics.MetricGridReader;
 import es.uam.eps.ir.socialranksys.grid.metrics.MetricTypeIdentifiers;
 import es.uam.eps.ir.socialranksys.grid.metrics.comm.global.GlobalCommunityMetricSelector;
@@ -34,14 +30,16 @@ import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.metrics.*;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
-import org.ranksys.core.util.tuples.Tuple2od;
 import org.ranksys.formats.parsing.Parsers;
-import org.ranksys.formats.rec.RecommendationFormat;
-import org.ranksys.formats.rec.SimpleRecommendationFormat;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -50,7 +48,7 @@ import java.util.function.Supplier;
  * Class which analizes the different properties of a graph.
  * @author Javier Sanz-Cruzado Puig
  */
-public class BeyondAccuracyEvaluation
+public class GraphMetricsEvaluation
 {
     /**
      * Program which analyzes the different properties of a graph.
@@ -82,30 +80,23 @@ public class BeyondAccuracyEvaluation
         String graphFile = args[0];
         String testGraphFile = args[1];
         String metricGrid = args[2];
-        String recRoute = args[3];
-        boolean directed = args[4].equalsIgnoreCase("true");
-        boolean weighted = args[5].equalsIgnoreCase("true");
-        String commpath = args[6];
-        String[] comms = args[7].split(",");
+        boolean directed = args[3].equalsIgnoreCase("true");
+        boolean weighted = args[4].equalsIgnoreCase("true");
+        String commpath = args[5];
+        String[] comms = args[6].split(",");
         List<String> commFiles = Arrays.asList(comms);
-        String outputFile = args[8];
-        int length = Parsers.ip.parse(args[9]);
-        boolean fullGraph = args[10].equalsIgnoreCase("true");
-        boolean onlyrel = args[11].equalsIgnoreCase("true");
+        String outputFile = args[7];
 
         // Read the graphs
         long a = System.currentTimeMillis();
         
         TextGraphReader<Long> greader = new TextGraphReader<>(directed, weighted, false, "\t", Parsers.lp);
         Graph<Long> auxGraph = greader.read(graphFile, weighted, false);
-        Graph<Long> auxTestGraph = greader.read(testGraphFile, weighted, onlyrel);
+        FastGraph<Long> graph = (FastGraph<Long>) Adapters.removeAutoloops(auxGraph);
 
         // Clean the graph
-        FastGraph<Long> graph = (FastGraph<Long>) Adapters.removeAutoloops(auxGraph);
-        FastGraph<Long> testGraph = (FastGraph<Long>) Adapters.removeAutoloops(auxTestGraph);
-        //GraphSimpleFastPreferenceData<Long> prefData = GraphSimpleFastPreferenceData.load(graph);
 
-        if(graph == null || testGraph == null)
+        if(graph == null)
         {
             return;
         }
@@ -200,171 +191,90 @@ public class BeyondAccuracyEvaluation
         });
         System.out.println("Identified " + graphMetrics.size() + " global graph metrics");
 
-        File recFolder = new File(recRoute);
-        if(!recFolder.exists() || !recFolder.isDirectory())
-        {
-            System.err.println("Nothing to evaluate!");
-            return;
-        }
-        String[] recommenders = recFolder.list();
-        
-        // Configure the graph cloner
-        GraphGenerator<Long> generator = new GraphCloneGenerator<>();
-        RecommendationFormat<Long, Long> format = new SimpleRecommendationFormat<>(Parsers.lp, Parsers.lp);
-        generator.configure(graph);
-
-        System.out.println("\n");
         // Compute and write the values of the metrics
         try(BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFile))))
         {
             // Map for storing the metric values.
-            Map<String, Map<String, Double>> values = new ConcurrentHashMap<>();
+            Map<String, Double> values = new ConcurrentHashMap<>();
             // Counter.
             AtomicInteger counter = new AtomicInteger(0);
             // Metric list.
-            List<String> metricList = new ArrayList<>();
 
-            assert recommenders != null;
-            for(String recFile : recommenders)
+            long aa = System.currentTimeMillis();
+            DistanceCalculator<Long> dc = new FastDistanceCalculator<>();
+
+            // Compute vertex metrics
+            vertexMetrics.forEach((name, value) ->
             {
-                try
-                {
-                    System.out.println("\nStarting " + recFile);
+                VertexMetric<Long> vm = value.apply(dc);
+                double average = vm.averageValue(graph);
+                values.put("Average vertex " + name, average);
+            });
 
-                    long aa = System.currentTimeMillis();
+            long bb = System.currentTimeMillis();
+            System.out.println("Vertex metrics done (" + (bb-aa) + " ms.)" );
 
-                    Map<String, Double> recMetrics = new HashMap<>();
-                    Graph<Long> recGraph = generator.generate();
-                    List<Pair<Long>> extraEdges = new ArrayList<>();
+            // Compute edge metrics.
+            edgeMetrics.forEach((name, value) ->
+            {
+                EdgeMetric<Long> em = value.apply(dc);
+                double average = em.averageValue(graph);
+                values.put("Average edge " + name, average);
+            });
+            bb = System.currentTimeMillis();
+            System.out.println("Edge metrics done (" + (bb-aa) + " ms.)" );
 
-                    // Read the recommendation and add the edges
-                    format.getReader(recRoute + recFile).readAll().forEach(rec ->
-                    {
-                        long u = rec.getUser();
-                        List<Tuple2od<Long>> items = rec.getItems();
-                        long maxLength = Math.min(items.size(), length);
-                        for(int i = 0; i < maxLength; ++i)
-                        {
-                            long v = items.get(i).v1;
-                            if(!onlyrel || testGraph.containsEdge(u, v))
-                            {
-                                recGraph.addEdge(u, v);
-                                extraEdges.add(new Pair<>(u,v));
-                            }
-                        }
-                    });
-
-                    long bb = System.currentTimeMillis();
-                    System.out.println("Algorithm " + recFile + " : finished reading (" + (bb-aa) + " ms.)" );
-
-                    DistanceCalculator<Long> dc = new FastDistanceCalculator<>();
-                    // Compute vertex metrics.
-                    vertexMetrics.forEach((name, value) ->
-                    {
-                        VertexMetric<Long> vm = value.apply(dc);
-                        double average = vm.averageValue(recGraph);
-                        recMetrics.put("Average vertex " + name, average);
-                    });
-                    bb = System.currentTimeMillis();
-                    System.out.println("Algorithm " + recFile + " : vertex metrics done (" + (bb-aa) + " ms.)" );
-
-                    // Compute edge metrics.
-                    edgeMetrics.forEach((name, value) ->
-                    {
-                        EdgeMetric<Long> em = value.apply(dc);
-                        double average;
-                        if(fullGraph)
-                            average = em.averageValue(recGraph);
-                        else
-                            average = em.averageValue(recGraph, extraEdges.stream(), extraEdges.size());
-                        recMetrics.put("Average edge " + name, average);
-                    });
-                    bb = System.currentTimeMillis();
-                    System.out.println("Algorithm " + recFile + " : edge metrics done (" + (bb-aa) + " ms.)" );
-
-                    // Compute edge metrics.
-                    pairMetrics.forEach((name, value) ->
-                    {
-                        PairMetric<Long> pm = value.apply(dc);
-                        double average;
-                        if(fullGraph)
-                            average = pm.averageValue(recGraph);
-                        else
-                            average = pm.averageValue(recGraph, extraEdges.stream(), extraEdges.size());
-                        recMetrics.put("Average pair " + name, average);
-                    });
-                    bb = System.currentTimeMillis();
-                    System.out.println("Algorithm " + recFile + " : pair metrics done (" + (bb-aa) + " ms.)" );
+            // Compute pair metrics.
+            pairMetrics.forEach((name, value) ->
+            {
+                PairMetric<Long> pm = value.apply(dc);
+                double average = pm.averageValue(graph);
+                values.put("Average pair " + name, average);
+            });
+            bb = System.currentTimeMillis();
+            System.out.println("Pair metrics done (" + (bb-aa) + " ms.)" );
 
                     // Compute indiv comm. metrics.
-                    indivCommMetrics.forEach((name, value) ->
-                    {
-                        IndividualCommunityMetric<Long> icm = value.get();
-
-                        communities.forEach((commName, comm) ->
-                        {
-                            double average = icm.averageValue(recGraph, comm);
-                            recMetrics.put("Average comm " + commName + " " + name, average);
-                        });
-                    });
-                    bb = System.currentTimeMillis();
-                    System.out.println("Algorithm " + recFile + " : indiv community metrics done (" + (bb-aa) + " ms.)" );
-
-                    // Compute global comm. metrics.
-                    globalCommMetrics.forEach((name, value) ->
-                    {
-                        CommunityMetric<Long> gcm = value.get();
-                        communities.forEach((commName, comm) ->
-                        {
-                            double average = gcm.compute(recGraph, comm);
-                            recMetrics.put("Comm " + commName + " " + name, average);
-                        });
-                     });
-                    bb = System.currentTimeMillis();
-                    System.out.println("Algorithm " + recFile + " : global community metrics done (" + (bb-aa) + " ms.)" );
-
-                    // Compute graph metrics.
-                    graphMetrics.forEach((name, value) ->
-                    {
-                         GraphMetric<Long> gm = value.apply(dc);
-                         double average = gm.compute(recGraph);
-                         recMetrics.put("Graph " + name, average);
-                    });
-                    bb = System.currentTimeMillis();
-                    System.out.println("Algorithm " + recFile + " : graph metrics done (" + (bb-aa) + " ms.)" );
-                    values.put(recFile, recMetrics);
-                    System.out.println("Algorithm " + recFile + " finished (" + counter.incrementAndGet() + " / " + recommenders.length);
-
-                    if(metricList.isEmpty())
-                    {
-                        metricList.addAll(recMetrics.keySet());
-                    }
-                }
-                catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException | IOException e)
-                {
-                    e.printStackTrace();
-                }
-            }
-
-
-            bw.write("algorithm");
-            for(String metric : metricList)
+            indivCommMetrics.forEach((name, value) ->
             {
-                bw.write("\t" + metric);
-            }
-            bw.write("\n");
+                IndividualCommunityMetric<Long> icm = value.get();
 
-            
-            // Write each metric
-            for(String recFile : recommenders)
-            {
-                bw.write(recFile);
-                Map<String, Double> metricvalues = values.get(recFile);
-                for(String metric : metricList)
+                communities.forEach((commName, comm) ->
                 {
-                    bw.write("\t" + metricvalues.get(metric));
-                }
-                bw.write("\n");
+                    double average = icm.averageValue(graph, comm);
+                    values.put("Average comm " + commName + " " + name, average);
+                });
+            });
+            bb = System.currentTimeMillis();
+            System.out.println("Indiv community metrics done (" + (bb-aa) + " ms.)" );
+
+            // Compute global comm. metrics.
+            globalCommMetrics.forEach((name, value) ->
+            {
+                CommunityMetric<Long> gcm = value.get();
+                communities.forEach((commName, comm) ->
+                {
+                    double average = gcm.compute(graph, comm);
+                    values.put("Comm " + commName + " " + name, average);
+                });
+             });
+            bb = System.currentTimeMillis();
+            System.out.println("Global community metrics done (" + (bb-aa) + " ms.)" );
+
+            // Compute graph metrics.
+            graphMetrics.forEach((name, value) ->
+            {
+                 GraphMetric<Long> gm = value.apply(dc);
+                 double average = gm.compute(graph);
+                 values.put("Graph " + name, average);
+            });
+            bb = System.currentTimeMillis();
+            System.out.println("Graph metrics done (" + (bb-aa) + " ms.)" );
+
+            bw.write("metric\tvalue");
+            for(Map.Entry<String, Double> entry : values.entrySet())
+            {
+                bw.write("\n"+entry.getKey() + "\t" + entry.getValue());
             }
         }
         catch(IOException ioe)

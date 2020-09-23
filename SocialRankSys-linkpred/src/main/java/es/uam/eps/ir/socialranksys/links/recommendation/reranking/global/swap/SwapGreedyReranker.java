@@ -66,8 +66,10 @@ public abstract class SwapGreedyReranker<U,I> extends SwapReranker<U,I>
         IntList perm = new IntArrayList();
         IntLinkedOpenHashSet remainingI = new IntLinkedOpenHashSet();
     
-        
-        int permSize = Math.min(maxLength, cutOff);
+        int length = list.size();
+        length = Math.min(maxLength, length);
+        int permSize = Math.min(length, cutOff);
+
         // Generate the top k and the remaining list recommendation
         IntStream.range(permSize, list.size()).forEach(remainingI::add);
         IntStream.range(0, permSize).forEach(perm::add);
