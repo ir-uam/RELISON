@@ -9,13 +9,13 @@
  */
 package es.uam.eps.ir.socialranksys.graph.edges.fast;
 
+import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
 import es.uam.eps.ir.socialranksys.graph.edges.UndirectedEdges;
 import es.uam.eps.ir.socialranksys.graph.edges.WeightedEdges;
 import es.uam.eps.ir.socialranksys.index.IdxValue;
 import es.uam.eps.ir.socialranksys.index.fast.FastWeightedAutoRelation;
-import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
 
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -114,6 +114,26 @@ public class FastUndirectedWeightedEdges extends FastEdges implements Undirected
         if (this.weights.remove(idx) && this.types.remove(idx))
         {
             this.numEdges -= toDel;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean removeEdge(int orig, int dest)
+    {
+        if(orig == dest)
+        {
+            if(this.weights.removePair(orig, dest) && this.types.removePair(dest, orig))
+            {
+                this.numEdges--;
+                return true;
+            }
+            return false;
+        }
+        else if (this.weights.removePair(orig, dest) && this.weights.removePair(dest, orig) && this.types.removePair(orig, dest) && this.types.removePair(dest,orig))
+        {
+            this.numEdges--;
             return true;
         }
         return false;

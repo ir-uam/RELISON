@@ -9,6 +9,7 @@
  */
 package es.uam.eps.ir.socialranksys.graph.edges.fast;
 
+import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
 import es.uam.eps.ir.socialranksys.graph.edges.DirectedEdges;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
@@ -16,9 +17,8 @@ import es.uam.eps.ir.socialranksys.graph.edges.UnweightedEdges;
 import es.uam.eps.ir.socialranksys.index.IdxValue;
 import es.uam.eps.ir.socialranksys.index.fast.FastUnweightedAutoRelation;
 import es.uam.eps.ir.socialranksys.index.fast.FastWeightedAutoRelation;
-import es.uam.eps.ir.socialranksys.utils.listcombiner.OrderedListCombiner;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
-import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
+import es.uam.eps.ir.socialranksys.utils.listcombiner.OrderedListCombiner;
 
 import java.util.*;
 import java.util.stream.IntStream;
@@ -70,8 +70,7 @@ public class FastDirectedUnweightedEdges extends FastEdges implements DirectedEd
     public Stream<IdxPref> getNeighbourWeights(int node)
     {
         List<IdxPref> neighbors = new ArrayList<>();
-        Comparator<Tuple2oo<Integer, Iterator<Integer>>> comparator = (Tuple2oo<Integer, Iterator<Integer>> x, Tuple2oo<Integer, Iterator<Integer>> y) ->
-                (int) (x.v1() - y.v1());
+        Comparator<Tuple2oo<Integer, Iterator<Integer>>> comparator = Comparator.comparingInt(Tuple2oo::v1);
 
         PriorityQueue<Tuple2oo<Integer, Iterator<Integer>>> queue = new PriorityQueue<>(2, comparator);
 
@@ -152,6 +151,17 @@ public class FastDirectedUnweightedEdges extends FastEdges implements DirectedEd
         if (this.weights.remove(idx) && this.types.remove(idx))
         {
             this.numEdges -= toDel;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean removeEdge(int orig, int dest)
+    {
+        if (this.weights.removePair(orig, dest) && this.types.removePair(orig, dest))
+        {
+            this.numEdges--;
             return true;
         }
         return false;

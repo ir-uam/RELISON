@@ -101,16 +101,7 @@ public abstract class FastEdges implements Edges
         return this.numEdges;
     }
 
-    @Override
-    public boolean removeEdge(int orig, int dest)
-    {
-        if (this.weights.removePair(orig, dest) && this.types.removePair(orig, dest))
-        {
-            this.numEdges--;
-            return true;
-        }
-        return false;
-    }
+
 
     @Override
     public long getIncidentCount(int node)
