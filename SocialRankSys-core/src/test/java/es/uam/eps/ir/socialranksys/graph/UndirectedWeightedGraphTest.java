@@ -252,11 +252,11 @@ public class UndirectedWeightedGraphTest
         }).sum();
 
         // We remove them
-        prefsToDelete.forEach(pref -> graph.removeEdge(pref.v1, pref.v2));
-        
+        int correction = prefsToDelete.stream().mapToInt(pref -> graph.removeEdge(pref.v1, pref.v2) ? 0 : 1).sum();
+
         // We check that the edges have been correctly deleted.
         assertEquals(graph.getVertexCount(), N);
-        assertEquals(graph.getEdgeCount(), numPref + numExtraPref + - numDeleted);
+        assertEquals(graph.getEdgeCount(), numPref + numExtraPref - numDeleted + correction);
         
         // Check that the links do not appear in the graph.
         rnd.ints(1000, 0, numDeleted).forEach(i -> 
