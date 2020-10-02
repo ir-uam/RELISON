@@ -16,39 +16,35 @@ import java.util.stream.Stream;
 
 /**
  * Interface for directed multi graphs.
- * @author Javier Sanz-Cruzado Puig
- * @param <V> type of the vertices
+ *
+ * @param <U> type of the vertices
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public interface DirectedMultiGraph<V> extends MultiGraph<V>, DirectedGraph<V>
-{    
+public interface DirectedMultiGraph<U> extends MultiGraph<U>, DirectedGraph<U>
+{
     @Override
-    default Stream<Weights<V,Double>> getNeighbourhoodWeightsLists(V node, EdgeOrientation direction)
+    default Stream<Weights<U, Double>> getNeighbourhoodWeightsLists(U node, EdgeOrientation direction)
     {
-        switch(direction)
+        return switch (direction)
         {
-            case OUT:
-                return this.getAdjacentNodesWeightsLists(node);
-            case IN:
-                return this.getIncidentNodesWeightsLists(node);
-            case UND:
-                return this.getNeighbourNodesWeightsLists(node);
-            default:
-                return Stream.empty();
-        }
+            case OUT -> this.getAdjacentNodesWeightsLists(node);
+            case IN -> this.getIncidentNodesWeightsLists(node);
+            case UND -> this.getNeighbourNodesWeightsLists(node);
+            default -> Stream.empty();
+        };
     }
+
     @Override
-    default Stream<Weights<V,Integer>> getNeighbourhoodTypesLists(V node, EdgeOrientation direction)
+    default Stream<Weights<U, Integer>> getNeighbourhoodTypesLists(U node, EdgeOrientation direction)
     {
-        switch(direction)
+        return switch (direction)
         {
-            case OUT:
-                return this.getAdjacentNodesTypesLists(node);
-            case IN:
-                return this.getIncidentNodesTypesLists(node);
-            case UND:
-                return this.getNeighbourNodesTypesLists(node);
-            default:
-                return Stream.empty();
-        }
-    }    
+            case OUT -> this.getAdjacentNodesTypesLists(node);
+            case IN -> this.getIncidentNodesTypesLists(node);
+            case UND -> this.getNeighbourNodesTypesLists(node);
+            default -> Stream.empty();
+        };
+    }
 }

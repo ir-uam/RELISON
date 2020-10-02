@@ -13,18 +13,21 @@ import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import es.uam.eps.ir.socialranksys.graph.Weight;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
-import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 import es.uam.eps.ir.socialranksys.graph.multigraph.UndirectedWeightedMultiGraph;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.fast.FastUndirectedWeightedMultiEdges;
+import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
 
 import java.util.stream.Stream;
 
 /**
- * Fast implementation for an Undirected Weighted graph.
- * @author Javier Sanz-Cruzado Puig
+ * Fast implementation for an Undirected Weighted multigraph.
+ *
  * @param <U> type of the nodes
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class FastUndirectedWeightedMultiGraph<U> extends FastMultiGraph<U> implements UndirectedWeightedMultiGraph<U>
 {
@@ -36,47 +39,47 @@ public class FastUndirectedWeightedMultiGraph<U> extends FastMultiGraph<U> imple
     {
         super(new FastIndex<>(), new FastUndirectedWeightedMultiEdges());
     }
-    
+
     @Override
     public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
     {
         DoubleMatrix2D matrix = new SparseDoubleMatrix2D(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
         // Creation of the adjacency matrix
-        for(int row = 0; row < matrix.rows(); ++row)
-        {   
-            for(int col = 0; col < matrix.rows(); ++col)
+        for (int row = 0; row < matrix.rows(); ++row)
+        {
+            for (int col = 0; col < matrix.rows(); ++col)
             {
-                
-                if(this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)) ||
-                    this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
+
+                if (this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)) ||
+                        this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
+                {
                     matrix.setQuick(row, col, this.edges.getNumEdges(row, col));
-                
+                }
+
             }
         }
-        
+
         return matrix;
     }
-    
+
     @Override
     public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
     {
         Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
-        this.vertices.getAllObjects().forEach(u -> 
-        {
-            int uIdx = this.vertices.object2idx(u);
-            this.getNeighbourNodes(u).forEach(v -> 
-            {
-                int vIdx = this.vertices.object2idx(v);
-                matrix.set(uIdx, vIdx, this.edges.getNumEdges(vIdx,uIdx));               
-            });
-        });
-        
+        this.vertices.getAllObjects().forEach(u ->
+                                              {
+                                                  int uIdx = this.vertices.object2idx(u);
+                                                  this.getNeighbourNodes(u).forEach(v ->
+                                                                                    {
+                                                                                        int vIdx = this.vertices.object2idx(v);
+                                                                                        matrix.set(uIdx, vIdx, this.edges.getNumEdges(vIdx, uIdx));
+                                                                                    });
+                                              });
+
         return matrix;
     }
-        
-    
-    
-    
+
+
     // TODO: All Below
     @Override
     public Stream<Weight<U, Double>> getAdjacentMutualNodesWeights(U node)

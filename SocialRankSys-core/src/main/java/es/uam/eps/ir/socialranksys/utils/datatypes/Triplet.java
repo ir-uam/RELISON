@@ -1,7 +1,7 @@
-/* 
- *  Copyright (C) 2017 Information Retrieval Group at Universidad AutÃ³noma
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,12 +10,15 @@ package es.uam.eps.ir.socialranksys.utils.datatypes;
 
 /**
  * Element that stores three different values.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <X> Type of the first element.
  * @param <Y> Type of the second element.
  * @param <Z> Type of the third element.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class Triplet<X,Y,Z> 
+public class Triplet<X, Y, Z>
 {
     /**
      * First element.
@@ -32,11 +35,12 @@ public class Triplet<X,Y,Z>
 
     /**
      * Constructor
+     *
      * @param v1 first element.
      * @param v2 second element.
      * @param v3 third element.
      */
-    public Triplet(X v1, Y v2, Z v3) 
+    public Triplet(X v1, Y v2, Z v3)
     {
         this.v1 = v1;
         this.v2 = v2;
@@ -45,30 +49,33 @@ public class Triplet<X,Y,Z>
 
     /**
      * Gets the first element.
+     *
      * @return the first element.
      */
-    public X v1() 
+    public X v1()
     {
         return v1;
     }
 
     /**
      * Gets the second element.
+     *
      * @return the second element.
      */
-    public Y v2() 
+    public Y v2()
     {
         return v2;
     }
 
     /**
      * Gets the third element.
+     *
      * @return the third element.
      */
-    public Z v3() 
+    public Z v3()
     {
         return v3;
     }
-    
-    
+
+
 }

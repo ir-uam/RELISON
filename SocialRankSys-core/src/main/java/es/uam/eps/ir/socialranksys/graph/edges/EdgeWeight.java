@@ -65,11 +65,21 @@ public class EdgeWeight extends IdxPref
         return 1.0;
     }
 
+    /**
+     * Given a weight, indicates whether it is the error value.
+     * @param weight the weight value.
+     * @return true if it is, false otherwise.
+     */
     public static boolean isErrorValue(double weight)
     {
         return Double.isNaN(weight);
     }
 
+    /**
+     * Given a weight, indicates whether it is the default value.
+     * @param weight the weight value.
+     * @return true if it is, false otherwise.
+     */
     public static boolean isDefaultValue(double weight)
     {
         return weight == 1.0;

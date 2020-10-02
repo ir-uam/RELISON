@@ -101,9 +101,11 @@ public class Adapters
     /**
      * Given two graphs (test and training graphs), generates a new graph containing only the users present in the
      * second one.
-     * @param graph the test graph.
+     *
+     * @param graph         the test graph.
      * @param trainingGraph the training graph.
-     * @param <U> type of the users.
+     * @param <U>           type of the users.
+     *
      * @return the graph if everything went OK, null otherwise.
      */
     public static <U> Graph<U> onlyTrainUsers(Graph<U> graph, Graph<U> trainingGraph)
@@ -140,8 +142,10 @@ public class Adapters
 
     /**
      * Given a weighted network, returns the unweighted version.
+     *
      * @param graph the original graph.
-     * @param <U> type of the users.
+     * @param <U>   type of the users.
+     *
      * @return the unweighted network if everything is OK, null otherwise.
      */
     public static <U> Graph<U> unweighted(Graph<U> graph)
@@ -153,7 +157,7 @@ public class Adapters
             Graph<U> auxGraph = ggen.generate();
 
             graph.getAllNodes().forEach(auxGraph::addNode);
-            graph.getAllNodes().forEach(u -> graph.getAdjacentNodes(u).forEach(v -> auxGraph.addEdge(u,v)));
+            graph.getAllNodes().forEach(u -> graph.getAdjacentNodes(u).forEach(v -> auxGraph.addEdge(u, v)));
             return auxGraph;
         }
         catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException ex)
@@ -164,15 +168,17 @@ public class Adapters
 
     /**
      * Given a directed network, returns the undirected version
+     *
      * @param graph the original graph.
-     * @param <U> type of the users
+     * @param <U>   type of the users
+     *
      * @return the graph.
      */
     public static <U> Graph<U> undirected(Graph<U> graph)
     {
         try
         {
-            if(!graph.isDirected())
+            if (!graph.isDirected())
             {
                 GraphGenerator<U> ggen = new GraphCloneGenerator<>();
                 ggen.configure(graph);
@@ -189,7 +195,7 @@ public class Adapters
                 return auxGraph;
             }
         }
-        catch(GeneratorNotConfiguredException | GeneratorBadConfiguredException ex)
+        catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException ex)
         {
             return null;
         }

@@ -13,30 +13,37 @@ import java.util.stream.Stream;
 
 /**
  * Interface for unweighted edges
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public interface UnweightedMultiEdges extends MultiEdges
 {
     @Override
     default List<Double> getEdgeWeights(int orig, int dest)
     {
-        if(this.containsEdge(orig, dest))
+        if (this.containsEdge(orig, dest))
+        {
             return MultiEdgeWeights.getDefaultValue(this.getNumEdges(orig, dest));
+        }
         else
+        {
             return MultiEdgeWeights.getErrorType();
+        }
     }
-    
+
     @Override
     default Stream<MultiEdgeWeights> getIncidentWeight(int node)
     {
         return this.getIncidentNodes(node).map(val -> new MultiEdgeWeights(val, MultiEdgeWeights.getDefaultValue(this.getNumEdges(val, node))));
     }
+
     @Override
     default Stream<MultiEdgeWeights> getAdjacentWeight(int node)
     {
         return this.getAdjacentNodes(node).map((val) -> new MultiEdgeWeights(val, MultiEdgeWeights.getDefaultValue(this.getNumEdges(node, val))));
     }
-    
+
     @Override
     default Stream<MultiEdgeWeights> getNeighbourWeight(int node)
     {

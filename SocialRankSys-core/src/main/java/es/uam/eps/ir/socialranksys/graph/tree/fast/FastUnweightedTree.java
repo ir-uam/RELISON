@@ -25,8 +25,11 @@ import java.util.stream.Collectors;
 
 /**
  * Fast implementation of an unweighted tree
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> Type of the nodes.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class FastUnweightedTree<U> extends FastTree<U> implements UnweightedTree<U>
 {
@@ -42,32 +45,32 @@ public class FastUnweightedTree<U> extends FastTree<U> implements UnweightedTree
     @Override
     public Tree<U> getDescendants(U parent)
     {
-        if(this.containsVertex(parent))
+        if (this.containsVertex(parent))
         {
             Tree<U> tree = new FastUnweightedTree<>();
             tree.addRoot(parent);
-            
+
             // Perform a breadth first search, with fixed depth.
             LinkedList<U> currentLevelUsers = new LinkedList<>();
             LinkedList<U> nextLevelUsers = new LinkedList<>();
             currentLevelUsers.add(parent);
-            while(!currentLevelUsers.isEmpty())
+            while (!currentLevelUsers.isEmpty())
             {
                 U current = currentLevelUsers.pop();
                 List<U> children = this.getChildren(current).collect(Collectors.toCollection(ArrayList::new));
-                for(U child : children)
+                for (U child : children)
                 {
                     tree.addChild(current, child, EdgeWeight.getDefaultValue(), this.getEdgeType(current, child));
                     nextLevelUsers.add(child);
                 }
 
-                if(currentLevelUsers.isEmpty())
+                if (currentLevelUsers.isEmpty())
                 {
                     currentLevelUsers.addAll(nextLevelUsers);
                     nextLevelUsers.clear();
                 }
             }
-        
+
             return tree;
         }
         else
@@ -75,61 +78,57 @@ public class FastUnweightedTree<U> extends FastTree<U> implements UnweightedTree
             return null;
         }
     }
-    
+
     @Override
     public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
     {
         DoubleMatrix2D matrix = new SparseDoubleMatrix2D(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
         // Creation of the adjacency matrix
-        for(int row = 0; row < matrix.rows(); ++row)
-        {   
-            for(int col = 0; col < matrix.rows(); ++col)
+        for (int row = 0; row < matrix.rows(); ++row)
+        {
+            for (int col = 0; col < matrix.rows(); ++col)
             {
-                switch(direction)
+                switch (direction)
                 {
                     case IN:
-                        if(this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)))
+                        if (this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)))
+                        {
                             matrix.setQuick(row, col, 1.0);
+                        }
                         break;
                     case OUT:
-                        if(this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
+                        if (this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
+                        {
                             matrix.setQuick(row, col, 1.0);
+                        }
                         break;
                     default: //case UND
-                        if(this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)) ||
-                            this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
+                        if (this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)) ||
+                                this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
+                        {
                             matrix.setQuick(row, col, 1.0);
+                        }
                 }
             }
         }
-        
+
         return matrix;
     }
-    
+
     @Override
     public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
     {
         Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
-        this.vertices.getAllObjects().forEach(u -> 
+        this.vertices.getAllObjects().forEach(u ->
         {
             int uIdx = this.vertices.object2idx(u);
-            this.getNeighbourhood(u, direction).forEach(v -> 
+            this.getNeighbourhood(u, direction).forEach(v ->
             {
                 int vIdx = this.vertices.object2idx(v);
-                switch(direction)
-                {
-                    case IN:
-                        matrix.set(uIdx, vIdx, 1.0);
-                        break;
-                    case OUT:
-                        matrix.set(uIdx, vIdx, 1.0);
-                        break;
-                    default:
-                        matrix.set(uIdx, vIdx, 1.0);
-                }
+                matrix.set(uIdx, vIdx, EdgeWeight.getDefaultValue());
             });
         });
-        
+
         return matrix;
     }
 

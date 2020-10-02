@@ -140,7 +140,7 @@ public interface UndirectedGraph<V> extends Graph<V>
      * @param node The node.
      *
      * @return the number nodes for which both (u to node) and (node to u) exist in
-     * the graph if node is in the graph, -1 otherwise.
+     *         the graph if node is in the graph, -1 otherwise.
      */
     @Override
     default int getMutualNodesCount(V node)

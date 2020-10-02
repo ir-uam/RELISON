@@ -1,3 +1,11 @@
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ *  de Madrid, http://ir.ii.uam.es
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package es.uam.eps.ir.socialranksys.content.index.freq.lucene;
 
 import es.uam.eps.ir.socialranksys.content.index.freq.TermFreq;
@@ -10,7 +18,9 @@ import java.util.Iterator;
 
 /**
  * Iterator for the Lucene frequency vector
- * @author Pablo Castells
+ *
+ * @author Pablo Castells (pablo.castells@uam.es)
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  */
 public class LuceneFreqVectorIterator implements Iterator<TermFreq>
 {
@@ -41,19 +51,35 @@ public class LuceneFreqVectorIterator implements Iterator<TermFreq>
     }
 
     @Override
-    public TermFreq next() {
-        try {
+    public TermFreq next()
+    {
+        try
+        {
             terms.next();
             pointer++;
-        } catch (IOException ex) {
+        }
+        catch (IOException ex)
+        {
             ex.printStackTrace();
         }
         return new LuceneTermFreq(terms);
     }
 
+    /**
+     * Given a term, obtains its frequency in the current position.
+     * @param term the term.
+     * @return the frequency in the position.
+     * @throws IOException if something fails while retrieving the frequency vector.
+     */
     public long getFreq(String term) throws IOException
     {
-        if (terms.seekExact(new BytesRef(term))) return terms.totalTermFreq();
-        else return 0;
+        if (terms.seekExact(new BytesRef(term)))
+        {
+            return terms.totalTermFreq();
+        }
+        else
+        {
+            return 0;
+        }
     }
 }

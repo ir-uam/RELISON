@@ -17,76 +17,93 @@ import java.util.stream.Stream;
 
 /**
  * Interface for directed graphs.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <V> type of the vertices
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public interface UnweightedMultiGraph<V> extends MultiGraph<V>, UnweightedGraph<V>
 {
     /**
      * Gets the different weights for the edges of the incident nodes.
+     *
      * @param node The node to study
+     *
      * @return A stream containing the weights
      */
     @Override
     default Stream<Weights<V, Double>> getIncidentNodesWeightsLists(V node)
     {
-        return this.getIncidentNodes(node).map((inc)-> 
-        {
-            List<Double> weights = new ArrayList<>();
-            int numEdges = this.getNumEdges(inc, node);
-            for(int i = 0; i < numEdges; ++i)
-                weights.add(1.0);
-            return new Weights<>(inc, weights);
-        });
+        return this.getIncidentNodes(node).map((inc) ->
+                                               {
+                                                   List<Double> weights = new ArrayList<>();
+                                                   int numEdges = this.getNumEdges(inc, node);
+                                                   for (int i = 0; i < numEdges; ++i)
+                                                   {
+                                                       weights.add(1.0);
+                                                   }
+                                                   return new Weights<>(inc, weights);
+                                               });
     }
-    
+
     /**
      * Gets the different weights for the edges of the adjacent nodes.
+     *
      * @param node The node to study
+     *
      * @return A stream containing the weights
      */
     @Override
     default Stream<Weights<V, Double>> getAdjacentNodesWeightsLists(V node)
     {
-        return this.getAdjacentNodes(node).map((adj)-> 
-        {
-            List<Double> weights = new ArrayList<>();
-            int numEdges = this.getNumEdges(node, adj);
-            for(int i = 0; i < numEdges; ++i)
-                weights.add(1.0);
-            return new Weights<>(adj, weights);
-        });
+        return this.getAdjacentNodes(node).map((adj) ->
+                                               {
+                                                   List<Double> weights = new ArrayList<>();
+                                                   int numEdges = this.getNumEdges(node, adj);
+                                                   for (int i = 0; i < numEdges; ++i)
+                                                   {
+                                                       weights.add(1.0);
+                                                   }
+                                                   return new Weights<>(adj, weights);
+                                               });
     }
-    
+
     /**
      * Gets the different weights for the edges of the neighbour nodes.
+     *
      * @param node The node to study
+     *
      * @return A stream containing the weights
      */
     @Override
     default Stream<Weights<V, Double>> getNeighbourNodesWeightsLists(V node)
     {
-        return this.getNeighbourNodes(node).map((inc)-> 
-        {
-            List<Double> weights = new ArrayList<>();
-            int numEdges = this.getNumEdges(inc, node);
-            for(int i = 0; i < numEdges; ++i)
-                weights.add(1.0);
-            return new Weights<>(inc, weights);
-        });
+        return this.getNeighbourNodes(node).map((inc) ->
+                                                {
+                                                    List<Double> weights = new ArrayList<>();
+                                                    int numEdges = this.getNumEdges(inc, node);
+                                                    for (int i = 0; i < numEdges; ++i)
+                                                    {
+                                                        weights.add(1.0);
+                                                    }
+                                                    return new Weights<>(inc, weights);
+                                                });
     }
-    
-    
+
+
     @Override
     default List<Double> getEdgeWeights(V incident, V adjacent)
     {
         int numEdges = this.getNumEdges(incident, adjacent);
         List<Double> edges = new ArrayList<>();
-        if(numEdges > 0)
+        if (numEdges > 0)
         {
-            for(int i = 0; i < numEdges; ++i)
+            for (int i = 0; i < numEdges; ++i)
+            {
                 edges.add(EdgeWeight.getDefaultValue());
+            }
         }
         return edges;
-    }    
+    }
 }

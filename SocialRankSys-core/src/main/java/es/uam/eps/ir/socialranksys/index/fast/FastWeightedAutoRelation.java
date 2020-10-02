@@ -95,7 +95,8 @@ public class FastWeightedAutoRelation<W> extends FastWeightedRelation<W> impleme
         {
             List<IdxValue<W>> auxFList = new ArrayList<>();
             List<IdxValue<W>> fList = this.firstIdxList.get(i);
-            int auxCount = fList.stream().mapToInt(wIdxValue -> {
+            int auxCount = fList.stream().mapToInt(wIdxValue ->
+            {
                 int c = 0;
                 if (wIdxValue.getIdx() < idx)
                 {
@@ -117,7 +118,8 @@ public class FastWeightedAutoRelation<W> extends FastWeightedRelation<W> impleme
             List<IdxValue<W>> auxSList = new ArrayList<>();
             List<IdxValue<W>> sList;
             sList = this.secondIdxList.get(i);
-            auxCount += sList.stream().mapToInt(wIdxValue -> {
+            auxCount += sList.stream().mapToInt(wIdxValue ->
+            {
                 int c = 0;
                 if (wIdxValue.getIdx() < idx)
                 {

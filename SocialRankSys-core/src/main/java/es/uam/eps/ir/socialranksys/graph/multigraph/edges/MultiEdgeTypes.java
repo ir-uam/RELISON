@@ -19,48 +19,57 @@ import java.util.List;
  * an integer. Value 0 is considered a default valid value, and -1 as a default
  * invalid value. Every other value has the interpretation the user wants to give
  * it.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class MultiEdgeTypes extends IdxValue<List<Integer>>
-{    
+{
     /**
      * Constructor
-     * @param idx user identifier
+     *
+     * @param idx   user identifier
      * @param value list of values
      */
     public MultiEdgeTypes(int idx, List<Integer> value)
     {
         super(idx, value);
     }
-    
+
     /**
      * Constructor
+     *
      * @param idx user identifier
      */
     public MultiEdgeTypes(int idx)
     {
         this(idx, new ArrayList<>());
     }
-    
+
     /**
      * Default value for the error type.
+     *
      * @return The default value for the error type.
      */
     public static List<Integer> getErrorType()
     {
         return null;
     }
-    
-    
+
+
     public static List<Integer> getDefaultValue(int length)
     {
         List<Integer> list = new ArrayList<>();
-        for(int i = 0; i < length; ++i)
+        for (int i = 0; i < length; ++i)
+        {
             list.add(getDefaultValue());
+        }
         return list;
     }
+
     /**
      * Default valid type value.
+     *
      * @return The default valid type value.
      */
     public static int getDefaultValue()
@@ -68,5 +77,5 @@ public class MultiEdgeTypes extends IdxValue<List<Integer>>
         return 0;
     }
 
-    
+
 }

@@ -93,11 +93,11 @@ public class TextGraphReader<V> implements GraphReader<V>
      * Constructor.
      *
      * @param multigraph Indicates if the graph to read is a multigraph (true) or not (false).
-     * @param directed  Indicates if the graph to read is directed (true) or not (false).
-     * @param weighted  Indicates if the graph to read is weighted (true) or not (false).
-     * @param selfloops Indicates if the graph to read allows autoloops (true) or not (false).
-     * @param delimiter Field delimiter.
-     * @param uParser   Parser for reading the vertices.
+     * @param directed   Indicates if the graph to read is directed (true) or not (false).
+     * @param weighted   Indicates if the graph to read is weighted (true) or not (false).
+     * @param selfloops  Indicates if the graph to read allows autoloops (true) or not (false).
+     * @param delimiter  Field delimiter.
+     * @param uParser    Parser for reading the vertices.
      */
     protected TextGraphReader(boolean multigraph, boolean directed, boolean weighted, boolean selfloops, String delimiter, Parser<V> uParser)
     {
@@ -181,8 +181,8 @@ public class TextGraphReader<V> implements GraphReader<V>
                         }
 
                         graph.addEdge(source, dest, weight, type, true);
-                    }
-                });
+                   }
+               });
             }
 
             catch (IOException ioe)

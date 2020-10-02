@@ -8,12 +8,12 @@
  */
 package es.uam.eps.ir.socialranksys.graph.multigraph.edges.fast;
 
-import es.uam.eps.ir.socialranksys.index.IdxValue;
-import es.uam.eps.ir.socialranksys.index.fast.FastWeightedAutoRelation;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.DirectedMultiEdges;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.MultiEdgeTypes;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.MultiEdgeWeights;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.UnweightedMultiEdges;
+import es.uam.eps.ir.socialranksys.index.IdxValue;
+import es.uam.eps.ir.socialranksys.index.fast.FastWeightedAutoRelation;
 import es.uam.eps.ir.socialranksys.utils.listcombiner.OrderedListCombiner;
 
 import java.util.ArrayList;
@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 /**
  * Fast implementation of directed unweighted edges for multigraphs.
+ *
  * @author Javier Sanz-Cruzado Puig
  */
 public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements DirectedMultiEdges, UnweightedMultiEdges
@@ -41,7 +42,7 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
     public Stream<Integer> getIncidentNodes(int node)
     {
         List<Integer> incidentNodes = new ArrayList<>();
-        
+
         return this.types.getIdsFirst(node).map(IdxValue::getIdx);
     }
 
@@ -73,75 +74,77 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
     @Override
     public boolean addEdge(int orig, int dest, double weight, int type)
     {
-       boolean failed;
-       if(this.weights.containsPair(orig, dest))
-       {
-           List<Double> weightList = this.weights.getValue(orig, dest);
-           weightList.add(MultiEdgeWeights.getDefaultValue());
-           
-           List<Integer> typeList = this.types.getValue(orig, dest);
-           typeList.add(type);
-           
-           failed = this.weights.updatePair(orig, dest, weightList) & this.types.updatePair(orig, dest, typeList);
-       }
-       else
-       {
-           List<Double> weightList = new ArrayList<>();
-           weightList.add(MultiEdgeWeights.getDefaultValue());
-           
-           List<Integer> typeList = new ArrayList<>();
-           typeList.add(type);
-           
-           failed = this.weights.addRelation(orig, dest, weightList) & this.types.addRelation(orig, dest, typeList);
-       }
-       
-       if(failed)
-           this.numEdges++;
-       return failed;
-       
-    }   
-    
+        boolean failed;
+        if (this.weights.containsPair(orig, dest))
+        {
+            List<Double> weightList = this.weights.getValue(orig, dest);
+            weightList.add(MultiEdgeWeights.getDefaultValue());
+
+            List<Integer> typeList = this.types.getValue(orig, dest);
+            typeList.add(type);
+
+            failed = this.weights.updatePair(orig, dest, weightList) & this.types.updatePair(orig, dest, typeList);
+        }
+        else
+        {
+            List<Double> weightList = new ArrayList<>();
+            weightList.add(MultiEdgeWeights.getDefaultValue());
+
+            List<Integer> typeList = new ArrayList<>();
+            typeList.add(type);
+
+            failed = this.weights.addRelation(orig, dest, weightList) & this.types.addRelation(orig, dest, typeList);
+        }
+
+        if (failed)
+        {
+            this.numEdges++;
+        }
+        return failed;
+
+    }
+
     @Override
-    public IntStream getNodesWithIncidentEdges() 
+    public IntStream getNodesWithIncidentEdges()
     {
         return this.weights.secondsWithFirsts();
     }
 
     @Override
-    public IntStream getNodesWithAdjacentEdges() 
+    public IntStream getNodesWithAdjacentEdges()
     {
         return this.weights.firstsWithSeconds();
     }
 
     @Override
-    public IntStream getNodesWithEdges() 
+    public IntStream getNodesWithEdges()
     {
         Iterator<Integer> iteratorIncident = this.getNodesWithIncidentEdges().iterator();
         Iterator<Integer> iteratorAdjacent = this.getNodesWithAdjacentEdges().iterator();
-        
+
         List<Integer> users = OrderedListCombiner.mergeLists(iteratorAdjacent, iteratorIncident, Comparator.naturalOrder(), (x, y) -> x);
-        return users.stream().mapToInt(x->x);
+        return users.stream().mapToInt(x -> x);
     }
-    
+
     @Override
     public IntStream getNodesWithMutualEdges()
     {
         List<Integer> users = new ArrayList<>();
-        
+
         Iterator<Integer> iteratorIncident = this.getNodesWithIncidentEdges().iterator();
-        while(iteratorIncident.hasNext())
+        while (iteratorIncident.hasNext())
         {
             int idx = iteratorIncident.next();
             Stream<Integer> incident = this.getIncidentNodes(idx);
             Stream<Integer> adjacent = this.getAdjacentNodes(idx);
-            
+
             boolean value = OrderedListCombiner.intersectionHaslements(incident, adjacent, Comparator.naturalOrder());
-            if(value)
+            if (value)
             {
                 users.add(idx);
             }
         }
-        
-        return users.stream().mapToInt(x->x);
-    }    
+
+        return users.stream().mapToInt(x -> x);
+    }
 }

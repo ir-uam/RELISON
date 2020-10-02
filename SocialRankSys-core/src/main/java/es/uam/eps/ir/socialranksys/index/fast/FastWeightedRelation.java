@@ -271,7 +271,7 @@ public abstract class FastWeightedRelation<W> implements Relation<W>
      *                  false if it has to be found on the list of second elements.
      *
      * @return the index of the element if it exists, - (insertpoint - 1) if it does not,
-     * where insertpoint is the corresponding point where the element should be added.
+     *         where insertpoint is the corresponding point where the element should be added.
      */
     private Integer binarySearch(int firstIdx, int secondIdx, W weight, boolean firstList)
     {

@@ -1,3 +1,11 @@
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ *  de Madrid, http://ir.ii.uam.es
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package es.uam.eps.ir.socialranksys.content.index.lucene;
 
 import es.uam.eps.ir.socialranksys.content.index.AbstractIndexBuilder;
@@ -21,19 +29,22 @@ import java.nio.file.Paths;
 
 /**
  * Lucene implementation of an Index Builder
- * @author Pablo Castells
- * @author Javier Sanz-Cruzado
+ *
+ * @param <C> Type of the contents.
+ *
+ * @author Pablo Castells (pablo.castells@uam.es)
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  */
 public class LuceneBuilder<C> extends AbstractIndexBuilder<C>
 {
     /**
-     * Index writer.
-     */
-    private IndexWriter builder;
-    /**
      * Custom type for storing each content.
      */
     protected static FieldType type;
+    /**
+     * Index writer.
+     */
+    private IndexWriter builder;
     /**
      * Folder in which to store the index
      */
@@ -45,11 +56,11 @@ public class LuceneBuilder<C> extends AbstractIndexBuilder<C>
 
     /**
      * Constructor.
-    */
+     */
     public LuceneBuilder()
     {
         type = new FieldType();
-        type.setIndexOptions (IndexOptions.DOCS_AND_FREQS);
+        type.setIndexOptions(IndexOptions.DOCS_AND_FREQS);
     }
 
     @Override
@@ -59,7 +70,7 @@ public class LuceneBuilder<C> extends AbstractIndexBuilder<C>
         clear(indexPath);
         CharArraySet set = CharArraySet.copy(EnglishAnalyzer.ENGLISH_STOP_WORDS_SET);
         set.add("RT");
-        
+
         IndexWriterConfig iwc = new IndexWriterConfig(new StandardAnalyzer(set));
         iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
         builder = new IndexWriter(FSDirectory.open(Paths.get(indexPath)), iwc);
@@ -80,9 +91,9 @@ public class LuceneBuilder<C> extends AbstractIndexBuilder<C>
         Field pathField = new StringField("content", content.toString(), Field.Store.YES);
         doc.add(pathField);
         Field field = new Field("text", text, type);
-        doc.add(field); 
+        doc.add(field);
         builder.addDocument(doc);
-        int docId = builder.getDocStats().maxDoc-1;
+        int docId = builder.getDocStats().maxDoc - 1;
 
         map.put(docId, content);
         return docId;

@@ -192,7 +192,10 @@ public abstract class FastUnweightedRelation<W> implements Relation<W>
             int auxvalue = value;
 
             value = this.binarySearch(firstIdx, secondIdx, false);
-            if(value == null || (value >= 0)) return false;
+            if (value == null || (value >= 0))
+            {
+                return false;
+            }
 
             int idx = Math.abs(auxvalue + 1);
             this.firstIdxList.get(secondIdx).add(idx, firstIdx);
@@ -231,7 +234,7 @@ public abstract class FastUnweightedRelation<W> implements Relation<W>
      *                  false if it has to be found on the list of second elements.
      *
      * @return the index of the element if it exists, - (insertpoint - 1) if it does not,
-     * where insertpoint is the corresponding point where the element should be added.
+     *         where insertpoint is the corresponding point where the element should be added.
      */
     private Integer binarySearch(int firstIdx, int secondIdx, boolean firstList)
     {

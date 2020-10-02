@@ -101,8 +101,6 @@ public abstract class FastEdges implements Edges
         return this.numEdges;
     }
 
-
-
     @Override
     public long getIncidentCount(int node)
     {

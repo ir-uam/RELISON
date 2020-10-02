@@ -19,14 +19,14 @@ import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfigu
 /**
  * Empty graph generator.
  *
- * @param <V> Type of the vertices.
+ * @param <U> Type of the vertices.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class EmptyGraphGenerator<V> implements GraphGenerator<V>
+public class EmptyGraphGenerator<U> implements GraphGenerator<U>
 {
     /**
      * Indicates whether the graph is going to be directed.
@@ -72,14 +72,14 @@ public class EmptyGraphGenerator<V> implements GraphGenerator<V>
     }
 
     @Override
-    public Graph<V> generate() throws GeneratorNotConfiguredException
+    public Graph<U> generate() throws GeneratorNotConfiguredException
     {
         if (!configured)
         {
             throw new GeneratorNotConfiguredException("Empty graph: the generator was not configured");
         }
 
-        Graph<V> graph;
+        Graph<U> graph;
         if (directed)
         {
             if (weighted)

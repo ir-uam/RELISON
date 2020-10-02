@@ -13,9 +13,12 @@ import java.util.List;
 
 /**
  * Class for expressing weights
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <I> Type of the identifiers.
  * @param <W> Type of the different weight values.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class Weights<I, W>
 {
@@ -27,10 +30,11 @@ public class Weights<I, W>
      * List of values
      */
     private final List<W> weights;
-    
+
     /**
      * Constructor.
-     * @param idx Identifier
+     *
+     * @param idx     Identifier
      * @param weights List of values.
      */
     public Weights(I idx, List<W> weights)
@@ -38,17 +42,25 @@ public class Weights<I, W>
         this.idx = idx;
         this.weights = weights;
     }
-    
+
     /**
      * Gets the identifier of the weight
+     *
      * @return the identifier of the weight.
      */
-    public I getIdx() { return this.idx; }
-    
+    public I getIdx()
+    {
+        return this.idx;
+    }
+
     /**
      * Gets the different values for the weight.
+     *
      * @return a list containing the values.
      */
-    public List<W> getValue() { return this.weights; }
-    
+    public List<W> getValue()
+    {
+        return this.weights;
+    }
+
 }

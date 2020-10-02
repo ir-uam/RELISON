@@ -12,16 +12,18 @@ import java.util.stream.Stream;
 
 /**
  * Class for the directed edges.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public interface DirectedMultiEdges extends MultiEdges
-{   
+{
     @Override
     default Stream<Integer> getNeighbourNodes(int node)
     {
         return Stream.concat(this.getIncidentNodes(node), this.getAdjacentNodes(node)).distinct();
     }
-    
+
     @Override
     default Stream<MultiEdgeTypes> getNeighbourTypes(int node)
     {

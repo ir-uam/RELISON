@@ -12,46 +12,48 @@ import java.util.stream.Stream;
 
 /**
  * Class for the directed edges.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public interface UndirectedMultiEdges extends MultiEdges
-{   
+{
     @Override
     default Stream<Integer> getIncidentNodes(int node)
     {
         return this.getNeighbourNodes(node);
     }
-    
+
     @Override
     default Stream<Integer> getAdjacentNodes(int node)
     {
         return this.getNeighbourNodes(node);
     }
-    
+
     @Override
     default Stream<MultiEdgeTypes> getIncidentTypes(int node)
     {
         return this.getNeighbourTypes(node);
     }
-    
+
     @Override
     default Stream<MultiEdgeTypes> getAdjacentTypes(int node)
     {
         return this.getNeighbourTypes(node);
     }
-    
+
     @Override
     default Stream<MultiEdgeWeights> getIncidentWeight(int node)
     {
         return this.getNeighbourWeight(node);
     }
-    
+
     @Override
     default Stream<MultiEdgeWeights> getAdjacentWeight(int node)
     {
         return this.getNeighbourWeight(node);
     }
-    
+
     @Override
     default int getNeighbourCount(int node)
     {

@@ -203,7 +203,7 @@ public interface Relation<W>
      * in the second.
      *
      * @return the elements in the first set without relations with elements.
-     * in the second.
+     *         in the second.
      */
     IntStream getIsolatedFirsts();
 
@@ -212,7 +212,7 @@ public interface Relation<W>
      * in the first.
      *
      * @return the elements in the second set without relations with elements.
-     * in the first.
+     *         in the first.
      */
     IntStream getIsolatedSeconds();
 

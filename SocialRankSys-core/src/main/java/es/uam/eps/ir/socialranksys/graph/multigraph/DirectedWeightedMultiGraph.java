@@ -10,9 +10,12 @@ package es.uam.eps.ir.socialranksys.graph.multigraph;
 
 /**
  * Interface for directed weighted multigraphs
- * @author Javier Sanz-Cruzado Puig
- * @param <V> Type of the vertices.
+ *
+ * @param <U> Type of the vertices.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public interface DirectedWeightedMultiGraph<V> extends WeightedMultiGraph<V>, DirectedMultiGraph<V>
-{   
+public interface DirectedWeightedMultiGraph<U> extends WeightedMultiGraph<U>, DirectedMultiGraph<U>
+{
 }

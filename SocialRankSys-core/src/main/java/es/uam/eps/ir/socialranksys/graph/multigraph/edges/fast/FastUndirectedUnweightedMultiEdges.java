@@ -8,12 +8,12 @@
  */
 package es.uam.eps.ir.socialranksys.graph.multigraph.edges.fast;
 
-import es.uam.eps.ir.socialranksys.index.IdxValue;
-import es.uam.eps.ir.socialranksys.index.fast.FastWeightedAutoRelation;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.MultiEdgeTypes;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.MultiEdgeWeights;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.UndirectedMultiEdges;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.UnweightedMultiEdges;
+import es.uam.eps.ir.socialranksys.index.IdxValue;
+import es.uam.eps.ir.socialranksys.index.fast.FastWeightedAutoRelation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +22,7 @@ import java.util.stream.Stream;
 
 /**
  * Fast implementation of undirected unweighted edges for multigraphs.
+ *
  * @author Javier Sanz-Cruzado Puig
  */
 public class FastUndirectedUnweightedMultiEdges extends FastMultiEdges implements UndirectedMultiEdges, UnweightedMultiEdges
@@ -63,61 +64,62 @@ public class FastUndirectedUnweightedMultiEdges extends FastMultiEdges implement
     {
         return this.weights.getIdsFirst(node).map(weight -> new MultiEdgeWeights(weight.getIdx(), MultiEdgeWeights.getDefaultValue(this.getNumEdges(node, weight.getIdx()))));
     }
-    
-    
+
 
     @Override
     public boolean addEdge(int orig, int dest, double weight, int type)
     {
-       boolean failed;
-       if(this.weights.containsPair(orig, dest))
-       {
-           List<Double> weightList = this.getEdgeWeights(orig, dest);
-           weightList.add(MultiEdgeWeights.getDefaultValue());
-           
-           List<Integer> typeList = this.types.getValue(orig, dest);
-           typeList.add(type);
-           
-           failed = this.weights.updatePair(orig, dest, weightList) & this.types.updatePair(orig, dest, typeList)
-                  & this.weights.updatePair(dest, orig, weightList) & this.types.updatePair(dest, orig, typeList);
-       }
-       else
-       {
-           List<Double> weightList = new ArrayList<>();
-           weightList.add(MultiEdgeWeights.getDefaultValue());
-           
-           List<Integer> typeList = new ArrayList<>();
-           typeList.add(type);
-           
-           failed = this.weights.addRelation(orig, dest, weightList) & this.types.addRelation(orig, dest, typeList)
-                   & this.weights.addRelation(dest, orig, weightList) & this.types.addRelation(dest, orig, typeList);
-       }
-       
-       if(failed)
-           this.numEdges++;
-       return failed;
+        boolean failed;
+        if (this.weights.containsPair(orig, dest))
+        {
+            List<Double> weightList = this.getEdgeWeights(orig, dest);
+            weightList.add(MultiEdgeWeights.getDefaultValue());
+
+            List<Integer> typeList = this.types.getValue(orig, dest);
+            typeList.add(type);
+
+            failed = this.weights.updatePair(orig, dest, weightList) & this.types.updatePair(orig, dest, typeList)
+                    & this.weights.updatePair(dest, orig, weightList) & this.types.updatePair(dest, orig, typeList);
+        }
+        else
+        {
+            List<Double> weightList = new ArrayList<>();
+            weightList.add(MultiEdgeWeights.getDefaultValue());
+
+            List<Integer> typeList = new ArrayList<>();
+            typeList.add(type);
+
+            failed = this.weights.addRelation(orig, dest, weightList) & this.types.addRelation(orig, dest, typeList)
+                    & this.weights.addRelation(dest, orig, weightList) & this.types.addRelation(dest, orig, typeList);
+        }
+
+        if (failed)
+        {
+            this.numEdges++;
+        }
+        return failed;
     }
-    
+
     @Override
-    public IntStream getNodesWithIncidentEdges() 
+    public IntStream getNodesWithIncidentEdges()
     {
         return this.weights.secondsWithFirsts();
     }
 
     @Override
-    public IntStream getNodesWithAdjacentEdges() 
+    public IntStream getNodesWithAdjacentEdges()
     {
         return this.weights.firstsWithSeconds();
     }
 
     @Override
-    public IntStream getNodesWithEdges() 
+    public IntStream getNodesWithEdges()
     {
         return this.weights.firstsWithSeconds();
     }
-    
+
     @Override
-    public IntStream getNodesWithMutualEdges() 
+    public IntStream getNodesWithMutualEdges()
     {
         return this.weights.firstsWithSeconds();
     }

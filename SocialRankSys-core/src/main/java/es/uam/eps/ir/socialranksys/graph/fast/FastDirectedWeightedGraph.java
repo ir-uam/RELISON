@@ -82,20 +82,10 @@ public class FastDirectedWeightedGraph<V> extends FastGraph<V> implements Direct
         this.vertices.getAllObjects().forEach(u ->
         {
             int uIdx = this.vertices.object2idx(u);
-            this.getNeighbourhood(u, direction).forEach(v ->
+            this.getNeighbourhoodWeights(u, direction).forEach(v ->
             {
-                int vIdx = this.vertices.object2idx(v);
-                switch (direction)
-                {
-                    case IN:
-                        matrix.set(uIdx, vIdx, 1.0);
-                        break;
-                    case OUT:
-                        matrix.set(uIdx, vIdx, 1.0);
-                        break;
-                    default:
-                        matrix.set(uIdx, vIdx, 1.0);
-                }
+                int vIdx = this.vertices.object2idx(v.getIdx());
+                matrix.set(uIdx, vIdx, v.getValue());
             });
         });
 

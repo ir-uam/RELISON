@@ -12,14 +12,18 @@ import java.util.stream.Stream;
 
 /**
  * Interface for weighted edges
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public interface WeightedMultiEdges extends MultiEdges
 {
 
     /**
      * Given a node, finds all the weights of edges such that the edge (u to node) is in the graph.
+     *
      * @param node The node.
+     *
      * @return A stream of the weights of incident nodes.
      */
     @Override
@@ -27,10 +31,12 @@ public interface WeightedMultiEdges extends MultiEdges
     {
         return this.getIncidentNodes(node).map((inc) -> new MultiEdgeWeights(inc, this.getEdgeWeights(inc, node)));
     }
-    
+
     /**
      * Given a node, finds all the weights of edges u such that the edge (node to u) is in the graph.
+     *
      * @param node The node
+     *
      * @return A stream containing the weights adjacent nodes.
      */
     @Override
@@ -38,10 +44,12 @@ public interface WeightedMultiEdges extends MultiEdges
     {
         return this.getAdjacentNodes(node).map((inc) -> new MultiEdgeWeights(inc, this.getEdgeWeights(node, inc)));
     }
-    
+
     /**
      * Given a node, finds all the all the weights of edges so that either (node to u) or (u to node) are in the graph.
+     *
      * @param node The node
+     *
      * @return A stream containing all the weights of the nodes in the neighbourhood.
      */
     @Override

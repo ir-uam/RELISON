@@ -1,7 +1,7 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Aut�noma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -17,8 +17,11 @@ import java.util.List;
 
 /**
  * Class for cloning graphs.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class GraphCloneGenerator<U> implements GraphGenerator<U>
 {
@@ -30,9 +33,10 @@ public class GraphCloneGenerator<U> implements GraphGenerator<U>
      * Indicates if the graph has been generated
      */
     private boolean configured = false;
-    
+
     /**
      * Configure the graph generator
+     *
      * @param graph the graph to clone
      */
     public void configure(Graph<U> graph)
@@ -40,12 +44,12 @@ public class GraphCloneGenerator<U> implements GraphGenerator<U>
         this.graph = graph;
         this.configured = true;
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public void configure(Object... configuration)
     {
-        if(!(configuration == null) && configuration.length == 1)
+        if (!(configuration == null) && configuration.length == 1)
         {
             Graph<U> auxGraph = (Graph<U>) configuration[0];
             this.configure(auxGraph);
@@ -55,34 +59,34 @@ public class GraphCloneGenerator<U> implements GraphGenerator<U>
     @Override
     public Graph<U> generate() throws GeneratorNotConfiguredException, GeneratorBadConfiguredException
     {
-        if(!this.configured)
+        if (!this.configured)
         {
             throw new GeneratorNotConfiguredException("Graph cloner: Generator was not configured");
         }
-        else if(this.graph == null)
+        else if (this.graph == null)
         {
             throw new GeneratorNotConfiguredException("Graph cloner: Generator was badly configured");
         }
-        
-        if(this.graph.isMultigraph()) // Clone a multigraph
+
+        if (this.graph.isMultigraph()) // Clone a multigraph
         {
             GraphGenerator<U> emptyGraphGen = new EmptyMultiGraphGenerator<>();
             emptyGraphGen.configure(graph.isDirected(), graph.isWeighted());
             MultiGraph<U> newGraph = (MultiGraph<U>) emptyGraphGen.generate();
             MultiGraph<U> current = (MultiGraph<U>) graph;
-            
+
             current.getAllNodes().forEach(newGraph::addNode);
             current.getAllNodes().forEach(u -> current.getAdjacentNodes(u).forEach(v ->
-            {
-                List<Double> weights = current.getEdgeWeights(u, v);
-                List<Integer> types = current.getEdgeTypes(u,v);
+                                                                                   {
+                                                                                       List<Double> weights = current.getEdgeWeights(u, v);
+                                                                                       List<Integer> types = current.getEdgeTypes(u, v);
 
-                for(int i = 0; i < weights.size(); ++i)
-                {
-                    newGraph.addEdge(u, v, weights.get(i), types.get(i));
-                }
-            }));
-            
+                                                                                       for (int i = 0; i < weights.size(); ++i)
+                                                                                       {
+                                                                                           newGraph.addEdge(u, v, weights.get(i), types.get(i));
+                                                                                       }
+                                                                                   }));
+
             return newGraph;
         }
         else // Clone a simple graph
@@ -90,17 +94,17 @@ public class GraphCloneGenerator<U> implements GraphGenerator<U>
             GraphGenerator<U> emptyGraphGen = new EmptyGraphGenerator<>();
             emptyGraphGen.configure(graph.isDirected(), graph.isWeighted());
             Graph<U> newGraph = emptyGraphGen.generate();
-            
+
             graph.getAllNodes().forEach(newGraph::addNode);
             graph.getAllNodes().forEach(u -> graph.getAdjacentNodes(u).forEach(v ->
-            {
-                double weight = graph.getEdgeWeight(u,v);
-                int type = graph.getEdgeType(u, v);
-                newGraph.addEdge(u, v, weight, type);
-            }));
-            
+                                                                               {
+                                                                                   double weight = graph.getEdgeWeight(u, v);
+                                                                                   int type = graph.getEdgeType(u, v);
+                                                                                   newGraph.addEdge(u, v, weight, type);
+                                                                               }));
+
             return newGraph;
         }
     }
-    
+
 }

@@ -9,10 +9,14 @@ import java.io.IOException;
 
 /**
  * Individual content index builder wrapping a simple one.
+ *
  * @param <C> type of the contents.
  * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class WrapperIndividualContentIndexBuilder<C,U> extends AbstractIndividualContentIndexBuilder<C,U>
+public class WrapperIndividualContentIndexBuilder<C, U> extends AbstractIndividualContentIndexBuilder<C, U>
 {
     /**
      * A builder.
@@ -26,6 +30,7 @@ public class WrapperIndividualContentIndexBuilder<C,U> extends AbstractIndividua
 
     /**
      * Constructor.
+     *
      * @param builder an index builder.
      */
     public WrapperIndividualContentIndexBuilder(AbstractIndexBuilder<C> builder)

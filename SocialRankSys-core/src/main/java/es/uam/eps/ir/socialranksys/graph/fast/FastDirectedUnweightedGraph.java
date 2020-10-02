@@ -13,6 +13,7 @@ import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import es.uam.eps.ir.socialranksys.graph.DirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
 import es.uam.eps.ir.socialranksys.graph.edges.fast.FastDirectedUnweightedEdges;
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 import no.uib.cipr.matrix.Matrix;
@@ -52,20 +53,20 @@ public class FastDirectedUnweightedGraph<V> extends FastGraph<V> implements Dire
                     case IN:
                         if (this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)))
                         {
-                            matrix.setQuick(row, col, 1.0);
+                            matrix.setQuick(row, col, EdgeWeight.getDefaultValue());
                         }
                         break;
                     case OUT:
                         if (this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
                         {
-                            matrix.setQuick(row, col, 1.0);
+                            matrix.setQuick(row, col, EdgeWeight.getDefaultValue());
                         }
                         break;
                     default: //case UND
                         if (this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)) ||
                                 this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
                         {
-                            matrix.setQuick(row, col, 1.0);
+                            matrix.setQuick(row, col, EdgeWeight.getDefaultValue());
                         }
                 }
             }
@@ -84,19 +85,9 @@ public class FastDirectedUnweightedGraph<V> extends FastGraph<V> implements Dire
             this.getNeighbourhood(u, direction).forEach(v ->
             {
                 int vIdx = this.vertices.object2idx(v);
-                switch (direction)
-                {
-                    case IN:
-                        matrix.set(uIdx, vIdx, 1.0);
-                        break;
-                    case OUT:
-                        matrix.set(uIdx, vIdx, 1.0);
-                        break;
-                    default:
-                        matrix.set(uIdx, vIdx, 1.0);
-                }
+                matrix.set(uIdx, vIdx, EdgeWeight.getDefaultValue());
             });
-        });
+      });
 
         return matrix;
     }

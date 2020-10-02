@@ -1,7 +1,7 @@
 /*
- *  Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Aut�noma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,8 +14,11 @@ import es.uam.eps.ir.socialranksys.utils.generator.Generator;
 
 /**
  * Class for generating complete graphs.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class CompleteGraphGenerator<U> implements GraphGenerator<U>
 {
@@ -39,20 +42,20 @@ public class CompleteGraphGenerator<U> implements GraphGenerator<U>
      * True if the graph has already been configured, false if not.
      */
     private boolean configured;
-    
+
     @SuppressWarnings("unchecked")
     @Override
-    public void configure(Object... configuration) 
+    public void configure(Object... configuration)
     {
-        if(!(configuration == null) && configuration.length == 3)
+        if (!(configuration == null) && configuration.length == 3)
         {
             boolean auxDirected = (boolean) configuration[0];
             int auxNumNodes = (int) configuration[1];
-            Generator<U> auxGenerator = (Generator<U>) configuration[2]; 
-            
+            Generator<U> auxGenerator = (Generator<U>) configuration[2];
+
             this.configure(auxDirected, auxNumNodes, auxGenerator);
         }
-        else if(!(configuration == null) && configuration.length == 4)
+        else if (!(configuration == null) && configuration.length == 4)
         {
             boolean auxDirected = (boolean) configuration[0];
             int auxNumNodes = (int) configuration[1];
@@ -65,15 +68,15 @@ public class CompleteGraphGenerator<U> implements GraphGenerator<U>
         {
             this.configured = false;
         }
-            
+
     }
+
     /**
      * Configures the graph.
-     * 
-     * @param directed Indicates if the node is directed or not.
-     * @param numNodes Number of nodes of the graph.
+     *
+     * @param directed  Indicates if the node is directed or not.
+     * @param numNodes  Number of nodes of the graph.
      * @param generator Object that automatically creates the indicated number of nodes.
-     * 
      */
     public void configure(boolean directed, int numNodes, Generator<U> generator)
     {
@@ -86,12 +89,11 @@ public class CompleteGraphGenerator<U> implements GraphGenerator<U>
 
     /**
      * Configures the graph.
-     * 
-     * @param directed Indicates if the node is directed or not.
-     * @param numNodes Number of nodes of the graph.
+     *
+     * @param directed  Indicates if the node is directed or not.
+     * @param numNodes  Number of nodes of the graph.
      * @param autoloops Indicates if the graph allows autoloops or not.
      * @param generator Object that automatically creates the indicated number of nodes.
-     * 
      */
     public void configure(boolean directed, int numNodes, boolean autoloops, Generator<U> generator)
     {
@@ -101,34 +103,36 @@ public class CompleteGraphGenerator<U> implements GraphGenerator<U>
         this.autoloops = autoloops;
         this.configured = true;
     }
-    
+
     @Override
     public Graph<U> generate() throws GeneratorNotConfiguredException
     {
-        if(!this.configured)
+        if (!this.configured)
+        {
             throw new GeneratorNotConfiguredException("Barabási-Albert: The model was not configured");
-        
+        }
+
         EmptyGraphGenerator<U> gen = new EmptyGraphGenerator<>();
         gen.configure(this.directed, false);
         Graph<U> graph = gen.generate();
         this.generator.reset();
-        
-        for(int i = 0; i < this.numNodes; ++i)
+
+        for (int i = 0; i < this.numNodes; ++i)
         {
             U user = this.generator.generate();
             graph.addNode(user);
         }
-        
+
         graph.getAllNodes().forEach(u -> graph.getAllNodes().forEach(v ->
-        {
-            if(this.autoloops || !u.equals(v))
-            {
-                graph.addEdge(u, v);
-            }
-        }));
-        
+                                                                     {
+                                                                         if (this.autoloops || !u.equals(v))
+                                                                         {
+                                                                             graph.addEdge(u, v);
+                                                                         }
+                                                                     }));
+
         return graph;
-        
+
     }
-    
+
 }

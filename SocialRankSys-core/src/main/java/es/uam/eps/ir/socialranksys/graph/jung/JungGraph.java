@@ -1,7 +1,7 @@
-/* 
- *  Copyright (C) 2015 Information Retrieval Group at Universidad AutÃ³noma
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad AutÃ³noma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,9 +14,9 @@ import es.uam.eps.ir.socialranksys.graph.Weight;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
 import es.uam.eps.ir.socialranksys.graph.generator.ComplementaryGraphGenerator;
+import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
-import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -25,8 +25,11 @@ import java.util.stream.Stream;
 /**
  * <a href="http://jung.sourceforge.net/">JUNG</a> graph Wrapper.
  * Edges weights and types are not allowed in this types of graphs.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public abstract class JungGraph<U> implements UnweightedGraph<U>
 {
@@ -34,16 +37,17 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
      * The JUNG Graph we are using
      */
     protected final Graph<U, Integer> graph;
- 
+
     /**
      * Constructor.
-     * @param graph The Jung graph. 
+     *
+     * @param graph The Jung graph.
      */
     public JungGraph(Graph<U, Integer> graph)
     {
         this.graph = graph;
     }
-    
+
     @Override
     public boolean addNode(U node)
     {
@@ -53,17 +57,17 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
     @Override
     public boolean addEdge(U nodeA, U nodeB, double weight, int type, boolean insertNodes)
     {
-        if(insertNodes)
+        if (insertNodes)
         {
             this.graph.addVertex(nodeA);
             this.graph.addVertex(nodeB);
         }
-        
-        if(graph.findEdge(nodeA, nodeB) != null)
+
+        if (graph.findEdge(nodeA, nodeB) != null)
         {
-            return graph.addEdge(graph.getEdgeCount(), nodeA,nodeB);
+            return graph.addEdge(graph.getEdgeCount(), nodeA, nodeB);
         }
-        
+
         return false;
     }
 
@@ -90,7 +94,7 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
     {
         return this.graph.getNeighbors(node).stream().sorted();
     }
-    
+
     @Override
     public Stream<U> getMutualNodes(U node)
     {
@@ -123,7 +127,7 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
     {
         return graph.getNeighborCount(node);
     }
-    
+
     @Override
     public int getMutualEdgesCount(U node)
     {
@@ -141,12 +145,14 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
     {
         return graph.findEdge(nodeA, nodeB) != null;
     }
-    
+
     @Override
     public int getEdgeType(U nodeA, U nodeB)
     {
-        if(this.containsEdge(nodeA, nodeB))
+        if (this.containsEdge(nodeA, nodeB))
+        {
             return EdgeType.getDefaultValue();
+        }
         return EdgeType.getErrorType();
     }
 
@@ -173,30 +179,32 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
     {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    
+
     @Override
-    public long getVertexCount() {
+    public long getVertexCount()
+    {
         return this.graph.getVertexCount();
     }
 
     @Override
-    public Stream<Weight<U,Integer>> getAdjacentMutualNodesTypes(U node)
+    public Stream<Weight<U, Integer>> getAdjacentMutualNodesTypes(U node)
     {
         throw new UnsupportedOperationException("Not supported yet");
     }
-    
+
     @Override
-    public Stream<Weight<U,Integer>> getIncidentMutualNodesTypes(U node)
+    public Stream<Weight<U, Integer>> getIncidentMutualNodesTypes(U node)
     {
         throw new UnsupportedOperationException("Not supported yet");
     }
-    
+
     @Override
 
-    public long getEdgeCount() {
+    public long getEdgeCount()
+    {
         return this.graph.getEdgeCount();
     }
-    
+
     @Override
     public es.uam.eps.ir.socialranksys.graph.Graph<U> complement()
     {
@@ -205,91 +213,87 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
         try
         {
             return gg.generate();
-        } 
+        }
         catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException ex)
         {
             return null;
         }
     }
-    
+
     @Override
     public int object2idx(U u)
     {
         throw new UnsupportedOperationException("Not available yet.");
     }
-    
+
     @Override
     public U idx2object(int idx)
     {
         throw new UnsupportedOperationException("Not available yet.");
     }
-    
-        @Override
-    public Stream<U> getIsolatedNodes() {
+
+    @Override
+    public Stream<U> getIsolatedNodes()
+    {
         return this.getAllNodes().filter(u -> this.graph.getNeighborCount(u) == 0);
     }
 
     @Override
     public Stream<U> getNodesWithEdges(EdgeOrientation direction)
     {
-        switch(direction)
+        return switch (direction)
         {
-            case OUT:
-                return this.getNodesWithAdjacentEdges();
-            case IN:
-                return this.getNodesWithIncidentEdges();
-            case UND:
-                return this.getNodesWithEdges();
-            case MUTUAL:
-                return this.getNodesWithMutualEdges();
-        }
-        return Stream.empty();
+            case OUT -> this.getNodesWithAdjacentEdges();
+            case IN -> this.getNodesWithIncidentEdges();
+            case UND -> this.getNodesWithEdges();
+            case MUTUAL -> this.getNodesWithMutualEdges();
+        };
     }
-    
+
     @Override
-    public Stream<U> getNodesWithAdjacentEdges() 
+    public Stream<U> getNodesWithAdjacentEdges()
     {
         return this.getAllNodes().filter(x -> this.graph.getSuccessorCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithIncidentEdges() 
+    public Stream<U> getNodesWithIncidentEdges()
     {
         return this.getAllNodes().filter(x -> this.graph.getPredecessorCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithEdges() 
+    public Stream<U> getNodesWithEdges()
     {
         return this.getAllNodes().filter(x -> this.graph.getNeighborCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithMutualEdges() 
+    public Stream<U> getNodesWithMutualEdges()
     {
         return this.getAllNodes().filter(x -> this.getMutualNodesCount(x) > 0);
     }
 
     @Override
-    public boolean hasAdjacentEdges(U u) 
+    public boolean hasAdjacentEdges(U u)
     {
         return this.graph.getSuccessorCount(u) > 0;
     }
 
     @Override
-    public boolean hasIncidentEdges(U u) 
+    public boolean hasIncidentEdges(U u)
     {
         return this.graph.getPredecessorCount(u) > 0;
     }
 
     @Override
-    public boolean hasEdges(U u) 
+    public boolean hasEdges(U u)
     {
         return this.graph.getNeighborCount(u) > 0;
     }
 
     @Override
-    public boolean hasMutualEdges(U u) 
+    public boolean hasMutualEdges(U u)
     {
         return this.getMutualNodesCount(u) > 0;
     }

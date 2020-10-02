@@ -8,35 +8,46 @@ import java.nio.file.Paths;
 
 /**
  * Abstract implementation of an index builder.
- * @author Pablo Castells
- * @author Javier Sanz-Cruzado
+ *
+ * @author Pablo Castells (pablo.castells@uam.es)
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  */
 public abstract class AbstractIndexBuilder<C> implements IndexBuilder<C>
 {
     /**
      * Obtains the generated index.
+     *
      * @return the generated index.
+     *
      * @throws IOException if something fails while creating such index.
      */
     public abstract Index<C> getCoreIndex() throws IOException;
 
     /**
      * Clears the folder containing the index.
+     *
      * @param indexFolder the index folder.
+     *
      * @throws IOException if something fails while deleting the files.
      */
-    protected void clear(String indexFolder) throws IOException {
+    protected void clear(String indexFolder) throws IOException
+    {
         File dir = new File(indexFolder);
-        if (!dir.exists()) Files.createDirectories(Paths.get(indexFolder));
+        if (!dir.exists())
+        {
+            Files.createDirectories(Paths.get(indexFolder));
+        }
         else
         {
             File[] files = dir.listFiles();
-            if(files != null)
+            if (files != null)
             {
-                for(File f : files)
+                for (File f : files)
                 {
-                    if(f.isFile())
+                    if (f.isFile())
+                    {
                         f.delete();
+                    }
                 }
             }
         }
@@ -44,7 +55,9 @@ public abstract class AbstractIndexBuilder<C> implements IndexBuilder<C>
 
     /**
      * Saves a file containing the relation between indexes and user identifiers.
+     *
      * @param indexPath the path of the index.
+     *
      * @throws IOException if something fails while writing the map.
      */
     protected void saveContentMap(String indexPath) throws IOException
@@ -52,7 +65,7 @@ public abstract class AbstractIndexBuilder<C> implements IndexBuilder<C>
         Index<C> index = this.getCoreIndex();
         int numDocs = index.numDocs();
         PrintStream out = new PrintStream(indexPath + "/" + Config.PATHS_FILE);
-        for(int cidx = 0; cidx < numDocs; ++cidx)
+        for (int cidx = 0; cidx < numDocs; ++cidx)
         {
             out.println(index.getContent(cidx).toString());
         }

@@ -17,8 +17,11 @@ import java.util.stream.Stream;
 
 /**
  * Interface for undirected graphs.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <V> Type of the vertices.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public interface UndirectedMultiGraph<V> extends MultiGraph<V>, UndirectedGraph<V>
 {
@@ -39,7 +42,7 @@ public interface UndirectedMultiGraph<V> extends MultiGraph<V>, UndirectedGraph<
     {
         return this.getNeighbourNodesTypes(node);
     }
-    
+
     @Override
     default Stream<Weights<V, Integer>> getIncidentNodesTypesLists(V node)
     {
@@ -51,14 +54,12 @@ public interface UndirectedMultiGraph<V> extends MultiGraph<V>, UndirectedGraph<
     {
         return this.getNeighbourNodesTypesLists(node);
     }
-    
+
     @Override
     default Stream<Weights<V, Integer>> getNeighbourhoodTypesLists(V node, EdgeOrientation direction)
     {
         return this.getNeighbourNodesTypesLists(node);
     }
 
-    
-    
-    
+
 }

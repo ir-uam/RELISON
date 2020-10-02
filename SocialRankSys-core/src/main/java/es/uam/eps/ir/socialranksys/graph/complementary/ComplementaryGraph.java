@@ -1,7 +1,7 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
- *  de Madrid, http://ir.ii.uam.es
- * 
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -24,8 +24,11 @@ import java.util.stream.Stream;
  * Wrapper for the complementary graph of another one given. Since this is the complementary
  * of another graph, no nodes nor edges can be removed. Every time the original graph is modified,
  * so this graph will be.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public abstract class ComplementaryGraph<U> implements Graph<U>
 {
@@ -33,18 +36,19 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
      * Original graph.
      */
     private final Graph<U> graph;
-    
+
     /**
      * Constructor
-     * @param graph Original graph. 
+     *
+     * @param graph Original graph.
      */
     public ComplementaryGraph(Graph<U> graph)
     {
         this.graph = graph;
     }
-    
+
     // Addition and removal of nodes and edges. NOT ALLOWED.
-    
+
     @Override
     public boolean addNode(U node)
     {
@@ -62,15 +66,15 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     {
         throw new UnsupportedOperationException("This is a complementary graph. No nodes can be removed");
     }
-    
+
     @Override
     public boolean removeEdge(U nodeA, U nodeB)
     {
         throw new UnsupportedOperationException("This is a complementary graph. No edges can be removed");
     }
-    
+
     // Getters
-    
+
     @Override
     public Stream<U> getAllNodes()
     {
@@ -100,23 +104,20 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     {
         return this.graph.getAllNodes().filter(v -> !this.graph.containsEdge(v, node) && !this.graph.containsEdge(node, v));
     }
-    
+
     @Override
     public Stream<U> getNeighbourhood(U node, EdgeOrientation direction)
     {
-        switch(direction)
+        return switch (direction)
         {
-            case OUT:
-                return this.getAdjacentNodes(node);
-            case IN:
-                return this.getIncidentNodes(node);
-            case MUTUAL:
-                return this.getMutualNodes(node);
-            default: //case UND
-                return this.getNeighbourNodes(node);
-        }
+            case OUT -> this.getAdjacentNodes(node);
+            case IN -> this.getIncidentNodes(node);
+            case MUTUAL -> this.getMutualNodes(node);
+            //case UND
+            default -> this.getNeighbourNodes(node);
+        };
     }
-    
+
     @Override
     public int getIncidentEdgesCount(U node)
     {
@@ -134,7 +135,7 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     {
         return (int) (this.getVertexCount() - this.graph.getMutualEdgesCount(node));
     }
-    
+
     @Override
     public int getMutualEdgesCount(U node)
     {
@@ -144,17 +145,14 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     @Override
     public int getNeighbourhoodSize(U node, EdgeOrientation direction)
     {
-        switch(direction)
+        return switch (direction)
         {
-            case OUT:
-                return this.getAdjacentEdgesCount(node);
-            case IN:
-                return this.getIncidentEdgesCount(node);
-            case MUTUAL:
-                return this.getMutualEdgesCount(node);
-            default: //case UND
-                return this.getNeighbourEdgesCount(node);
-        }
+            case OUT -> this.getAdjacentEdgesCount(node);
+            case IN -> this.getIncidentEdgesCount(node);
+            case MUTUAL -> this.getMutualEdgesCount(node);
+            //case UND
+            default -> this.getNeighbourEdgesCount(node);
+        };
     }
 
     @Override
@@ -166,16 +164,20 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     @Override
     public boolean containsEdge(U nodeA, U nodeB)
     {
-        if(this.containsVertex(nodeA) && this.containsVertex(nodeB))
+        if (this.containsVertex(nodeA) && this.containsVertex(nodeB))
+        {
             return !this.graph.containsEdge(nodeA, nodeB);
+        }
         return false;
     }
 
     @Override
     public double getEdgeWeight(U nodeA, U nodeB)
     {
-        if(!this.graph.containsEdge(nodeA, nodeB))
+        if (!this.graph.containsEdge(nodeA, nodeB))
+        {
             return EdgeWeight.getDefaultValue();
+        }
         return EdgeWeight.getErrorValue();
     }
 
@@ -196,21 +198,21 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     {
         return this.getNeighbourNodes(node).map(vertex -> new Weight<>(vertex, EdgeWeight.getDefaultValue()));
     }
-    
+
     @Override
-    public Stream<Weight<U,Double>> getMutualNodesWeights(U node)
+    public Stream<Weight<U, Double>> getMutualNodesWeights(U node)
     {
         return this.getMutualNodes(node).map(vertex -> new Weight<>(vertex, EdgeWeight.getDefaultValue()));
     }
-    
+
     @Override
-    public Stream<Weight<U,Double>> getAdjacentMutualNodesWeights(U node)
+    public Stream<Weight<U, Double>> getAdjacentMutualNodesWeights(U node)
     {
         return this.getMutualNodes(node).map(vertex -> new Weight<>(vertex, EdgeWeight.getDefaultValue()));
     }
-    
+
     @Override
-    public Stream<Weight<U,Double>> getIncidentMutualNodesWeights(U node)
+    public Stream<Weight<U, Double>> getIncidentMutualNodesWeights(U node)
     {
         return this.getMutualNodes(node).map(vertex -> new Weight<>(vertex, EdgeWeight.getDefaultValue()));
     }
@@ -218,26 +220,27 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     @Override
     public Stream<Weight<U, Double>> getNeighbourhoodWeights(U node, EdgeOrientation direction)
     {
-        switch(direction)
+        return switch (direction)
         {
-            case OUT:
-                return this.getAdjacentNodesWeights(node);
-            case IN:
-                return this.getIncidentNodesWeights(node);
-            case MUTUAL:
-                return this.getMutualNodesWeights(node);
-            default: //case UND
-                return this.getNeighbourNodesWeights(node);
-        }
+            case OUT -> this.getAdjacentNodesWeights(node);
+            case IN -> this.getIncidentNodesWeights(node);
+            case MUTUAL -> this.getMutualNodesWeights(node);
+            //case UND
+            default -> this.getNeighbourNodesWeights(node);
+        };
     }
 
     @Override
     public int getEdgeType(U nodeA, U nodeB)
     {
-        if(this.containsEdge(nodeA, nodeB))
+        if (this.containsEdge(nodeA, nodeB))
+        {
             return EdgeType.getDefaultValue();
+        }
         else
+        {
             return EdgeType.getErrorType();
+        }
     }
 
     @Override
@@ -257,15 +260,15 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     {
         return this.getNeighbourNodes(node).map(vertex -> new Weight<>(vertex, EdgeType.getDefaultValue()));
     }
-    
+
     @Override
-    public Stream<Weight<U,Integer>> getAdjacentMutualNodesTypes(U node)
+    public Stream<Weight<U, Integer>> getAdjacentMutualNodesTypes(U node)
     {
         return this.getMutualNodes(node).map(vertex -> new Weight<>(vertex, EdgeType.getDefaultValue()));
     }
-    
+
     @Override
-    public Stream<Weight<U,Integer>> getIncidentMutualNodesTypes(U node)
+    public Stream<Weight<U, Integer>> getIncidentMutualNodesTypes(U node)
     {
         return this.getMutualNodes(node).map(vertex -> new Weight<>(vertex, EdgeType.getDefaultValue()));
     }
@@ -273,15 +276,13 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     @Override
     public Stream<Weight<U, Integer>> getNeighbourhoodTypes(U node, EdgeOrientation direction)
     {
-        switch(direction)
+        return switch (direction)
         {
-            case OUT:
-                return this.getAdjacentNodesTypes(node);
-            case IN:
-                return this.getIncidentNodesTypes(node);
-            default: //case UND
-                return this.getNeighbourNodesTypes(node);
-        }
+            case OUT -> this.getAdjacentNodesTypes(node);
+            case IN -> this.getIncidentNodesTypes(node);
+            //case UND
+            default -> this.getNeighbourNodesTypes(node);
+        };
     }
 
     @Override
@@ -305,76 +306,76 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     @Override
     public long getEdgeCount()
     {
-        if(this.isMultigraph())
+        if (this.isMultigraph())
         {
             throw new UnsupportedOperationException("The number of edges of a multigraph cannot be computed");
         }
-        return this.getVertexCount()*this.getVertexCount() - this.graph.getEdgeCount();
+        return this.getVertexCount() * this.getVertexCount() - this.graph.getEdgeCount();
     }
 
     @Override
     public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
     {
-        if(this.isMultigraph())
+        if (this.isMultigraph())
         {
             throw new UnsupportedOperationException("The complementary adjacency matrix of a multigraph cannot be computed");
         }
-        
+
         DoubleMatrix2D matrix = new SparseDoubleMatrix2D(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
-        
+
         DoubleMatrix2D complAdjMatrix = this.graph.getAdjacencyMatrix(direction);
-        
-        matrix.assign(complAdjMatrix, (double a, double b) -> 1.0-b);
-        
+
+        matrix.assign(complAdjMatrix, (double a, double b) -> 1.0 - b);
+
         return matrix;
     }
 
     @Override
     public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
     {
-        if(this.isMultigraph())
+        if (this.isMultigraph())
         {
             throw new UnsupportedOperationException("The complementary adjacency matrix of a multigraph cannot be computed");
         }
-        
+
         Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
         Matrix complAdjMatrix = this.graph.getAdjacencyMatrixMTJ(direction);
-        for(int i = 0; i < this.getVertexCount(); ++i)
+        for (int i = 0; i < this.getVertexCount(); ++i)
         {
-            for(int j = 0; j < this.getVertexCount(); ++j)
+            for (int j = 0; j < this.getVertexCount(); ++j)
             {
-                matrix.set(i,j,1.0 - complAdjMatrix.get(i, j));
+                matrix.set(i, j, 1.0 - complAdjMatrix.get(i, j));
             }
         }
         return matrix;
     }
-    
+
     @Override
     public Graph<U> complement()
     {
         return this.graph;
     }
-    
+
     @Override
     public boolean updateEdgeWeight(U orig, U dest, double weight)
     {
         throw new UnsupportedOperationException("Edges weights cannot be updated in complementary graphs");
     }
-    
+
     @Override
     public int object2idx(U u)
     {
         return this.graph.object2idx(u);
     }
-    
+
     @Override
     public U idx2object(int idx)
     {
         return this.graph.idx2object(idx);
     }
-    
+
     @Override
-    public Stream<U> getIsolatedNodes() 
+    public Stream<U> getIsolatedNodes()
     {
         return this.graph.getAllNodes().filter(x -> this.getNeighbourEdgesCount(x) == 0);
     }
@@ -384,46 +385,53 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     {
         return this.graph.getAllNodes().filter(x -> this.getNeighbourhoodSize(x, direction) > 0);
     }
-    
+
     @Override
-    public Stream<U> getNodesWithAdjacentEdges() 
+    public Stream<U> getNodesWithAdjacentEdges()
     {
         return this.graph.getAllNodes().filter(x -> this.getAdjacentNodesCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithIncidentEdges() {
+    public Stream<U> getNodesWithIncidentEdges()
+    {
         return this.graph.getAllNodes().filter(x -> this.getIncidentNodesCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithEdges() {
+    public Stream<U> getNodesWithEdges()
+    {
         return this.graph.getAllNodes().filter(x -> this.getNeighbourNodesCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithMutualEdges() {
+    public Stream<U> getNodesWithMutualEdges()
+    {
         return this.graph.getAllNodes().filter(x -> this.getMutualNodesCount(x) > 0);
     }
 
     @Override
-    public boolean hasAdjacentEdges(U u) {
+    public boolean hasAdjacentEdges(U u)
+    {
         return this.getAdjacentNodesCount(u) > 0;
     }
 
     @Override
-    public boolean hasIncidentEdges(U u) {
+    public boolean hasIncidentEdges(U u)
+    {
         return this.getIncidentNodesCount(u) > 0;
     }
 
     @Override
-    public boolean hasEdges(U u) {
+    public boolean hasEdges(U u)
+    {
         return this.getNeighbourNodesCount(u) > 0;
     }
 
     @Override
-    public boolean hasMutualEdges(U u) {
+    public boolean hasMutualEdges(U u)
+    {
         return this.getMutualNodesCount(u) > 0;
     }
-    
+
 }

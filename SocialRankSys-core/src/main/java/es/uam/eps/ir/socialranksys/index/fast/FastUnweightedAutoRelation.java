@@ -103,40 +103,40 @@ public class FastUnweightedAutoRelation<W> extends FastUnweightedRelation<W> imp
         // Then, we run over the rest of the lists, and update the elements by
         // reducing sizes.
         IntStream.range(0, this.numFirst()).forEach(i ->
-        {
-            List<Integer> auxFList = new ArrayList<>();
-            List<Integer> fList = this.firstIdxList.get(i);
-            IntStream.range(0, fList.size()).filter(j -> j != idx).forEach(j ->
-            {
-                if (fList.get(j) < idx)
-                {
-                    auxFList.add(fList.get(j));
-                }
-                else if (fList.get(j) > idx)
-                {
-                    auxFList.add(fList.get(j) - 1);
-                }
-            });
+                                                    {
+                                                        List<Integer> auxFList = new ArrayList<>();
+                                                        List<Integer> fList = this.firstIdxList.get(i);
+                                                        IntStream.range(0, fList.size()).filter(j -> j != idx).forEach(j ->
+                                                                                                                       {
+                                                                                                                           if (fList.get(j) < idx)
+                                                                                                                           {
+                                                                                                                               auxFList.add(fList.get(j));
+                                                                                                                           }
+                                                                                                                           else if (fList.get(j) > idx)
+                                                                                                                           {
+                                                                                                                               auxFList.add(fList.get(j) - 1);
+                                                                                                                           }
+                                                                                                                       });
 
-            this.firstIdxList.set(i, auxFList);
+                                                        this.firstIdxList.set(i, auxFList);
 
-            List<Integer> auxSList = new ArrayList<>();
-            List<Integer> sList = this.secondIdxList.get(i);
-            IntStream.range(0, sList.size()).filter(j -> j != idx).forEach(j ->
-            {
-                if (sList.get(j) < idx)
-                {
-                    auxSList.add(sList.get(j));
-                }
-                else if (sList.get(j) > idx)
-                {
-                    auxSList.add(sList.get(j) - 1);
-                }
-            });
+                                                        List<Integer> auxSList = new ArrayList<>();
+                                                        List<Integer> sList = this.secondIdxList.get(i);
+                                                        IntStream.range(0, sList.size()).filter(j -> j != idx).forEach(j ->
+                                                                                                                       {
+                                                                                                                           if (sList.get(j) < idx)
+                                                                                                                           {
+                                                                                                                               auxSList.add(sList.get(j));
+                                                                                                                           }
+                                                                                                                           else if (sList.get(j) > idx)
+                                                                                                                           {
+                                                                                                                               auxSList.add(sList.get(j) - 1);
+                                                                                                                           }
+                                                                                                                       });
 
-            this.secondIdxList.set(i, auxSList);
+                                                        this.secondIdxList.set(i, auxSList);
 
-        });
+                                                    });
         return true;
     }
 }

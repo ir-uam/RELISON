@@ -66,14 +66,14 @@ public class FastUndirectedUnweightedGraph<V> extends FastGraph<V> implements Un
     {
         Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
         this.vertices.getAllObjects().forEach(u ->
-        {
-            int uIdx = this.vertices.object2idx(u);
-            this.getNeighbourNodes(u).forEach(v ->
-            {
-                int vIdx = this.vertices.object2idx(v);
-                matrix.set(uIdx, vIdx, 1.0);
-            });
-        });
+                                              {
+                                                  int uIdx = this.vertices.object2idx(u);
+                                                  this.getNeighbourNodes(u).forEach(v ->
+                                                                                    {
+                                                                                        int vIdx = this.vertices.object2idx(v);
+                                                                                        matrix.set(uIdx, vIdx, 1.0);
+                                                                                    });
+                                              });
 
         return matrix;
     }

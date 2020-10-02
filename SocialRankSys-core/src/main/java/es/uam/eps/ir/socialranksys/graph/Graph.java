@@ -301,7 +301,7 @@ public interface Graph<V> extends Serializable, ReducedIndex<V>
      * @param node The node
      *
      * @return the number nodes for which both (u to node) and (node to u) exist in
-     * the graph if node is in the graph, -1 otherwise.
+     *         the graph if node is in the graph, -1 otherwise.
      */
     default int getMutualNodesCount(V node)
     {
@@ -411,7 +411,7 @@ public interface Graph<V> extends Serializable, ReducedIndex<V>
      * @param newWeight The new weight.
      *
      * @return true if everything goes OK, false if the edge does not exist
-     * or something fails.
+     *         or something fails.
      */
     boolean updateEdgeWeight(V nodeA, V nodeB, double newWeight);
 
@@ -687,6 +687,7 @@ public interface Graph<V> extends Serializable, ReducedIndex<V>
 
     /**
      * Complements the graph
+     *
      * @return the complementary graph.
      */
     Graph<V> complement();

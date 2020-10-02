@@ -1,7 +1,7 @@
-/* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -18,22 +18,32 @@ import java.util.stream.Stream;
 
 /**
  * Computes the value of the Gini Index of a list of values.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * <p>
+ * <b>Reference:</b> R. Dorfman. A formula for the Gini coefficient. The Review of Economics and Statistics 61(1), pp. 146-149 (1979)
+ * </p>
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class GiniIndex 
+public class GiniIndex
 {
     /**
      * Given a list of values, it computes the value of the Gini index
+     *
      * @param values The list of values.
-     * @param sort Indicates if the list of values has to be sorted.
+     * @param sort   Indicates if the list of values has to be sorted.
+     *
      * @return The value of the Gini index.
      */
     public double compute(List<Double> values, boolean sort)
     {
         List<Double> newValues = new ArrayList<>(values);
-        if(newValues.size() <= 1)
+        if (newValues.size() <= 1)
+        {
             return 0.0;
-        if(sort)
+        }
+        if (sort)
         {
             return this.computeUnsorted(newValues);
         }
@@ -42,21 +52,25 @@ public class GiniIndex
             return this.computeSorted(newValues);
         }
     }
-    
+
     /**
      * Given a stream of values, it computes the value of the Gini index.
+     *
      * @param values The stream containing all the values.
-     * @param sort Indicates if the list of values has to be sorted or not.
+     * @param sort   Indicates if the list of values has to be sorted or not.
+     *
      * @return The value of the Gini index
      */
     public double compute(Stream<Double> values, boolean sort)
     {
         return this.compute(values.collect(Collectors.toCollection((Supplier<ArrayList<Double>>) ArrayList::new)), sort);
     }
-    
+
     /**
      * Computes the Gini coefficient for an unsorted list of values
+     *
      * @param values the unsorted list of values
+     *
      * @return the value of the Gini coefficient
      */
     private double computeUnsorted(List<Double> values)
@@ -66,13 +80,13 @@ public class GiniIndex
         int numItems = values.size();
         double value = 0.0;
         double sum = 0.0;
-        for(int i = 0; i < numItems; ++i)
+        for (int i = 0; i < numItems; ++i)
         {
-            value += (2*(i+1) - numItems - 1.0)*values.get(i);
+            value += (2 * (i + 1) - numItems - 1.0) * values.get(i);
             sum += values.get(i);
         }
 
-        return value/(sum*(numItems - 1.0));
+        return value / (sum * (numItems - 1.0));
 
         /*
 
@@ -129,10 +143,12 @@ public class GiniIndex
         value /= (sum*(numValues - 1.0));
         return value;*/
     }
-    
+
     /**
      * Computes the Gini coefficient for a sorted list of values
+     *
      * @param values the sorted list of values
+     *
      * @return the value of the Gini coefficient.
      */
     private double computeSorted(List<Double> values)
@@ -140,59 +156,67 @@ public class GiniIndex
         int numItems = values.size();
         double value = 0.0;
         double sum = 0.0;
-        for(int i = 0; i < numItems; ++i)
+        for (int i = 0; i < numItems; ++i)
         {
-            value += (2*(i+1) - numItems - 1.0)*values.get(i);
+            value += (2 * (i + 1) - numItems - 1.0) * values.get(i);
             sum += values.get(i);
         }
-        
-        return value/(sum*(numItems - 1.0));
+
+        return value / (sum * (numItems - 1.0));
     }
-    
+
     /**
      * Computes the value of the Gini Index
-     * @param values The list of values
-     * @param sort Indicates if the list of values has to be sorted (true) or it
-     * is already sorted (false)
-     * @param numItems Total number of items
+     *
+     * @param values    The list of values
+     * @param sort      Indicates if the list of values has to be sorted (true) or it
+     *                  is already sorted (false)
+     * @param numItems  Total number of items
      * @param sumValues Sum of the list of values
+     *
      * @return The value of the Gini Index
      */
     public double compute(List<Double> values, boolean sort, long numItems, double sumValues)
     {
-        if(numItems <= 1 || sumValues == 0.0)
+        if (numItems <= 1 || sumValues == 0.0)
+        {
             return 0.0;
-        
+        }
+
         List<Double> newValues = new ArrayList<>(values);
-        if(sort)
+        if (sort)
         {
             newValues.sort(Comparator.naturalOrder());
         }
         double value = 0.0;
-        for(int i = 0; i < numItems; ++i)
+        for (int i = 0; i < numItems; ++i)
         {
-            value += (2*(i+1) - numItems - 1.0)*newValues.get(i)/(sumValues + 0.0);
+            value += (2 * (i + 1) - numItems - 1.0) * newValues.get(i) / (sumValues + 0.0);
         }
-        
-        return value/(numItems - 1.0);
+
+        return value / (numItems - 1.0);
     }
-    
+
     /**
      * Computes the value of the Gini Index
-     * @param values A stream of values
-     * @param sort Indicates if the list of values has to be sorted (true) or it
-     * is already sorted (false)
-     * @param numItems Total number of items
+     *
+     * @param values    A stream of values
+     * @param sort      Indicates if the list of values has to be sorted (true) or it
+     *                  is already sorted (false)
+     * @param numItems  Total number of items
      * @param sumValues Sum of the list of values
+     *
      * @return The value of the Gini Index
      */
     public double compute(Stream<Double> values, boolean sort, long numItems, double sumValues)
     {
-        if(numItems <= 1 || sumValues == 0.0)
+        if (numItems <= 1 || sumValues == 0.0)
+        {
             return 0.0;
-        
+        }
+
         List<Double> listValues;
-        if(sort)
+        if (sort)
         {
             listValues = values.sorted(Comparator.naturalOrder()).collect(Collectors.toCollection(ArrayList::new));
         }
@@ -200,7 +224,7 @@ public class GiniIndex
         {
             listValues = values.collect(Collectors.toCollection(ArrayList::new));
         }
-        
+
         return this.compute(listValues, false, numItems, sumValues);
     }
 }

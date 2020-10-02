@@ -9,9 +9,9 @@
  */
 package es.uam.eps.ir.socialranksys.graph.edges;
 
+import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
 import es.uam.eps.ir.socialranksys.index.IdxValue;
 import es.uam.eps.ir.socialranksys.utils.listcombiner.OrderedListCombiner;
-import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
 
 import java.util.Comparator;
 import java.util.Iterator;

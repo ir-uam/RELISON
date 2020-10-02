@@ -85,10 +85,14 @@ public class TextGraphWriter<V> implements GraphWriter<V>
         {
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(file));
             boolean ret;
-            if(graph.isMultigraph())
+            if (graph.isMultigraph())
+            {
                 ret = writeMultiGraph((MultiGraph<V>) graph, bw, writeWeights, writeTypes);
+            }
             else
+            {
                 ret = writeSimpleGraph(graph, bw, writeWeights, writeTypes);
+            }
             bw.close();
             return ret;
         }
@@ -182,10 +186,12 @@ public class TextGraphWriter<V> implements GraphWriter<V>
 
     /**
      * Writes a multigraph into a file
-     * @param graph The multigraph we want to write
-     * @param bw the writer which will write the graph in the file
+     *
+     * @param graph        The multigraph we want to write
+     * @param bw           the writer which will write the graph in the file
      * @param writeWeights Indicates if weights have to be written or not.
-     * @param writeTypes Indicates if types have to be written or not.
+     * @param writeTypes   Indicates if types have to be written or not.
+     *
      * @return true if everything went OK, false if not.
      */
     private boolean writeMultiGraph(MultiGraph<V> graph, BufferedWriter bw, boolean writeWeights, boolean writeTypes)
@@ -194,23 +200,29 @@ public class TextGraphWriter<V> implements GraphWriter<V>
 
         try
         {
-            if(directed)
+            if (directed)
             {
                 List<V> nodes = graph.getAllNodes().collect(Collectors.toCollection(ArrayList::new));
-                for(V node : nodes)
+                for (V node : nodes)
                 {
                     List<V> adjacentNodes = graph.getAdjacentNodes(node).collect(Collectors.toCollection(ArrayList::new));
-                    for(V v : adjacentNodes)
+                    for (V v : adjacentNodes)
                     {
                         int numEdges = graph.getNumEdges(node, v);
                         List<Double> weights = graph.getEdgeWeights(node, v);
                         List<Integer> types = graph.getEdgeTypes(node, v);
 
-                        for(int i = 0; i < numEdges; ++i)
+                        for (int i = 0; i < numEdges; ++i)
                         {
                             bw.write(node.toString() + delimiter + v.toString());
-                            if(writeWeights) bw.write(delimiter + weights.get(i));
-                            if(writeTypes) bw.write(delimiter + types.get(i));
+                            if (writeWeights)
+                            {
+                                bw.write(delimiter + weights.get(i));
+                            }
+                            if (writeTypes)
+                            {
+                                bw.write(delimiter + types.get(i));
+                            }
                             bw.write("\n");
                         }
                     }
@@ -220,20 +232,26 @@ public class TextGraphWriter<V> implements GraphWriter<V>
             {
                 Set<V> visited = new HashSet<>();
                 List<V> nodes = graph.getAllNodes().collect(Collectors.toCollection(ArrayList::new));
-                for(V node : nodes)
+                for (V node : nodes)
                 {
                     List<V> adjacentNodes = graph.getAdjacentNodes(node).filter(v -> !visited.contains(v)).collect(Collectors.toCollection(ArrayList::new));
-                    for(V v : adjacentNodes)
+                    for (V v : adjacentNodes)
                     {
                         int numEdges = graph.getNumEdges(node, v);
                         List<Double> weights = graph.getEdgeWeights(node, v);
                         List<Integer> types = graph.getEdgeTypes(node, v);
 
-                        for(int i = 0; i < numEdges; ++i)
+                        for (int i = 0; i < numEdges; ++i)
                         {
                             bw.write(node.toString() + delimiter + v.toString());
-                            if(writeWeights) bw.write(delimiter + weights.get(i));
-                            if(writeTypes) bw.write(delimiter + types.get(i));
+                            if (writeWeights)
+                            {
+                                bw.write(delimiter + weights.get(i));
+                            }
+                            if (writeTypes)
+                            {
+                                bw.write(delimiter + types.get(i));
+                            }
                             bw.write("\n");
                         }
                     }
@@ -243,7 +261,7 @@ public class TextGraphWriter<V> implements GraphWriter<V>
             }
 
         }
-        catch(IOException ex)
+        catch (IOException ex)
         {
             return false;
         }

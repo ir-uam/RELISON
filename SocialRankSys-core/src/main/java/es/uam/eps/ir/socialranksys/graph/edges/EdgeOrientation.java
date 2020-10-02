@@ -20,7 +20,22 @@ package es.uam.eps.ir.socialranksys.graph.edges;
  */
 public enum EdgeOrientation
 {
-    OUT, IN, UND, MUTUAL;
+    /**
+     * Orientation for selecting the outgoing neighborhood (adjacent nodes).
+     */
+    OUT,
+    /**
+     * Orientation for selecting the incoming neighborhood (incident nodes).
+     */
+    IN,
+    /**
+     * Orientation for selecting the undirected neighbor (both adjacent and incident nodes).
+     */
+    UND,
+    /**
+     * Orientation for selecting neighbors which are both adjacent and incident.
+     */
+    MUTUAL;
 
     /**
      * Given an edge orientation, returns the opposite orientation.
@@ -29,15 +44,12 @@ public enum EdgeOrientation
      */
     public EdgeOrientation invertSelection()
     {
-        switch (this)
+        return switch (this)
         {
-            case OUT:
-                return IN;
-            case IN:
-                return OUT;
-            default:
-                return this;
-        }
+            case OUT -> IN;
+            case IN -> OUT;
+            default -> this;
+        };
     }
 
     /**
@@ -47,14 +59,11 @@ public enum EdgeOrientation
      */
     public EdgeOrientation complementarySelection()
     {
-        switch (this)
+        return switch (this)
         {
-            case UND:
-                return MUTUAL;
-            case MUTUAL:
-                return UND;
-            default:
-                return this;
-        }
+            case UND -> MUTUAL;
+            case MUTUAL -> UND;
+            default -> this;
+        };
     }
 }

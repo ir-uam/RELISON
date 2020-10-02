@@ -1,3 +1,11 @@
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ *  de Madrid, http://ir.ii.uam.es
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package es.uam.eps.ir.socialranksys.content.index.individual;
 
 import es.uam.eps.ir.socialranksys.content.index.ForwardIndex;
@@ -11,10 +19,14 @@ import java.util.Collection;
 
 /**
  * Individual content index builder wrapping a simple one.
+ *
  * @param <C> type of the contents.
  * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class WrapperIndividualForwardContentIndex<C,U> extends AbstractIndividualContentIndex<C,U> implements ForwardIndex<C>
+public class WrapperIndividualForwardContentIndex<C, U> extends AbstractIndividualContentIndex<C, U> implements ForwardIndex<C>
 {
     /**
      * The internal index.
@@ -23,9 +35,11 @@ public class WrapperIndividualForwardContentIndex<C,U> extends AbstractIndividua
 
     /**
      * Constructor.
+     *
      * @param indexFolder route to the index.
-     * @param index the index.
-     * @param uParser a user parser.
+     * @param index       the index.
+     * @param uParser     a user parser.
+     *
      * @throws IOException if something fails while loading the content to user map.
      */
     public WrapperIndividualForwardContentIndex(String indexFolder, ForwardIndex<C> index, Parser<U> uParser) throws IOException
@@ -36,7 +50,8 @@ public class WrapperIndividualForwardContentIndex<C,U> extends AbstractIndividua
 
     /**
      * Constructor.
-     * @param index the index.
+     *
+     * @param index   the index.
      * @param userMap the content to user map.
      */
     public WrapperIndividualForwardContentIndex(ForwardIndex<C> index, Int2ObjectMap<U> userMap)

@@ -98,12 +98,8 @@ public class FastDirectedUnweightedEdges extends FastEdges implements DirectedEd
                 {
                     neighbors.add(new IdxPref(currentNeigh, currentValue));
                     currentValue = 0.0;
-                    currentNeigh = tuple.v1();
                 }
-                else
-                {
-                    currentNeigh = tuple.v1();
-                }
+                currentNeigh = tuple.v1();
             }
 
             currentValue += EdgeWeight.getDefaultValue();

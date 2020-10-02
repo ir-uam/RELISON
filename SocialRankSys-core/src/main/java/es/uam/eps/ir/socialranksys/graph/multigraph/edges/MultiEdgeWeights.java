@@ -20,31 +20,36 @@ import java.util.List;
  * an integer. Value 1.0 is considered a default valid value, and NaN as a default
  * invalid value. Every other value has the interpretation the user wants to give
  * it.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class MultiEdgeWeights extends IdxValue<List<Double>>
-{    
+{
     /**
      * Constructor
-     * @param idx identifier
+     *
+     * @param idx    identifier
      * @param values list of edge weights.
      */
     public MultiEdgeWeights(int idx, List<Double> values)
     {
         super(idx, values);
     }
-    
+
     /**
      * Constructor
+     *
      * @param idx identifier.
      */
     public MultiEdgeWeights(int idx)
     {
         this(idx, new ArrayList<>());
     }
-    
+
     /**
      * Default value for the error type.
+     *
      * @return The default value for the error type.
      */
     public static List<Double> getErrorType()
@@ -54,19 +59,24 @@ public class MultiEdgeWeights extends IdxValue<List<Double>>
 
     /**
      * Default valid type value.
+     *
      * @param length the number of weights to return.
+     *
      * @return The default valid type value.
      */
     public static List<Double> getDefaultValue(int length)
     {
         List<Double> list = new ArrayList<>();
-        for(int i = 0; i < length; ++i)
+        for (int i = 0; i < length; ++i)
+        {
             list.add(getDefaultValue());
+        }
         return list;
     }
-    
+
     /**
      * Gets the default value for a weight.
+     *
      * @return the default value for a weight.
      */
     public static double getDefaultValue()
@@ -74,5 +84,5 @@ public class MultiEdgeWeights extends IdxValue<List<Double>>
         return 1.0;
     }
 
-    
+
 }

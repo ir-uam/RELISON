@@ -115,16 +115,16 @@ public class FastUndirectedUnweightedEdges extends FastEdges implements Undirect
     @Override
     public boolean removeEdge(int orig, int dest)
     {
-        if(orig == dest)
+        if (orig == dest)
         {
-            if(this.weights.removePair(orig, dest) && this.types.removePair(dest, orig))
+            if (this.weights.removePair(orig, dest) && this.types.removePair(dest, orig))
             {
                 this.numEdges--;
                 return true;
             }
             return false;
         }
-        else if (this.weights.removePair(orig, dest) && this.weights.removePair(dest, orig) && this.types.removePair(orig, dest) && this.types.removePair(dest,orig))
+        else if (this.weights.removePair(orig, dest) && this.weights.removePair(dest, orig) && this.types.removePair(orig, dest) && this.types.removePair(dest, orig))
         {
             this.numEdges--;
             return true;

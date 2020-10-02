@@ -16,14 +16,14 @@ import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfigu
 /**
  * Generates different graphs.
  *
- * @param <V> Type of the vertices.
+ * @param <U> Type of the vertices.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public interface GraphGenerator<V>
+public interface GraphGenerator<U>
 {
     /**
      * Configures the generator.
@@ -40,5 +40,5 @@ public interface GraphGenerator<V>
      * @throws GeneratorNotConfiguredException The generator is not configured.
      * @throws GeneratorBadConfiguredException The generator parameters are incorretct.
      */
-    Graph<V> generate() throws GeneratorNotConfiguredException, GeneratorBadConfiguredException;
+    Graph<U> generate() throws GeneratorNotConfiguredException, GeneratorBadConfiguredException;
 }

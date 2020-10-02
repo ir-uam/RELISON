@@ -12,8 +12,11 @@ import es.uam.eps.ir.socialranksys.graph.UnweightedGraph;
 
 /**
  * Interface for managing and creating tree graphs.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> Type of the nodes.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public interface UnweightedTree<U> extends Tree<U>, UnweightedGraph<U>
 {

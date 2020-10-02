@@ -9,17 +9,17 @@
  */
 package es.uam.eps.ir.socialranksys.graph.fast;
 
+import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.Weight;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
 import es.uam.eps.ir.socialranksys.graph.edges.Edges;
 import es.uam.eps.ir.socialranksys.graph.generator.ComplementaryGraphGenerator;
+import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
-import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 import es.uam.eps.ir.socialranksys.index.Index;
-import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
 
 import java.io.Serializable;
 import java.util.stream.IntStream;
@@ -139,17 +139,13 @@ public abstract class FastGraph<V> implements Graph<V>, Serializable
     @Override
     public Stream<V> getNeighbourhood(V node, EdgeOrientation direction)
     {
-        switch (direction)
+        return switch (direction)
         {
-            case IN:
-                return this.getIncidentNodes(node);
-            case OUT:
-                return this.getAdjacentNodes(node);
-            case MUTUAL:
-                return this.getMutualNodes(node);
-            default:
-                return this.getNeighbourNodes(node);
-        }
+            case IN -> this.getIncidentNodes(node);
+            case OUT -> this.getAdjacentNodes(node);
+            case MUTUAL -> this.getMutualNodes(node);
+            default -> this.getNeighbourNodes(node);
+        };
     }
 
     @Override
@@ -390,61 +386,83 @@ public abstract class FastGraph<V> implements Graph<V>, Serializable
         return this.vertices;
     }
 
+    /**
+     * Obtains the weight of an edge, given the identifiers of the involved nodes.
+     * @param uidx identifier of the first user.
+     * @param vidx identifier of the second user.
+     * @return the weight if it exists, an error value otherwise.
+     */
     public double getEdgeWeight(int uidx, int vidx)
     {
         return this.edges.getEdgeWeight(uidx, vidx);
     }
 
+    /**
+     * Obtains the neighborhood of a node, given its identifier.
+     * @param uidx the identifier of the node.
+     * @param orientation the orientation of the neighborhood to retrieve.
+     * @return an stream containing the neighbors of the node.
+     */
     public Stream<Integer> getNeighborhood(int uidx, EdgeOrientation orientation)
     {
-        switch (orientation)
+        return switch (orientation)
         {
-            case OUT:
-                return this.edges.getAdjacentNodes(uidx);
-            case IN:
-                return this.edges.getIncidentNodes(uidx);
-            case MUTUAL:
-                return this.edges.getMutualNodes(uidx);
-            default:
-                return this.edges.getNeighbourNodes(uidx);
-        }
+            case OUT -> this.edges.getAdjacentNodes(uidx);
+            case IN -> this.edges.getIncidentNodes(uidx);
+            case MUTUAL -> this.edges.getMutualNodes(uidx);
+            default -> this.edges.getNeighbourNodes(uidx);
+        };
     }
 
+    /**
+     * Obtains the neighborhood of a node and the weight of the edges to each other, given its identifier.
+     * @param uidx the identifier of the node.
+     * @param orientation the orientation of the neighborhood to retrieve.
+     * @return an stream containing the neighbors of the node.
+     */
     public Stream<IdxPref> getNeighborhoodWeights(int uidx, EdgeOrientation orientation)
     {
-        switch (orientation)
+        return switch (orientation)
         {
-            case OUT:
-                return this.edges.getAdjacentWeights(uidx);
-            case IN:
-                return this.edges.getIncidentWeights(uidx);
-            case MUTUAL:
-                return this.edges.getMutualWeights(uidx);
-            default:
-                return this.edges.getNeighbourWeights(uidx);
-        }
+            case OUT -> this.edges.getAdjacentWeights(uidx);
+            case IN -> this.edges.getIncidentWeights(uidx);
+            case MUTUAL -> this.edges.getMutualWeights(uidx);
+            default -> this.edges.getNeighbourWeights(uidx);
+        };
     }
 
+    /**
+     * Obtains the neighborhood of a node and the type of the edges to each other, given its identifier.
+     * @param uidx the identifier of the node.
+     * @param orientation the orientation of the neighborhood to retrieve.
+     * @return an stream containing the neighbors of the node.
+     */
     public Stream<EdgeType> getNeighborhoodTypes(int uidx, EdgeOrientation orientation)
     {
-        switch (orientation)
+        return switch (orientation)
         {
-            case OUT:
-                return this.edges.getAdjacentTypes(uidx);
-            case IN:
-                return this.edges.getIncidentTypes(uidx);
-            case MUTUAL:
-                return this.edges.getMutualTypes(uidx);
-            default:
-                return this.edges.getNeighbourTypes(uidx);
-        }
+            case OUT -> this.edges.getAdjacentTypes(uidx);
+            case IN -> this.edges.getIncidentTypes(uidx);
+            case MUTUAL -> this.edges.getMutualTypes(uidx);
+            default -> this.edges.getNeighbourTypes(uidx);
+        };
     }
 
+    /**
+     * Obtains the identifiers of all the nodes in the network.
+     * @return an stream containing the vertex identifiers.
+     */
     public IntStream getAllNodesIds()
     {
         return this.vertices.getAllObjectsIds();
     }
 
+    /**
+     * Checks whether the network contains an edge or not.
+     * @param uidx the identifier of the first vertex
+     * @param vidx the identifier of the second vertex
+     * @return true if the edge exists, false otherwise.
+     */
     public boolean containsEdge(int uidx, int vidx)
     {
         return this.edges.containsEdge(uidx, vidx);
