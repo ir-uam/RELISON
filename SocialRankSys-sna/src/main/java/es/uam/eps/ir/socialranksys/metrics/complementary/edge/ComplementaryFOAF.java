@@ -1,7 +1,7 @@
-/* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -25,8 +25,11 @@ import java.util.stream.Stream;
 
 /**
  * Computes the number of common neighbours of some pairs.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <V> Type of the users in the graph
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class ComplementaryFOAF<V> implements EdgeMetric<V>
 {
@@ -41,21 +44,25 @@ public class ComplementaryFOAF<V> implements EdgeMetric<V>
 
     /**
      * Constructor.
+     *
      * @param uSel Neighbour selection for the origin node.
      * @param vSel Neighbour selection for the destiny node.
      */
-    public ComplementaryFOAF(EdgeOrientation uSel, EdgeOrientation vSel) {
+    public ComplementaryFOAF(EdgeOrientation uSel, EdgeOrientation vSel)
+    {
         this.uSel = uSel;
         this.vSel = vSel;
     }
-    
+
     @Override
     public double compute(Graph<V> graph, V orig, V dest) throws InexistentEdgeException
     {
-        if(graph.isMultigraph())
+        if (graph.isMultigraph())
+        {
             return Double.NaN;
-        
-        if(graph.containsEdge(orig, dest))
+        }
+
+        if (graph.containsEdge(orig, dest))
         {
             Set<V> firstNeighbours = graph.getNeighbourhood(orig, uSel).collect(Collectors.toCollection(HashSet::new));
             Set<V> secondNeighbours = graph.getNeighbourhood(dest, vSel).collect(Collectors.toCollection(HashSet::new));
@@ -69,38 +76,41 @@ public class ComplementaryFOAF<V> implements EdgeMetric<V>
         }
         throw new InexistentEdgeException("Edge " + orig + " and " + dest + "does not exist");
     }
-    
+
     @Override
     public Map<Pair<V>, Double> compute(Graph<V> graph)
     {
         Map<Pair<V>, Double> values = new HashMap<>();
-        if(!graph.isMultigraph())
+        if (!graph.isMultigraph())
         {
             graph.getAllNodes().forEach((orig) -> graph.getAdjacentNodes(orig).forEach(dest ->
             {
-                try {
+                try
+                {
                     values.put(new Pair<>(orig, dest), this.compute(graph, orig, dest));
-                } catch (InexistentEdgeException ex) {
+                }
+                catch (InexistentEdgeException ex)
+                {
                     Exceptions.printStackTrace(ex);
                 }
             }));
         }
         return values;
     }
-    
+
     @Override
-    public Map<Pair<V>, Double> compute(Graph<V> graph, Stream<Pair<V>> edges) 
+    public Map<Pair<V>, Double> compute(Graph<V> graph, Stream<Pair<V>> edges)
     {
         Map<Pair<V>, Double> values = new ConcurrentHashMap<>();
-        edges.forEach(edge -> 
+        edges.forEach(edge ->
         {
-            if(graph.containsEdge(edge.v1(), edge.v2()))
+            if (graph.containsEdge(edge.v1(), edge.v2()))
             {
                 try
                 {
                     values.put(edge, this.compute(graph, edge.v1(), edge.v2()));
                 }
-                catch(InexistentEdgeException e)
+                catch (InexistentEdgeException e)
                 {
                     values.put(edge, Double.NaN);
                 }
@@ -112,28 +122,32 @@ public class ComplementaryFOAF<V> implements EdgeMetric<V>
         });
         return values;
     }
-    
+
 
     @Override
-    public double averageValue(Graph<V> graph) 
+    public double averageValue(Graph<V> graph)
     {
         double value = this.compute(graph).values().stream().reduce(0.0, Double::sum);
-        return value/(graph.getEdgeCount()+0.0);
+        return value / (graph.getEdgeCount() + 0.0);
     }
-    
-    @Override 
+
+    @Override
     public double averageValue(Graph<V> graph, Stream<Pair<V>> edges, int edgeCount)
     {
-        double value = edges.mapToDouble(edge -> {
-            try {
+        double value = edges.mapToDouble(edge ->
+        {
+            try
+            {
                 return this.compute(graph, edge.v1(), edge.v2());
-                
-            } catch (InexistentEdgeException ex) {
+
+            }
+            catch (InexistentEdgeException ex)
+            {
                 Exceptions.printStackTrace(ex);
                 return 0.0;
             }
         }).sum();
         return value / (edgeCount + 0.0);
     }
-        
+
 }

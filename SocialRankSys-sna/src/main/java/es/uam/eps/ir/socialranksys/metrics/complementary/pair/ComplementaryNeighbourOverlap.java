@@ -1,7 +1,7 @@
-/* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -22,9 +22,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Computes the intersection between the neighborhoods of two nodes.
- * @author Javier Sanz-Cruzado Puig
+ * Computes the intersection between the neighborhoods of two nodes in the complementary graph.
+ *
  * @param <U> type of the nodes.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class ComplementaryNeighbourOverlap<U> extends AbstractPairMetric<U>
 {
@@ -46,9 +49,10 @@ public class ComplementaryNeighbourOverlap<U> extends AbstractPairMetric<U>
     {
         this(EdgeOrientation.OUT, EdgeOrientation.IN);
     }
-    
+
     /**
      * Constructor.
+     *
      * @param uSel Neighbour selection for the origin node.
      * @param vSel Neighbour selection for the destiny node.
      */
@@ -57,23 +61,25 @@ public class ComplementaryNeighbourOverlap<U> extends AbstractPairMetric<U>
         this.uSel = uSel;
         this.vSel = vSel;
     }
-    
+
     @Override
     public double compute(Graph<U> graph, U orig, U dest)
     {
-        if(graph.isMultigraph())
+        if (graph.isMultigraph())
+        {
             return Double.NaN;
-        
-        
-        Set<U> firstNeighbours = graph.getNeighbourhood(orig,uSel).collect(Collectors.toCollection(HashSet::new));
-        Set<U> secondNeighbours = graph.getNeighbourhood(dest,vSel).collect(Collectors.toCollection(HashSet::new));
+        }
+
+
+        Set<U> firstNeighbours = graph.getNeighbourhood(orig, uSel).collect(Collectors.toCollection(HashSet::new));
+        Set<U> secondNeighbours = graph.getNeighbourhood(dest, vSel).collect(Collectors.toCollection(HashSet::new));
         firstNeighbours.remove(dest);
         secondNeighbours.remove(orig);
 
         Set<U> intersection = new HashSet<>(firstNeighbours);
         intersection.retainAll(secondNeighbours);
 
-        if(firstNeighbours.isEmpty() && secondNeighbours.isEmpty())
+        if (firstNeighbours.isEmpty() && secondNeighbours.isEmpty())
         {
             return 0.0;
         }
@@ -81,33 +87,34 @@ public class ComplementaryNeighbourOverlap<U> extends AbstractPairMetric<U>
         {
             return graph.getVertexCount() - firstNeighbours.size() - secondNeighbours.size() + intersection.size() + 0.0;
         }
-        
+
     }
-    
+
     @Override
     public Map<Pair<U>, Double> compute(Graph<U> graph)
     {
         Map<Pair<U>, Double> values = new HashMap<>();
-        if(!graph.isMultigraph())
+        if (!graph.isMultigraph())
         {
-            graph.getAllNodes().forEach((orig) ->
-               graph.getAllNodes().forEach(dest -> 
-               {
-                   if(!orig.equals(dest))
-                      values.put(new Pair<>(orig, dest), this.compute(graph, orig, dest));
-               })
-            );
+            graph.getAllNodes().forEach((orig) -> graph.getAllNodes().forEach(dest ->
+            {
+                if (!orig.equals(dest))
+                {
+                    values.put(new Pair<>(orig, dest), this.compute(graph, orig, dest));
+                }
+            }));
         }
         return values;
     }
 
     @Override
-    public double averageValue(Graph<U> graph) {
+    public double averageValue(Graph<U> graph)
+    {
         double value = this.compute(graph).values().stream().reduce(0.0, Double::sum);
-        return value/(graph.getVertexCount()*(graph.getVertexCount()-1));
+        return value / (graph.getVertexCount() * (graph.getVertexCount() - 1));
     }
-    
-    @Override 
+
+    @Override
     public double averageValue(Graph<U> graph, Stream<Pair<U>> edges, int edgeCount)
     {
         double value = edges.mapToDouble(edge -> this.compute(graph, edge.v1(), edge.v2())).sum();
@@ -115,9 +122,10 @@ public class ComplementaryNeighbourOverlap<U> extends AbstractPairMetric<U>
     }
 
     @Override
-    public Map<Pair<U>, Double> compute(Graph<U> graph, Stream<Pair<U>> pairs) {
+    public Map<Pair<U>, Double> compute(Graph<U> graph, Stream<Pair<U>> pairs)
+    {
         Map<Pair<U>, Double> values = new ConcurrentHashMap<>();
-        if(!graph.isMultigraph())
+        if (!graph.isMultigraph())
         {
             pairs.forEach(pair -> values.put(pair, this.compute(graph, pair.v1(), pair.v2())));
         }

@@ -10,7 +10,7 @@ package es.uam.eps.ir.socialranksys.somepeas2019;
 
 import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
-import es.uam.eps.ir.socialranksys.community.io.CommunitiesWriter;
+import es.uam.eps.ir.socialranksys.community.io.TextCommunitiesWriter;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionParamReader;
 import es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionSelector;
@@ -65,8 +65,8 @@ public class CommunityDetector
             CommunityDetectionSelector<Long> selector = new CommunityDetectionSelector<>();
             CommunityDetectionAlgorithm<Long> alg = selector.getCommunityDetectionAlgorithm(algorithm, cdReader.getParameters(algorithm)).v2();
             Communities<Long> comm = alg.detectCommunities(graph);
-            CommunitiesWriter<Long> cwriter = new CommunitiesWriter<>();
-            cwriter.write(comm, outputRoute + algorithm + ".txt", "\t");
+            TextCommunitiesWriter<Long> cwriter = new TextCommunitiesWriter<>("\t");
+            cwriter.write(comm, outputRoute + algorithm + ".txt");
             Long b = System.currentTimeMillis();
             System.out.println("Algorithm " + algorithm + " finished (" + (b-a) + " ms.)");
         });

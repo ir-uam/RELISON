@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Aut�noma
  * de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -15,31 +15,32 @@ import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 
 /**
  * Class that measures the length (sum of weights of a selection of the edges concerning it) of a vertex.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class VertexLength<U> implements VertexMetric<U>
 {
-
+    /**
+     * Edge orientation which determines the set of edges we consider for each user.
+     */
     private final EdgeOrientation uSel;
 
+    /**
+     * Constructor.
+     *
+     * @param uSel Edge orientation which determines the set of edges we consider for each user.
+     */
     public VertexLength(EdgeOrientation uSel)
     {
         this.uSel = uSel;
     }
-    
+
     @Override
     public double compute(Graph<U> graph, U user)
     {
-        double average = graph.isWeighted() ? graph.getAllNodes().mapToDouble(x -> graph.getAdjacentNodesWeights(x)
-                                                                                        .mapToDouble(Weight::getValue)
-                                                                                        .sum())
-                                                                 .sum()
-                                            : (graph.getEdgeCount() + 0.0);
-        
-        double val = graph.isWeighted() ? graph.getNeighbourhoodWeights(user, uSel).mapToDouble(Weight::getValue).sum() :
+        return graph.isWeighted() ? graph.getNeighbourhoodWeights(user, uSel).mapToDouble(Weight::getValue).sum() :
                 graph.getNeighbourhoodSize(user, uSel);
-        
-        return 1.0/(1.0 + Math.log(1 + average/(val+1.0))/Math.log(2.0));
     }
-    
+
 }

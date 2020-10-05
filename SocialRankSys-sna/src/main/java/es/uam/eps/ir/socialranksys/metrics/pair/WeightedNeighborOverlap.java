@@ -1,7 +1,7 @@
-/* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -25,8 +25,11 @@ import java.util.stream.Stream;
 
 /**
  * Computes the intersection between the neighborhoods of two nodes.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> type of the nodes.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class WeightedNeighborOverlap<U> extends AbstractPairMetric<U>
 {
@@ -48,9 +51,10 @@ public class WeightedNeighborOverlap<U> extends AbstractPairMetric<U>
     {
         this(EdgeOrientation.OUT, EdgeOrientation.IN);
     }
-    
+
     /**
      * Constructor.
+     *
      * @param uSel Neighbour selection for the origin node.
      * @param vSel Neighbour selection for the destiny node.
      */
@@ -59,12 +63,14 @@ public class WeightedNeighborOverlap<U> extends AbstractPairMetric<U>
         this.uSel = uSel;
         this.vSel = vSel;
     }
-    
+
     @Override
     public double compute(Graph<U> graph, U orig, U dest)
     {
-        if(graph.isMultigraph())
+        if (graph.isMultigraph())
+        {
             return Double.NaN;
+        }
 
         Set<U> firstNeighbours = graph.getNeighbourhood(orig, uSel).collect(Collectors.toCollection(HashSet::new));
         Set<Weight<U, Double>> secondNeighbours = graph.getNeighbourhoodWeights(dest, vSel).collect(Collectors.toCollection(HashSet::new));
@@ -77,10 +83,13 @@ public class WeightedNeighborOverlap<U> extends AbstractPairMetric<U>
     @Override
     public Map<Pair<U>, Double> compute(Graph<U> graph, Stream<Pair<U>> pairs)
     {
-        Map<U, Map<U,Double>> map = new HashMap<>();
+        Map<U, Map<U, Double>> map = new HashMap<>();
         Map<Pair<U>, Double> values = new ConcurrentHashMap<>();
 
-        if(graph.isMultigraph()) return values;
+        if (graph.isMultigraph())
+        {
+            return values;
+        }
 
         graph.getAllNodes().forEach(u ->
         {
@@ -98,31 +107,33 @@ public class WeightedNeighborOverlap<U> extends AbstractPairMetric<U>
     }
 
     @Override
-    public Function<U,Double> computeOrig(Graph<U> graph, U orig)
+    public Function<U, Double> computeOrig(Graph<U> graph, U orig)
     {
         return this.computeIndividual(graph, orig, uSel, vSel);
     }
 
     @Override
-    public Function<U,Double> computeDest(Graph<U> graph, U dest)
+    public Function<U, Double> computeDest(Graph<U> graph, U dest)
     {
         return this.computeIndividual(graph, dest, vSel, uSel);
     }
 
     /**
      * Computes the map of metrics for the user.
+     *
      * @param graph the graph.
-     * @param u the user.
-     * @param uSel the neighborhood selection for the user.
-     * @param vSel the neighborhood selection for the other users
+     * @param u     the user.
+     * @param uSel  the neighborhood selection for the user.
+     * @param vSel  the neighborhood selection for the other users
+     *
      * @return the map of metrics for the user.
      */
-    private Function<U,Double> computeIndividual(Graph<U> graph, U u, EdgeOrientation uSel, EdgeOrientation vSel)
+    private Function<U, Double> computeIndividual(Graph<U> graph, U u, EdgeOrientation uSel, EdgeOrientation vSel)
     {
         Object2DoubleOpenHashMap<U> map = new Object2DoubleOpenHashMap<>();
         map.defaultReturnValue(0.0);
 
-        if(!graph.isMultigraph())
+        if (!graph.isMultigraph())
         {
             graph.getNeighbourhood(u, uSel).forEach(w ->
                 graph.getNeighbourhoodWeights(w, vSel.invertSelection()).forEach(v -> map.addTo(v.getIdx(), v.getValue()))

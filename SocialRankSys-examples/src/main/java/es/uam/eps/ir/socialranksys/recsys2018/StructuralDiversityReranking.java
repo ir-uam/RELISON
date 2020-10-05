@@ -10,7 +10,7 @@ package es.uam.eps.ir.socialranksys.recsys2018;
 
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.community.Communities;
-import es.uam.eps.ir.socialranksys.community.io.CommunitiesReader;
+import es.uam.eps.ir.socialranksys.community.io.TextCommunitiesReader;
 import es.uam.eps.ir.socialranksys.graph.Adapters;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.rerankers.RerankerGridReader;
@@ -94,8 +94,8 @@ public class StructuralDiversityReranking
         Graph<Long> graph = Adapters.removeAutoloops(auxgraph);
 
         // Read the community partition of the network.
-        CommunitiesReader<Long> creader = new CommunitiesReader<>();
-        Communities<Long> comms = creader.read(communities, "\t", lp);
+        TextCommunitiesReader<Long> creader = new TextCommunitiesReader<>("\t",lp);
+        Communities<Long> comms = creader.read(communities);
         long timeb = System.currentTimeMillis();
         System.out.println("Data read (" +(timeb-timea) + " ms.)");
         timea = System.currentTimeMillis();

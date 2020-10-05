@@ -1,7 +1,7 @@
-/* 
- * Copyright (C) 2018 Information Retrieval Group at Universidad Autónoma
- * de Madrid, http://ir.ii.uam.es
- * 
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ *  de Madrid, http://ir.ii.uam.es
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,48 +10,23 @@ package es.uam.eps.ir.socialranksys.community.io;
 
 import es.uam.eps.ir.socialranksys.community.Communities;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
 /**
- * Writes a community file
- * @author Javier Sanz-Cruzado Puig
- * @param <U> type of the users
+ * Interface for writing communities to a file.
+ *
+ * @param <U> Type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class CommunitiesWriter<U> 
+public interface CommunitiesWriter<U>
 {
     /**
-     * Writes the communities into a file.
-     * @param comm The communities
-     * @param file The file.
-     * @param delimiter The delimiter that separates different values to retrieve.
-     * @return True if everything went ok, false if not.
+     * Writes the community structure into a file.
+     *
+     * @param comm community partition.
+     * @param file route of the file.
+     *
+     * @return true if everything goes OK, false otherwise.
      */
-    public boolean write(Communities<U> comm, String file, String delimiter)
-    {
-        try(BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file))))
-        {
-            int numComm = comm.getNumCommunities();
-            for(int i = 0; i < numComm; ++i)
-            {
-                List<U> users = comm.getUsers(i).collect(Collectors.toCollection(ArrayList::new));
-                for(U u : users)
-                {
-                    bw.write(u + "\t" + i  + "\n");
-                }
-            }
-            
-            return true;
-        }
-        catch(IOException ioe)
-        {
-            System.err.println("ERROR: An error ocurred while writing the file");
-            return false;
-        }
-    }
+    boolean write(Communities<U> comm, String file);
 }

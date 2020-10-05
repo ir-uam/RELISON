@@ -1,7 +1,7 @@
-/* 
+/*
  *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -25,8 +25,15 @@ import java.util.stream.Stream;
 
 /**
  * Computes the embeddedness the edges of a graph
- * @author Javier Sanz-Cruzado Puig
+ *
+ * <p>
+ * <b>Reference: </b> D. Easley, J.M. Kleinberg. Networks, crowds and markets (2010)
+ * </p>
+ *
  * @param <V> Type of the users in the graph
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class Embededness<V> implements EdgeMetric<V>
 {
@@ -41,30 +48,34 @@ public class Embededness<V> implements EdgeMetric<V>
 
     /**
      * Constructor.
+     *
      * @param uSel Selection of neighbours of the origin node.
      * @param vSel Selection of neighbours of the destiny node.
      */
-    public Embededness(EdgeOrientation uSel, EdgeOrientation vSel) {
+    public Embededness(EdgeOrientation uSel, EdgeOrientation vSel)
+    {
         this.uSel = uSel;
         this.vSel = vSel;
     }
-    
+
     /**
-     * Default constructor. It selects the outgoing neighbourhood of the origin node, 
+     * Default constructor. It selects the outgoing neighbourhood of the origin node,
      * and the incoming neighbours of the destiny node of the edge.
      */
     public Embededness()
     {
         this(EdgeOrientation.OUT, EdgeOrientation.IN);
     }
-    
+
     @Override
     public double compute(Graph<V> graph, V orig, V dest) throws InexistentEdgeException
     {
-        if(graph.isMultigraph())
+        if (graph.isMultigraph())
+        {
             return Double.NaN;
-        
-        if(graph.containsEdge(orig, dest))
+        }
+
+        if (graph.containsEdge(orig, dest))
         {
             Set<V> firstNeighbours = graph.getNeighbourhood(orig, uSel).collect(Collectors.toCollection(HashSet::new));
             Set<V> secondNeighbours = graph.getNeighbourhood(dest, vSel).collect(Collectors.toCollection(HashSet::new));
@@ -74,24 +85,24 @@ public class Embededness<V> implements EdgeMetric<V>
             Set<V> intersection = new HashSet<>(firstNeighbours);
             intersection.retainAll(secondNeighbours);
 
-            if(firstNeighbours.isEmpty() && secondNeighbours.isEmpty())
+            if (firstNeighbours.isEmpty() && secondNeighbours.isEmpty())
             {
                 return 0.0;
             }
             else
             {
-                return (intersection.size() + 0.0)/(firstNeighbours.size() + secondNeighbours.size() - intersection.size() + 0.0);
+                return (intersection.size() + 0.0) / (firstNeighbours.size() + secondNeighbours.size() - intersection.size() + 0.0);
             }
         }
-        
+
         throw new InexistentEdgeException("Edge between nodes " + orig + " and " + dest + " does not exist");
     }
-    
+
     @Override
     public Map<Pair<V>, Double> compute(Graph<V> graph)
     {
         Map<Pair<V>, Double> values = new HashMap<>();
-        if(!graph.isMultigraph())
+        if (!graph.isMultigraph())
         {
             graph.getAllNodes().forEach((orig) -> graph.getAdjacentNodes(orig).forEach(dest ->
             {
@@ -109,18 +120,18 @@ public class Embededness<V> implements EdgeMetric<V>
     }
 
     @Override
-    public Map<Pair<V>, Double> compute(Graph<V> graph, Stream<Pair<V>> edges) 
+    public Map<Pair<V>, Double> compute(Graph<V> graph, Stream<Pair<V>> edges)
     {
         Map<Pair<V>, Double> values = new ConcurrentHashMap<>();
-        edges.forEach(edge -> 
+        edges.forEach(edge ->
         {
-            if(graph.containsEdge(edge.v1(), edge.v2()))
+            if (graph.containsEdge(edge.v1(), edge.v2()))
             {
                 try
                 {
                     values.put(edge, this.compute(graph, edge.v1(), edge.v2()));
                 }
-                catch(InexistentEdgeException e)
+                catch (InexistentEdgeException e)
                 {
                     values.put(edge, Double.NaN);
                 }
@@ -132,23 +143,25 @@ public class Embededness<V> implements EdgeMetric<V>
         });
         return values;
     }
-    
+
     @Override
-    public double averageValue(Graph<V> graph) 
+    public double averageValue(Graph<V> graph)
     {
         double value = this.compute(graph).values().stream().reduce(0.0, Double::sum);
-        return value/(graph.getEdgeCount()+0.0);
+        return value / (graph.getEdgeCount() + 0.0);
     }
-    
-    @Override 
+
+    @Override
     public double averageValue(Graph<V> graph, Stream<Pair<V>> edges, int edgeCount)
     {
-        double value = edges.mapToDouble(edge -> 
+        double value = edges.mapToDouble(edge ->
         {
-            try {
+            try
+            {
                 return this.compute(graph, edge.v1(), edge.v2());
-                
-            } catch (InexistentEdgeException ex) {
+            }
+            catch (InexistentEdgeException ex)
+            {
                 Exceptions.printStackTrace(ex);
                 return 0.0;
             }
@@ -157,5 +170,4 @@ public class Embededness<V> implements EdgeMetric<V>
     }
 
 
-        
 }

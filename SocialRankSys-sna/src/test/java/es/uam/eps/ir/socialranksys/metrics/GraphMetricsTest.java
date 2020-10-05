@@ -1,7 +1,7 @@
 /*
  *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -20,9 +20,10 @@ import static java.lang.Double.NaN;
 
 /**
  * Class that tests the full graph metrics
+ *
  * @author Javier Sanz-Cruzado Puig
  */
-public class GraphMetricsTest 
+public class GraphMetricsTest
 {
     /**
      * Directed Strongly Connected Graph
@@ -60,35 +61,36 @@ public class GraphMetricsTest
      * Undirected empty graph
      */
     private UndirectedGraph<Integer> undirectedEmpty;
-    
-    public GraphMetricsTest() 
+
+    public GraphMetricsTest()
     {
     }
-    
+
     @BeforeClass
-    public static void setUpClass() 
+    public static void setUpClass()
     {
     }
-    
+
     @AfterClass
-    public static void tearDownClass() {
+    public static void tearDownClass()
+    {
     }
-    
+
     @Before
-    public void setUp() 
+    public void setUp()
     {
         // Directed Empty Graph (only nodes)
         this.directedEmpty = new FastDirectedUnweightedGraph<>();
         this.directedEmpty.addNode(1);
         this.directedEmpty.addNode(2);
         this.directedEmpty.addNode(3);
-        
+
         // Undirected Empty Graph (only nodes)
         this.undirectedEmpty = new FastUndirectedUnweightedGraph<>();
         this.undirectedEmpty.addNode(1);
         this.undirectedEmpty.addNode(2);
         this.undirectedEmpty.addNode(3);
-        
+
         // Directed Complete Graph
         this.directedComplete = new FastDirectedUnweightedGraph<>();
         this.directedComplete.addNode(1);
@@ -107,20 +109,20 @@ public class GraphMetricsTest
         this.directedComplete.addEdge(4, 1);
         this.directedComplete.addEdge(4, 2);
         this.directedComplete.addEdge(4, 3);
-        
+
         // Undirected Complete Graph
         this.undirectedComplete = new FastUndirectedUnweightedGraph<>();
         this.undirectedComplete.addNode(1);
         this.undirectedComplete.addNode(2);
         this.undirectedComplete.addNode(3);
         this.undirectedComplete.addNode(4);
-        this.undirectedComplete.addEdge(1,2);
-        this.undirectedComplete.addEdge(1,3);
-        this.undirectedComplete.addEdge(1,4);
-        this.undirectedComplete.addEdge(2,3);
-        this.undirectedComplete.addEdge(2,4);
-        this.undirectedComplete.addEdge(3,4);
-        
+        this.undirectedComplete.addEdge(1, 2);
+        this.undirectedComplete.addEdge(1, 3);
+        this.undirectedComplete.addEdge(1, 4);
+        this.undirectedComplete.addEdge(2, 3);
+        this.undirectedComplete.addEdge(2, 4);
+        this.undirectedComplete.addEdge(3, 4);
+
         // Directed Strongly Connected
         this.directedStronglyConnected = new FastDirectedUnweightedGraph<>();
         this.directedStronglyConnected.addNode(1);
@@ -141,7 +143,7 @@ public class GraphMetricsTest
         this.directedStronglyConnected.addEdge(6, 1);
         this.directedStronglyConnected.addEdge(6, 7);
         this.directedStronglyConnected.addEdge(7, 2);
-        
+
         // Directed Weakly Connected
         this.directedWeaklyConnected = new FastDirectedUnweightedGraph<>();
         this.directedWeaklyConnected.addNode(1);
@@ -159,7 +161,7 @@ public class GraphMetricsTest
         this.directedWeaklyConnected.addEdge(4, 6);
         this.directedWeaklyConnected.addEdge(5, 6);
         this.directedWeaklyConnected.addEdge(7, 2);
-        
+
         // Directed Non Connected
         this.directedNonConnected = new FastDirectedUnweightedGraph<>();
         this.directedNonConnected.addNode(1);
@@ -168,14 +170,14 @@ public class GraphMetricsTest
         this.directedNonConnected.addNode(4);
         this.directedNonConnected.addNode(5);
         this.directedNonConnected.addNode(6);
-        this.directedNonConnected.addEdge(1,2);
-        this.directedNonConnected.addEdge(3,1);
-        this.directedNonConnected.addEdge(3,2);
-        this.directedNonConnected.addEdge(4,5);
-        this.directedNonConnected.addEdge(5,6);
-        this.directedNonConnected.addEdge(6,4);
+        this.directedNonConnected.addEdge(1, 2);
+        this.directedNonConnected.addEdge(3, 1);
+        this.directedNonConnected.addEdge(3, 2);
+        this.directedNonConnected.addEdge(4, 5);
+        this.directedNonConnected.addEdge(5, 6);
+        this.directedNonConnected.addEdge(6, 4);
 
-        
+
         // Undirected Connected
         this.undirectedConnected = new FastUndirectedUnweightedGraph<>();
         this.undirectedConnected.addNode(1);
@@ -184,15 +186,15 @@ public class GraphMetricsTest
         this.undirectedConnected.addNode(4);
         this.undirectedConnected.addNode(5);
         this.undirectedConnected.addNode(6);
-        this.undirectedConnected.addEdge(1,2);
-        this.undirectedConnected.addEdge(1,4);
-        this.undirectedConnected.addEdge(1,6);
-        this.undirectedConnected.addEdge(2,3);
-        this.undirectedConnected.addEdge(3,4);
-        this.undirectedConnected.addEdge(4,5);
-        this.undirectedConnected.addEdge(4,6);
-        this.undirectedConnected.addEdge(5,6);
-        
+        this.undirectedConnected.addEdge(1, 2);
+        this.undirectedConnected.addEdge(1, 4);
+        this.undirectedConnected.addEdge(1, 6);
+        this.undirectedConnected.addEdge(2, 3);
+        this.undirectedConnected.addEdge(3, 4);
+        this.undirectedConnected.addEdge(4, 5);
+        this.undirectedConnected.addEdge(4, 6);
+        this.undirectedConnected.addEdge(5, 6);
+
         // Undirected Non Connected
         this.undirectedNonConnected = new FastUndirectedUnweightedGraph<>();
         this.undirectedNonConnected.addNode(1);
@@ -201,16 +203,17 @@ public class GraphMetricsTest
         this.undirectedNonConnected.addNode(4);
         this.undirectedNonConnected.addNode(5);
         this.undirectedNonConnected.addNode(6);
-        this.undirectedNonConnected.addEdge(1,2);
-        this.undirectedNonConnected.addEdge(1,3);
-        this.undirectedNonConnected.addEdge(2,3);
-        this.undirectedNonConnected.addEdge(4,5);
-        this.undirectedNonConnected.addEdge(4,6);
-        this.undirectedNonConnected.addEdge(5,6);        
+        this.undirectedNonConnected.addEdge(1, 2);
+        this.undirectedNonConnected.addEdge(1, 3);
+        this.undirectedNonConnected.addEdge(2, 3);
+        this.undirectedNonConnected.addEdge(4, 5);
+        this.undirectedNonConnected.addEdge(4, 6);
+        this.undirectedNonConnected.addEdge(5, 6);
     }
-    
+
     @After
-    public void tearDown() {
+    public void tearDown()
+    {
     }
 
     /**
@@ -220,12 +223,12 @@ public class GraphMetricsTest
     public void clusteringCoefficient()
     {
         GraphMetric<Integer> metric = new ClusteringCoefficient<>();
-        
+
         Assert.assertEquals(0.0, metric.compute(directedEmpty), 0.001);
         Assert.assertEquals(0.0, metric.compute(undirectedEmpty), 0.001);
         Assert.assertEquals(1.0, metric.compute(directedComplete), 0.001);
         Assert.assertEquals(1.0, metric.compute(undirectedComplete), 0.001);
-        Assert.assertEquals(2.0/17.0, metric.compute(directedStronglyConnected), 0.001);
+        Assert.assertEquals(2.0 / 17.0, metric.compute(directedStronglyConnected), 0.001);
         Assert.assertEquals(0.0, metric.compute(directedWeaklyConnected), 0.001);
         Assert.assertEquals(0.25, metric.compute(directedNonConnected), 0.001);
         Assert.assertEquals(0.4, metric.compute(undirectedConnected), 0.001);
@@ -233,7 +236,7 @@ public class GraphMetricsTest
         Assert.assertEquals(0.0, metric.compute(new FastDirectedUnweightedGraph<>()), 0.001);
         Assert.assertEquals(0.0, metric.compute(new FastUndirectedUnweightedGraph<>()), 0.001);
 
-        
+
     }
 
     /**
@@ -243,7 +246,7 @@ public class GraphMetricsTest
     public void degreeGini()
     {
         GraphMetric<Integer> inMetric = new DegreeGini<>(EdgeOrientation.IN);
-        
+
         // In-Gini
         Assert.assertEquals(1.0, inMetric.compute(directedEmpty), 0.001);
         Assert.assertEquals(1.0, inMetric.compute(undirectedEmpty), 0.001);
@@ -256,7 +259,7 @@ public class GraphMetricsTest
         Assert.assertEquals(1.0, inMetric.compute(undirectedNonConnected), 0.001);
         Assert.assertEquals(NaN, inMetric.compute(new FastDirectedUnweightedGraph<>()), 0.001);
         Assert.assertEquals(NaN, inMetric.compute(new FastUndirectedUnweightedGraph<>()), 0.001);
-        
+
         GraphMetric<Integer> outMetric = new DegreeGini<>(EdgeOrientation.OUT);
         // Out-Gini
         Assert.assertEquals(1.0, outMetric.compute(directedEmpty), 0.001);
@@ -279,15 +282,15 @@ public class GraphMetricsTest
     public void density()
     {
         GraphMetric<Integer> metric = new Density<>();
-        
+
         Assert.assertEquals(0.0, metric.compute(directedEmpty), 0.001);
         Assert.assertEquals(0.0, metric.compute(undirectedEmpty), 0.001);
         Assert.assertEquals(1.0, metric.compute(directedComplete), 0.001);
         Assert.assertEquals(1.0, metric.compute(undirectedComplete), 0.001);
-        Assert.assertEquals(11.0/42.0, metric.compute(directedStronglyConnected), 0.001);
-        Assert.assertEquals(8.0/42.0, metric.compute(directedWeaklyConnected), 0.001);
+        Assert.assertEquals(11.0 / 42.0, metric.compute(directedStronglyConnected), 0.001);
+        Assert.assertEquals(8.0 / 42.0, metric.compute(directedWeaklyConnected), 0.001);
         Assert.assertEquals(0.2, metric.compute(directedNonConnected), 0.001);
-        Assert.assertEquals(8.0/15.0, metric.compute(undirectedConnected), 0.001);
+        Assert.assertEquals(8.0 / 15.0, metric.compute(undirectedConnected), 0.001);
         Assert.assertEquals(0.4, metric.compute(undirectedNonConnected), 0.001);
         Assert.assertEquals(0.0, metric.compute(new FastDirectedUnweightedGraph<>()), 0.001);
         Assert.assertEquals(0.0, metric.compute(new FastUndirectedUnweightedGraph<>()), 0.001);
@@ -301,7 +304,7 @@ public class GraphMetricsTest
     public void pairGini()
     {
         GraphMetric<Integer> inMetric = new EdgeGini<>(EdgeGiniMode.INTERLINKS);
-        
+
         // In-Gini
         Assert.assertEquals(NaN, inMetric.compute(directedEmpty), 0.001);
         Assert.assertEquals(NaN, inMetric.compute(undirectedEmpty), 0.001);
@@ -314,9 +317,9 @@ public class GraphMetricsTest
         Assert.assertEquals(NaN, inMetric.compute(undirectedNonConnected), 0.001);
         Assert.assertEquals(NaN, inMetric.compute(new FastDirectedUnweightedGraph<>()), 0.001);
         Assert.assertEquals(NaN, inMetric.compute(new FastUndirectedUnweightedGraph<>()), 0.001);
-        
+
         inMetric = new EdgeGini<>(EdgeGiniMode.COMPLETE);
-        
+
         // In-Gini
         Assert.assertEquals(NaN, inMetric.compute(directedEmpty), 0.001);
         Assert.assertEquals(NaN, inMetric.compute(undirectedEmpty), 0.001);
@@ -329,9 +332,9 @@ public class GraphMetricsTest
         Assert.assertEquals(NaN, inMetric.compute(undirectedNonConnected), 0.001);
         Assert.assertEquals(NaN, inMetric.compute(new FastDirectedUnweightedGraph<>()), 0.001);
         Assert.assertEquals(NaN, inMetric.compute(new FastUndirectedUnweightedGraph<>()), 0.001);
-        
+
         inMetric = new EdgeGini<>(EdgeGiniMode.SEMICOMPLETE);
-        
+
         // In-Gini
         Assert.assertEquals(NaN, inMetric.compute(directedEmpty), 0.001);
         Assert.assertEquals(NaN, inMetric.compute(undirectedEmpty), 0.001);
@@ -345,7 +348,7 @@ public class GraphMetricsTest
         Assert.assertEquals(NaN, inMetric.compute(new FastDirectedUnweightedGraph<>()), 0.001);
         Assert.assertEquals(NaN, inMetric.compute(new FastUndirectedUnweightedGraph<>()), 0.001);
     }
-    
+
     /**
      * Tests the number of edges of the graph
      */
@@ -353,7 +356,7 @@ public class GraphMetricsTest
     public void numEdges()
     {
         GraphMetric<Integer> inMetric = new NumEdges<>();
-        
+
         // In-Gini
         Assert.assertEquals(0.0, inMetric.compute(directedEmpty), 0.001);
         Assert.assertEquals(0.0, inMetric.compute(undirectedEmpty), 0.001);

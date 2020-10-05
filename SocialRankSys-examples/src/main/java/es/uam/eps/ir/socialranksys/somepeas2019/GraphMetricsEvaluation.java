@@ -10,7 +10,7 @@ package es.uam.eps.ir.socialranksys.somepeas2019;
 
 
 import es.uam.eps.ir.socialranksys.community.Communities;
-import es.uam.eps.ir.socialranksys.community.io.CommunitiesReader;
+import es.uam.eps.ir.socialranksys.community.io.TextCommunitiesReader;
 import es.uam.eps.ir.socialranksys.graph.Adapters;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
@@ -108,8 +108,8 @@ public class GraphMetricsEvaluation
         a = System.currentTimeMillis();
 
         Map<String, Communities<Long>> communities = new HashMap<>();
-        CommunitiesReader<Long> creader = new CommunitiesReader<>();
-        commFiles.forEach((comm) -> communities.put(comm, creader.read(commpath + comm, "\t", Parsers.lp)));
+        TextCommunitiesReader<Long> creader = new TextCommunitiesReader<>("\t", Parsers.lp);
+        commFiles.forEach((comm) -> communities.put(comm, creader.read(commpath + comm)));
 
         b = System.currentTimeMillis();
         System.out.println("Communities read (" + (b-a) + " ms.");

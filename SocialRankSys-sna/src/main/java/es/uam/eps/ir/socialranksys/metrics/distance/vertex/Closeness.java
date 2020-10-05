@@ -1,7 +1,7 @@
 /*
  *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -21,11 +21,17 @@ import java.util.OptionalDouble;
 
 /**
  * Metric that computes the closeness of the nodes.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * <p>
+ * <b>Reference:</b> M.E.J. Newman. Networks: an introduction (2010)
+ * </p>
+ *
  * @param <U> Type of the users
- * 
- * Centrality in Networks: I. Conceptual clarification. Freeman, Linton C., Social Networks 1, 1979, pp.215-239
- * 
+ *            <p>
+ *            Centrality in Networks: I. Conceptual clarification. Freeman, Linton C., Social Networks 1, 1979, pp.215-239
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class Closeness<U> implements VertexMetric<U>
 {
@@ -37,7 +43,7 @@ public class Closeness<U> implements VertexMetric<U>
      * Calculation mode
      */
     private final ClosenessMode mode;
-    
+
     /**
      * Basic constructor. Uses the harmonic mean computing algorithm.
      */
@@ -45,19 +51,21 @@ public class Closeness<U> implements VertexMetric<U>
     {
         this(new FastDistanceCalculator<>(), ClosenessMode.HARMONICMEAN);
     }
-    
+
     /**
      * Constructor.
+     *
      * @param mode Computing algorithm to use.
      */
     public Closeness(ClosenessMode mode)
     {
         this(new FastDistanceCalculator<>(), mode);
     }
-    
-    
+
+
     /**
      * Constructor. Uses the harmonic mean computing algorithm.
+     *
      * @param dc distance calculator.
      */
     public Closeness(DistanceCalculator<U> dc)
@@ -67,7 +75,8 @@ public class Closeness<U> implements VertexMetric<U>
 
     /**
      * Constructor.
-     * @param dc distance calculator.
+     *
+     * @param dc   distance calculator.
      * @param mode computing algorithm.
      */
     public Closeness(DistanceCalculator<U> dc, ClosenessMode mode)
@@ -75,9 +84,10 @@ public class Closeness<U> implements VertexMetric<U>
         this.dc = dc;
         this.mode = mode;
     }
-    
+
     @Override
-    public double compute(Graph<U> graph, U user) {
+    public double compute(Graph<U> graph, U user)
+    {
         this.dc.computeDistances(graph);
         double value = 0.0;
         switch (this.mode)
@@ -91,22 +101,24 @@ public class Closeness<U> implements VertexMetric<U>
                 int comm = scc.getCommunity(user);
                 long numComm = scc.getUsers(comm).count();
                 if (numComm > 1.0)
+                {
                     value = (numComm - 1.0) / scc.getUsers(comm).mapToDouble(v -> this.dc.getDistances(user, v)).sum();
+                }
             }
         }
         return value;
     }
 
     @Override
-    public Map<U, Double> compute(Graph<U> graph) 
+    public Map<U, Double> compute(Graph<U> graph)
     {
         Map<U, Double> closeness = new HashMap<>();
-        graph.getAllNodes().forEach(u -> closeness.put(u,this.compute(graph,u)));
+        graph.getAllNodes().forEach(u -> closeness.put(u, this.compute(graph, u)));
         return closeness;
     }
 
     @Override
-    public double averageValue(Graph<U> graph) 
+    public double averageValue(Graph<U> graph)
     {
         Map<U, Double> map = this.compute(graph);
         OptionalDouble optional = map.values().stream().mapToDouble(val -> val).average();

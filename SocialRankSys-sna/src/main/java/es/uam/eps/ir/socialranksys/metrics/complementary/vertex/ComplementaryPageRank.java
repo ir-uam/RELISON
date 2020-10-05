@@ -1,7 +1,7 @@
-/* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -19,8 +19,11 @@ import java.util.stream.Collectors;
 
 /**
  * Computes the PageRank values in the complementary graph for the different nodes in the graph.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> type of the nodes.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class ComplementaryPageRank<U> implements VertexMetric<U>
 {
@@ -40,9 +43,10 @@ public class ComplementaryPageRank<U> implements VertexMetric<U>
      * Original node (if PageRank is personalized)
      */
     private final U u;
-    
+
     /**
      * Constructor (for not personalized PageRank).
+     *
      * @param r the teleport parameter.
      */
     public ComplementaryPageRank(double r)
@@ -50,9 +54,10 @@ public class ComplementaryPageRank<U> implements VertexMetric<U>
         this.r = r;
         this.u = null;
     }
-    
+
     /**
      * Constructor (for personalized PageRank)
+     *
      * @param r the teleport parameter.
      * @param u the original user.
      */
@@ -61,18 +66,19 @@ public class ComplementaryPageRank<U> implements VertexMetric<U>
         this.r = r;
         this.u = u;
     }
-    
+
     @Override
-    public double compute(Graph<U> graph, U user) {
+    public double compute(Graph<U> graph, U user)
+    {
         return this.compute(graph).get(user);
     }
 
     @Override
-    public Map<U, Double> compute(Graph<U> graph) 
+    public Map<U, Double> compute(Graph<U> graph)
     {
         Set<U> users = graph.getAllNodes().collect(Collectors.toCollection(HashSet::new));
         Map<U, Integer> ids = new HashMap<>();
-        
+
         int N = users.size();
 
         // data
@@ -83,7 +89,7 @@ public class ComplementaryPageRank<U> implements VertexMetric<U>
 
         // initialize
         int index = 0;
-        for (U v : users) 
+        for (U v : users)
         {
             ids.put(v, index);
 
@@ -104,48 +110,55 @@ public class ComplementaryPageRank<U> implements VertexMetric<U>
             in.put(index, inWeights);
             out[index] = outSum;
 
-            pr[index] = 1.0/(N+0.0);
+            pr[index] = 1.0 / (N + 0.0);
 
             index++;
         }
 
         // iterations
         boolean hasConverged = false;
-        for (int i = 0; i < MAXITER && !hasConverged; i++) 
-        {           
+        for (int i = 0; i < MAXITER && !hasConverged; i++)
+        {
             double aux = 0.0;
 
             // Compute the full sum
-            for(int j = 0; j < out.length; ++j)
+            for (int j = 0; j < out.length; ++j)
             {
-                aux += pr[j]/(N - out[j] + 0.0);
+                aux += pr[j] / (N - out[j] + 0.0);
             }
-            
-            if (this.u == null || !ids.containsKey(this.u)) {
-                for (int w = 0; w < N; w++) {
-                    prAux[w] = r/N;
+
+            if (this.u == null || !ids.containsKey(this.u))
+            {
+                for (int w = 0; w < N; w++)
+                {
+                    prAux[w] = r / N;
                 }
                 // perso
-            } else {
-                for (int w = 0; w < N; w++) {
+            }
+            else
+            {
+                for (int w = 0; w < N; w++)
+                {
                     prAux[w] = 0.0;
                 }
                 index = ids.get(u);
                 prAux[index] = r;
             }
-           
+
             // calculate
-            for (int u : in.keySet()) {
+            for (int u : in.keySet())
+            {
                 double aux2 = 0.0;
-                for (U vId : in.get(u)) {
+                for (U vId : in.get(u))
+                {
                     int v = ids.get(vId);
-                    if(out[v] < N)
+                    if (out[v] < N)
                     {
-                        aux2 +=  pr[v] / (N - out[v] + 0.0);
+                        aux2 += pr[v] / (N - out[v] + 0.0);
                     }
                 }
-                prAux[u] += (1 - r) *(aux - aux2);
-                if(prAux[u] < 0.0)
+                prAux[u] += (1 - r) * (aux - aux2);
+                if (prAux[u] < 0.0)
                 {
                     System.err.println("EYY");
                 }
@@ -153,26 +166,28 @@ public class ComplementaryPageRank<U> implements VertexMetric<U>
 
             // make sum
             double sum = 0.0;
-            for (int x = 0; x < N; x++) {
+            for (int x = 0; x < N; x++)
+            {
                 sum += prAux[x];
             }
 
             // handle sinks
-            for (int y = 0; y < N; y++) 
+            for (int y = 0; y < N; y++)
             {
-                prAux[y] += ((1.0-sum) / (N+0.0));
+                prAux[y] += ((1.0 - sum) / (N + 0.0));
             }
 
             // check convergency
             hasConverged = true;
-            for (int z = 0; z < N; z++) {
+            for (int z = 0; z < N; z++)
+            {
                 hasConverged = hasConverged && (Math.abs(prAux[z] - pr[z]) < THRESHOLD);
                 pr[z] = prAux[z];
             }
         }
 
         Map<U, Double> pagerank = new HashMap<>();
-        for (U us : users) 
+        for (U us : users)
         {
             pagerank.put(us, pr[ids.get(us)]);
         }
@@ -181,8 +196,8 @@ public class ComplementaryPageRank<U> implements VertexMetric<U>
     }
 
     @Override
-    public double averageValue(Graph<U> graph) 
+    public double averageValue(Graph<U> graph)
     {
-        return 1.0/(graph.getVertexCount()+0.0);
+        return 1.0 / (graph.getVertexCount() + 0.0);
     }
 }

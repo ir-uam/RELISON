@@ -1,7 +1,7 @@
-/* 
- *  Copyright (C) 2019 Information Retrieval Group at Universidad Autónoma
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -25,11 +25,18 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Computes some of the distance based metrics: distances, number of geodesic paths between two nodes, betweenness.
  *
- * Finding and Evaluating Community Structure in Networks. Newman, M.E.J, Girvan, M., Physical Review E 69(2): 026113, February 2004.
- * Networks: An Introduction. Newman, M.E.J., Oxford University Press, 2010.
+ * <p>
+ * <b>References: </b></p>
+ *     <ol>
+ *         <li>M.E.J. Newman. Networks: an introduction (2010)</li>
+ *         <li>M.E.J. Newman, M. Girvan. Finding and Evaluating Community Structure in Networks. Physical Review E 69(2): 026113 (2004)</li>
+ *     </ol>
+ *
+ *
+ * @param <U> Type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
- * @param <U> Type of the users
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
 {
@@ -40,20 +47,20 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
     /**
      * Nodes betweenness map
      */
-    private Map<U,Double> nodeBetweenness;
+    private Map<U, Double> nodeBetweenness;
     /**
      * Edge betweenness map
      */
-    private Map<U,Map<U, Double>> edgeBetweenness;
+    private Map<U, Map<U, Double>> edgeBetweenness;
     /**
      * Distances map from u to v
      */
-    private Map<U,Map<U, Double>> distancesFrom;
+    private Map<U, Map<U, Double>> distancesFrom;
     /**
      * Distances map towards the key user
      */
     private Map<U, Map<U, Double>> distancesTo;
-    
+
     /**
      * Number of minimum distance paths between two nodes
      */
@@ -70,18 +77,22 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
      */
     public CompleteDistanceCalculator()
     {
-        this.graph = null;        
+        this.graph = null;
     }
-    
+
     /**
      * Computes the betweenness of a graph.
+     *
      * @param graph the graph.
+     *
      * @return true if everything went ok.
      */
     public boolean computeDistances(Graph<U> graph)
     {
-        if(this.graph != null && this.graph.equals(graph))
+        if (this.graph != null && this.graph.equals(graph))
+        {
             return true;
+        }
 
         CommunityDetectionAlgorithm<U> sccAlg = new StronglyConnectedComponents<>();
         this.scc = sccAlg.detectCommunities(graph);
@@ -105,7 +116,7 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
         graph.getAllNodes().forEach(node ->
         {
             this.edgeBetweenness.put(node, new HashMap<>());
-            graph.getAdjacentNodes(node).forEach(adj -> this.edgeBetweenness.get(node).put(adj,0.0));
+            graph.getAdjacentNodes(node).forEach(adj -> this.edgeBetweenness.get(node).put(adj, 0.0));
         });
 
         // Initialize all distances to Infinity.
@@ -150,28 +161,28 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
                 Queue<U> nextLevelQueue = new LinkedList<>();
 
                 Map<Double, Set<U>> levels = new HashMap<>();
-                levels.put(d.get(),new HashSet<>());
+                levels.put(d.get(), new HashSet<>());
                 levels.get(d.get()).add(u);
                 levels.put(d.get() + 1.0, new HashSet<>());
 
                 // STEP 1: BFS. Find the distances between nodes.
                 queue.add(u);
-                while(!queue.isEmpty())
+                while (!queue.isEmpty())
                 {
                     U current = queue.poll();
 
                     graph.getAdjacentNodes(current).forEach(node ->
                     {
-                        if(!dist.containsKey(node))
+                        if (!dist.containsKey(node))
                         {
-                            dist.put(node, d.get()+1.0);
+                            dist.put(node, d.get() + 1.0);
                             weights.put(node, weights.get(current));
                             nextLevelQueue.add(node);
-                            levels.get(d.get()+1.0).add(node);
+                            levels.get(d.get() + 1.0).add(node);
                             tree.addNode(node);
                             tree.addEdge(node, current);
                         }
-                        else if(dist.get(node).equals(d.get() + 1.0))
+                        else if (dist.get(node).equals(d.get() + 1.0))
                         {
                             weights.put(node, weights.get(current) + weights.get(node));
                             tree.addEdge(node, current);
@@ -179,13 +190,13 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
                         // else { do nothing }
                     });
 
-                    if(queue.isEmpty())
+                    if (queue.isEmpty())
                     {
-                        while(!nextLevelQueue.isEmpty())
+                        while (!nextLevelQueue.isEmpty())
                         {
                             queue.add(nextLevelQueue.poll());
                         }
-                        levels.put(d.addAndGet(1.0)+1.0,new HashSet<>());
+                        levels.put(d.addAndGet(1.0) + 1.0, new HashSet<>());
                     }
                 }
 
@@ -193,21 +204,22 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
                 double level = d.get() - 1.0;
 
                 Map<U, Double> nodeBetw = new HashMap<>();
-                Map<U, Map<U,Double>> edgeBetw = new HashMap<>();
+                Map<U, Map<U, Double>> edgeBetw = new HashMap<>();
                 Map<U, Double> accumulated = new HashMap<>();
-                while(level >= 0.0)
+                while (level >= 0.0)
                 {
                     Set<U> ithLevel = levels.get(level);
-                    ithLevel.forEach(node ->
+                        ithLevel.forEach(node ->
                     {
-                        if(tree.inDegree(node) == 0) // Leaf
+                        if (tree.inDegree(node) == 0) // Leaf
                         {
                             nodeBetw.put(node, 0.0);
                             edgeBetw.put(node, new HashMap<>());
-                            tree.getAdjacentNodes(node).forEach(adj -> {
-                                double value = weights.get(adj)/weights.get(node);
+                            tree.getAdjacentNodes(node).forEach(adj ->
+                            {
+                                double value = weights.get(adj) / weights.get(node);
                                 edgeBetw.get(node).put(adj, value);
-                                if(!accumulated.containsKey(adj))
+                                if (!accumulated.containsKey(adj))
                                 {
                                     accumulated.put(adj, 0.0);
                                 }
@@ -216,20 +228,21 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
                         }
                         else // Not leaf
                         {
-                            double score = tree.getIncidentNodes(node).mapToDouble(incid -> {
+                            double score = tree.getIncidentNodes(node).mapToDouble(incid ->
+                            {
                                 double nodeb = nodeBetw.get(incid);
                                 double weightA = weights.get(node);
                                 double weightB = weights.get(incid);
-                                return (1+nodeb)*weightA/weightB;
+                                return (1 + nodeb) * weightA / weightB;
                             }).sum();
                             nodeBetw.put(node, score);
                             edgeBetw.put(node, new HashMap<>());
                             tree.getAdjacentNodes(node).forEach(adj ->
                             {
-                                double value = weights.get(adj)/weights.get(node);
-                                value = value*(1.0 + accumulated.get(node));
+                                double value = weights.get(adj) / weights.get(node);
+                                value = value * (1.0 + accumulated.get(node));
                                 edgeBetw.get(node).put(adj, value);
-                                if(!accumulated.containsKey(adj))
+                                if (!accumulated.containsKey(adj))
                                 {
                                     accumulated.put(adj, 0.0);
                                 }
@@ -261,21 +274,23 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
                 // Update the edge betweenness map
                 edgeBetw.forEach((v, value) -> value.forEach((w, value1) -> this.edgeBetweenness.get(w).put(v, this.edgeBetweenness.get(w).get(v) + value1)));
             }
-            catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException ex) {
+            catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException ex)
+            {
                 flag = false;
             }
 
         });
 
-        if(!flag) return false;
+        if (!flag)
+        {
+            return false;
+        }
         // Apply normalization
-        double val = (graph.isDirected() ? 1 : 0.5)*(numNodes-2)*(numNodes-1);
-        this.nodeBetweenness.keySet().forEach(u -> this.nodeBetweenness.put(u, this.nodeBetweenness.get(u)/val));
+        double val = (graph.isDirected() ? 1 : 0.5) * (numNodes - 2) * (numNodes - 1);
+        this.nodeBetweenness.keySet().forEach(u -> this.nodeBetweenness.put(u, this.nodeBetweenness.get(u) / val));
 
-        double val2 = (graph.isDirected() ? 1 : 0.5)*numNodes*(numNodes-1);
-        this.edgeBetweenness.keySet().forEach(u ->
-                this.edgeBetweenness.get(u).keySet().forEach(v ->
-                        this.edgeBetweenness.get(u).put(v, this.edgeBetweenness.get(u).get(v)/val2)));
+        double val2 = (graph.isDirected() ? 1 : 0.5) * numNodes * (numNodes - 1);
+        this.edgeBetweenness.keySet().forEach(u -> this.edgeBetweenness.get(u).keySet().forEach(v -> this.edgeBetweenness.get(u).put(v, this.edgeBetweenness.get(u).get(v) / val2)));
 
         this.graph = graph;
         return true;
@@ -283,148 +298,183 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
 
     /**
      * Returns the node betweenness for each node in the network.
+     *
      * @return a map containing the node betweenness for each node.
      */
     public Map<U, Double> getNodeBetweenness()
     {
         return this.nodeBetweenness;
     }
-    
+
     /**
      * Gets the value of node betweenness for a single node.
+     *
      * @param node the value for the node.
+     *
      * @return the node betweenness for that node.
      */
     public double getNodeBetweenness(U node)
     {
         return this.nodeBetweenness.get(node);
     }
-    
+
     /**
      * Gets all the values of the edge betweenness
+     *
      * @return the edge betweenness value for each edge.
      */
-    public Map<U, Map<U,Double>> getEdgeBetweenness()
+    public Map<U, Map<U, Double>> getEdgeBetweenness()
     {
         return this.edgeBetweenness;
     }
-    
+
     /**
      * Returns the edge betweenness of all the adjacent edges to a given node.
+     *
      * @param node The node.
+     *
      * @return a map containing the values of edge betweenness for all the adjacent links to the given node.
      */
-    public Map<U,Double> getEdgeBetweenness(U node)
+    public Map<U, Double> getEdgeBetweenness(U node)
     {
-        if(this.edgeBetweenness.containsKey(node))
+        if (this.edgeBetweenness.containsKey(node))
+        {
             return this.edgeBetweenness.get(node);
+        }
         return new HashMap<>();
     }
-    
+
     /**
      * Returns the edge betweenness of a single edge.
+     *
      * @param orig origin node of the edge.
      * @param dest destination node of the edge.
+     *
      * @return the betweenness if the edge exists, -1.0 if not.
      */
     public double getEdgeBetweenness(U orig, U dest)
     {
-        if(this.edgeBetweenness.containsKey(orig))
-            if(this.edgeBetweenness.get(orig).containsKey(dest))
+        if (this.edgeBetweenness.containsKey(orig))
+        {
+            if (this.edgeBetweenness.get(orig).containsKey(dest))
+            {
                 return this.edgeBetweenness.get(orig).get(dest);
+            }
+        }
         return -1.0;
     }
-    
+
     /**
      * Returns all the distances between different pairs.
+     *
      * @return the distances between pairs.
      */
     public Map<U, Map<U, Double>> getDistances()
     {
         return this.distancesFrom;
     }
-    
+
     /**
      * Return the distances between a node and the rest of nodes in the network.
+     *
      * @param node the node.
+     *
      * @return a map containing all the distances from the node to the rest of the network.
      */
     public Map<U, Double> getDistancesFrom(U node)
     {
-        if(this.distancesFrom.containsKey(node))
+        if (this.distancesFrom.containsKey(node))
         {
             return this.distancesFrom.get(node);
         }
         return new HashMap<>();
     }
-    
+
     /**
      * Returns the distance between the network and an specific node.
+     *
      * @param node the node.
+     *
      * @return a map containing all the distances from each vertex in the network to the node.
      */
     public Map<U, Double> getDistancesTo(U node)
     {
-        if(this.distancesTo.containsKey(node))
+        if (this.distancesTo.containsKey(node))
         {
             return this.distancesTo.get(node);
         }
         return new HashMap<>();
     }
-    
+
     /**
      * Returns the distance between two nodes.
+     *
      * @param orig origin node.
      * @param dest destination node.
+     *
      * @return the distance between both nodes. if there is a path between them, +Infinity if not.
      */
     public double getDistances(U orig, U dest)
     {
-        if(this.distancesFrom.containsKey(orig))
-            if(this.distancesFrom.get(orig).containsKey(dest))
+        if (this.distancesFrom.containsKey(orig))
+        {
+            if (this.distancesFrom.get(orig).containsKey(dest))
+            {
                 return this.distancesFrom.get(orig).get(dest);
+            }
+        }
         return Double.POSITIVE_INFINITY;
     }
-    
+
     /**
      * Returns the number of geodesic paths between different pairs.
+     *
      * @return the distances between pairs.
      */
     public Map<U, Map<U, Double>> getGeodesics()
     {
         return this.geodesics;
     }
-    
+
     /**
      * Return the number of geodesic paths between a node and the rest of nodes in the network.
+     *
      * @param node the node.
+     *
      * @return a map containing the number of geodesic paths from the node to the rest of the network.
      */
     public Map<U, Double> getGeodesics(U node)
     {
-        if(this.geodesics.containsKey(node))
+        if (this.geodesics.containsKey(node))
         {
             return this.geodesics.get(node);
         }
         return new HashMap<>();
     }
-    
+
     /**
      * Returns the number of geodesic paths between two nodes.
+     *
      * @param orig origin node.
      * @param dest destination node.
+     *
      * @return the number of geodesic paths between both nodes if there is a path between them, 0.0 if not.
      */
     public double getGeodesics(U orig, U dest)
     {
-        if(this.geodesics.containsKey(orig))
-            if(this.geodesics.get(orig).containsKey(dest))
+        if (this.geodesics.containsKey(orig))
+        {
+            if (this.geodesics.get(orig).containsKey(dest))
+            {
                 return this.geodesics.get(orig).get(dest);
+            }
+        }
         return 0.0;
     }
 
     /**
      * Obtains the strongly connected components of the graph.
+     *
      * @return the strongly connected components of the graph.
      */
     public Communities<U> getSCC()

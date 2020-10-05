@@ -11,7 +11,7 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.c
 import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.community.graph.CommunityGraphGenerator;
 import es.uam.eps.ir.socialranksys.community.graph.CompleteCommunityGraphGenerator;
-import es.uam.eps.ir.socialranksys.community.graph.CompleteCommunityNoAutoloopsGraphGenerator;
+import es.uam.eps.ir.socialranksys.community.graph.CompleteCommunityNoSelfLoopsGraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.multigraph.MultiGraph;
 import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.SwapRerankerGraph;
@@ -56,7 +56,7 @@ public abstract class CommunityReranker<U> extends SwapRerankerGraph<U>
     @Override
     protected void computeGlobalValue()
     {
-        CommunityGraphGenerator<U> cgg = autoloops ? new CompleteCommunityGraphGenerator<>() : new CompleteCommunityNoAutoloopsGraphGenerator<>();
+        CommunityGraphGenerator<U> cgg = autoloops ? new CompleteCommunityGraphGenerator<>() : new CompleteCommunityNoSelfLoopsGraphGenerator<>();
         this.communityGraph = cgg.generate(this.graph, this.communities);       
     }
 }

@@ -1,7 +1,7 @@
-/* 
+/*
  *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -18,9 +18,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Computes the embeddedness the edges of a graph
- * @author Javier Sanz-Cruzado Puig
+ * Computes the embeddedness the edges of a graph.
+ *
+ * <p>
+ * <b>Reference: </b> D. Easley, J.M. Kleinberg. Networks, crowds and markets (2010)
+ * </p>
+ *
  * @param <U> Type of the users in the graph
+ *
+ * @author Javier Sanz-Cruzado Puig
  */
 public class Embededness<U> extends AbstractPairMetric<U>
 {
@@ -35,6 +41,7 @@ public class Embededness<U> extends AbstractPairMetric<U>
 
     /**
      * Constructor.
+     *
      * @param uSel Selection of the neighbours of the first node.
      * @param vSel Selection of the neighbours of the second node.
      */
@@ -43,14 +50,16 @@ public class Embededness<U> extends AbstractPairMetric<U>
         this.uSel = uSel;
         this.vSel = vSel;
     }
-    
+
     @Override
     public double compute(Graph<U> graph, U orig, U dest)
     {
-        if(graph.isMultigraph())
+        if (graph.isMultigraph())
+        {
             return Double.NaN;
-        
-        
+        }
+
+
         Set<U> firstNeighbours = graph.getNeighbourhood(orig, uSel).collect(Collectors.toCollection(HashSet::new));
         Set<U> secondNeighbours = graph.getNeighbourhood(dest, vSel).collect(Collectors.toCollection(HashSet::new));
         firstNeighbours.remove(dest);
@@ -59,13 +68,13 @@ public class Embededness<U> extends AbstractPairMetric<U>
         Set<U> intersection = new HashSet<>(firstNeighbours);
         intersection.retainAll(secondNeighbours);
 
-        if(firstNeighbours.isEmpty() && secondNeighbours.isEmpty() && graph.containsEdge(orig,dest))
+        if (firstNeighbours.isEmpty() && secondNeighbours.isEmpty() && graph.containsEdge(orig, dest))
         {
             return 1.0;
         }
         else
         {
-            return (intersection.size() + 0.0)/(firstNeighbours.size() + secondNeighbours.size() - intersection.size() + 0.0);
+            return (intersection.size() + 0.0) / (firstNeighbours.size() + secondNeighbours.size() - intersection.size() + 0.0);
         }
     }
 
@@ -83,10 +92,12 @@ public class Embededness<U> extends AbstractPairMetric<U>
 
     /**
      * Computes the map of metrics for the user.
+     *
      * @param graph the graph.
-     * @param u the user.
-     * @param uSel the neighborhood selection for the user.
-     * @param vSel the neighborhood selection for the other users
+     * @param u     the user.
+     * @param uSel  the neighborhood selection for the user.
+     * @param vSel  the neighborhood selection for the other users
+     *
      * @return the map of metrics for the user.
      */
     private Function<U, Double> computeIndividual(Graph<U> graph, U u, EdgeOrientation uSel, EdgeOrientation vSel)
@@ -96,7 +107,7 @@ public class Embededness<U> extends AbstractPairMetric<U>
 
         double uSize;
 
-        if(!graph.isMultigraph())
+        if (!graph.isMultigraph())
         {
             uSize = graph.getNeighbourhood(u, uSel).mapToDouble(w ->
             {
@@ -112,7 +123,7 @@ public class Embededness<U> extends AbstractPairMetric<U>
         return v ->
         {
             double inter = map.getOrDefault(v, map.defaultReturnValue());
-            if(inter > 0.0)
+            if (inter > 0.0)
             {
                 return inter / (uSize + graph.getNeighbourhoodSize(v, vSel) - inter);
             }

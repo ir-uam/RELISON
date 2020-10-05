@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Aut�noma
  * de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -27,8 +27,11 @@ import java.util.stream.Stream;
  * Expanded neighbor overlap. Finds the size of the intersection between
  * users at distance at most 2 of one user, with the neighborhood of another.
  * All users are given the same weight.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> Type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class ExpandedNeighborOverlap<U> implements PairMetric<U>
 {
@@ -45,13 +48,14 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
      * Orientation selection for the destination user.
      */
     private final EdgeOrientation vSel;
-    
+
     /**
      * Constructor.
+     *
      * @param origin true if we have to obtain the distance 2 neighbors of the origin user,
-     * false otherwise.
-     * @param uSel orientation selection for the origin user.
-     * @param vSel orientation selection for the destination user.
+     *               false otherwise.
+     * @param uSel   orientation selection for the origin user.
+     * @param vSel   orientation selection for the destination user.
      */
     public ExpandedNeighborOverlap(boolean origin, EdgeOrientation uSel, EdgeOrientation vSel)
     {
@@ -59,27 +63,29 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
         this.uSel = uSel;
         this.vSel = vSel;
     }
-    
+
     @Override
     public double compute(Graph<U> graph, U orig, U dest)
-    {        
+    {
         Set<U> distanceTwoUsers = this.explore(graph, (origin ? orig : dest), (origin ? uSel : vSel));
         Set<U> neigh = graph.getNeighbourhood((origin ? dest : orig), (origin ? vSel : uSel)).collect(Collectors.toCollection(HashSet::new));
         distanceTwoUsers.retainAll(neigh);
         return distanceTwoUsers.size() + 0.0;
     }
-    
+
     /**
      * Obtains the neighborhood at distance 2.
-     * @param graph the graph.
-     * @param node the node.
+     *
+     * @param graph  the graph.
+     * @param node   the node.
      * @param orient the orientation.
+     *
      * @return the neighborhood at distance 2.
      */
     public Set<U> explore(Graph<U> graph, U node, EdgeOrientation orient)
     {
         Set<U> exploration = new HashSet<>();
-        graph.getNeighbourhood(node, orient).forEach(w -> 
+        graph.getNeighbourhood(node, orient).forEach(w ->
         {
             exploration.add(w);
             graph.getNeighbourhood(w, orient).forEach(exploration::add);
@@ -88,18 +94,18 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
     }
 
     @Override
-    public Map<Pair<U>,Double> compute(Graph<U> graph) 
+    public Map<Pair<U>, Double> compute(Graph<U> graph)
     {
         Map<Pair<U>, Double> values = new HashMap<>();
         Map<U, Set<U>> neighs = new HashMap<>();
-        
-        graph.getAllNodes().forEach(u -> 
+
+        graph.getAllNodes().forEach(u ->
         {
             Set<U> d2neigh = this.explore(graph, u, origin ? uSel : vSel);
-            graph.getAllNodes().forEach(v -> 
+            graph.getAllNodes().forEach(v ->
             {
                 Set<U> vNeigh;
-                if(neighs.containsKey(v))
+                if (neighs.containsKey(v))
                 {
                     vNeigh = neighs.get(v);
                 }
@@ -108,14 +114,20 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
                     vNeigh = graph.getNeighbourhood(v, origin ? vSel : uSel).collect(Collectors.toCollection(HashSet::new));
                     neighs.put(v, vNeigh);
                 }
-                    
+
                 Set<U> aux = new HashSet<>(d2neigh);
                 aux.retainAll(vNeigh);
-                if(origin) values.put(new Pair<>(u,v), aux.size()+0.0);
-                else values.put(new Pair<>(v,u), aux.size()+0.0);
+                if (origin)
+                {
+                    values.put(new Pair<>(u, v), aux.size() + 0.0);
+                }
+                else
+                {
+                    values.put(new Pair<>(v, u), aux.size() + 0.0);
+                }
             });
         });
-        
+
         return values;
     }
 
@@ -125,48 +137,54 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
         Map<Pair<U>, Double> values = new ConcurrentHashMap<>();
         Map<U, Set<U>> origins = new ConcurrentHashMap<>();
         Map<U, Set<U>> dests = new ConcurrentHashMap<>();
-        
+
         EdgeOrientation neighO = origin ? this.vSel : this.uSel;
         EdgeOrientation exploreO = origin ? this.uSel : this.vSel;
-        pairs.forEach(pair -> 
+        pairs.forEach(pair ->
         {
             U explored = origin ? pair.v2() : pair.v1();
             U other = origin ? pair.v1() : pair.v2();
-            
+
             Set<U> auxD2;
             Set<U> neigh;
-            
-            if(origins.containsKey(explored)) auxD2 = new HashSet<>(origins.get(explored));
+
+            if (origins.containsKey(explored))
+            {
+                auxD2 = new HashSet<>(origins.get(explored));
+            }
             else
             {
-                Set<U> aux =this.explore(graph, explored, exploreO);
+                Set<U> aux = this.explore(graph, explored, exploreO);
                 origins.put(explored, aux);
                 auxD2 = new HashSet<>(aux);
             }
-            
-            if(dests.containsKey(other)) neigh = dests.get(other);
+
+            if (dests.containsKey(other))
+            {
+                neigh = dests.get(other);
+            }
             else
             {
                 neigh = graph.getNeighbourhood(other, neighO).collect(Collectors.toCollection(HashSet::new));
                 dests.put(other, neigh);
             }
-            
+
             auxD2.retainAll(neigh);
             double value = auxD2.size();
             values.put(pair, value);
         });
-        
+
         return values;
     }
 
     @Override
-    public double averageValue(Graph<U> graph) 
+    public double averageValue(Graph<U> graph)
     {
         double value = this.compute(graph).values().stream().reduce(0.0, Double::sum);
-        return value/(graph.getEdgeCount()+0.0);
+        return value / (graph.getEdgeCount() + 0.0);
     }
-    
-    @Override 
+
+    @Override
     public double averageValue(Graph<U> graph, Stream<Pair<U>> edges, int edgeCount)
     {
         double value = edges.mapToDouble(edge -> this.compute(graph, edge.v1(), edge.v2())).sum();
@@ -176,7 +194,7 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
     @Override
     public Function<U, Double> computeOrig(Graph<U> graph, U orig)
     {
-        if(origin)
+        if (origin)
         {
             return this.computeIndividualOrig(graph, orig, uSel, vSel);
         }
@@ -189,7 +207,7 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
     @Override
     public Function<U, Double> computeDest(Graph<U> graph, U dest)
     {
-        if(origin)
+        if (origin)
         {
             return this.computeIndividualDest(graph, dest, vSel, uSel);
         }
@@ -207,14 +225,14 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
         Set<U> visited = new HashSet<>();
         graph.getNeighbourhood(u, uSel).forEach(w ->
         {
-            if(!visited.contains(w))
+            if (!visited.contains(w))
             {
                 visited.add(w);
                 graph.getNeighbourhood(w, vSel.invertSelection()).forEach(v -> map.addTo(v, 1.0));
             }
             graph.getNeighbourhood(w, uSel).forEach(x ->
             {
-                if(!visited.contains(x))
+                if (!visited.contains(x))
                 {
                     visited.add(x);
                     graph.getNeighbourhood(x, vSel.invertSelection()).forEach(v -> map.addTo(v, 1.0));
@@ -235,7 +253,7 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
             Set<U> visited = new HashSet<>();
             graph.getNeighbourhood(w, vSel.invertSelection()).forEach(x ->
             {
-                if(!visited.contains(x))
+                if (!visited.contains(x))
                 {
                     visited.add(x);
                     map.addTo(x, 1.0);
@@ -243,7 +261,7 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
 
                 graph.getNeighbourhood(x, vSel.invertSelection()).forEach(v ->
                 {
-                    if(!visited.contains(v))
+                    if (!visited.contains(v))
                     {
                         visited.add(v);
                         map.addTo(v, 1.0);

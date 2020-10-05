@@ -1,7 +1,7 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -18,8 +18,11 @@ import java.util.OptionalDouble;
 
 /**
  * Computes the size of communities
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class Size<U> implements IndividualCommunityMetric<U>
 {
@@ -31,17 +34,18 @@ public class Size<U> implements IndividualCommunityMetric<U>
     }
 
     @Override
-    public Map<Integer, Double> compute(Graph<U> graph, Communities<U> comm) {
+    public Map<Integer, Double> compute(Graph<U> graph, Communities<U> comm)
+    {
         Map<Integer, Double> map = new Int2DoubleOpenHashMap();
         comm.getCommunities().forEach(c -> map.put(c, this.compute(graph, comm, c)));
         return map;
     }
 
     @Override
-    public double averageValue(Graph<U> graph, Communities<U> comm) 
+    public double averageValue(Graph<U> graph, Communities<U> comm)
     {
         OptionalDouble optional = this.compute(graph, comm).values().stream().mapToDouble(value -> value).average();
         return optional.isPresent() ? optional.getAsDouble() : 0.0;
     }
-    
+
 }

@@ -1,3 +1,11 @@
+/*
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ *  de Madrid, http://ir.ii.uam.es
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package es.uam.eps.ir.socialranksys.metrics.pair;
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
@@ -12,20 +20,29 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+/**
+ * Abstract implementation of a pair metric.
+ *
+ * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ */
 public abstract class AbstractPairMetric<U> implements PairMetric<U>
 {
     @Override
     public Map<Pair<U>, Double> compute(Graph<U> graph)
     {
         Map<Pair<U>, Double> values = new HashMap<>();
-        if(!graph.isMultigraph())
+        if (!graph.isMultigraph())
         {
-            graph.getAllNodes().forEach((orig) ->
-                graph.getAllNodes().forEach(dest ->
+            graph.getAllNodes().forEach((orig) -> graph.getAllNodes().forEach(dest ->
+            {
+                if (!orig.equals(dest))
                 {
-                    if(!orig.equals(dest))
-                        values.put(new Pair<>(orig, dest), this.compute(graph, orig, dest));
-                }));
+                    values.put(new Pair<>(orig, dest), this.compute(graph, orig, dest));
+                }
+            }));
         }
         return values;
     }
@@ -43,7 +60,7 @@ public abstract class AbstractPairMetric<U> implements PairMetric<U>
     public double averageValue(Graph<U> graph)
     {
         double value = this.compute(graph).entrySet().stream().filter(x -> !x.getKey().v1().equals(x.getKey().v2())).mapToDouble(Map.Entry::getValue).sum();
-        return value/(graph.getVertexCount()*(graph.getVertexCount()-1));
+        return value / (graph.getVertexCount() * (graph.getVertexCount() - 1));
     }
 
     @Override
