@@ -1,5 +1,5 @@
 /* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -23,7 +23,8 @@ import java.util.stream.Stream;
  * propagation mechanism for the pull strategy propagation mechanism.
  * Each iteration, each user selects another one which has not visited in a certain time.
  * The users share all the information between them. 
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  * @param <U> type of the users
  * @param <I> type of the information pieces
  * @param <P> type of the parameters.

@@ -1,5 +1,5 @@
 /* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -21,7 +21,8 @@ import java.util.stream.Stream;
 
 /**
  * Abstract representation for the users.
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  * @param <U> type of the user identifier.
  */
 public abstract class UserState<U> implements Serializable, Cloneable

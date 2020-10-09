@@ -1,5 +1,5 @@
 /* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -13,7 +13,8 @@ import java.util.*;
 
 /**
  * Class that represents the propagated information in a simulation.
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class PropagatedInformation extends Information<Integer> implements Serializable, Cloneable
 {   

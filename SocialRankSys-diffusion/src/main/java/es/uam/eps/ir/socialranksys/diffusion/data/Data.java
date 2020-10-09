@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -22,7 +22,8 @@ import java.util.stream.Stream;
 
 /**
  * Class that contains the basic information for simulations
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  * @param <U> type of the users.
  * @param <I> type of the information.
  * @param <P> type of the features.
@@ -88,11 +89,15 @@ public class Data<U extends Serializable,I extends Serializable,P>
      * Ordered set of timestamps when information pieces where published in real life.
      */
     private TreeSet<Long> timestamps;
-    
-    
+
+    /**
+     * Relation between the timestamps and the pieces propagated by each user.
+     */
     private final HashMap<Long, HashMap<U, Set<I>>> propagatedByTS;
-    
-    
+
+    /**
+     * Relation between the timestamps and the pieces repropagated by each user.
+     */
     private final HashMap<Long, HashMap<U, Set<I>>> realPropagatedByTS;
 
     

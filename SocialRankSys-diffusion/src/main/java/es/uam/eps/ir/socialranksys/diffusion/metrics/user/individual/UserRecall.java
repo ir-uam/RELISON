@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,8 +18,10 @@ import java.util.*;
  * For each user in the network, the user-recall metric the proportion of users
  * in the network which have published at least an information piece that has 
  * been read by a user (all these users have to be different from the receiver).
- * 
- * @author Javier Sanz-Cruzado Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
  * @param <P> type of the parameters.

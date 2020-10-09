@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -14,7 +14,8 @@ import es.uam.eps.ir.socialranksys.diffusion.data.PropagatedInformation;
 /**
  * Updates the previously received elements with information obtained from the new ones.
  * Merges both pieces of propagated information.
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class OlderUpdateMechanism implements UpdateMechanism
 {

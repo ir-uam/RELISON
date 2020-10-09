@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,9 +18,10 @@ import java.util.Map;
 
 /**
  * Computes the number of pieces of information propagated and seen in all the iterations.
- * 
- * @author Javier Sanz-Cruzado Puig
- * 
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the user
  * @param <I> type of the information
  * @param <P> type of the parameters

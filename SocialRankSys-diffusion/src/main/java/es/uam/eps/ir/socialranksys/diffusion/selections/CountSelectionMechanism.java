@@ -1,5 +1,5 @@
 /* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -20,7 +20,8 @@ import java.util.stream.Collectors;
 /**
  * Selects the propagated pieces. This algorithm propagates a certain number of information pieces each
  * iteration, chosen randomly from the own pieces of information and the received ones.
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  * @param <U> type of the users.
  * @param <I> type of the information.
  * @param <P> type of the parameters.

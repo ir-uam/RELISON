@@ -10,7 +10,8 @@ package es.uam.eps.ir.socialranksys.diffusion.data;
 
 /**
  * Identifiers for the different types of communities.
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class CommunitiesIdentifiers
 {

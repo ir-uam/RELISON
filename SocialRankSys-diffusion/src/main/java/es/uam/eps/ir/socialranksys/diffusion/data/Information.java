@@ -13,7 +13,8 @@ import java.util.Objects;
 
 /**
  * Piece of information.
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  * @param <I> type of the information id
  */
 public class Information<I> implements Serializable, Cloneable
@@ -26,7 +27,6 @@ public class Information<I> implements Serializable, Cloneable
      * Time of creation of the information / Time of arrival
      */
     private long timestamp;
-    
     
     /**
      * Creates a basic piece of information.
