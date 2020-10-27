@@ -29,63 +29,27 @@ public class GraphMetricSelector<U>
      */
     public GraphMetricGridSearch<U> getGridSearch(String metric)
     {
-        GraphMetricGridSearch<U> gridsearch;
-        switch(metric)
+        return switch (metric)
         {
-            case ASL:
-                gridsearch = new ASLGridSearch<>();
-                break;
-            case ARSL:
-                gridsearch = new AverageReciprocalShortestPathLengthGridSearch<>();
-                break;
-            case DIAMETER:
-                gridsearch = new DiameterGridSearch<>();
-                break;
-            case CLUSTCOEF:
-                gridsearch = new ClusteringCoefficientGridSearch<>();
-                break;
-            case CLUSTCOEFCOMPL:
-                gridsearch = new ClusteringCoefficientComplementGridSearch<>();
-                break;
-            case DEGREEGINI:
-                gridsearch = new DegreeGiniGridSearch<>();
-                break;
-            case DENSITY:
-                gridsearch = new DensityGridSearch<>();
-                break;
-            case NUMEDGES:
-                gridsearch = new NumEdgesGridSearch<>();
-                break;
-            case INTEREDGEGINI:
-                gridsearch = new InterEdgeGiniGridSearch<>();
-                break;
-            case COMPLETEEDGEGINI:
-                gridsearch = new CompleteEdgeGiniGridSearch<>();
-                break;
-            case SEMICOMPLETEEDGEGINI:
-                gridsearch = new SemiCompleteEdgeGiniGridSearch<>();
-                break;
-            case RECIPRDIAMETER:
-                gridsearch = new ReciprocalDiameterGridSearch<>();
-                break;
-            case RECIPRAVGECCENTRICITY:
-                gridsearch = new ReciprocalAverageEccentricityGridSearch<>();
-                break;
-            case RECIPROCITYRATE:
-                gridsearch = new ReciprocityRateGridSearch<>();
-                break;
-            case DEGREEASSORT:
-                gridsearch = new DegreeAssortativityGridSearch<>();
-                break;
-            case DEGREEPEARSON:
-                gridsearch = new DegreePearsonCorrelationGridSearch<>();
-                break;
-            // Default behavior
-            default:
-                gridsearch = null;
-        }
-        
-        return gridsearch;
+            case ASL -> new ASLGridSearch<>();
+            case ARSL -> new AverageReciprocalShortestPathLengthGridSearch<>();
+            case DIAMETER -> new DiameterGridSearch<>();
+            case INFINITEDIST -> new InfiniteDistancePairsGridSearch<>();
+            case CLUSTCOEF -> new ClusteringCoefficientGridSearch<>();
+            case CLUSTCOEFCOMPL -> new ClusteringCoefficientComplementGridSearch<>();
+            case DEGREEGINI -> new DegreeGiniGridSearch<>();
+            case DENSITY -> new DensityGridSearch<>();
+            case NUMEDGES -> new NumEdgesGridSearch<>();
+            case INTEREDGEGINI -> new InterEdgeGiniGridSearch<>();
+            case COMPLETEEDGEGINI -> new CompleteEdgeGiniGridSearch<>();
+            case SEMICOMPLETEEDGEGINI -> new SemiCompleteEdgeGiniGridSearch<>();
+            case RECIPRDIAMETER -> new ReciprocalDiameterGridSearch<>();
+            case RECIPRAVGECCENTRICITY -> new ReciprocalAverageEccentricityGridSearch<>();
+            case RECIPROCITYRATE -> new ReciprocityRateGridSearch<>();
+            case DEGREEASSORT -> new DegreeAssortativityGridSearch<>();
+            case DEGREEPEARSON -> new DegreePearsonCorrelationGridSearch<>();
+            default -> null;
+        };
     }
     
     /**
