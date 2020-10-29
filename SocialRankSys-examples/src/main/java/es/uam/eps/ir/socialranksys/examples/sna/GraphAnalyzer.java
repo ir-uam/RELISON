@@ -26,6 +26,7 @@ import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.metrics.*;
 import es.uam.eps.ir.socialranksys.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import org.ranksys.formats.parsing.Parsers;
 
@@ -99,7 +100,7 @@ public class GraphAnalyzer
         System.out.println("Grid read (" + (b-a) + " ms.)");
 
         // Common distance calculator
-        DistanceCalculator<Long> dc = new CompleteDistanceCalculator<>();
+        DistanceCalculator<Long> dc = new FastDistanceCalculator<>();
         // Map for storing average values and graph metrics
         Map<String, Double> metricvalues = new HashMap<>();
         

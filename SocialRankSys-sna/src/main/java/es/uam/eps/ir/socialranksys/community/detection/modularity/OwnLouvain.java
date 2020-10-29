@@ -42,7 +42,7 @@ import java.util.stream.IntStream;
  * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class OwnLouvain<U extends Serializable> implements CommunityDetectionAlgorithm<U>
+/*public class OwnLouvain<U extends Serializable> implements CommunityDetectionAlgorithm<U>
 {
     @Override
     public Communities<U> detectCommunities(Graph<U> graph)
@@ -228,3 +228,4 @@ public class OwnLouvain<U extends Serializable> implements CommunityDetectionAlg
     }
 
 }
+*/
