@@ -14,6 +14,7 @@ import es.uam.eps.ir.socialranksys.community.detection.connectedness.StronglyCon
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.generator.EmptyGraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
+import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 
@@ -50,6 +51,10 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
      * Strongly connected components of the network.
      */
     private Communities<U> scc;
+
+    private double asl;
+
+    private double infiniteDist;
 
     /**
      * Constructor
@@ -102,11 +107,14 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
         });
 
         // Compute the distances from each node to the rest.
-        graph.getAllNodes().parallel().forEach(u ->
+        Pair<Double> allAsl = graph.getAllNodes().parallel().map(u ->
         {
             Map<U, Double> distFrom = distancesFrom.get(u);
 
             double currentDist = 0.0;
+
+            double asl = 0.0;
+            double current = 0.0;
 
             Set<U> visited = new HashSet<>();
             Queue<U> queue = new LinkedList<>();
@@ -125,6 +133,9 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
                         distancesTo.get(v).put(u, currentDist);
                     }
                     graph.getAdjacentNodes(v).forEach(nextLevelQueue::add);
+
+                    asl = asl + (currentDist - asl)/(current + 1.0);
+                    ++current;
                 }
 
                 if (queue.isEmpty())
@@ -134,7 +145,18 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
                     ++currentDist;
                 }
             }
+
+            return new Pair<>(asl, current);
+        }).reduce(new Pair<>(0.0,0.0), (x,y) ->
+        {
+            double total = x.v2() + y.v2();
+            if(total == 0) return new Pair<>(0.0,0.0);
+            double asl = (x.v2()/total)*x.v1() + (y.v2()/total)*y.v1();
+            return new Pair<>(asl, total);
         });
+
+        this.asl = allAsl.v1();
+        this.infiniteDist = graph.getVertexCount()*(graph.getVertexCount()-1.0) - allAsl.v2();
 
         this.graph = graph;
         return true;
@@ -302,5 +324,17 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
     public Communities<U> getSCC()
     {
         return this.scc;
+    }
+
+    @Override
+    public double getASL()
+    {
+        return this.asl;
+    }
+
+    @Override
+    public double getInfiniteDistances()
+    {
+        return this.infiniteDist;
     }
 }

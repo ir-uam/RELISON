@@ -91,18 +91,8 @@ public class ASL<U> implements GraphMetric<U>
         counter.set(0);
         switch (this.mode)
         {
-            case NONINFINITEDISTANCES -> {// Averages over the pairs of distinct nodes without infinite distances
-                asl = this.dc.getDistances().values().stream().mapToDouble(uDoubleMap -> uDoubleMap.values().stream().mapToDouble(aDouble ->
-                {
-                    if (aDouble.isInfinite() || aDouble.equals(0.0))
-                    {
-                        return 0.0;
-                    }
-                    counter.incrementAndGet();
-                    return aDouble;
-                }).sum()).sum();
-                asl /= (counter.get() + 0.0);
-            }
+            case NONINFINITEDISTANCES -> // Averages over the pairs of distinct nodes without infinite distances
+                    asl = this.dc.getASL();
             case COMPONENTS ->
             { // Computes the metric for each strongly connected component, and averages
                 Communities<U> scc = this.dc.getSCC();

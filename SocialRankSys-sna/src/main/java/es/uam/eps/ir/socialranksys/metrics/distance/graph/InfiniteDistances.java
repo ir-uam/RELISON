@@ -28,6 +28,7 @@ public class InfiniteDistances<U> implements GraphMetric<U>
     public double compute(Graph<U> graph)
     {
         calculator.computeDistances(graph);
-        return graph.getAllNodes().mapToDouble(node -> graph.getAllNodes().filter(target -> !target.equals(node)).filter(target -> !Double.isFinite(this.calculator.getDistances(node, target))).count() + 0.0).sum();
+        return calculator.getInfiniteDistances();
+        //return graph.getAllNodes().mapToDouble(node -> graph.getAllNodes().filter(target -> !target.equals(node)).filter(target -> !Double.isFinite(this.calculator.getDistances(node, target))).count() + 0.0).sum();
     }
 }

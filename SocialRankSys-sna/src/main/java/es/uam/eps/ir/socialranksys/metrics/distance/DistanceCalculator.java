@@ -141,4 +141,16 @@ public interface DistanceCalculator<U>
      * @return the strongly connected components of the graph.
      */
     Communities<U> getSCC();
+
+    /**
+     * Obtains the average shortest path length, averaged over all the finite distance paths.
+     * @return the average shortest path length.
+     */
+    double getASL();
+
+    /**
+     * Obtains the number of infinite length pairs.
+     * @return the number of infinite length pairs.
+     */
+    double getInfiniteDistances();
 }

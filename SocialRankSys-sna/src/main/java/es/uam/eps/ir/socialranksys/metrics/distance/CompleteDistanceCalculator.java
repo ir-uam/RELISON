@@ -18,6 +18,7 @@ import es.uam.eps.ir.socialranksys.graph.generator.EmptyGraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
+import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,6 +73,9 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
      */
     private boolean flag = true;
 
+
+    private double asl;
+    private double infiniteDistances;
     /**
      * Constructor
      */
@@ -135,12 +139,16 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
 
         // Then, for each user u, apply BFS to obtain the distances to other nodes.
         // We compute this in parallel to obtain much faster results.
-        graph.getAllNodes().forEach(u ->
+        Pair<Double> pair = graph.getAllNodes().map(u ->
         {
+            double asl = 0.0;
+            double counter = 0.0;
             // We want to create a tree.
             DirectedGraph<U> tree;
             try
             {
+                Set<U> visited = new HashSet<>();
+
                 tree = (DirectedGraph<U>) gf.generate();
 
                 tree.addNode(u);
@@ -167,9 +175,16 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
 
                 // STEP 1: BFS. Find the distances between nodes.
                 queue.add(u);
+                visited.add(u);
                 while (!queue.isEmpty())
                 {
                     U current = queue.poll();
+                    if(!visited.contains(current))
+                    {
+                        asl = asl + (d.get() - asl)/(counter+1.0);
+                        ++counter;
+                        visited.add(current);
+                    }
 
                     graph.getAdjacentNodes(current).forEach(node ->
                     {
@@ -279,7 +294,18 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
                 flag = false;
             }
 
+            return new Pair<>(asl, counter);
+
+        }).reduce(new Pair<>(0.0,0.0), (x,y) ->
+        {
+            double total = x.v2() + y.v2();
+            if(total == 0) return new Pair<>(0.0,0.0);
+            double asl = (x.v2())/total * x.v1() + (y.v2())/total * y.v1();
+            return new Pair<>(asl, total);
         });
+
+        this.asl = pair.v1();
+        this.infiniteDistances = graph.getVertexCount()*(graph.getVertexCount()-1.0)-pair.v2();
 
         if (!flag)
         {
@@ -480,5 +506,17 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
     public Communities<U> getSCC()
     {
         return this.scc;
+    }
+
+    @Override
+    public double getASL()
+    {
+        return this.asl;
+    }
+
+    @Override
+    public double getInfiniteDistances()
+    {
+        return this.infiniteDistances;
     }
 }
