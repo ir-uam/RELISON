@@ -118,7 +118,7 @@ public class WattsStrogatzGenerator<U> implements GraphGenerator<U>
             {
                 IntStream.range(0, numNodes).forEach((i) -> {
                     U node = list.get(i);
-                    IntStream.range(1, meanDegree / 2).forEach((j) -> {
+                    IntStream.range(1, meanDegree+1).forEach((j) -> {
                         int leftIdx = (i - j) % numNodes;
                         if (leftIdx < 0)
                         {
@@ -134,9 +134,11 @@ public class WattsStrogatzGenerator<U> implements GraphGenerator<U>
             }
             else
             {
-                IntStream.range(0, numNodes).forEach((i) -> {
+                IntStream.range(0, numNodes).forEach((i) ->
+                {
                     U node = list.get(i);
-                    IntStream.range(1, meanDegree / 2).forEach((j) -> {
+                    IntStream.range(1, meanDegree+1).forEach((j) ->
+                    {
                         U right = list.get((i + j) % numNodes);
                         ring.addEdge(node, right);
                     });
@@ -172,62 +174,55 @@ public class WattsStrogatzGenerator<U> implements GraphGenerator<U>
         // Generating the ring ring.
         List<U> list = new ArrayList<>();
         this.ring.getAllNodes().forEach(node ->
-                                        {
-                                            list.add(node);
-                                            graph.addNode(node);
-                                        });
+        {
+            list.add(node);
+            graph.addNode(node);
+        });
 
         Random rng = new Random();
 
         // Rewire
         if (directed)
         {
-            this.ring.getAllNodes().forEach((node) -> this.ring.getAdjacentNodes(node).forEach(adj ->
-                                                                                               {
-                                                                                                   if (rng.nextDouble() < this.beta)
-                                                                                                   {
-                                                                                                       U nextUser;
-                                                                                                       do
-                                                                                                       {
-                                                                                                           nextUser = list.get(rng.nextInt(numNodes));
-                                                                                                       }
-                                                                                                       while (node.equals(nextUser) || graph.containsEdge(node, nextUser));
-                                                                                                       graph.addEdge(node, nextUser);
-                                                                                                   }
-                                                                                                   else
-                                                                                                   {
-                                                                                                       graph.addEdge(node, adj);
-                                                                                                   }
-                                                                                               }));
+            ring.getAllNodes().forEach((node) -> ring.getAdjacentNodes(node).forEach(adj -> graph.addEdge(node, adj)));
+            ring.getAllNodes().forEach(node -> ring.getAdjacentNodes(node).forEach(adj -> rewire(graph, list, rng, node, adj)));
         }
         else
         {
             List<U> visited = new ArrayList<>();
-            ring.getAllNodes().forEach((node) -> {
-                ring.getAdjacentNodes(node).forEach(adj ->
-                                                    {
-                                                        if (!visited.equals(adj))
-                                                        {
-                                                            if (rng.nextDouble() < this.beta)
-                                                            {
-                                                                U nextUser;
-                                                                do
-                                                                {
-                                                                    nextUser = list.get(rng.nextInt(numNodes));
-                                                                }
-                                                                while (node.equals(nextUser) || graph.containsEdge(node, nextUser));
-                                                                graph.addEdge(node, nextUser);
-                                                            }
-                                                            else
-                                                            {
-                                                                graph.addEdge(node, adj);
-                                                            }
-                                                        }
-                                                    });
+            ring.getAllNodes().forEach((node) -> ring.getAdjacentNodes(node).forEach(adj -> graph.addEdge(node, adj)));
+
+            ring.getAllNodes().forEach(node ->
+            {
+                ring.getAdjacentNodes(node).filter(adj -> !visited.contains(adj)).forEach(adj -> rewire(graph, list, rng, node, adj));
                 visited.add(node);
             });
         }
 
         return graph;
+    }
+
+    /**
+     * Rewires a connection in a graph.
+     * @param graph the graph.
+     * @param list the list of nodes in the graph.
+     * @param rng the random number generator to determine whether we have to rewire or not.
+     * @param node the origin node
+     * @param adj the current destination node.
+     */
+    private void rewire(Graph<U> graph, List<U> list, Random rng, U node, U adj)
+    {
+        if (rng.nextDouble() < this.beta)
+        {
+            // a) remove the current link:
+            graph.removeEdge(node, adj);
+            U nextUser;
+            do
+            {
+                nextUser = list.get(rng.nextInt(numNodes));
+            }
+            while (node.equals(nextUser) || graph.containsEdge(node, nextUser));
+            graph.addEdge(node, nextUser);
+        }
     }
 }

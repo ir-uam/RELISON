@@ -111,14 +111,14 @@ public class ErdosGenerator<U> implements GraphGenerator<U>
         }
 
         List<U> nodes = graph.getAllNodes().collect(Collectors.toCollection(ArrayList::new));
-        double numEdges = Math.ceil(prob * numNodes * (numNodes - 1));
+        double numEdges = directed ? Math.ceil(prob*numNodes*(numNodes-1)) : Math.ceil(prob*numNodes*(numNodes-1)/2.0);
 
         for (int i = 0; i < numEdges; ++i)
         {
             U node1 = nodes.get(rand.nextInt(nodes.size()));
             U node2 = nodes.get(rand.nextInt(nodes.size()));
 
-            if (!graph.containsEdge(node1, node2))
+            if (!graph.containsEdge(node1, node2) && node1 != node2)
             {
                 graph.addEdge(node1, node2);
             }

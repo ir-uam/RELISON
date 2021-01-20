@@ -20,6 +20,7 @@ import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Fast version of a distance calculator which just computes the distances between pairs of nodes.
@@ -106,6 +107,9 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
             this.distancesTo.put(node, distTo);
         });
 
+
+        AtomicInteger atom = new AtomicInteger();
+        atom.set(0);
         // Compute the distances from each node to the rest.
         Pair<Double> allAsl = graph.getAllNodes().parallel().map(u ->
         {
@@ -144,6 +148,12 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
                     nextLevelQueue = new LinkedList<>();
                     ++currentDist;
                 }
+            }
+
+            int count = atom.incrementAndGet();
+            if(count % 1000 == 0)
+            {
+                System.err.println("Run over " + count + " users." );
             }
 
             return new Pair<>(asl, current);
