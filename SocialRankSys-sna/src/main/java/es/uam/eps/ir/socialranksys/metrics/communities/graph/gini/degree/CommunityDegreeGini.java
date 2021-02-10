@@ -19,7 +19,7 @@ import es.uam.eps.ir.socialranksys.metrics.graph.DegreeGini;
  * Computes the community degree Gini of the graph, i.e. the Gini coefficient for the
  * degree distribution of the communities in the graph.
  *
- * @param <U> type of the users
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

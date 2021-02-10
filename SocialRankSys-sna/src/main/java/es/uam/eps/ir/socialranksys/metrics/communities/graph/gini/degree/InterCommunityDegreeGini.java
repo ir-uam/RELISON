@@ -17,7 +17,7 @@ import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
  * degree distribution of the communities in the graph. This version only considers
  * the inter-community links for the calculus.
  *
- * @param <U> type of the users
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -25,7 +25,7 @@ import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 public class InterCommunityDegreeGini<U> extends CommunityDegreeGini<U>
 {
     /**
-     * Constructor
+     * Constructor.
      *
      * @param orientation Orientation of the edges.
      */

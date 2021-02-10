@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 /**
  * Abstract class that represents a dendogram and its functions.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -261,7 +261,7 @@ public class Dendogram<U>
      *
      * @param size The maximum size of the communities.
      *
-     * @return the community partition, or null if something failed
+     * @return the community partition, or null if something failed.
      */
     public Communities<U> getCommunitiesBySize(int size)
     {

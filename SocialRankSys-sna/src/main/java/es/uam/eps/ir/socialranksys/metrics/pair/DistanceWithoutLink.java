@@ -46,6 +46,9 @@ public class DistanceWithoutLink<U> extends AbstractPairMetric<U>
         this.dc = dc;
     }
 
+    /**
+     * Constructor.
+     */
     public DistanceWithoutLink()
     {
         this(new FastDistanceCalculator<>());

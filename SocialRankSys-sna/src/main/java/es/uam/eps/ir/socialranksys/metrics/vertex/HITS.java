@@ -23,7 +23,7 @@ import java.util.Map;
  * <b>Reference:</b> J.M. Kleinberg. Authoritative sources in a hyperlink environment. Journal of the ACM 46(5), PP. 604-632 (1999)
  * </p>
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -32,7 +32,7 @@ public class HITS<U> implements VertexMetric<U>
 {
 
     /**
-     * Maximum number of iterations
+     * Maximum number of iterations.
      */
     private final int MAXITER = 50;
     /**
@@ -40,7 +40,7 @@ public class HITS<U> implements VertexMetric<U>
      */
     private final boolean authorities;
     /**
-     * Last graph which computed the resolution
+     * Last graph which computed the resolution.
      */
     private Graph<U> oldGraph;
     /**
@@ -48,11 +48,11 @@ public class HITS<U> implements VertexMetric<U>
      */
     private boolean computed;
     /**
-     * Authorities values
+     * Authorities values.
      */
     private Map<U, Double> auths;
     /**
-     * Hubs values
+     * Hubs values.
      */
     private Map<U, Double> hubs;
 

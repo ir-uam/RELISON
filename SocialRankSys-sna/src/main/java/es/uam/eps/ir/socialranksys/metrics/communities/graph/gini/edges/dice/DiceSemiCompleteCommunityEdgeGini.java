@@ -19,7 +19,7 @@ import es.uam.eps.ir.socialranksys.metrics.graph.EdgeGiniMode;
  * (i.e. it includes pairings of a community with itself), but autoloops are considered as a
  * whole set of links, instead of separately for each community.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

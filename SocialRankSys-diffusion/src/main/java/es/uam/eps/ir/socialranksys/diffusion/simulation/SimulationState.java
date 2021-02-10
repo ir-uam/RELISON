@@ -18,17 +18,19 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * Stores the current state of a simulation
+ * Stores the current state of a simulation.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> Type of the users
- * @param <I> type of the information pieces
- * @param <P> type of the parameter values
+ *
+ * @param <U> Type of the users.
+ * @param <I> type of the information pieces.
+ * @param <P> type of the parameter values.
  */
 public class SimulationState<U extends Serializable,I extends Serializable,P> 
 {
     /**
-     * Current state of the users
+     * Current state of the users.
      */
     private final Map<U, UserState<U>> userState = new HashMap<>();
     
@@ -59,77 +61,6 @@ public class SimulationState<U extends Serializable,I extends Serializable,P>
             userState.put(u, user);
         });
     }
-    
-    /* *
-     * Initializes the different structures for the simulation. In this case, 
-     * simulation is not started from zero (there is previous information to consider).
-     * @param data the data.
-     * @param simulation 
-     */
- /*   public void initialize(Data<U,I,P> data, Simulation<U,I,P> simulation)
-    {
-        this.initialize(data);
-        // Get the number of iterations
-        int numSims = simulation.getNumIterations();
-        
-        Map<U, Set<I>> receivedInfo = new HashMap<>();
-        Map<U, Set<I>> propagatedInfo = new HashMap<>();
-        Map<U, Set<I>> discardedInfo = new HashMap<>();
-        
-        data.getAllUsers().forEach(u -> 
-        {
-            receivedInfo.put(u, new HashSet<>());
-            propagatedInfo.put(u, new HashSet<>());
-            discardedInfo.put(u, new HashSet<>());
-        });
-        
-        for(int i = 0; i < numSims; ++i)
-        {
-            SimpleIteration<U,I,P> iteration = simulation.getIteration(i);
-            
-            iteration.getPropagatingUsers().forEach(u -> 
-            {
-                iteration.getUserPropagatedInformation(u).forEach(info -> receivedInfo.get(u).add(info));
-            });
-            
-            iteration.getDiscardingUsers().forEach(u -> 
-            {
-                iteration.getUserDiscardedInformation(u).forEach(info -> 
-                {
-                    receivedInfo.get(u).remove(info);
-                    discardedInfo.get(u).add(info);
-                });
-            });
-            
-            iteration.getReceivingUsers().forEach(u -> 
-            {
-                iteration.getUserSeenInformation(u).forEach(info -> 
-                {
-                    receivedInfo.get(u).add(info);
-                });
-            });
-            
-            iteration.getReReceivingUsers().forEach(u -> 
-            {
-                iteration.getUserReReceivedInformation(u).forEach(info -> 
-                {
-                    receivedInfo.get(u).add(info);
-                });
-            });
-        }
-        
-        data.getAllUsers().forEach(u -> 
-        {
-            UserState<U> user = userState.get(u);
-            
-            receivedInfo.get(u).forEach(info -> 
-            {
-                int iidx = data.getInformationPiecesIndex().object2idx(info);
-                user.addReceivedInformation(new PropagatedInformation<>(iidx, 0));
-            });
-        });
-    }*/
-    
     
     /**
      * Obtains the state of the user.

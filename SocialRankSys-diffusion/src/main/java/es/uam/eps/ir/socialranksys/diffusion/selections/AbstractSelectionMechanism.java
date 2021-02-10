@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 20 Information Retrieval Group at Universidad Autónoma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -19,8 +19,10 @@ import java.util.stream.Stream;
 
 /**
  * Abstract selection mechanism.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -38,34 +40,34 @@ public abstract class AbstractSelectionMechanism<U extends Serializable, I exten
 
     /**
      * Obtains the list of own information pieces to repropagate.
-     * @param user the user to analyze
-     * @param data the full data
-     * @param state current simulation state
-     * @param numIter number of the iteration
-     * @param timestamp the timestamp for the current simulation
-     * @return a selection of the own tweets to be propagated
+     * @param user the user to analyze.
+     * @param data the full data.
+     * @param state current simulation state.
+     * @param numIter number of the iteration.
+     * @param timestamp the timestamp for the current simulation.
+     * @return a selection of the own tweets to be propagated.
      */
     protected abstract List<PropagatedInformation> getOwnInformation(UserState<U> user, Data<U, I, P> data, SimulationState<U, I, P> state, int numIter, Long timestamp);
    
     /**
      * Obtains the list of received information pieces to repropagate.
-     * @param user the user to analyze
-     * @param data the full data
-     * @param state current simulation state
-     * @param numIter number of the iteration
-     * @param timestamp the timestamp for the current simulation
-     * @return a selection of the own tweets to be propagated
+     * @param user the user to analyze.
+     * @param data the full data.
+     * @param state current simulation state.
+     * @param numIter number of the iteration.
+     * @param timestamp the timestamp for the current simulation.
+     * @return a selection of the own tweets to be propagated.
      */
     protected abstract List<PropagatedInformation> getReceivedInformation(UserState<U> user, Data<U, I, P> data, SimulationState<U, I, P> state, int numIter, Long timestamp);
     
     /**
      * Obtains the list of propagated information pieces to repropagate.
-     * @param user the user to analyze
-     * @param data the full data
-     * @param state current simulation state
-     * @param numIter number of the iteration
-     * @param timestamp the timestamp for the current simulation
-     * @return a selection of the own tweets to be propagated
+     * @param user the user to analyze.
+     * @param data the full data.
+     * @param state current simulation state.
+     * @param numIter number of the iteration.
+     * @param timestamp the timestamp for the current simulation.
+     * @return a selection of the own tweets to be propagated.
      */
     protected abstract List<PropagatedInformation> getRepropagatedInformation(UserState<U> user, Data<U, I, P> data, SimulationState<U, I, P> state, int numIter, Long timestamp);
 

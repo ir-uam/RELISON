@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 public class ComplementaryEdgeMetric<U> implements EdgeMetric<U>
 {
     /**
-     * The metric to find on the complementary graph
+     * The metric to find on the complementary graph.
      */
     private final EdgeMetric<U> metric;
 

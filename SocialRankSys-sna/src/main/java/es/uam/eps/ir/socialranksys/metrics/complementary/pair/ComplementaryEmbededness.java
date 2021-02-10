@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 /**
  * Computes the embeddedness the edges in the complementary of a graph.
  *
- * @param <V> Type of the users in the graph
+ * @param <V> Type of the users in the graph.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

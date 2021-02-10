@@ -17,9 +17,9 @@ import java.util.Map;
 import java.util.OptionalDouble;
 
 /**
- * Computes the size of communities
+ * Computes the size of communities.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

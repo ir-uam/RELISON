@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Aut�noma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -17,11 +17,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Filter that mantains only those information pieces which contain an information feature
+ * Filter that keeps only those information pieces which contain an information feature
  * corresponding to a certain field (i.e. if the information piece cannot be described in
  * terms of that type of feature, it is removed from the data).
  * 
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
  * @param <P> type of the parameters.

@@ -16,7 +16,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Computes communities via the Strongly Connected Components
+ * Computes communities via the Strongly Connected Components.
  *
  * @param <U> Type of the users.
  *
@@ -50,7 +50,7 @@ public class StronglyConnectedComponents<U> implements CommunityDetectionAlgorit
     /**
      * Finds the strongly connected components of the graph.
      *
-     * @param g The graph
+     * @param g The graph.
      *
      * @return The strongly connected clusters of the graph.
      */
@@ -94,8 +94,8 @@ public class StronglyConnectedComponents<U> implements CommunityDetectionAlgorit
     /**
      * Visits a node by using the outlinks
      *
-     * @param u          The starting node
-     * @param g          The graph
+     * @param u          The starting node.
+     * @param g          The graph.
      * @param discovered The discovered items.
      * @param processed  The processed items.
      */
@@ -118,10 +118,10 @@ public class StronglyConnectedComponents<U> implements CommunityDetectionAlgorit
     /**
      * Visits a node by using the inlinks
      *
-     * @param u          The starting node
-     * @param g          The graph
-     * @param discovered The dsiscovered items
-     * @param component  The component
+     * @param u          The starting node.
+     * @param g          The graph.
+     * @param discovered The dsiscovered items.
+     * @param component  The component.
      */
     private void transposedVisit(U u, Graph<U> g, Set<U> discovered, Collection<U> component)
     {

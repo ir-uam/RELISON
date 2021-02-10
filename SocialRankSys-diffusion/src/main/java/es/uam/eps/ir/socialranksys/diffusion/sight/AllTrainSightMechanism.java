@@ -22,8 +22,10 @@ import java.util.Set;
 
 /**
  * Sees the pieces of information that come from training users.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users
  * @param <I> Type of the information pieces
  * @param <P> Type of the parameters
@@ -46,22 +48,7 @@ public class AllTrainSightMechanism<U extends Serializable,I extends Serializabl
     {
         this.allowed = new HashMap<>();
     }
-    
-    /*@Override
-    public Stream<PropagatedInformation> seeInformation(UserState<U> user, Data<U, I, P> data)
-    {
-        // Filter the data so that only information from recommended users is seen.
-        return user.getNewInformation().map(info -> 
-        {
-            U u = user.getUserId();
-            Set<Integer> count = info.getCreators()
-                                     .stream()
-                                     .filter(cidx -> this.allowed.get(u).contains(data.getUserIndex().idx2object(cidx)))
-                                     .collect(Collectors.toCollection(HashSet::new));
-            return new PropagatedInformation(info.getInfoId(), info.getTimestamp(), count);
-        }).filter(info -> info.getCreators().size() > 0);        
-    }*/
-    
+
     @Override
     public void resetSelections(Data<U,I,P> data)
     {

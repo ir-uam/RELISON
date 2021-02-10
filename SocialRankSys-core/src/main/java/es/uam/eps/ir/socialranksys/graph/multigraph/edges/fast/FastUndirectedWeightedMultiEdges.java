@@ -23,7 +23,8 @@ import java.util.stream.Stream;
 /**
  * Fast implementation of undirected weighted edges for multigraphs.
  *
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class FastUndirectedWeightedMultiEdges extends FastMultiEdges implements UndirectedMultiEdges, WeightedMultiEdges
 {

@@ -19,8 +19,10 @@ import java.util.List;
 
 /**
  * Selection mechanism that takes the real timestamps of the users into account.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> The type of the users.
  * @param <I> The type of the information pieces.
  * @param <P> The type of the features.

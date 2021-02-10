@@ -17,7 +17,7 @@ import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
  * Computes the density of a graph. It is considered that there are not
  * self-loops in the graph.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -49,9 +49,9 @@ public class Density<U> implements GraphMetric<U>
     /**
      * Computes the density of a directed graph.
      *
-     * @param graph The directed graph
+     * @param graph The directed graph.
      *
-     * @return The density
+     * @return The density.
      */
     private double calculateDirected(DirectedGraph<U> graph)
     {
@@ -63,7 +63,7 @@ public class Density<U> implements GraphMetric<U>
      *
      * @param graph The undirected graph.
      *
-     * @return The density
+     * @return The density.
      */
     private double calculateUndirected(UndirectedGraph<U> graph)
     {

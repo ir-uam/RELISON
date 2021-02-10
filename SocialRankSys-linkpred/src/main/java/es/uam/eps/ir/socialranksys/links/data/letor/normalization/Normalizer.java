@@ -1,7 +1,8 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
- * de Madrid, http://ir.ii.uam.es
- * 
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
+ * http://terrierteam.dcs.gla.ac.uk/.
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -15,7 +16,12 @@ import java.util.List;
 
 /**
  * Interface for normalizing the results of a recommendation.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
+ * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
+ *
  * @param <U> type of the users.
  * @param <I> type of the items.
  */
@@ -34,4 +40,6 @@ public interface Normalizer<U,I>
      * @return the normalized list of values.
      */
     List<Double> normalize(List<Double> list);
+
+
 }

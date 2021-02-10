@@ -10,7 +10,6 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.filter;
 
 import es.uam.eps.ir.socialranksys.diffusion.data.filter.DataFilter;
 import es.uam.eps.ir.socialranksys.diffusion.data.filter.InformationFeatureSelectionFilter;
-import org.openide.util.Exceptions;
 import org.ranksys.formats.parsing.Parser;
 
 import java.io.*;
@@ -62,7 +61,7 @@ public class InformationFeatureSelectionFilterConfigurator<U extends Serializabl
         {
             set = br.lines().map(parser::parse).collect(Collectors.toCollection(HashSet::new));
         } catch (IOException ex) {
-            Exceptions.printStackTrace(ex);
+            ex.printStackTrace();
         }
         
         return new InformationFeatureSelectionFilter<>(set, tagName);

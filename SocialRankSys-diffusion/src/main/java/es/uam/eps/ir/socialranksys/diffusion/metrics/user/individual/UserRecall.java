@@ -29,7 +29,7 @@ import java.util.*;
 public class UserRecall<U extends Serializable,I extends Serializable,P> extends AbstractIndividualSimulationMetric<U,I,P>
 {
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String RECALL = "user-recall";
     

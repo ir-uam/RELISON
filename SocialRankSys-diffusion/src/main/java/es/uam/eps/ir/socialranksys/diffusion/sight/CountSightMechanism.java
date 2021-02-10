@@ -18,16 +18,18 @@ import java.util.Map;
 
 /**
  * The user only sees a fixed number of the received objects.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> Type of the users
- * @param <I> Type of the information pieces
- * @param <P> Type of the parameters
+ *
+ * @param <U> Type of the users.
+ * @param <I> Type of the information pieces.
+ * @param <P> Type of the parameters.
  */
 public class CountSightMechanism<U extends Serializable,I extends Serializable,P> implements SightMechanism<U,I,P>
 {
     /**
-     * Number of pieces of information that a user sees in a single iteration
+     * Number of pieces of information that a user sees in a single iteration.
      */
     private final int numSight;
     
@@ -41,25 +43,7 @@ public class CountSightMechanism<U extends Serializable,I extends Serializable,P
         this.numSight = numSight;
         map = new HashMap<>();
     }
-    
-   /* @Override
-    public Stream<PropagatedInformation> seeInformation(UserState<U> user, Data<U, I, P> data) 
-    {
-        Random rnd = new Random();
-        
-        List<PropagatedInformation> propagated = user.getNewInformation().collect(Collectors.toCollection(ArrayList::new));
-        
-        if(propagated.size() < numSight)
-        {
-            return user.getNewInformation();
-        }
-        else
-        {
-            return IntStream.range(0, numSight).mapToObj(i -> propagated.get(rnd.nextInt(propagated.size())));
-        }
-       
-    }*/
-    
+
     @Override
     public boolean seesInformation(UserState<U> user, Data<U,I,P> data, PropagatedInformation prop)
     {

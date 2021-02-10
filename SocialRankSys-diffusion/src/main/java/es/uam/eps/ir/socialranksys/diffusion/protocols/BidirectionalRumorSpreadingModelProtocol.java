@@ -22,7 +22,6 @@ import java.io.Serializable;
  *
  * <p><b>Reference:</b> B. Doerr, M. Fouz, T. Friedrich, Social networks spread rumors in sublogarithmic time, 43rd Annual ACM Symposium on Theory of Computing (STOC 2011), pp. 21-30. (2011)</p>
  *
- *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *

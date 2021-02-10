@@ -19,7 +19,7 @@ import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
  * <b>Reference:</b> M.E.J. Newman. Networks: an introduction (2010)
  * </p>
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

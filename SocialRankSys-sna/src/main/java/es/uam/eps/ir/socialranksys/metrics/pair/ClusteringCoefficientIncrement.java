@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -118,9 +118,9 @@ public class ClusteringCoefficientIncrement<U> extends AbstractPairMetric<U>
     /**
      * Computes the increment of the clustering coefficient for a pair of users.
      *
-     * @param graph the original graph
-     * @param u     the origin user
-     * @param v     the destination user
+     * @param graph the original graph.
+     * @param u     the origin user.
+     * @param v     the destination user.
      * @param uIn   the incident nodes of the origin user.
      * @param uOut  the adjacent nodes of the origin user.
      * @param vIn   the incident nodes of the destination user.

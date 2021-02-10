@@ -18,8 +18,10 @@ import java.util.TreeSet;
 
 /**
  * Computes the Gini coefficient complement over the set of pairs (user, hashtag).
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -27,12 +29,12 @@ import java.util.TreeSet;
 public class UserFeatureGini<U extends Serializable,I extends Serializable,P> extends AbstractFeatureGlobalSimulationMetric<U,I,P>
 {
     /**
-    * Metric name
+    * Metric name.
     */
     private final static String GINI = "user-feature-gini";
 
     /**
-     * Sum of the frequencies
+     * Sum of the frequencies.
      */
     private double freqsum = 0.0;
     

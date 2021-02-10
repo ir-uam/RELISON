@@ -19,8 +19,10 @@ import java.util.stream.Collectors;
 /**
  * Writes a simulation into a file. Data is stored in binary fields,
  * storing the identifiers of each object.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -28,7 +30,7 @@ import java.util.stream.Collectors;
 public class BinarySimulationWriter<U extends Serializable, I extends Serializable, P> implements SimulationWriter<U,I,P>
 {
     /**
-     * Object output stream for writing into file
+     * Object output stream for writing into file.
      */
     private DataOutputStream oos;
 
@@ -212,8 +214,8 @@ public class BinarySimulationWriter<U extends Serializable, I extends Serializab
     /**
      * Given a single user, and the data he has received, writes it to a binary file
      * @param data the full data.
-     * @param u the user to write
-     * @param infoPieces the set of received information pieces
+     * @param u the user to write.
+     * @param infoPieces the set of received information pieces.
      * @return true if everything went OK, false if not.
      */
     private boolean writeReceivedDataUser(Data<U,I,P> data, U u, Map<I,Set<U>> infoPieces)
@@ -255,8 +257,8 @@ public class BinarySimulationWriter<U extends Serializable, I extends Serializab
      * Given a single user, writes about the information pieces the user has interacted with
      * (propagated or discarded) into a binary file.
      * @param data the full data.
-     * @param u the user
-     * @param infoPieces the list of interaction pieces the user has interacted with
+     * @param u the user.
+     * @param infoPieces the list of interaction pieces the user has interacted with.
      * @return true if everything went OK, false otherwise.
      */
     private boolean writeUserActions(Data<U,I,P> data, U u, List<I> infoPieces)

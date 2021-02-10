@@ -27,7 +27,7 @@ import java.util.stream.Stream;
 public class SimpleIteration<U,I,P> implements Iteration<U,I,P> 
 {
     /**
-     * Number of the current iteration
+     * Number of the current iteration.
      */
     private final int iterationNumber;
     

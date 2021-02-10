@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -13,7 +13,6 @@ import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.metrics.EdgeMetric;
 import es.uam.eps.ir.socialranksys.metrics.exception.InexistentEdgeException;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
-import org.openide.util.Exceptions;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,10 +23,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Computes the number of common neighbours between the endpoints of an edge
+ * Computes the number of common neighbours between the endpoints of an edge.
  * .
  *
- * @param <V> Type of the users in the graph
+ * @param <V> Type of the users in the graph.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -92,7 +91,7 @@ public class FOAF<V> implements EdgeMetric<V>
                 }
                 catch (InexistentEdgeException ex)
                 {
-                    Exceptions.printStackTrace(ex);
+                    ex.printStackTrace();
                 }
             }));
         }
@@ -143,7 +142,7 @@ public class FOAF<V> implements EdgeMetric<V>
             }
             catch (InexistentEdgeException ex)
             {
-                Exceptions.printStackTrace(ex);
+                ex.printStackTrace();
                 return 0.0;
             }
         }).sum();

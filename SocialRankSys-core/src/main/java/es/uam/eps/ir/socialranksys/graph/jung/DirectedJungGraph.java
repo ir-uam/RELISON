@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Information Retrieval Group at Universidad AutÃ³noma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,7 +15,7 @@ import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import no.uib.cipr.matrix.Matrix;
 
 /**
- * Directed Graph Wrapper for JUNG
+ * Directed Graph Wrapper for <a href="http://jung.sourceforge.net/">JUNG</a>
  *
  * @param <U> type of the users
  *

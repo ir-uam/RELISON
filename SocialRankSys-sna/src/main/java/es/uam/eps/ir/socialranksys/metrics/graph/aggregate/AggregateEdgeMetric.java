@@ -24,7 +24,7 @@ import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
 public class AggregateEdgeMetric<U> implements GraphMetric<U>
 {
     /**
-     * Edge metric
+     * Edge metric.
      */
     private final EdgeMetric<U> edgeMetric;
 

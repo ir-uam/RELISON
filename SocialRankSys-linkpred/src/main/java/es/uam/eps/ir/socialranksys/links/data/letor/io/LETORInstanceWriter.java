@@ -1,13 +1,13 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
- * de Madrid, http://ir.ii.uam.es
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
+ * http://terrierteam.dcs.gla.ac.uk/.
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 package es.uam.eps.ir.socialranksys.links.data.letor.io;
-
 
 import es.uam.eps.ir.ranksys.core.util.Stats;
 import es.uam.eps.ir.socialranksys.links.data.letor.FeatureInformation;
@@ -21,31 +21,44 @@ import static es.uam.eps.ir.socialranksys.links.data.letor.io.LETORFormatConstan
 
 /**
  * Class for writing patterns in the LETOR format (for Learning TO Rank task).
- * Format:
+ * Format: <br/>
  *
- * #featId1: description1 stats1
- * #featId2: description2 stats2
- * ...
- * #featIdN: descriptionN statsN
- * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v]
- * ...
- * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v]
+ * #featId1: description1 stats1 <br/>
+ * #featId2: description2 stats2 <br/>
+ * ... <br/>
+ * #featIdN: descriptionN statsN <br/>
+ * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v] <br/>
+ * ... <br/>
+ * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v] <br/>
  *
  * @see <a href="https://www.microsoft.com/en-us/research/project/letor-learning-rank-information-retrieval/#!letor-4-0">LETOR v.4.0</a>
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
+ * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  *
  * @param <U> type of the users.
  */
 public class LETORInstanceWriter<U> implements InstanceSetWriter<U>
 {
-
+    /**
+     * True if comments are allowed, false otherwise.
+     */
     private final boolean comments;
 
+    /**
+     * Constructor. Adds comments.
+     */
     public LETORInstanceWriter()
     {
         this.comments = true;
     }
 
+    /**
+     * Constructor.
+     * @param comments true to add comments, false otherwise.
+     */
     public LETORInstanceWriter(boolean comments)
     {
         this.comments = comments;

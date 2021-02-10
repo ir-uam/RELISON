@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,8 +15,10 @@ import java.io.Serializable;
 
 /**
  * Interface for defining a distribution of elements.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -24,19 +26,19 @@ import java.io.Serializable;
 public interface Distribution<U extends Serializable,I extends Serializable,P> 
 {    
     /**
-     * Initializes the necessary parameters for the distribution
+     * Initializes the necessary parameters for the distribution.
      * @param data the data.
      */
     void initialize(Data<U, I, P> data);
 
     /**
-     * Updates the different values of the distribution
+     * Updates the different values of the distribution.
      * @param iteration The current iteration.
      */
     void update(Iteration<U, I, P> iteration);
     
     /**
-     * Prints the distribution into a file
+     * Prints the distribution into a file.
      * @param file The output file.
      */
     void print(String file);
@@ -47,8 +49,8 @@ public interface Distribution<U extends Serializable,I extends Serializable,P>
     void clear();
     
     /**
-     * Obtains the name of the distribution
-     * @return the name
+     * Obtains the name of the distribution.
+     * @return the name.
      */
     String getName();
     

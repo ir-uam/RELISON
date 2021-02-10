@@ -32,12 +32,17 @@ import java.io.Serializable;
  *  <li><b>Propagation mechanism:</b> The information is propagated to every follower on the graph. This simulates the information propagation of networks such as Twitter
  *  or Facebook, where all the information produced by an user is shown to all its followers or mutual followers.
  * </ul>
+ *
+ * <p>
+ * <b>Reference:</b>  J. Goldenberg, B. Libai, and E. Muller. Talk of the Network: A Complex Systems Look at the Underlying Process of Word-of-Mouth, Marketing Letters, 12(3), pp. 211–223 (2001).
+ * </p>
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> type of the users
- * @param <I> type of the information
- * @param <P> type of the parameters
+ * @param <U> type of the users.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class IndependentCascadeModelProtocol<U extends Serializable,I extends Serializable,P> extends Protocol<U,I,P>
 {

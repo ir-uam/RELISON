@@ -18,7 +18,6 @@ import es.uam.eps.ir.socialranksys.grid.links.recommendation.rerankers.RerankerG
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.GlobalReranker;
 import org.jooq.lambda.Unchecked;
-import org.openide.util.Exceptions;
 import org.ranksys.formats.parsing.Parsers;
 import org.ranksys.formats.rec.RecommendationFormat;
 import org.ranksys.formats.rec.SimpleRecommendationFormat;
@@ -163,7 +162,7 @@ public class StructuralDiversityReranking
                         }
                         catch (IOException ioe)
                         {
-                            Exceptions.printStackTrace(ioe);
+                            ioe.printStackTrace();
                         }
                     });
 
@@ -172,7 +171,7 @@ public class StructuralDiversityReranking
                 }
                 catch (IOException ex)
                 {
-                    Exceptions.printStackTrace(ex);
+                    ex.printStackTrace();
                 }
             }
         });

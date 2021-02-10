@@ -22,7 +22,7 @@ import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 public class ComplementaryVertexMetric<U> implements VertexMetric<U>
 {
     /**
-     * The metric to find on the complementary graph
+     * The metric to find on the complementary graph.
      */
     private final VertexMetric<U> metric;
 

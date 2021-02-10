@@ -22,10 +22,11 @@ import java.util.Objects;
 import java.util.Scanner;
 
 /**
- * Community detection algorithm using the Infomap algorithm.  *            Uses the Infomap C++ implementation by Rosvall and Bergstrom (<a href="http://www.mapequation.org/code.html">link</a>), downloaded at 06 November 2018.
+ * Community detection algorithm using the Infomap algorithm.
+ * Uses the Infomap C++ implementation by Rosvall and Bergstrom (<a href="http://www.mapequation.org/code.html">link</a>), downloaded at 06 November 2018.
  *
  * <p>
- * <b>Reference:</b>  * M. Rosvall and C. Bergstrom. Maps of random walks on complex networks reveal community structure. Proceedings of the National Academy of Sciences 105(4), pp. 1118-1123 (2008)
+ * <b>Reference:</b>  M. Rosvall and C. Bergstrom. Maps of random walks on complex networks reveal community structure. Proceedings of the National Academy of Sciences 105(4), pp. 1118-1123 (2008)
  * </p>
  *
  * @param <U> Type of the users.
@@ -49,11 +50,11 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
      */
     private final static int NUMTRIALS = 10;
     /**
-     * Random seed
+     * Random seed.
      */
     public final int seed;
     /**
-     * Executable path
+     * Executable path.
      */
     private final String exec;
     /**
@@ -61,7 +62,7 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
      */
     private final String temp;
     /**
-     * Number of trials
+     * Number of trials.
      */
     private final int numTrials;
 

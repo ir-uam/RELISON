@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * node community
  * <p>
  *
- * @param <U> type of the users
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

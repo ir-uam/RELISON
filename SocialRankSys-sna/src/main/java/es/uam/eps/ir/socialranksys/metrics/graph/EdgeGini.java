@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * Computes the value for Gini for the different pairs of nodes.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -66,7 +66,7 @@ public class EdgeGini<U> implements GraphMetric<U>
     }
 
     /**
-     * Computes the Pair Gini index for the directed graph case
+     * Computes the Pair Gini index for the directed graph case.
      *
      * @param graph The directed multigraph.
      *
@@ -78,12 +78,12 @@ public class EdgeGini<U> implements GraphMetric<U>
         List<Double> degrees = new ArrayList<>();
 
         graph.getAllNodes().forEach((orig) -> graph.getAllNodes().forEach((dest) ->
-                                                                          {
-                                                                              if (!orig.equals(dest))
-                                                                              {
-                                                                                  degrees.add(graph.getNumEdges(orig, dest) + 0.0);
-                                                                              }
-                                                                          }));
+        {
+            if (!orig.equals(dest))
+            {
+                degrees.add(graph.getNumEdges(orig, dest) + 0.0);
+            }
+        }));
 
 
         long sumAutoLoops = graph.getAllNodes().mapToLong(u -> graph.getNumEdges(u, u)).sum();
@@ -101,15 +101,18 @@ public class EdgeGini<U> implements GraphMetric<U>
 
         switch (this.mode)
         {
-            case COMPLETE -> {
+            case COMPLETE ->
+            {
                 vertexCount = graph.getVertexCount() * graph.getVertexCount();
                 edgeCount = graph.getEdgeCount();
             }
-            case SEMICOMPLETE -> {
+            case SEMICOMPLETE ->
+            {
                 vertexCount = graph.getVertexCount() * (graph.getVertexCount() - 1) + 1;
                 edgeCount = graph.getEdgeCount();
             }
-            default -> {
+            default ->
+            {
                 vertexCount = graph.getVertexCount() * (graph.getVertexCount() - 1);
                 edgeCount = graph.getEdgeCount() - sumAutoLoops;
             }
@@ -133,16 +136,16 @@ public class EdgeGini<U> implements GraphMetric<U>
         List<Double> degrees = new ArrayList<>();
         List<U> visited = new ArrayList<>();
         graph.getAllNodes().forEach(orig ->
-                                    {
-                                        graph.getAllNodes().forEach(dest ->
-                                                                    {
-                                                                        if (!visited.contains(dest) && !orig.equals(dest))
-                                                                        {
-                                                                            degrees.add(graph.getNumEdges(orig, dest) + 0.0);
-                                                                        }
-                                                                    });
-                                        visited.add(orig);
-                                    });
+        {
+            graph.getAllNodes().forEach(dest ->
+            {
+                if (!visited.contains(dest) && !orig.equals(dest))
+                {
+                    degrees.add(graph.getNumEdges(orig, dest) + 0.0);
+                }
+            });
+            visited.add(orig);
+        });
 
         long sumAutoloops = graph.getAllNodes().mapToLong(u -> graph.getNumEdges(u, u)).sum();
         if (this.mode.equals(EdgeGiniMode.SEMICOMPLETE))
@@ -159,15 +162,18 @@ public class EdgeGini<U> implements GraphMetric<U>
 
         switch (this.mode)
         {
-            case COMPLETE -> {
+            case COMPLETE ->
+            {
                 vertexCount = graph.getVertexCount() * (graph.getVertexCount() + 1) / 2;
                 edgeCount = graph.getEdgeCount();
             }
-            case SEMICOMPLETE -> {
+            case SEMICOMPLETE ->
+            {
                 vertexCount = graph.getVertexCount() * (graph.getVertexCount() - 1) / 2 + 1;
                 edgeCount = graph.getEdgeCount();
             }
-            default -> {
+            default ->
+            {
                 vertexCount = graph.getVertexCount() * (graph.getVertexCount() - 1) / 2;
                 edgeCount = graph.getEdgeCount() - sumAutoloops;
             }

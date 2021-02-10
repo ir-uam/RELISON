@@ -23,7 +23,7 @@ import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
  *     </ol>
  *
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -31,7 +31,7 @@ import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
 public class ReciprocalDiameter<U> implements GraphMetric<U>
 {
     /**
-     * Distance calculator
+     * Distance calculator.
      */
     private final Diameter<U> diameter;
 

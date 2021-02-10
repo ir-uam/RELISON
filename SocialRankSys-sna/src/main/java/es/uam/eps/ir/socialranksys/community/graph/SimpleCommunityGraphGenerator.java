@@ -70,8 +70,8 @@ public class SimpleCommunityGraphGenerator<U> implements GraphGenerator<Integer>
      * Configures the generator.
      *
      * @param graph    the graph.
-     * @param comm     the community partition
-     * @param directed true if we have to take communities into account
+     * @param comm     the community partition.
+     * @param directed true if we have to take communities into account.
      */
     public void configure(Graph<U> graph, Communities<U> comm, boolean directed)
     {

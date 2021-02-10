@@ -29,7 +29,7 @@ import java.util.Map;
  * for the number of edges in the graph, divided by the maximum number of possible links between
  * the endpoint communities.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

@@ -35,7 +35,7 @@ public class ShrinkingASL<U> extends AbstractPairMetric<U>
     private final DistanceCalculator<U> dc;
 
     /**
-     * Constructor
+     * Constructor.
      */
     public ShrinkingASL()
     {
@@ -159,10 +159,10 @@ public class ShrinkingASL<U> extends AbstractPairMetric<U>
      * @param graph     the graph.
      * @param u         the origin user.
      * @param v         the destination user.
-     * @param uCIn      the incoming component of user u
-     * @param vCOut     the outgoing component of user v
+     * @param uCIn      the incoming component of user u.
+     * @param vCOut     the outgoing component of user v.
      * @param distances the distances.
-     * @param sum       the sum of finite distances
+     * @param sum       the sum of finite distances.
      * @param count     the number of pairs connected by finite distances.
      *
      * @return the value of the metric.
@@ -474,8 +474,8 @@ public class ShrinkingASL<U> extends AbstractPairMetric<U>
      * @param v               the destination user.
      * @param uCIn            the in-component of the origin user.
      * @param vCOut           the out-component of the destination user.
-     * @param uCOut           the out-component of the origin user
-     * @param vCIn            the in-component of the destination user
+     * @param uCOut           the out-component of the origin user.
+     * @param vCIn            the in-component of the destination user.
      * @param distances       a map containing the distances between pairs.
      * @param pairsAtDistance a map ccontaining the pairs at a given distance.
      * @param counter         counts how many pairs there are at a given distance.

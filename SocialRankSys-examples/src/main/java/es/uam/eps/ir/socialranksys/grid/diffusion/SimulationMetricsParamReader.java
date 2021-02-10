@@ -11,7 +11,6 @@ package es.uam.eps.ir.socialranksys.grid.diffusion;
 import es.uam.eps.ir.socialranksys.grid.diffusion.filter.FilterParamReader;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricParamReader;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.distributions.DistributionParamReader;
-import org.openide.util.Exceptions;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -124,7 +123,7 @@ public class SimulationMetricsParamReader
         } 
         catch (ParserConfigurationException | SAXException | IOException ex)
         {
-            Exceptions.printStackTrace(ex);
+            ex.printStackTrace();
         }
     }
     

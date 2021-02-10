@@ -22,19 +22,19 @@ import java.util.OptionalDouble;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> type of the user
- * @param <I> type of the information
- * @param <P> type of the parameters
+ * @param <U> type of the user.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class UserSpeed<U extends Serializable,I extends Serializable,P> extends AbstractIndividualSimulationMetric<U,I,P>
 {
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String SPEED = "numinfo";
 
     /**
-     * Speed value
+     * Speed value.
      */
     private final Map<U, Double> speed;
 

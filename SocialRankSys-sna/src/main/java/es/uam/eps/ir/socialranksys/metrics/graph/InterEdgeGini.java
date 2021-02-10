@@ -11,7 +11,7 @@ package es.uam.eps.ir.socialranksys.metrics.graph;
 /**
  * Computes the value for Gini for the different pairs of different nodes.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -19,7 +19,7 @@ package es.uam.eps.ir.socialranksys.metrics.graph;
 public class InterEdgeGini<U> extends EdgeGini<U>
 {
     /**
-     * Constructor
+     * Constructor.
      */
     public InterEdgeGini()
     {

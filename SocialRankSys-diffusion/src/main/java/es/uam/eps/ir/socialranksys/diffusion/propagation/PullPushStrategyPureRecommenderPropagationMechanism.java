@@ -22,11 +22,18 @@ import java.util.stream.Stream;
  * Also known as the rumour spreading propagation mechanism, this is the 
  * propagation mechanism for the pull strategy propagation mechanism.
  * Each iteration, each user selects another one which has not visited in a certain time.
- * The users share all the information between them. 
+ * The users share all the information between them.
+ * It only uses recommended links for propagating information.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> type of the users
- * @param <I> type of the information pieces
+ *
+ *  <p>
+ *  <b>Reference:</b> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987)
+ *  </p>
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
  * @param <P> type of the parameters.
  */
 public class PullPushStrategyPureRecommenderPropagationMechanism<U extends Serializable,I extends Serializable,P> implements PropagationMechanism<U,I,P>

@@ -16,8 +16,10 @@ import java.io.Serializable;
 
 /**
  * Sight mechanism that selects every piece of information that has arrived.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users
  * @param <I> Type of the information pieces
  * @param <P> Type of the parameters

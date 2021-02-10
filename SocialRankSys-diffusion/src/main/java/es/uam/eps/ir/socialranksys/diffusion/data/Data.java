@@ -21,9 +21,11 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * Class that contains the basic information for simulations
+ * Class that contains the basic information for simulations.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users.
  * @param <I> type of the information.
  * @param <P> type of the features.
@@ -31,11 +33,11 @@ import java.util.stream.Stream;
 public class Data<U extends Serializable,I extends Serializable,P> 
 {
     /**
-     * User index
+     * User index.
      */
     private final Index<U> users;
     /**
-     * Information pieces index
+     * Information pieces index.
      */
     private final Index<I> informationPieces;
     /**
@@ -44,7 +46,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
     private final Map<Integer, Information<I>> informationPieceData;
     
     /**
-     * Feature indexes (stored by the name of the parameter)
+     * Feature indexes (stored by the name of the parameter).
      */
     private final Map<String, Index<P>> features;
     
@@ -70,13 +72,13 @@ public class Data<U extends Serializable,I extends Serializable,P>
     
     /**
      * Relation between users and their features (allows identifying the users
-     * that share the same feature, as well as the features of the different users)
+     * that share the same feature, as well as the features of the different users).
      */
     private final Map<String, Relation<Double>> userFeatures;
     
     /**
      * Relation between users and their features (allows identifying the information pieces
-     * that share the same feature, as well as the features of the different information pieces)
+     * that share the same feature, as well as the features of the different information pieces).
      */
     private final Map<String, Relation<Double>> infoPiecesFeatures;
 
@@ -104,8 +106,8 @@ public class Data<U extends Serializable,I extends Serializable,P>
     /**
      * Simplest constructor. There is no additional information for information pieces, nor features.
      * @param graph the social network graph.
-     * @param users the user index
-     * @param informationPieces information pieces index
+     * @param users the user index.
+     * @param informationPieces information pieces index.
      * @param userInformation relation between users and information pieces.
      */
     public Data(Graph<U> graph, Index<U> users, Index<I> informationPieces, Relation<Integer> userInformation)
@@ -116,8 +118,8 @@ public class Data<U extends Serializable,I extends Serializable,P>
     /**
      * Constructor. There is no additional information for information pieces, nor features.
      * @param graph the social network graph.
-     * @param users the user index
-     * @param informationPieces information pieces index
+     * @param users the user index.
+     * @param informationPieces information pieces index.
      * @param informationData detailed information about the information pieces.
      * @param userInformation relation between users and information pieces.
      */
@@ -129,14 +131,14 @@ public class Data<U extends Serializable,I extends Serializable,P>
     /**
      * Constructor. Only user / information pieces features.
      * @param graph the social network graph.
-     * @param users the user index
-     * @param informationPieces information pieces index
+     * @param users the user index.
+     * @param informationPieces information pieces index.
      * @param informationData detailed information about the information pieces.
      * @param userInformation relation between users and information pieces.
      * @param features indexes for the different features.
      * @param featureNames the names of the user/pieces features.
      * @param featureRel relation between users/pieces and their features.
-     * @param userfeatures true if features are related to users, false if they are related to information pieces
+     * @param userfeatures true if features are related to users, false if they are related to information pieces.
      */
     public Data(Graph<U> graph, Index<U> users, Index<I> informationPieces, Map<Integer, Information<I>> informationData,  Relation<Integer> userInformation, Map<String, Index<P>> features, List<String> featureNames, Map<String, Relation<Double>> featureRel, boolean userfeatures)
     {
@@ -177,7 +179,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
     }
     
     /**
-     * Builds the relationship between timestamps and pairs (user, piece)
+     * Builds the relationship between timestamps and pairs (user, piece).
      */
     private void buildTimestampPieces()
     {
@@ -208,10 +210,10 @@ public class Data<U extends Serializable,I extends Serializable,P>
     /**
      * Full constructor.
      * @param graph the social network graph.
-     * @param users the user index
-     * @param informationPieces information pieces index
+     * @param users the user index.
+     * @param informationPieces information pieces index.
      * @param informationData detailed information about the information pieces.
-     * @param userInformation relation between users and information pieces
+     * @param userInformation relation between users and information pieces.
      * @param features indexes for the different features.
      * @param userFeatureNames the names of the user features.
      * @param userFeatures relation between users and their features.
@@ -226,16 +228,16 @@ public class Data<U extends Serializable,I extends Serializable,P>
     /**
      * Full constructor.
      * @param graph the social network graph.
-     * @param users the user index
-     * @param informationPieces information pieces index
+     * @param users the user index.
+     * @param informationPieces information pieces index.
      * @param informationData detailed information about the information pieces.
-     * @param userInformation relation between users and information pieces
+     * @param userInformation relation between users and information pieces.
      * @param features indexes for the different features.
      * @param userFeatureNames the names of the user features.
      * @param userFeatures relation between users and their features.
      * @param infoPiecesFeatureNames the name for information pieces features.
      * @param infoPiecesFeatures relation between information pieces and their features.
-     * @param realPropagated relation indicating which information pieces were repropagated in real scenario
+     * @param realPropagated relation indicating which information pieces were repropagated in real scenario.
      */
     public Data(Graph<U> graph, Index<U> users, Index<I> informationPieces, Map<Integer, Information<I>> informationData, Relation<Integer> userInformation, Map<String, Index<P>> features, List<String> userFeatureNames, Map<String, Relation<Double>> userFeatures, List<String> infoPiecesFeatureNames, Map<String, Relation<Double>> infoPiecesFeatures, Relation<Long> realPropagated)
     {
@@ -284,7 +286,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
     }
     /**
      * Obtain all users.
-     * @return a stream containing all users
+     * @return a stream containing all users.
      */
     public Stream<U> getAllUsers()
     {
@@ -352,9 +354,9 @@ public class Data<U extends Serializable,I extends Serializable,P>
     }
     
     /**
-     * Obtains the creators of a single information piece
-     * @param piece the piece
-     * @return a stream of creators, empty if there are none
+     * Obtains the creators of a single information piece.
+     * @param piece the piece.
+     * @return a stream of creators, empty if there are none.
      */
     public Stream<U> getCreators(I piece)
     {
@@ -367,9 +369,9 @@ public class Data<U extends Serializable,I extends Serializable,P>
     }
        
     /**
-     * Obtains the information pieces created by a user
-     * @param user the user
-     * @return a stream of information pieces, empty if there are none
+     * Obtains the information pieces created by a user.
+     * @param user the user.
+     * @return a stream of information pieces, empty if there are none.
      */
     public Stream<I> getPieces(U user)
     {
@@ -441,7 +443,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
     
     /**
      * Gets all possible values for a certain parameter.
-     * @param parameter the parameter name
+     * @param parameter the parameter name.
      * @return a stream containing all the possible values if the parameter exists,
      * an empty stream if it does not.
      */
@@ -493,7 +495,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
     }
     
     /**
-     * Indicates if data contains a certain information piece
+     * Indicates if data contains a certain information piece.
      * @param i the information piece.
      * @return true if the user is contained in the data, false if it is not.
      */
@@ -505,7 +507,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
     /**
      * Checks if a feature is stored in the data.
      * @param feature the feature name.
-     * @return true if the feature exists, false otherwise
+     * @return true if the feature exists, false otherwise.
      */
     public boolean doesFeatureExist(String feature)
     {
@@ -514,8 +516,8 @@ public class Data<U extends Serializable,I extends Serializable,P>
     
     /**
      * Checks if a feature exists, and it is a user feature.
-     * @param feature the feature name
-     * @return true if the feature exists, false otherwise
+     * @param feature the feature name.
+     * @return true if the feature exists, false otherwise.
      */
     public boolean isUserFeature(String feature)
     {
@@ -524,8 +526,8 @@ public class Data<U extends Serializable,I extends Serializable,P>
     
     /**
      * Checks if a feature exists, and it is an information piece feature.
-     * @param feature the feature name
-     * @return true if the feature exists, false otherwise
+     * @param feature the feature name.
+     * @return true if the feature exists, false otherwise.
      */
     public boolean isInfoPieceFeature(String feature)
     {
@@ -552,9 +554,9 @@ public class Data<U extends Serializable,I extends Serializable,P>
     
     /**
      * Checks if a feature value exists.
-     * @param feature the feature name
-     * @param value the feature value we want to check
-     * @return true if the value exists, false otherwise
+     * @param feature the feature name.
+     * @param value the feature value we want to check.
+     * @return true if the value exists, false otherwise.
      */
     public boolean containsFeatureValue(String feature, P value)
     {
@@ -630,7 +632,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
     
     /**
      * Given a user, obtains the set of information pieces repropagated in a real scenario.
-     * @param user the user
+     * @param user the user.
      * @return the stream of pieces repropagated by the user.
      */
     public Stream<I> getRealPropagatedPieces(U user)
@@ -645,7 +647,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
     
     /**
      * Given a user, obtains the set of information pieces repropagated in a real scenario.
-     * @param user the user
+     * @param user the user.
      * @return the stream of pieces repropagated by the user and their timestamps.
      */
     public Stream<Tuple2ol<I>> getRealPropagatedPiecesWithTimestamp(U user)
@@ -702,21 +704,38 @@ public class Data<U extends Serializable,I extends Serializable,P>
     {
         return this.timestamps;
     }
-    
+
+    /**
+     * Obtains the list of pieces that a user has propagated in a given time.
+     * @param timestamp the timestamp.
+     * @param user the user.
+     * @return an stream containing the pieces propagated by the user at the given time.
+     */
     public Stream<I> getPiecesByTimestamp(long timestamp, U user)
     {
         if(this.propagatedByTS.containsKey(timestamp) && this.propagatedByTS.get(timestamp).containsKey(user))
             return this.propagatedByTS.get(timestamp).get(user).stream();
         return Stream.empty();
     }
-    
+
+    /**
+     * Obtains the list of pieces which have been repropagated by a user at a given time.
+     * @param timestamp the timestamp.
+     * @param user the user.
+     * @return an stream containing the pieces repropagated by the user at the given time.
+     */
     public Stream<I> getRealPropPiecesByTimestamp(long timestamp, U user)
     {
         if(this.realPropagatedByTS.containsKey(timestamp) && this.realPropagatedByTS.get(timestamp).containsKey(user))
             return this.realPropagatedByTS.get(timestamp).get(user).stream();
         return Stream.empty();
     }
-    
+
+    /**
+     * Obtains the list of users which have propagated pieces at a given time.
+     * @param timestamp the timestamp.
+     * @return a stream containing all users which have propagated information at the given time.
+     */
     public Stream<U> getUsersByTimestamp(long timestamp)
     {
         if(this.propagatedByTS.containsKey(timestamp))
@@ -726,7 +745,12 @@ public class Data<U extends Serializable,I extends Serializable,P>
         
         return Stream.empty();
     }
-    
+
+    /**
+     * Obtains the list of users which have repropagated pieces at a given time.
+     * @param timestamp the timestamp.
+     * @return a stream containing all users which have repropagated information at the given time.
+     */
     public Stream<U> getRealPropUsersByTimestamp(long timestamp)
     {
         if(this.realPropagatedByTS.containsKey(timestamp))

@@ -14,8 +14,10 @@ import java.io.Serializable;
  * Selects the propagated pieces. This algorithm propagates a certain number of information pieces each
  * iteration, chosen randomly from the own pieces of information. Then, it repropagates every piece
  * of information that the user has repropagated in real life.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users.
  * @param <I> type of the information.
  * @param <P> type of the parameters.

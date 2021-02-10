@@ -48,7 +48,7 @@ public interface IndividualCommunityMetric<U>
      * Computes the average value of the metric in the graph.
      *
      * @param graph The graph.
-     * @param comm  the communities of the graph
+     * @param comm  the communities of the graph.
      *
      * @return the average value of the metric.
      */

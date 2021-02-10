@@ -9,9 +9,9 @@
 package es.uam.eps.ir.socialranksys.metrics.graph;
 
 /**
- * Computes the value for Gini for the different pairs of nodes. Self-loops are counted ina separate category.
+ * Computes the value for Gini for the different pairs of nodes. Self-loops are counted in a separate category.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

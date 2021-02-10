@@ -37,15 +37,16 @@ import java.util.TreeSet;
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> type of the user
- * @param <I> type of the information
- * @param <P> type of the parameters
+ *
+ * @param <U> type of the user.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P> extends AbstractExternalFeatureIndividualSimulationMetric<U,I,P>
 {
 
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String GINI = "ext-feat-gini";
 
@@ -208,7 +209,7 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
     
     /**
      * Internal function for updating the individual and counter maps.
-     * @param u the user
+     * @param u the user.
      * @param aux an auxiliary map containing the new increments of several parameters for user u.
      */
     private void updateMap(U u, Map<P, Double> aux)

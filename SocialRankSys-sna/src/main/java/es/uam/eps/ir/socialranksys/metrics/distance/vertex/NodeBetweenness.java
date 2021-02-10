@@ -17,12 +17,12 @@ import java.util.Map;
 import java.util.OptionalDouble;
 
 /**
- * Computes the betweenness of the nodes of a graph
+ * Computes the betweenness of the nodes of a graph.
  * <p>
  * <b>Reference:</b> M.E.J. Newman, M. Girvan. Finding and evaluating community structure in networks. Physical Review E 69(2), pp. 1-16 (2004)
  * </p>
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -36,7 +36,7 @@ public class NodeBetweenness<U> implements VertexMetric<U>
     private final DistanceCalculator<U> dc;
 
     /**
-     * Constructor
+     * Constructor.
      */
     public NodeBetweenness()
     {

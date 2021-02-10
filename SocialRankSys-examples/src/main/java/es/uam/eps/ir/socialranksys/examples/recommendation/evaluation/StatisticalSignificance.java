@@ -21,6 +21,7 @@ import org.ranksys.formats.parsing.Parsers;
 import org.ranksys.formats.preference.SimpleRatingPreferencesReader;
 import org.ranksys.formats.rec.RecommendationFormat;
 import org.ranksys.formats.rec.SimpleRecommendationFormat;
+import org.ranksys.formats.rec.TRECRecommendationFormat;
 
 import java.io.*;
 import java.util.*;
@@ -56,7 +57,7 @@ public class StatisticalSignificance
             for(int i = 0; i < args.length; ++i)
                 System.err.print("\t" + i+":" + args[i]);
 
-            System.err.println("Usage: testDataPath recPath outputPath cutoff threshold numTails directed");
+            System.err.println("Usage: testDataPath recPath outputPath cutoff threshold numTails directed format");
             return;
         }
 
@@ -79,6 +80,7 @@ public class StatisticalSignificance
 
         boolean directed = args[5].equalsIgnoreCase("true");
         String prec = args[6];
+        String formatax = args[7];
         // Read train and test data
         PreferenceData<Long, Long> testData = GraphSimplePreferenceData.load(SimpleRatingPreferencesReader.get().read(testDataPath, lp, lp), directed, false);
 
@@ -122,7 +124,7 @@ public class StatisticalSignificance
         // FILE FORMAT:
         // "user"\"Algorithm1"\"Algorithm2"\t...\t"AlgorithmN".
         // user\tmetricAlg1\tmetricAlg2\tmetricAlg3\t...\tmetricAlgN
-        RecommendationFormat<Long, Long> format = new SimpleRecommendationFormat<>(lp, lp);
+        RecommendationFormat<Long, Long> format = formatax.equals("trec") ? new TRECRecommendationFormat<>(lp, lp) : new SimpleRecommendationFormat<>(lp, lp);
         String[] files = directory.list();
         
         List<String> recomms = new ArrayList<>();

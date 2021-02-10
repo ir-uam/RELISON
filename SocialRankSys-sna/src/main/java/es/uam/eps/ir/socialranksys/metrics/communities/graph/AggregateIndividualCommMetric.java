@@ -25,7 +25,7 @@ import es.uam.eps.ir.socialranksys.metrics.IndividualCommunityMetric;
 public class AggregateIndividualCommMetric<U> implements CommunityMetric<U>
 {
     /**
-     * Individual community metric
+     * Individual community metric.
      */
     private final IndividualCommunityMetric<U> indivMetric;
 

@@ -20,6 +20,7 @@ import org.ranksys.formats.parsing.Parsers;
 import org.ranksys.formats.preference.SimpleRatingPreferencesReader;
 import org.ranksys.formats.rec.RecommendationFormat;
 import org.ranksys.formats.rec.SimpleRecommendationFormat;
+import org.ranksys.formats.rec.TRECRecommendationFormat;
 
 import java.io.*;
 import java.util.*;
@@ -83,6 +84,8 @@ public class TukeyTestFileGenerator
         
         int cutoff = Parsers.ip.parse(args[3]);
         double threshold = Parsers.dp.parse(args[4]);
+
+        String formatax = args[8];
         
         Map<Long, Integer> userList = new HashMap<>();
         testData.getUsersWithPreferences().forEach(user -> userList.put(user, userList.size()));
@@ -122,7 +125,7 @@ public class TukeyTestFileGenerator
         // FILE FORMAT:
         // "user"\"Algorithm1"\"Algorithm2"\t...\t"AlgorithmN".
         // user\tmetricAlg1\tmetricAlg2\tmetricAlg3\t...\tmetricAlgN
-        RecommendationFormat<Long, Long> format = new SimpleRecommendationFormat<>(lp, lp);
+        RecommendationFormat<Long, Long> format = formatax.equals("trec") ? new TRECRecommendationFormat<>(lp,lp) : new SimpleRecommendationFormat<>(lp, lp);
         String[] files = directory.list();
         
         List<String> recomms = new ArrayList<>();

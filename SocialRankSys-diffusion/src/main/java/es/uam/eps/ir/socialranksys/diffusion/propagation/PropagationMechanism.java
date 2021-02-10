@@ -17,8 +17,10 @@ import java.util.stream.Stream;
 
 /**
  * Mechanism for selecting the users to which propagate the different pieces of information to propagate.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the items.
  * @param <P> Type of the parameters.
@@ -27,7 +29,7 @@ public interface PropagationMechanism<U extends Serializable,I extends Serializa
 {
     /**
      * Selects the users to which propagate a single piece of information.
-     * @param information The propagated information
+     * @param information The propagated information.
      * @param originUser the user which propagates the information.
      * @param data the full data.
      * @return the stream of users to which propagate a single piece of information.

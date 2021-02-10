@@ -13,7 +13,7 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
 /**
  * Interface for global graph metrics.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

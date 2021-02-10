@@ -20,8 +20,10 @@ import java.util.List;
 /**
  * Selection mechanism that only propagates those received pieces which have been sent
  * by a minimum number of users.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -35,7 +37,7 @@ public class CountThresholdSelectionMechanism<U extends Serializable,I extends S
     
     /**
      * Constructor.
-     * @param numOwn Number of own pieces to propagate
+     * @param numOwn Number of own pieces to propagate.
      * @param threshold Number of users that transmit an information piece before it is released.
      */
     public CountThresholdSelectionMechanism(int numOwn, int threshold)
@@ -46,7 +48,7 @@ public class CountThresholdSelectionMechanism<U extends Serializable,I extends S
     
     /**
      * Constructor.
-     * @param numOwn Number of own pieces to propagate
+     * @param numOwn Number of own pieces to propagate.
      * @param threshold Number of users that transmit an information piece before it is released.
      * @param numRepr Number of propagated pieces to repropagate.
      */

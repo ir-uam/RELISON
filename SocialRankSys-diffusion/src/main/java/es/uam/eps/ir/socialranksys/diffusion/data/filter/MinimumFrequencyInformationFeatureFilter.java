@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -21,7 +21,9 @@ import java.util.Set;
  * number of times (i.e. there are less than X information pieces represented by
  * that feature).
  * 
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the user identifiers.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -45,7 +47,7 @@ public class MinimumFrequencyInformationFeatureFilter<U extends Serializable,I e
     /**
      * Constructor.
      * @param minimumPieces minimum number of information pieces that must contain the feature.
-     * @param featureName the name of the feature
+     * @param featureName the name of the feature.
      */
     public MinimumFrequencyInformationFeatureFilter(long minimumPieces, String featureName)
     {

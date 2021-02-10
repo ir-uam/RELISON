@@ -13,7 +13,6 @@ import es.uam.eps.ir.socialranksys.grid.diffusion.filter.FilterParamReader;
 import es.uam.eps.ir.socialranksys.grid.diffusion.protocol.ProtocolParamReader;
 import es.uam.eps.ir.socialranksys.grid.diffusion.stop.StopConditionParamReader;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Triplet;
-import org.openide.util.Exceptions;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -126,7 +125,7 @@ public class SimulationParamReader extends ParametersReader
         } 
         catch (ParserConfigurationException | SAXException | IOException ex)
         {
-            Exceptions.printStackTrace(ex);
+            ex.printStackTrace();
         }
     }
     

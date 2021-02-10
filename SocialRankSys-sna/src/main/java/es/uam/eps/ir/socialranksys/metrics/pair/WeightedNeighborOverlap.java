@@ -124,7 +124,7 @@ public class WeightedNeighborOverlap<U> extends AbstractPairMetric<U>
      * @param graph the graph.
      * @param u     the user.
      * @param uSel  the neighborhood selection for the user.
-     * @param vSel  the neighborhood selection for the other users
+     * @param vSel  the neighborhood selection for the other users.
      *
      * @return the map of metrics for the user.
      */

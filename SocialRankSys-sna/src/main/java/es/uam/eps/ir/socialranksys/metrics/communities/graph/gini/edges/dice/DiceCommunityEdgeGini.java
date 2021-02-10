@@ -32,7 +32,7 @@ import java.util.Map;
  * configuration network where the link degree distributions are equivalent to the ones in the
  * studied network.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

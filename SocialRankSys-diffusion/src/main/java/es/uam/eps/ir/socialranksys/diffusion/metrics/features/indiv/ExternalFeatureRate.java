@@ -39,17 +39,17 @@ import java.util.Set;
 public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P> extends AbstractExternalFeatureIndividualSimulationMetric<U,I,P>
 {
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String EXTPARAMRATE = "ext-featrate";
 
     /**
-     * Stores the number of external parameters received
+     * Stores the number of external parameters received.
      */
     private final Map<U,Double> externalParams;
     
     /**
-     * Stores the total number of external parameters received
+     * Stores the total number of external parameters received.
      */
     private final Map<U,Double> totalParams;
     

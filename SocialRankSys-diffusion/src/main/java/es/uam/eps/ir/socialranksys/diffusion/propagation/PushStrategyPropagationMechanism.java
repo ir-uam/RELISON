@@ -19,17 +19,24 @@ import java.util.stream.Stream;
 
 /**
  * Propagation mechanism for the pull strategy propagation mechanism.
- * Each iteration, 
+ * Each iteration, each user selects another one which has not visited in a certain time.
+ * The users "pushes" the information to that neighbor.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> type of the users
- * @param <I> type of the information pieces
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
  * @param <P> type of the parameters.
+ *
+ * <p>
+ * <b>Reference:</b> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987)
+ * </p>
  */
 public class PushStrategyPropagationMechanism<U extends Serializable,I extends Serializable,P> implements PropagationMechanism<U,I,P>
 {
     /**
-     * Number of iterations to wait until a profile can be revisited
+     * Number of iterations to wait until a profile can be revisited.
      */
     private final int waitTime;
     /**
@@ -37,7 +44,7 @@ public class PushStrategyPropagationMechanism<U extends Serializable,I extends S
      */
     private Map<U, List<U>> propagationList;
     /**
-     * The list of users in the last iterations
+     * The list of users in the last iterations.
      */
     private final Map<U, List<U>> lastIterations;
     

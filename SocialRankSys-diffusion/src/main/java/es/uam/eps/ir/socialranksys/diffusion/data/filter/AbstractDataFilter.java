@@ -1,5 +1,5 @@
 /* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -28,7 +28,10 @@ import java.util.stream.IntStream;
 
 /**
  * Interface for filtering unnecessary data for simulations.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users.
  * @param <I> type of the items.
  * @param <P> type of hte parameters.
@@ -89,17 +92,17 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
   
     /**
      * Filters the set of feature values
-     * @param data the original data
-     * @param name the feature name
-     * @param iIndex the filtered index of information pieces
+     * @param data the original data.
+     * @param name the feature name.
+     * @param iIndex the filtered index of information pieces.
      * @return the filtered index.
      */
     protected abstract Index<P> filterParameters(Data<U,I,P> data, String name, Index<I> iIndex);
 
     /**
      * Obtains the filtered graph.
-     * @param data the original data
-     * @param index the user index
+     * @param data the original data.
+     * @param index the user index.
      * @return the filtered graph.
      */
     protected Graph<U> filterGraph(Data<U,I,P> data, Index<U> index)
@@ -156,9 +159,9 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
     }
 
     /**
-     * Filters the relation between users and a parameter
-     * @param fullData the original data
-     * @param name the parameter name
+     * Filters the relation between users and a parameter.
+     * @param fullData the original data.
+     * @param name the parameter name.
      * @param userIndex the filtered user index.
      * @param pIndex the filtered parameter index.
      * @return the filtered relation.
@@ -187,9 +190,9 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
     }
     
     /**
-     * Filters the relation between information pieces and a parameter
-     * @param fullData the original data
-     * @param name the parameter name
+     * Filters the relation between information pieces and a parameter.
+     * @param fullData the original data.
+     * @param name the parameter name.
      * @param infoPiecesIndex the filtered information pieces index.
      * @param pIndex the filtered parameter index.
      * @return the filtered relation.
@@ -248,10 +251,10 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
 
     /**
      * Filters the relation between users and propagated pieces of information in real life.
-     * @param fullData the whole data
-     * @param userIndex the previously filtered user index
+     * @param fullData the whole data.
+     * @param userIndex the previously filtered user index.
      * @param infoPiecesIndex the filtered information pieces index.
-     * @return the filtered relation
+     * @return the filtered relation.
      */
     protected Relation<Long> filterRealPropagatedRelation(Data<U, I, P> fullData, Index<U> userIndex, Index<I> infoPiecesIndex) 
     {

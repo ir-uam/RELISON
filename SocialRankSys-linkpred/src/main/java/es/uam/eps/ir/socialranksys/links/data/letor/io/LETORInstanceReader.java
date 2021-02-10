@@ -1,7 +1,8 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
- * de Madrid, http://ir.ii.uam.es
- * 
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
+ * http://terrierteam.dcs.gla.ac.uk/.
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -30,18 +31,25 @@ import static es.uam.eps.ir.socialranksys.links.data.letor.io.LETORFormatConstan
 /**
  * Class for reading the different patterns for ML algorithms as contact
  * recommendation / link prediction algorithms, using the LETOR
- * format.
+ * format. <br/>
+ *
  * Format:
  * 
- * #featId1: description1 stats1
- * #featId2: description2 stats2
- * ...
- * #featIdN: descriptionN statsN
- * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v]
- * ...
- * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v]
- * 
- * @author Javier Sanz-Cruzado
+ * #featId1: description1 stats1 <br/>
+ * #featId2: description2 stats2 <br/>
+ * ... <br/>
+ * #featIdN: descriptionN statsN <br/>
+ * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v] <br/>
+ * ... <br/>
+ * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v] <br/>
+ *
+ * @see <a href="https://www.microsoft.com/en-us/research/project/letor-learning-rank-information-retrieval/#!letor-4-0">LETOR v.4.0</a>
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
+ * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
+ *
  * @param <U> Type of the users.
  */
 public class LETORInstanceReader<U> implements InstanceSetReader<U>
@@ -51,8 +59,14 @@ public class LETORInstanceReader<U> implements InstanceSetReader<U>
      */
     private final Parser<U> parser;
 
+    /**
+     * The number of features.
+     */
     private final Integer counter;
 
+    /**
+     * User identifier generator.
+     */
     private final Generator<U> gen;
     
     /**
@@ -66,6 +80,12 @@ public class LETORInstanceReader<U> implements InstanceSetReader<U>
         this.gen = null;
     }
 
+    /**
+     * Constructor.
+     * @param parser user parser.
+     * @param counter number of features.
+     * @param gen user identifier generator.
+     */
     public LETORInstanceReader(Parser<U> parser, int counter, Generator<U> gen)
     {
         this.parser = parser;
@@ -76,7 +96,6 @@ public class LETORInstanceReader<U> implements InstanceSetReader<U>
     @Override
     public InstanceSet<U> read(String file) throws IOException
     {
-
         try(BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file))))
         {
 
@@ -131,7 +150,7 @@ public class LETORInstanceReader<U> implements InstanceSetReader<U>
     
 
     /**
-     * Reads the header of the file into an object containing all
+     * Reads the header of the file into an object containing all.
      * information about features.
      * @param header the header lines.
      * @return an object containing information about features.

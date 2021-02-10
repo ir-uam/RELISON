@@ -11,7 +11,8 @@ package es.uam.eps.ir.socialranksys.diffusion.update;
 import es.uam.eps.ir.socialranksys.diffusion.data.PropagatedInformation;
 
 /**
- * Class for the update mechanism for the information in the corresponding lists
+ * Class for the update mechanism for the information in the corresponding lists.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
@@ -31,7 +32,7 @@ public interface UpdateMechanism
      * 
      * @param oldInfo Piece of information with the discarded info.
      * @param newInfo Piece of information with the new info.
-     * @return the updated piece of information
+     * @return the updated piece of information.
      */
     PropagatedInformation updateDiscarded(PropagatedInformation oldInfo, PropagatedInformation newInfo);
 }

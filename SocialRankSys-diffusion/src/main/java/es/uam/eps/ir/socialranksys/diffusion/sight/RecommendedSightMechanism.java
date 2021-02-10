@@ -25,15 +25,15 @@ import java.util.*;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users
- * @param <I> Type of the information pieces
- * @param <P> Type of the parameters
+ * @param <U> Type of the users.
+ * @param <I> Type of the information pieces.
+ * @param <P> Type of the parameters.
  */
 public class RecommendedSightMechanism<U extends Serializable,I extends Serializable,P> implements SightMechanism<U,I,P>
 {
 
     /**
-     * For each user, the set of users they are neighbors to see information from
+     * For each user, the set of users they are neighbors to see information from.
      */
     private final Map<U, Set<U>> neighbors;
     /**
@@ -65,37 +65,6 @@ public class RecommendedSightMechanism<U extends Serializable,I extends Serializ
         this.probTrain = probTrain;
         this.rng = new Random();
     }
-    
-/*    @Override
-    public Stream<PropagatedInformation> seeInformation(UserState<U> user, Data<U, I, P> data)
-    {
-        List<PropagatedInformation> seen = new ArrayList<>();
-        
-        U u = user.getUserId();
-        user.getNewInformation().forEach(info -> 
-        {
-            boolean propagate = info.getCreators().stream().map(creator -> 
-            {
-                double rnd = rng.nextDouble();
-                U cr = data.getUserIndex().idx2object(creator);
-                if(this.neighbors.get(u).contains(cr))
-                {
-                    return rnd < probRec;
-                }
-                else
-                {
-                    return rnd < probTrain;
-                }
-            }).reduce(false, (x,y) -> x || y);
-            
-            if(propagate)
-            {
-                seen.add(info);
-            }
-        });
-        
-        return seen.stream();
-    }*/
     
     @Override
     public void resetSelections(Data<U,I,P> data)

@@ -14,8 +14,10 @@ import java.io.Serializable;
 
 /**
  * Stop condition that determines a maximum possible timestamp for the execution.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the features.

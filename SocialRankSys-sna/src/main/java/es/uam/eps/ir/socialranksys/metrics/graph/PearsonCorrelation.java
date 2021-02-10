@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 /**
  * Class for computing the Pearson correlation of scalar values for a graph.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -31,19 +31,19 @@ import java.util.stream.Collectors;
 public class PearsonCorrelation<U> implements GraphMetric<U>
 {
     /**
-     * Function for computing the values for each origin node in the link
+     * Function for computing the values for each origin node in the link.
      */
     private final ToDoubleBiFunction<U, Graph<U>> originFunction;
     /**
-     * Function for computing the values for each destiny node in the link
+     * Function for computing the values for each destiny node in the link.
      */
     private final ToDoubleBiFunction<U, Graph<U>> destinyFunction;
 
     /**
      * Constructor
      *
-     * @param originFunction  Function for computing the values for each origin node in the link
-     * @param destinyFunction Function for computing the values for each destiny node in the link
+     * @param originFunction  Function for computing the values for each origin node in the link.
+     * @param destinyFunction Function for computing the values for each destiny node in the link.
      */
     public PearsonCorrelation(ToDoubleBiFunction<U, Graph<U>> originFunction, ToDoubleBiFunction<U, Graph<U>> destinyFunction)
     {
@@ -77,8 +77,8 @@ public class PearsonCorrelation<U> implements GraphMetric<U>
     /**
      * Computes the assortativity for directed graphs.
      *
-     * @param graph      the graph
-     * @param originRes  the values for the origin node
+     * @param graph      the graph.
+     * @param originRes  the values for the origin node.
      * @param destinyRes the values for the destination node.
      *
      * @return the Pearson correlation of the directed graph.
@@ -117,8 +117,8 @@ public class PearsonCorrelation<U> implements GraphMetric<U>
     /**
      * Computes the assortativity for directed graphs.
      *
-     * @param graph      the graph
-     * @param originRes  the values for the origin node
+     * @param graph      the graph.
+     * @param originRes  the values for the origin node.
      * @param destinyRes the values for the destination node.
      *
      * @return the Pearson correlation of the undirected graph.

@@ -12,7 +12,6 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.metrics.EdgeMetric;
 import es.uam.eps.ir.socialranksys.metrics.exception.InexistentEdgeException;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
-import org.openide.util.Exceptions;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,7 +21,7 @@ import java.util.stream.Stream;
 /**
  * Finds the weight of an edge in a graph.
  *
- * @param <V> Type of the users in the graph
+ * @param <V> Type of the users in the graph.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -66,7 +65,7 @@ public class EdgeWeight<V> implements EdgeMetric<V>
                 }
                 catch (InexistentEdgeException ex)
                 {
-                    Exceptions.printStackTrace(ex);
+                    ex.printStackTrace();
                 }
             }));
         }
@@ -116,7 +115,7 @@ public class EdgeWeight<V> implements EdgeMetric<V>
             }
             catch (InexistentEdgeException ex)
             {
-                Exceptions.printStackTrace(ex);
+                ex.printStackTrace();
                 return 0.0;
             }
         }).sum();

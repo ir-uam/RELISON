@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Aut�noma
  * de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -24,7 +24,7 @@ import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 public class AggregateVertexMetric<U> implements GraphMetric<U>
 {
     /**
-     * Vertex metric
+     * Vertex metric.
      */
     private final VertexMetric<U> vertexMetric;
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -88,13 +88,13 @@ public class WeightedNeighborLogOverlap<U> implements PairMetric<U>
         if (!graph.isMultigraph())
         {
             graph.getAllNodes().forEach((orig) ->
-                                                graph.getAllNodes().forEach(dest ->
-                                                                            {
-                                                                                if (!orig.equals(dest))
-                                                                                {
-                                                                                    values.put(new Pair<>(orig, dest), this.compute(graph, orig, dest));
-                                                                                }
-                                                                            })
+                graph.getAllNodes().forEach(dest ->
+                {
+                    if (!orig.equals(dest))
+                    {
+                        values.put(new Pair<>(orig, dest), this.compute(graph, orig, dest));
+                    }
+                })
             );
         }
         return values;
@@ -126,15 +126,15 @@ public class WeightedNeighborLogOverlap<U> implements PairMetric<U>
         }
 
         graph.getAllNodes().forEach(u ->
-                                    {
-                                        Object2DoubleOpenHashMap<U> aux = new Object2DoubleOpenHashMap<>();
-                                        aux.defaultReturnValue(0.0);
-                                        graph.getNeighbourhood(u, uSel).forEach(w ->
-                                                                                        graph.getNeighbourhoodWeights(w, vSel.invertSelection()).forEach(v -> aux.addTo(v.getIdx(), Math.log(1.0 + v.getValue())))
-                                        );
+        {
+            Object2DoubleOpenHashMap<U> aux = new Object2DoubleOpenHashMap<>();
+            aux.defaultReturnValue(0.0);
+            graph.getNeighbourhood(u, uSel).forEach(w ->
+                graph.getNeighbourhoodWeights(w, vSel.invertSelection()).forEach(v -> aux.addTo(v.getIdx(), Math.log(1.0 + v.getValue())))
+            );
 
-                                        map.put(u, aux);
-                                    });
+            map.put(u, aux);
+        });
 
         pairs.forEach(p -> values.put(p, map.get(p.v1()).getOrDefault(p.v2(), 0.0)));
         return values;
@@ -170,8 +170,8 @@ public class WeightedNeighborLogOverlap<U> implements PairMetric<U>
         if (!graph.isMultigraph())
         {
             graph.getNeighbourhood(u, uSel).forEach(
-                    w -> graph.getNeighbourhoodWeights(w, vSel.invertSelection())
-                            .forEach(v -> map.addTo(v.getIdx(), Math.log(1.0 + v.getValue()))));
+                w -> graph.getNeighbourhoodWeights(w, vSel.invertSelection())
+                         .forEach(v -> map.addTo(v.getIdx(), Math.log(1.0 + v.getValue()))));
         }
 
         return v -> map.getOrDefault(v, map.defaultReturnValue());

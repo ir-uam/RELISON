@@ -18,7 +18,7 @@ import es.uam.eps.ir.socialranksys.metrics.graph.EdgeGiniMode;
  * studied network. This version considers all pairs of different communities in the calculus
  * (i.e. it does not include pairings of a community with itself).
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

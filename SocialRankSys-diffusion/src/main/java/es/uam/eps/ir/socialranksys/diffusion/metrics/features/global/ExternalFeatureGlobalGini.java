@@ -17,8 +17,10 @@ import java.util.Map;
 
 /**
  * Computes the number of pieces of information propagated and seen in all the iterations.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the user
  * @param <I> type of the information
  * @param <P> type of the parameters
@@ -27,7 +29,7 @@ public class ExternalFeatureGlobalGini<U extends Serializable,I extends Serializ
 {
 
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String GLOBALGINI = "ext-feat-gl-ginicompl";
 

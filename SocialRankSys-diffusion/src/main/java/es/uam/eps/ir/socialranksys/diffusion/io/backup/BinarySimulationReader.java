@@ -19,8 +19,10 @@ import java.util.*;
 /**
  * Reads a simulation from a file. Data is retrieved using binary fields,
  * which contain the identifiers of each object.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -165,7 +167,7 @@ public class BinarySimulationReader<U extends Serializable, I extends Serializab
     /**
      * Reads a particular field concerning received data by users.
      * @param data the data.
-     * @return a mapping between users and information pieces whole information, null if something went wrong
+     * @return a mapping between users and information pieces whole information, null if something went wrong.
      */
     private Map<U, Map<I,Set<U>>> readReceivedPiecesField(Data<U,I,P> data)
     {
@@ -229,7 +231,7 @@ public class BinarySimulationReader<U extends Serializable, I extends Serializab
     /**
      * Reads a particular field concerning actions made by the users.
      * @param data the data.
-     * @return a mapping between users and information pieces, null if something went wrong
+     * @return a mapping between users and information pieces, null if something went wrong.
      */
     private Map<U, List<I>> readUserActionField(Data<U,I,P> data)
     {

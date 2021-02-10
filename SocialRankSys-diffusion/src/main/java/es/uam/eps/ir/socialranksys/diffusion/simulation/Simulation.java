@@ -20,21 +20,22 @@ import java.util.stream.Collectors;
 /**
  * Class that stores the evolution of a simulation over time. It just stores the
  * pieces that are read by the different users in the network.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> type of the users
- * @param <I> type of the information pieces
- * @param <P> type of the parameter values
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <P> type of the parameter values.
  */
 public class Simulation<U extends Serializable,I extends Serializable,P> 
 {
     /**
-     * Total number of iterations in the simulation
+     * Total number of iterations in the simulation.
      */
     private int numIterations;
     /**
-     * List of iterations
+     * List of iterations.
      */
     private final List<Iteration<U,I,P>> iterations;
     /**
@@ -43,14 +44,14 @@ public class Simulation<U extends Serializable,I extends Serializable,P>
     private final Data<U,I,P> data;
 
     /**
-     * Initial iteration number
+     * Initial iteration number.
      */
     private final int initialNumber;
     
     /**
      * Constructor.
      * @param data the real data.
-     * @param initialNumber initial iteration number
+     * @param initialNumber initial iteration number.
      */
     public Simulation(Data<U,I,P> data, int initialNumber)
     {
@@ -269,7 +270,7 @@ public class Simulation<U extends Serializable,I extends Serializable,P>
      * @param propagated the set of propagated pieces.
      * @param discarded the set of discarded pieces.
      * @param received the set of received pieces.
-     * @param upd the update mechanism
+     * @param upd the update mechanism.
      */
     private void updateReceived(Iteration<U, I, P> iteration, Map<U, Map<I, Long>> propagated, Map<U, Map<I, Tuple2oo<Set<U>, Long>>> discarded, Map<U, Map<I, Tuple2oo<Set<U>, Long>>> received, UpdateMechanism upd) 
     {

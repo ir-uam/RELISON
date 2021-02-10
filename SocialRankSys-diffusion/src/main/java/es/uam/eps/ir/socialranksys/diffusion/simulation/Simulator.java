@@ -22,8 +22,10 @@ import java.util.stream.Collectors;
 
 /**
  * Class for the execution of information propagation simulations.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
  * @param <P> type of the parameters.
@@ -35,7 +37,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
      */
     private final StopCondition<U,I,P> stop;
     /**
-     * Communication protocol
+     * Communication protocol.
      */
     private final Protocol<U,I,P> protocol;
     /**
@@ -83,7 +85,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
     
     /**
      * Initializes and prepares the data.
-     * @param data Full data
+     * @param data Full data.
      */
     public void initialize(Data<U,I,P> data)
     {
@@ -97,7 +99,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
     
     /**
      * Initializes and prepares the data.
-     * @param data Full data
+     * @param data Full data.
      * @param simulation the current state of the simulation.
      */
     public void initialize(Data<U,I,P> data, Simulation<U,I,P> simulation)

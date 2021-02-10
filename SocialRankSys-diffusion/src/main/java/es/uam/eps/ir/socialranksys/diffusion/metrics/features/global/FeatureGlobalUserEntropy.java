@@ -21,17 +21,19 @@ import java.util.stream.Stream;
 
 /**
  * Computes the number of pieces of information propagated and seen in all the iterations.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> type of the user
- * @param <I> type of the information
- * @param <P> type of the parameters
+ *
+ * @param <U> type of the user.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class FeatureGlobalUserEntropy<U extends Serializable,I extends Serializable,P> extends AbstractFeatureGlobalSimulationMetric<U,I,P>
 {
 
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String GLOBALGINI = "feat-gl-user-entropy";
 

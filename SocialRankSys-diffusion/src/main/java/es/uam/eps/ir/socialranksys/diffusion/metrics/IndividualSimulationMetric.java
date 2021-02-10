@@ -18,8 +18,10 @@ import java.util.Map;
 /**
  * Interface for the different individual metrics (can be applied over individual
  * users) to apply over the simulation.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -33,7 +35,7 @@ public interface IndividualSimulationMetric<U extends Serializable,I extends Ser
     Map<U, Double> calculateIndividuals();
     
     /**
-     * Calculates the metric for each individual user on each iteration of a simulation
+     * Calculates the metric for each individual user on each iteration of a simulation.
      * @param simulation the whole simulation.
      * @return the value of the metric for each iteration.
      */
@@ -54,14 +56,14 @@ public interface IndividualSimulationMetric<U extends Serializable,I extends Ser
     }
 
     /**
-     * Calculates the metric value for a single user
-     * @param user the single user
+     * Calculates the metric value for a single user.
+     * @param user the single user.
      * @return the value of the metric, NaN if something failed.
      */
     double calculate(U user);
 
     /**
-     * Calculates the metric for a single user on each iteration of a simulation
+     * Calculates the metric for a single user on each iteration of a simulation.
      * @param user the user.
      * @param simulation the whole simulation
      * @return the value of the metric for that user in each iteration.

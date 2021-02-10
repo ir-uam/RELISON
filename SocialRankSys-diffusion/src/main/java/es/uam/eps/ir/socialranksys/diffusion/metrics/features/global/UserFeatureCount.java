@@ -19,17 +19,19 @@ import java.util.Set;
 
 /**
  * Counts the number of different pairs (user, feature) that have appeared during the simulation.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> type of the user
- * @param <I> type of the information
- * @param <P> type of the parameters
+ *
+ * @param <U> type of the user.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class UserFeatureCount<U extends Serializable,I extends Serializable,P> extends AbstractFeatureGlobalSimulationMetric<U,I,P>
 {
 
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String RECALL = "global-count";
 
@@ -39,7 +41,7 @@ public class UserFeatureCount<U extends Serializable,I extends Serializable,P> e
     private final Map<U, Set<P>> recParams;
 
     /**
-     * The total number of external parameters that have reached the different users
+     * The total number of external parameters that have reached the different users.
      */
     private double total;    
     

@@ -17,7 +17,7 @@ import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
  * degree distribution of the communities in the graph. This version considers both inter-community
  * and intra-community links.
  *
- * @param <U> type of the users
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

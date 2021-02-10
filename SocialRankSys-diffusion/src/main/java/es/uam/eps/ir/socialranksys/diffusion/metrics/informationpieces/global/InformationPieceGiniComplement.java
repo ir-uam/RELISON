@@ -25,25 +25,25 @@ import java.util.stream.Stream;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- *  @param <U> type of the user
- * @param <I> type of the information
- * @param <P> type of the parameters
+ * @param <U> type of the user.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class InformationPieceGiniComplement<U extends Serializable,I extends Serializable,P> extends AbstractGlobalSimulationMetric<U,I,P>
 {
     
     /**
-     * Relation between users and received pieces of information
+     * Relation between users and received pieces of information.
      */
     private Relation<Integer> relation;
     
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String INFOPIECEGINI = "infopiece-ginicompl";
 
     /**
-     * Speed value
+     * Speed value.
      */
     private double speed;
     

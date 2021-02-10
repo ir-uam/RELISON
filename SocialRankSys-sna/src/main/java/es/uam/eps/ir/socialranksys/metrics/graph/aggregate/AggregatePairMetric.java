@@ -24,7 +24,7 @@ import es.uam.eps.ir.socialranksys.metrics.PairMetric;
 public class AggregatePairMetric<U> implements GraphMetric<U>
 {
     /**
-     * Pair metric
+     * Pair metric.
      */
     private final PairMetric<U> pairMetric;
 

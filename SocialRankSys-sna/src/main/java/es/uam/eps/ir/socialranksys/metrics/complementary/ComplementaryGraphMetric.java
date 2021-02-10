@@ -22,7 +22,7 @@ import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
 public class ComplementaryGraphMetric<U> implements GraphMetric<U>
 {
     /**
-     * The metric to find on the complementary graph
+     * The metric to find on the complementary graph.
      */
     private final GraphMetric<U> metric;
 

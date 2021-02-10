@@ -17,8 +17,10 @@ import java.util.Map;
 
 /**
  * Distribution that combines information and user parameters.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -26,7 +28,7 @@ import java.util.Map;
 public class MixedParamDistribution<U extends Serializable,I extends Serializable,P> extends AbstractDistribution<U,I,P> 
 {
     /**
-     * Name of the distribution
+     * Name of the distribution.
      */
     private final static String INFOPIECES = "mixed-";
     /**

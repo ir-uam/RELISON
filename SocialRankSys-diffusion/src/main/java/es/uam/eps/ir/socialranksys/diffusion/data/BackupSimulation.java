@@ -15,14 +15,15 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * Representation of the backup of a simulation
+ * Representation of the backup of a simulation.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class BackupSimulation
 {
     /**
-     * The backup of the simulation
+     * The backup of the simulation.
      */
     private final List<Map<Integer, List<Integer>>> iterations;
     
@@ -35,7 +36,7 @@ public class BackupSimulation
     }
     
     /**
-     * Adds a new iteration
+     * Adds a new iteration.
      * @param iteration the iteration of the simulation
      */
     public void addIteration(Map<Integer, List<Integer>> iteration)
@@ -44,7 +45,7 @@ public class BackupSimulation
     }
     
     /**
-     * Gets an iteration
+     * Gets an iteration.
      * @param iteration the iteration of the simulation
      * @return iterations.
      */
@@ -61,9 +62,9 @@ public class BackupSimulation
     }
     
     /**
-     * Gets a stream of the users that have received a new information piece during a given iteration
+     * Gets a stream of the users that have received a new information piece during a given iteration.
      * @param iteration the iteration.
-     * @return the users that have received new information pieces during that iteration
+     * @return the users that have received new information pieces during that iteration.
      */
     public Stream<Integer> getModifiedUsers(int iteration)
     {
@@ -78,9 +79,9 @@ public class BackupSimulation
     }
     
     /**
-     * Gets a stream with the information pieces received by a single user during an iteration
-     * @param iteration the iteration
-     * @param user the user
+     * Gets a stream with the information pieces received by a single user during an iteration.
+     * @param iteration the iteration.
+     * @param user the user.
      * @return the new pieces received during the iteration.
      */
     public Stream<Integer> getNewPieces(int iteration, int user)

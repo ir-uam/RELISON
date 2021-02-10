@@ -14,8 +14,10 @@ import java.io.Serializable;
 
 /**
  * Interface for writing a simulation into a file.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -23,7 +25,7 @@ import java.io.Serializable;
 public interface SimulationWriter<U extends Serializable, I extends Serializable, P> 
 {
     /**
-     * Initializes the simulation writing
+     * Initializes the simulation writing.
      * @param file the name of the file where we want to store the simulation.
      * @return true if everything went OK, false if something failed while configuring the writer.
      */

@@ -20,9 +20,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Selection for Independent Cascade Model selection mechanism
+ * Selection for Independent Cascade Model selection mechanism.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * <p>
+ * <b>Reference:</b>  J. Goldenberg, B. Libai, and E. Muller. Talk of the Network: A Complex Systems Look at the Underlying Process of Word-of-Mouth, Marketing Letters, 12(3), pp. 211–223 (2001).
+ * </p>
+ *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
  * @param <P> type of the parameters

@@ -28,11 +28,11 @@ import java.util.stream.Collectors;
 public class ComplementaryPageRank<U> implements VertexMetric<U>
 {
     /**
-     * Maximum number of iterations
+     * Maximum number of iterations.
      */
     private final int MAXITER = 50;
     /**
-     * Threshold
+     * Threshold.
      */
     private final double THRESHOLD = 0.00001;
     /**
@@ -40,7 +40,7 @@ public class ComplementaryPageRank<U> implements VertexMetric<U>
      */
     private final double r;
     /**
-     * Original node (if PageRank is personalized)
+     * Original node (if PageRank is personalized).
      */
     private final U u;
 

@@ -21,7 +21,8 @@ import java.util.stream.Stream;
 /**
  * Abstract fast implementation of class MultiEdges.
  *
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public abstract class FastMultiEdges implements MultiEdges
 {

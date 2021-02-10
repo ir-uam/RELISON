@@ -16,11 +16,13 @@ import java.util.stream.Stream;
 
 /**
  * Expiration mechanism that discards every not previously propagated received information piece.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> type of the users
- * @param <I> type of the information
- * @param <P> type of the parameters
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class AllNotPropagatedExpirationMechanism<U extends Serializable,I extends Serializable,P> implements ExpirationMechanism<U,I,P>
 {

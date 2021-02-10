@@ -19,8 +19,14 @@ import java.util.List;
 
 /**
  * Selects the propagated pieces.
+ *
+ * <p>
+ * <b>Reference:</b>  D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the spread of influence through a social network, KDD 2003, pp. 137–146 (2003).
+ * </p>
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.

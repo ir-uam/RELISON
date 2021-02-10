@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -23,12 +23,12 @@ import java.util.OptionalDouble;
  * Metric that computes the closeness of the nodes.
  *
  * <p>
- * <b>Reference:</b> M.E.J. Newman. Networks: an introduction (2010)
+ * <b>References:</b><br/>
+ * M.E.J. Newman. Networks: an introduction (2010)<br />
+ * L.C. Freeman. Centrality in Networks: I. Conceptual clarification, Social Networks 1, 1979, pp.215-239
  * </p>
  *
- * @param <U> Type of the users
- *            <p>
- *            Centrality in Networks: I. Conceptual clarification. Freeman, Linton C., Social Networks 1, 1979, pp.215-239
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -40,7 +40,7 @@ public class Closeness<U> implements VertexMetric<U>
      */
     private final DistanceCalculator<U> dc;
     /**
-     * Calculation mode
+     * Calculation mode.
      */
     private final ClosenessMode mode;
 

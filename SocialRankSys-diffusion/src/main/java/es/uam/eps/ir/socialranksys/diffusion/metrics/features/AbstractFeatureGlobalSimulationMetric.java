@@ -38,12 +38,12 @@ public abstract class AbstractFeatureGlobalSimulationMetric<U extends Serializab
      */
     private final boolean userParam;
     /**
-     * Parameter name
+     * Parameter name.
      */
     private final String parameter;
     
     /**
-     * Constructor
+     * Constructor.
      * @param name the name of the metric.
      * @param userParam true if it uses the parameters of the users, false if it uses the parameters of the information pieces.
      * @param parameter the name of the parameter.

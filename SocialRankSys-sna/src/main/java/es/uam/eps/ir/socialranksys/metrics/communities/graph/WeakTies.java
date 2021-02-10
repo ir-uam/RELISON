@@ -19,13 +19,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Computes the number of edges between communities
+ * Computes the number of edges between communities.
  *
  * <p>
  * <b>Reference: </b> E. Ferrara, P. de Meo, G. Fiumara, A. Provetti. On Facebook, most ties are weak. Communications of the ACM 57(11), pp. 78-84 (2012)
  * </p>
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

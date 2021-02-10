@@ -1,7 +1,8 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
- * de Madrid, http://ir.ii.uam.es
- * 
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
+ * http://terrierteam.dcs.gla.ac.uk/.
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,7 +15,12 @@ import java.util.stream.Stream;
 /**
  * Class that represents a Machine Learning dataset for link prediction / contact
  * recommendation.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
+ * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
+ *
  * @param <U> Type of the users.
  */
 public class InstanceSet<U> 
@@ -23,10 +29,21 @@ public class InstanceSet<U>
      * Information about the different features in the dataset.
      */
     private final FeatureInformation featuresInfo;
-    
+    /**
+     * Instances identified by the origin node of the edge.
+     */
     private final Map<U, Map<U, Instance<U>>> originInstances;
+    /**
+     * Instances identified by the destination node of the edge.
+     */
     private final Map<U, Map<U, Instance<U>>> destInstances;
+    /**
+     * Possible classes.
+     */
     private final Set<Integer> classes;
+    /**
+     * Size of the instance set.
+     */
     private int size;
     
     /**
@@ -185,22 +202,38 @@ public class InstanceSet<U>
     {
         return this.featuresInfo;
     }
-    
+
+    /**
+     * Obtains the set of classes.
+     * @return the set of classes.
+     */
     public Set<Integer> getClasses()
     {
         return this.classes;
     }
-    
+
+    /**
+     * Obtains the number of instances in the set.
+     * @return the number of instances in the set.
+     */
     public int getNumInstances()
     {
         return this.size;
     }
-    
+
+    /**
+     * Obtains the users with adjacent links in the set.
+     * @return the users with adjacent links in the set.
+     */
     public Set<U> getOriginUsers()
     {
         return this.originInstances.keySet();
     }
-    
+
+    /**
+     * Obtains the users with incident links in the set.
+     * @return the users with incident links in the set.
+     */
     public Set<U> getDestUsers()
     {
         return this.destInstances.keySet();

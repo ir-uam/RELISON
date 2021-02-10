@@ -24,10 +24,18 @@ import java.util.Scanner;
 /**
  * Search engine using the vector space model.
  *
- * <b>Reference:</b>
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * <p>
+ * <b>Reference:</b> G. Salton, A. Wong, C. Yang. A vector space model for automatic indexing. Communications of the ACM 18(11), pp. 613-618 (1975)
+ * </p>
  */
 public class VSMSearchEngine extends AbstractSearchEngine
 {
+    /**
+     * Modules
+     */
     Int2DoubleOpenHashMap mods = new Int2DoubleOpenHashMap();
 
     /**

@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  * <b>Reference:</b> D.J. Watts, S.H. Strogatz. Collective dynamics of 'small-world' networks. Nature 393(6684), pp. 440-442 (1998)
  * </p>
  *
- * @param <U> type of the users
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

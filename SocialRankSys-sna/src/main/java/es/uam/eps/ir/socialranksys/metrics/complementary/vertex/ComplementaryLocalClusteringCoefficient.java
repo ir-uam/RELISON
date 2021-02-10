@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 /**
  * Computes the local clustering coefficient of a node in the complementary graph.
  *
- * @param <U> type of the users
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -51,7 +51,7 @@ public class ComplementaryLocalClusteringCoefficient<U> implements VertexMetric<
      */
     private Map<EdgeOrientation, Map<U, Double>> degrees = new HashMap<>();
     /**
-     * The degrees of each node without autoloops
+     * The degrees of each node without autoloops.
      */
     private Map<EdgeOrientation, Map<U, Double>> degreesNoAutoloops = new HashMap<>();
 
@@ -139,7 +139,7 @@ public class ComplementaryLocalClusteringCoefficient<U> implements VertexMetric<
     }
 
     /**
-     * Initializes all the necessary data to compute the local clustering
+     * Initializes all the necessary data to compute the local clustering.
      * coefficient in the complementary graph.
      *
      * @param graph the graph.

@@ -8,7 +8,6 @@
  */
 package es.uam.eps.ir.socialranksys.diffusion.selections;
 
-
 import es.uam.eps.ir.socialranksys.diffusion.data.PropagatedInformation;
 
 import java.util.ArrayList;

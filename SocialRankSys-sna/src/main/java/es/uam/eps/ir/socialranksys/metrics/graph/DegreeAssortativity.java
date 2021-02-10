@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,7 +18,7 @@ import es.uam.eps.ir.socialranksys.metrics.vertex.Degree;
  * <b>Reference: </b> M.E.J. Newman. Assortative mixing in networks. Physical Review Letters 89(20), 208701 (2002)
  * </p>
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -26,9 +26,9 @@ import es.uam.eps.ir.socialranksys.metrics.vertex.Degree;
 public class DegreeAssortativity<U> extends Assortativity<U>
 {
     /**
-     * Constructor
+     * Constructor.
      *
-     * @param dir the degree to take in the comparison
+     * @param dir the degree to take in the comparison.
      */
     public DegreeAssortativity(EdgeOrientation dir)
     {

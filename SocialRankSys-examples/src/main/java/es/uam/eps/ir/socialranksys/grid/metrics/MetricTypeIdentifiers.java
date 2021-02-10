@@ -8,7 +8,6 @@
  */
 package es.uam.eps.ir.socialranksys.grid.metrics;
 
-import org.openide.util.Exceptions;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -69,7 +68,7 @@ public class MetricTypeIdentifiers
                 } 
                 catch (IllegalArgumentException | IllegalAccessException ex) 
                 {
-                    Exceptions.printStackTrace(ex);
+                    ex.printStackTrace();
                 }
             }
         }

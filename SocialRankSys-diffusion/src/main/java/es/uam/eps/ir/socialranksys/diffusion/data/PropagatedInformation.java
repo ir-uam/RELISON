@@ -13,13 +13,14 @@ import java.util.*;
 
 /**
  * Class that represents the propagated information in a simulation.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class PropagatedInformation extends Information<Integer> implements Serializable, Cloneable
 {   
     /**
-     * Creators of the information / Users that have made this information arrive to a given user
+     * Creators of the information / Users that have made this information arrive to a given user.
      */
     private Set<Integer> creators;
     /**
@@ -30,7 +31,7 @@ public class PropagatedInformation extends Information<Integer> implements Seria
     /**
      * Propagated information constructor.
      * @param infoId The identifier of the original piece of information.
-     * @param timestamp The time of arrival of this piece
+     * @param timestamp The time of arrival of this piece.
      * @param creator The user that propagated this in last place.
      */
     public PropagatedInformation(Integer infoId, long timestamp, int creator)
@@ -76,8 +77,8 @@ public class PropagatedInformation extends Information<Integer> implements Seria
     
     /**
      * Updates the propagated information.
-     * @param info new data
-     * @return the updated propagated information
+     * @param info new data.
+     * @return the updated propagated information.
      */
     public PropagatedInformation update(PropagatedInformation info)
     {
@@ -97,7 +98,7 @@ public class PropagatedInformation extends Information<Integer> implements Seria
     }
    
     /**
-     * Obtains the list of propagators
+     * Obtains the list of propagators.
      * @return The list of users that propagated this info in last place.
      */
     public Set<Integer> getCreators()
@@ -106,7 +107,7 @@ public class PropagatedInformation extends Information<Integer> implements Seria
     }
 
     /**
-     * Sets the list of propagators
+     * Sets the list of propagators.
      * @param creators The new list.
      */
     public void setCreator(List<Integer> creators)

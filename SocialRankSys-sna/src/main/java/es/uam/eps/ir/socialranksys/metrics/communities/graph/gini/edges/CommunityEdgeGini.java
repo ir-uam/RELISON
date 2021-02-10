@@ -30,7 +30,7 @@ import es.uam.eps.ir.socialranksys.metrics.graph.EdgeGiniMode;
  *     </ol>
  *
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -38,7 +38,7 @@ import es.uam.eps.ir.socialranksys.metrics.graph.EdgeGiniMode;
 public abstract class CommunityEdgeGini<U> implements CommunityMetric<U>
 {
     /**
-     * EdgeGini execution mode
+     * EdgeGini execution mode.
      *
      * @see EdgeGiniMode
      */

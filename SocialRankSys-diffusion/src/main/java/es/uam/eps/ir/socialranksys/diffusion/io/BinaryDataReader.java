@@ -34,7 +34,8 @@ import java.util.Map;
 import static org.ranksys.formats.parsing.Parsers.lp;
 
 /**
- * Writes data in a binary file.
+ * Reads data from a binary file.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
@@ -90,7 +91,7 @@ public class BinaryDataReader
     /**
      * Read a simple version of the data.
      * @param file the file containing the data.
-     * @param recFile File containing the recommendation
+     * @param recFile File containing the recommendation.
      * @param topN the number of recommendations to take.
      * @return a Data object if ok, null if not.
      */
@@ -145,7 +146,7 @@ public class BinaryDataReader
     
 
     /**
-     * Reads a user index
+     * Reads a user index.
      * @param dos A data stream for reading the data.
      * @return the user index.
      * @throws IOException if something fails while reading the data stream.
@@ -165,7 +166,7 @@ public class BinaryDataReader
     }
 
     /**
-     * Reads about information pieces
+     * Reads about information pieces.
      * @param dos A data stream for reading the data.
      * @param userIndex The index for the users.
      * @return a triplet containing the index of information pieces, the additional information for those pieces and the user-piece relation.
@@ -206,9 +207,9 @@ public class BinaryDataReader
     }
 
     /**
-     * Reads information about features
-     * @param dos a data stream for reading the data
-     * @param index an index (user/pieces)
+     * Reads information about features.
+     * @param dos a data stream for reading the data.
+     * @param index an index (user/pieces).
      * @return a triplet containing the list of parameter names, a map containing the possible values for each parameter, a map containing the relation between users and information pieces.
      * @throws IOException if something fails while reading the data stream.
      */
@@ -231,8 +232,8 @@ public class BinaryDataReader
 
     /**
      * Reads information about a single feature.
-     * @param dos a data stream for reading the data
-     * @param index an index (user/pieces)
+     * @param dos a data stream for reading the data.
+     * @param index an index (user/pieces).
      * @return a triplet containing the name of the parameter, the possible values for the parameter, the relation between users and values.
      * @throws IOException if something fails while reading the data stream.
      */

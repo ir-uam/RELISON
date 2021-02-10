@@ -19,7 +19,7 @@ import java.util.Map;
 /**
  * Computes the Gini coefficient of the distribution of community sizes.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

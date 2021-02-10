@@ -17,22 +17,24 @@ import java.util.stream.Stream;
 
 /**
  * Expiration mechanism that discards information pieces after a certain number of iterations.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> type of the users
- * @param <I> type of the information
- * @param <P> type of the parameters
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class TimedExpirationMechanism<U extends Serializable,I extends Serializable,P> implements ExpirationMechanism<U,I,P>
 {
     /**
-     * Time before expiration
+     * Time before expiration.
      */
     public final long maxTime;
     
     /**
      * Constructor.
-     * @param maxTime Time before expiration of the information piece
+     * @param maxTime Time before expiration of the information piece.
      */
     public TimedExpirationMechanism(long maxTime)
     {

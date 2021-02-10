@@ -7,7 +7,6 @@ package es.uam.eps.ir.socialranksys.grid.links.recommendation.rerankers;
 
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.GridReader;
-import org.openide.util.Exceptions;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -77,7 +76,7 @@ public class RerankerGridReader extends GridReader
             
         } catch (ParserConfigurationException | SAXException | IOException ex)
         {
-            Exceptions.printStackTrace(ex);
+            ex.printStackTrace();
         }
     }
     

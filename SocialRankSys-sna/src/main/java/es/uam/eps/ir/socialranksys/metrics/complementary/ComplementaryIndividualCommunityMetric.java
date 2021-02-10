@@ -25,7 +25,7 @@ import java.util.Map;
 public class ComplementaryIndividualCommunityMetric<U> implements IndividualCommunityMetric<U>
 {
     /**
-     * The metric to find on the complementary graph
+     * The metric to find on the complementary graph.
      */
     private final IndividualCommunityMetric<U> metric;
 

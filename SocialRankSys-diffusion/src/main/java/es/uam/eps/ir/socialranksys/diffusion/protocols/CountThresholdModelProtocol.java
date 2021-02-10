@@ -18,6 +18,7 @@ import java.io.Serializable;
 
 /**
  * Count threshold model protocol.
+ *
  * <br>
  * Main characteristics
  * <ul>
@@ -33,6 +34,7 @@ import java.io.Serializable;
  *  propagates the information</li>
  *  <li><b>Sight mechanism:</b> All users see all the received information pieces.</li>
  * </ul>
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *

@@ -19,25 +19,25 @@ import java.io.Serializable;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> type of the user
- * @param <I> type of the information
- * @param <P> type of the parameters
+ * @param <U> type of the user.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class GlobalRealPropagatedRecall<U extends Serializable,I extends Serializable,P> extends AbstractGlobalSimulationMetric<U,I,P>
 {
 
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String PROP = "global-infoprop-recall";
 
     /**
-     * Speed value
+     * Speed value.
      */
     private double current;
     
     /**
-     * Number of currently propagated
+     * Number of currently propagated.
      */
     private double maximum;
     

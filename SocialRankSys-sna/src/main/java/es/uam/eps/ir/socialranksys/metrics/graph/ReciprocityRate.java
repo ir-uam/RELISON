@@ -14,7 +14,7 @@ import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
 /**
  * Reciprocity rate of the graph (proportion of reciprocal links)
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

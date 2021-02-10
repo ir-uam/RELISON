@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * <b>Reference: </b> M.E.J. Newman. Assortative mixing in networks. Physical Review Letters 89(20), 208701 (2002)
  * </p>
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -36,14 +36,14 @@ import java.util.stream.Collectors;
 public class Assortativity<U> implements GraphMetric<U>
 {
     /**
-     * Function for computing the values for each node
+     * Function for computing the values for each node.
      */
     private final ToDoubleBiFunction<U, Graph<U>> function;
 
     /**
-     * Constructor
+     * Constructor.
      *
-     * @param function function to apply to the users
+     * @param function function to apply to the users.
      */
     public Assortativity(ToDoubleBiFunction<U, Graph<U>> function)
     {

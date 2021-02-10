@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -31,7 +31,7 @@ public class LocalReciprocityRate<U> implements VertexMetric<U>
     /**
      * Constructor.
      *
-     * @param orient Orientation of the edges
+     * @param orient Orientation of the edges.
      */
     public LocalReciprocityRate(EdgeOrientation orient)
     {

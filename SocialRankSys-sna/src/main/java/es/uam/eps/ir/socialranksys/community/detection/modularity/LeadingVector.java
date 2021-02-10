@@ -21,7 +21,7 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
  * <b>Reference:</b> M.E.J. Newman.  Finding community structure in networks using the eigenvectors of matrices. Physical Review E 74 (2006)
  * </p>
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

@@ -24,7 +24,7 @@ import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 public class InverseDegree<U> implements VertexMetric<U>
 {
     /**
-     * The orientation in which the score is computed..
+     * The orientation in which the score is computed.
      */
     EdgeOrientation orientation;
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -32,12 +32,12 @@ public class AverageReciprocalShortestPathLength<U> implements GraphMetric<U>
 {
 
     /**
-     * Calculates the distances
+     * Calculates the distances.
      */
     private final DistanceCalculator<U> dc;
 
     /**
-     * Constructor
+     * Constructor.
      *
      * @param dc distance calculator.
      */

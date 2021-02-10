@@ -32,8 +32,14 @@ import java.io.Serializable;
  *  propagates the information</li>
  *  <li><b>Sight mechanism:</b> All users see all the received information pieces.</li>
  * </ul>
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * <p>
+ * <b>Reference:</b>  D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the spread of influence through a social network, KDD 2003, pp. 137–146 (2003).
+ * </p>
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.

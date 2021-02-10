@@ -21,8 +21,10 @@ import java.util.List;
  * Selects the propagated pieces. This algorithm propagates a certain number of information pieces each
  * iteration, chosen randomly from the own pieces of information and the received ones that the user has repropagated
  * in a real life scenario.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users.
  * @param <I> type of the information.
  * @param <P> type of the parameters.

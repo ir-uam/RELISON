@@ -14,6 +14,7 @@ import es.uam.eps.ir.socialranksys.diffusion.data.PropagatedInformation;
 /**
  * Updates the previously received elements with information obtained from the new ones.
  * Merges both pieces of propagated information.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */

@@ -18,6 +18,7 @@ import java.util.List;
 
 /**
  * Interface for the different metrics to apply over the simulation.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
@@ -28,24 +29,25 @@ import java.util.List;
 public interface SimulationMetric<U extends Serializable,I extends Serializable,P> 
 {    
     /**
-     * Obtains the name of the metric
-     * @return the name of the metric
+     * Obtains the name of the metric.
+     * @return the name of the metric.
      */
     String getName();
-    
+
     /**
      * Indicates if the metric has been initialized or not.
      * @return true if it has been initialized, false if it has not.
      */
     boolean isInitialized();
+
     /**
      * Calculates the metric for the current state of the simulation.
      * @return the value of the metric for the current state of the simulation
      */
     double calculate();
-    
+
     /**
-     * Calculates the metric for each iteration of a simulation
+     * Calculates the metric for each iteration of a simulation.
      * @param data the data.
      * @param simulation the whole simulation.
      * @return the value of the metric for each iteration.
@@ -80,7 +82,7 @@ public interface SimulationMetric<U extends Serializable,I extends Serializable,
     void clear();
 
     /**
-     * Initializes the metric
+     * Initializes the metric.
      * @param data the data.
      */
     void initialize(Data<U, I, P> data);

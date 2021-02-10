@@ -20,6 +20,7 @@ import java.util.Set;
  * Abstract class representing individual feature-based metrics which do not take into account features that the user already knows
  * (with already knows meaning that the user has the feature, in case of user features, or the user has an information piece containing
  * the feature, in case of information features).
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -57,7 +58,7 @@ public abstract class AbstractExternalFeatureGlobalSimulationMetric<U extends Se
 
     /**
      * Obtains the parameters that an individual user already knows.
-     * @param u the user
+     * @param u the user.
      * @return the set of parameters the user already knows. If the user does not exist, an empty set is returned.
      */
     protected Set<P> getOwnParams(U u)
@@ -96,7 +97,7 @@ public abstract class AbstractExternalFeatureGlobalSimulationMetric<U extends Se
 
     /**
      * Computes the user parameters for an individual user.
-     * @param u the user
+     * @param u the user.
      * @return the parameter set.
      */
     protected Set<P> computeOwnUserParams(U u)
@@ -110,7 +111,7 @@ public abstract class AbstractExternalFeatureGlobalSimulationMetric<U extends Se
 
     /**
      * Computes information piece parameters for an individual user.
-     * @param u the user
+     * @param u the user.
      * @return the parameter set.
      */
     protected Set<P> computeOwnInfoParams(U u)
@@ -133,7 +134,7 @@ public abstract class AbstractExternalFeatureGlobalSimulationMetric<U extends Se
 
     /**
      * Adds params for an individual user.
-     * @param u the user
+     * @param u the user.
      * @param params the parameters.
      */
     protected void setOwnParams(U u, Set<P> params)

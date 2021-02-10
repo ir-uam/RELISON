@@ -17,7 +17,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * Class that relates the nodes of a graph with communities
+ * Class that relates the nodes of a graph with communities.
  *
  * @param <U> type of the nodes.
  *
@@ -46,9 +46,9 @@ public class Communities<U>
     }
 
     /**
-     * Obtains the number of communities
+     * Obtains the number of communities.
      *
-     * @return The number of communities
+     * @return The number of communities.
      */
     public int getNumCommunities()
     {
@@ -66,11 +66,11 @@ public class Communities<U>
     }
 
     /**
-     * Gets the community a given user belongs to
+     * Gets the community a given user belongs to.
      *
-     * @param user The user
+     * @param user The user.
      *
-     * @return The community if the user exists, -1 if it does not exist
+     * @return The community if the user exists, -1 if it does not exist.
      */
     public int getCommunity(U user)
     {
@@ -97,7 +97,7 @@ public class Communities<U>
     }
 
     /**
-     * Adds a new community to the list
+     * Adds a new community to the list.
      */
     public void addCommunity()
     {
@@ -105,10 +105,10 @@ public class Communities<U>
     }
 
     /**
-     * Adds a pair user/community
+     * Adds a pair user/community.
      *
      * @param user The new user. It must not be already in the object.
-     * @param comm The associated community. The community has to previously exist
+     * @param comm The associated community. The community has to previously exist.
      *
      * @return true if everything goes OK, false if not.
      */

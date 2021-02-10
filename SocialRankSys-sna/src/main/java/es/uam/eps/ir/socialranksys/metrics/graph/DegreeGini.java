@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * not taken into account). This metric tries to see how equally the degree is
  * distributed between the different nodes.
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -33,7 +33,7 @@ public class DegreeGini<U> implements GraphMetric<U>
 {
 
     /**
-     * Orientation of the edges
+     * Orientation of the edges.
      */
     private final EdgeOrientation orientation;
 
@@ -52,7 +52,7 @@ public class DegreeGini<U> implements GraphMetric<U>
      * If not, NaN is returned. If there is no edges, then, the value is equal to 1.0 (every
      * node has the same degree).
      *
-     * @param graph the graph
+     * @param graph the graph.
      *
      * @return the computed value.
      */
@@ -75,7 +75,7 @@ public class DegreeGini<U> implements GraphMetric<U>
     }
 
     /**
-     * Computes the Degree Gini for the directed graph case
+     * Computes the Degree Gini for the directed graph case.
      *
      * @param graph The directed graph.
      *
@@ -109,9 +109,9 @@ public class DegreeGini<U> implements GraphMetric<U>
 
 
     /**
-     * Computes the Degree Gini for the undirected graph case
+     * Computes the Degree Gini for the undirected graph case.
      *
-     * @param graph The undirected graph
+     * @param graph The undirected graph.
      *
      * @return The value of the metric.
      */

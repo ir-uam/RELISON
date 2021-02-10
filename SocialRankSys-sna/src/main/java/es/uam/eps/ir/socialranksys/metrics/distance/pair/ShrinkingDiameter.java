@@ -35,7 +35,7 @@ public class ShrinkingDiameter<U> extends AbstractPairMetric<U>
     private final DistanceCalculator<U> dc;
 
     /**
-     * Constructor
+     * Constructor.
      */
     public ShrinkingDiameter()
     {
@@ -156,10 +156,10 @@ public class ShrinkingDiameter<U> extends AbstractPairMetric<U>
      * @param graph           the graph.
      * @param u               the origin user.
      * @param v               the destination user.
-     * @param uCIn            the incoming component of user u
-     * @param uCOut           the outgoing component of user u
-     * @param vCIn            the incoming component of user v
-     * @param vCOut           the outgoing component of user v
+     * @param uCIn            the incoming component of user u.
+     * @param uCOut           the outgoing component of user u.
+     * @param vCIn            the incoming component of user v.
+     * @param vCOut           the outgoing component of user v.
      * @param pairsAtDistance map that contains the different pairs of users at a given distance.
      * @param distances       the distances.
      *

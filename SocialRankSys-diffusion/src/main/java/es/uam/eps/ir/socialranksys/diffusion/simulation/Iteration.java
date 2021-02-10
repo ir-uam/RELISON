@@ -17,8 +17,10 @@ import java.util.stream.Stream;
 
 /**
  * Class that represents a single iteration.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
@@ -70,8 +72,8 @@ public interface Iteration<U,I,P>
     /* ******************* Seen information pieces during the iteration*/
     
     /**
-     * Obtains the number of users which have received and read new information in this iteration
-     * @return the number of users which have received and read new information in this iteration
+     * Obtains the number of users which have received and read new information in this iteration.
+     * @return the number of users which have received and read new information in this iteration.
      */ 
     int getNumReceivingUsers();
     /**
@@ -130,7 +132,7 @@ public interface Iteration<U,I,P>
     /**
      * Obtains the total number of information pieces which have been seen by a user (considering that the user
      * had read them before).
-     * @param u the user
+     * @param u the user.
      * @return the total number of information pieces which have been seen by the user (considering that the user
      * had read them before).
      */
@@ -144,7 +146,7 @@ public interface Iteration<U,I,P>
     /**
      * Obtains the total number of different information pieces which have been read by a user in the network 
      * during this iteration after they were read in a previous iteration.
-     * @param u the user
+     * @param u the user.
      * @return the number of different information pieces which have been read by the user after they were read in a previous iteration..
      */
     int getNumUniqueReReceived(U u);
@@ -157,7 +159,7 @@ public interface Iteration<U,I,P>
     Stream<U> getReReceivingUsers();
     /**
      * Obtains the set of information that a given user read in previous iterations, and have been re-read in this one.
-     * @param u the user
+     * @param u the user.
      * @return the set of information that the user read in previous iterations, and have been re-read in this one.
      */
     Stream<Tuple2oo<I, Set<U>>> getReReceivedInformation(U u);
@@ -188,7 +190,7 @@ public interface Iteration<U,I,P>
     Stream<U> getPropagatingUsers();
     /**
      * Obtains the set of information pieces that a given user has propagated during this iteration.
-     * @param u the user
+     * @param u the user.
      * @return the set of information pieces that the user has propagated during this iteration.
      */
     Stream<I> getPropagatedInformation(U u);
@@ -207,7 +209,7 @@ public interface Iteration<U,I,P>
     int getNumDiscarded();
     /**
      * Obtains the total number of information pieces that a given user has discarded during this iteration.
-     * @param u the user
+     * @param u the user.
      * @return the total number of information pieces that the user has discarded during this iteration.
      */
     int getNumDiscarded(U u);
@@ -219,7 +221,7 @@ public interface Iteration<U,I,P>
     
     /**
      * Obtains the set of information pieces that a given user has discarded during this iteration.
-     * @param u the user
+     * @param u the user.
      * @return the set of information pieces that the user has discarded during this iteration.
      */
     Stream<I> getDiscardedInformation(U u);
@@ -237,7 +239,7 @@ public interface Iteration<U,I,P>
     
     /**
      * Obtains the total number of information pieces that a given user has read during this iteration.
-     * @param u the user
+     * @param u the user.
      * @return the total number of information pieces that a given user has read during this iteration.
      */
     default int getTotalReceived(U u)

@@ -1,7 +1,8 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
- * de Madrid, http://ir.ii.uam.es
- * 
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
+ * http://terrierteam.dcs.gla.ac.uk/.
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -17,7 +18,12 @@ import java.io.Writer;
 
 /**
  * Class for writing patterns in different formats.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
+ * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
+ *
  * @param <U> Type of the users
  */
 public interface InstanceSetWriter<U>
@@ -37,9 +43,20 @@ public interface InstanceSetWriter<U>
      */
     String writeFeatureInfo(FeatureInformation featInfo);
 
-
+    /**
+     * Writes the feature information of a file.
+     * @param write the writer.
+     * @param featInfo feature information to write.
+     * @throws IOException if something fails while writing.
+     */
     void write(Writer write, FeatureInformation featInfo) throws IOException;
 
+    /**
+     * Writes an individual instance into a file.
+     * @param write the writer.
+     * @param instance the instance to write.
+     * @throws IOException if something fails while writing.
+     */
     void write(Writer write, Instance<U> instance) throws IOException;
     
     /**

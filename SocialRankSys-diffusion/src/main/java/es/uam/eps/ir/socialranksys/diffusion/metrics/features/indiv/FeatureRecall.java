@@ -20,14 +20,14 @@ import java.util.*;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> type of the user
- * @param <I> type of the information
- * @param <P> type of the parameters
+ * @param <U> type of the user.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class FeatureRecall<U extends Serializable,I extends Serializable,P> extends AbstractFeatureIndividualSimulationMetric<U,I,P>
 {
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String RECALL = "feat-recall";
 
@@ -37,7 +37,7 @@ public class FeatureRecall<U extends Serializable,I extends Serializable,P> exte
     private final Map<U, Set<P>> recParams;
 
     /**
-     * The total number of external parameters that have reached the different users
+     * The total number of external parameters that have reached the different users.
      */
     private double total;    
     

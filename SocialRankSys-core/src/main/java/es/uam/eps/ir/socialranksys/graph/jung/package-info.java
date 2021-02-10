@@ -8,7 +8,7 @@
  */
 
 /**
- * Wrapper classes for the JUNG library
+ * Wrapper classes for the <a href="http://jung.sourceforge.net/">JUNG</a> library
  *
  * @see <a href="http://jung.sourceforge.net/">JUNG</a>
  */

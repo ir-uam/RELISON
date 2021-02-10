@@ -13,9 +13,11 @@ import es.uam.eps.ir.socialranksys.diffusion.data.Data;
 import java.io.Serializable;
 
 /**
- * Abstract class for representing global simulation metrics
+ * Abstract class for representing global simulation metrics.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.

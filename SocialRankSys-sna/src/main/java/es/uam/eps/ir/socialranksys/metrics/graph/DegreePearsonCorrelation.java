@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -12,9 +12,9 @@ import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.metrics.vertex.Degree;
 
 /**
- * Computes the degree Pearson correlation for the links in a graph
+ * Computes the degree Pearson correlation for the links in a graph.
  *
- * @param <U> type of the users
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -22,7 +22,7 @@ import es.uam.eps.ir.socialranksys.metrics.vertex.Degree;
 public class DegreePearsonCorrelation<U> extends PearsonCorrelation<U>
 {
     /**
-     * Constructor
+     * Constructor.
      *
      * @param uSel Degree selection for the origin node.
      * @param vSel Degree selection for the destination node.

@@ -13,20 +13,22 @@ import java.util.Objects;
 /**
  * Class for the parameters we want to measure at evaluation. By now, although its values can be 
  * variated, they are treated as nominal values.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <P> parameter for the information.
  */
 public class Feature<P> implements Cloneable
 {
     /**
-     * Value of the parameter
+     * Value of the parameter.
      */
     private final P value;
     
     /**
      * Constructor.
-     * @param value Value of the parameter
+     * @param value Value of the parameter.
      */
     public Feature(P value)
     {
@@ -61,7 +63,7 @@ public class Feature<P> implements Cloneable
     }
     
     /**
-     * Obtains the value of the parameter
+     * Obtains the value of the parameter.
      * @return the value.
      */
     public P getValue()

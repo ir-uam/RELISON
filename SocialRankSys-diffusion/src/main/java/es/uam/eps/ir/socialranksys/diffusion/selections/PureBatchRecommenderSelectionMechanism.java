@@ -28,8 +28,10 @@ import java.util.List;
  * In case that information from the selected type of users has not been propagated,
  * no further information is propagated. When selecting tweets to propagate, if the tweet has already been selected,
  * turn is skipped.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users.
  * @param <I> type of the information.
  * @param <P> type of the parameters.

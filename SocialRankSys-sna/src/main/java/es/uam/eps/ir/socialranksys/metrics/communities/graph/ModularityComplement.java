@@ -53,13 +53,13 @@ public class ModularityComplement<U> implements CommunityMetric<U>
     }
 
     /**
-     * Computes the value of the modularity for a directed graph
+     * Computes the value of the modularity for a directed graph.
      *
-     * @param graph     The directed graph
-     * @param comm      The communities
-     * @param commGraph The community graph
+     * @param graph     The directed graph.
+     * @param comm      The communities.
+     * @param commGraph The community graph.
      *
-     * @return The value of the modularity
+     * @return The value of the modularity.
      */
     private double computeDirected(DirectedGraph<U> graph, Communities<U> comm, MultiGraph<Integer> commGraph)
     {

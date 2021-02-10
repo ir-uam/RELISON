@@ -35,7 +35,7 @@ public class Geodesics<U> extends AbstractPairMetric<U>
     private final DistanceCalculator<U> dc;
 
     /**
-     * Constructor
+     * Constructor.
      */
     public Geodesics()
     {
@@ -43,7 +43,7 @@ public class Geodesics<U> extends AbstractPairMetric<U>
     }
 
     /**
-     * Constructor
+     * Constructor.
      *
      * @param dc distance calculator.
      */

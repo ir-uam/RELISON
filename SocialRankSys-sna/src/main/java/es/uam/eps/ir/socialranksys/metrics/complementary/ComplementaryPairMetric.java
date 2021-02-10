@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Aut�noma
  * de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 public class ComplementaryPairMetric<U> implements PairMetric<U>
 {
     /**
-     * The metric to find on the complementary graph
+     * The metric to find on the complementary graph.
      */
     private final PairMetric<U> metric;
 

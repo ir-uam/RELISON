@@ -26,7 +26,7 @@ import java.util.stream.Stream;
 public interface EdgeMetric<U>
 {
     /**
-     * Computes the value of the metric for a single edge
+     * Computes the value of the metric for a single edge.
      *
      * @param graph The full graph.
      * @param orig  The origin node of the edge.
@@ -59,11 +59,11 @@ public interface EdgeMetric<U>
     Map<Pair<U>, Double> compute(Graph<U> graph, Stream<Pair<U>> edges);
 
     /**
-     * Computes the average value of the metric
+     * Computes the average value of the metric.
      *
      * @param graph The full graph.
      *
-     * @return The average value of the metric
+     * @return The average value of the metric.
      */
     double averageValue(Graph<U> graph);
 

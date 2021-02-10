@@ -15,27 +15,29 @@ import java.io.Serializable;
 
 /**
  * Computes the number of pieces of information propagated and seen in all the iterations.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> type of the user
- * @param <I> type of the information
- * @param <P> type of the parameters
+ *
+ * @param <U> type of the user.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class GlobalExternalFeatureRate<U extends Serializable,I extends Serializable,P> extends AbstractExternalFeatureGlobalSimulationMetric<U,I,P>
 {
 
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String EXTPARAMRATE = "gl-ext-featrate";
 
     /**
-     * The number of external parameters that have reached the different users
+     * The number of external parameters that have reached the different users.
      */
     private double externalParams;
     
     /**
-     * The total number of external parameters that have reached the different users
+     * The total number of external parameters that have reached the different users.
      */
     private double totalParams;    
        

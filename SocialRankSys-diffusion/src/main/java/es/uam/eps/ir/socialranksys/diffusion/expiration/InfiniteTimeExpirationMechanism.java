@@ -15,20 +15,20 @@ import java.io.Serializable;
 import java.util.stream.Stream;
 
 /**
- * Expiration mechanism that does not discard any information piece
+ * Expiration mechanism that does not discard any information piece.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> type of the users
- * @param <I> type of the information
- * @param <P> type of the parameters
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information.
+ * @param <P> type of the parameters.
  */
 public class InfiniteTimeExpirationMechanism<U extends Serializable,I extends Serializable,P> implements ExpirationMechanism<U,I,P>
 {
-
     @Override
     public Stream<Integer> expire(UserState<U> user, Data<U,I,P> data, int numIter, Long timestamp)
     {
         return Stream.empty();
     }
-    
 }

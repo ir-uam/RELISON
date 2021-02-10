@@ -14,11 +14,13 @@ import java.io.Serializable;
 
 /**
  * Stops after a given number of information pieces has been propagated.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> type of the users
- * @param <I> type of the items
- * @param <P> type of the parameters
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the items.
+ * @param <P> type of the parameters.
  */
 public class TotalPropagatedStopCondition<U extends Serializable,I extends Serializable,P> implements StopCondition<U,I,P>
 {

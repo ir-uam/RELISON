@@ -20,8 +20,10 @@ import java.util.stream.Stream;
  * Fast implementation for users. To improve performance, only information identifiers are
  * stored for the own information, the propagated information and the discarded 
  * information.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  */
 public class FastUser<U> extends UserState<U> implements Serializable, Cloneable
@@ -32,7 +34,7 @@ public class FastUser<U> extends UserState<U> implements Serializable, Cloneable
     private Map<Integer, PropagatedInformation> ownInfo;
     /**
      * Map that contains the previously received information that has not been 
-     * propagated or discarded
+     * propagated or discarded.
      */
     private Map<Integer, PropagatedInformation> receivedInfo;
     /**

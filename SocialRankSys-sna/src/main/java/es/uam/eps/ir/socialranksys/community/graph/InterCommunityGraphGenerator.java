@@ -21,7 +21,7 @@ import java.util.List;
  * Generates a multi-graph which contains all communities as nodes and all links between
  * different communities as edges. Links inside communities are not considered.
  *
- * @param <U> type of the nodes
+ * @param <U> type of the nodes.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

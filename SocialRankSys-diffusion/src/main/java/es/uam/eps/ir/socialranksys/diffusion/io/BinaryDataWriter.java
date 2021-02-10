@@ -25,13 +25,14 @@ import java.util.stream.Collectors;
 
 /**
  * Writes data in a binary file.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class BinaryDataWriter 
 {
     /**
-     * Write the data
+     * Write the data.
      * @param data the data to write.
      * @param file the file.
      * @return true if everything went OK, false otherwise.

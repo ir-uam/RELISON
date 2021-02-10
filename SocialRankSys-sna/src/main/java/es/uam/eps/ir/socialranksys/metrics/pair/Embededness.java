@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,15 +18,16 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Computes the embeddedness the edges of a graph.
+ * Computes the embeddedness the pairs of nodes of a graph.
  *
  * <p>
  * <b>Reference: </b> D. Easley, J.M. Kleinberg. Networks, crowds and markets (2010)
  * </p>
  *
- * @param <U> Type of the users in the graph
+ * @param <U> Type of the users in the graph.
  *
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class Embededness<U> extends AbstractPairMetric<U>
 {
@@ -96,7 +97,7 @@ public class Embededness<U> extends AbstractPairMetric<U>
      * @param graph the graph.
      * @param u     the user.
      * @param uSel  the neighborhood selection for the user.
-     * @param vSel  the neighborhood selection for the other users
+     * @param vSel  the neighborhood selection for the other users.
      *
      * @return the map of metrics for the user.
      */

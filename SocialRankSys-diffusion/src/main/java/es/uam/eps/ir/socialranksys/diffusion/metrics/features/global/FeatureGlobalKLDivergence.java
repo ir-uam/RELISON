@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 public class FeatureGlobalKLDivergence<U extends Serializable,I extends Serializable,P> extends AbstractFeatureGlobalKLDivergence<U,I,P> 
 {
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String ENTROPY = "feat-gl-kld";
     

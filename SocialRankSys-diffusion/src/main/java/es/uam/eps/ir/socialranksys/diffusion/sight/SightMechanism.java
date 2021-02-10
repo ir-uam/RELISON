@@ -16,22 +16,16 @@ import java.io.Serializable;
 
 /**
  * Mechanism for deciding which information pieces are selected by the different users.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> Type of the users
+ *
+ * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
  * @param <P> Type of the parameters.
  */
 public interface SightMechanism<U extends Serializable,I extends Serializable,P>
 {
-    /*
-     * Selects the information pieces that a user sees.
-     * @param user The user that sees the data.
-     * @param data The data.
-     * @return A stream containing the pieces of information that will pass from new to seen
-     */
-  //  public Stream<PropagatedInformation> seeInformation(UserState<U> user, Data<U,I,P> data);
-    
     /**
      * Resets the selections made.
      * @param data The data.

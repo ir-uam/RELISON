@@ -24,12 +24,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Fast version of a distance calculator which just computes the distances between pairs of nodes.
+ * Unsupported metrics: node betweenness, edge betweenness, geodesics.
  *
  * <p>
  * <b>References: </b> M.E.J. Newman. Networks: an introduction (2010)
  * </p>
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -172,80 +173,43 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
         return true;
     }
 
-    /**
-     * Returns the node betweenness for each node in the network.
-     *
-     * @return a map containing the node betweenness for each node.
-     */
+    @Override
     public Map<U, Double> getNodeBetweenness()
     {
         throw new UnsupportedOperationException("Unsupported method");
     }
 
-    /**
-     * Gets the value of node betweenness for a single node.
-     *
-     * @param node the value for the node.
-     *
-     * @return the node betweenness for that node.
-     */
+    @Override
     public double getNodeBetweenness(U node)
     {
         throw new UnsupportedOperationException("Unsupported method");
     }
 
-    /**
-     * Gets all the values of the edge betweenness
-     *
-     * @return the edge betweenness value for each edge.
-     */
+    @Override
     public Map<U, Map<U, Double>> getEdgeBetweenness()
     {
         throw new UnsupportedOperationException("Unsupported method");
     }
 
-    /**
-     * Returns the edge betweenness of all the adjacent edges to a given node.
-     *
-     * @param node The node.
-     *
-     * @return a map containing the values of edge betweenness for all the adjacent links to the given node.
-     */
+    @Override
     public Map<U, Double> getEdgeBetweenness(U node)
     {
         throw new UnsupportedOperationException("Unsupported method");
     }
 
-    /**
-     * Returns the edge betweenness of a single edge.
-     *
-     * @param orig origin node of the edge.
-     * @param dest destination node of the edge.
-     *
-     * @return the betweenness if the edge exists, -1.0 if not.
-     */
+    @Override
     public double getEdgeBetweenness(U orig, U dest)
     {
         throw new UnsupportedOperationException("Unsupported method");
     }
 
-    /**
-     * Returns all the distances between different pairs.
-     *
-     * @return the distances between pairs.
-     */
+    @Override
     public Map<U, Map<U, Double>> getDistances()
     {
         return this.distancesFrom;
     }
 
-    /**
-     * Return the distances between a node and the rest of nodes in the network.
-     *
-     * @param node the node.
-     *
-     * @return a map containing all the distances from the node to the rest of the network.
-     */
+    @Override
     public Map<U, Double> getDistancesFrom(U node)
     {
         if (this.distancesFrom.containsKey(node))
@@ -255,13 +219,7 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
         return new HashMap<>();
     }
 
-    /**
-     * Returns the distance between the network and an specific node.
-     *
-     * @param node the node.
-     *
-     * @return a map containing all the distances from each vertex in the network to the node.
-     */
+    @Override
     public Map<U, Double> getDistancesTo(U node)
     {
         if (this.distancesTo.containsKey(node))
@@ -271,14 +229,7 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
         return new HashMap<>();
     }
 
-    /**
-     * Returns the distance between two nodes.
-     *
-     * @param orig origin node.
-     * @param dest destination node.
-     *
-     * @return the distance between both nodes. if there is a path between them, +Infinity if not.
-     */
+    @Override
     public double getDistances(U orig, U dest)
     {
         if (this.distancesFrom.containsKey(orig))
@@ -291,46 +242,25 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
         return Double.POSITIVE_INFINITY;
     }
 
-    /**
-     * Returns the number of geodesic paths between different pairs.
-     *
-     * @return the distances between pairs.
-     */
+    @Override
     public Map<U, Map<U, Double>> getGeodesics()
     {
         throw new UnsupportedOperationException("Unsupported method");
     }
 
-    /**
-     * Return the number of geodesic paths between a node and the rest of nodes in the network.
-     *
-     * @param node the node.
-     *
-     * @return a map containing the number of geodesic paths from the node to the rest of the network.
-     */
+    @Override
     public Map<U, Double> getGeodesics(U node)
     {
         throw new UnsupportedOperationException("Unsupported method");
     }
 
-    /**
-     * Returns the number of geodesic paths between two nodes.
-     *
-     * @param orig origin node.
-     * @param dest destination node.
-     *
-     * @return the number of geodesic paths between both nodes if there is a path between them, 0.0 if not.
-     */
+    @Override
     public double getGeodesics(U orig, U dest)
     {
         throw new UnsupportedOperationException("Unsupported method");
     }
 
-    /**
-     * Obtains the strongly connected components of the graph.
-     *
-     * @return the strongly connected components of the graph.
-     */
+    @Override
     public Communities<U> getSCC()
     {
         return this.scc;

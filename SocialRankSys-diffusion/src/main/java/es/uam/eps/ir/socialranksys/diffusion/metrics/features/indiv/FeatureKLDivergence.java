@@ -22,13 +22,10 @@ import java.util.stream.Stream;
  * of the parameters over the information pieces) with the estimated distribution
  * obtained from simulating. It uses KL Divergence for that.
  * 
- * 
- * 
  * We apply a Laplace smoothing to prevent divisions by zero in both distributions.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- *
  *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
@@ -37,12 +34,10 @@ import java.util.stream.Stream;
 public class FeatureKLDivergence<U extends Serializable,I extends Serializable,P> extends AbstractFeatureKLDivergence<U,I,P> 
 {
     /**
-     * Name fixed value
+     * Name fixed value.
      */
     private final static String ENTROPY = "feat-kld";
 
-    
-    
     /**
      * Constructor.
      * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.

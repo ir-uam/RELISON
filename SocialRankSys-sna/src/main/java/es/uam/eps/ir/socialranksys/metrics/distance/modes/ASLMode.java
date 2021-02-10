@@ -15,7 +15,8 @@ package es.uam.eps.ir.socialranksys.metrics.distance.modes;
  *  <li><b>NOTINFINITEDISTANCE:</b> All not infinite distances are averaged</li>
  * </ul>
  *
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public enum ASLMode
 {

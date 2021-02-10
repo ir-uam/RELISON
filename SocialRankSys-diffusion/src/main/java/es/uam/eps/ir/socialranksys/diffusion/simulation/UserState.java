@@ -21,14 +21,16 @@ import java.util.stream.Stream;
 
 /**
  * Abstract representation for the users.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the user identifier.
  */
 public abstract class UserState<U> implements Serializable, Cloneable
 {
     /**
-     * Identifier of the user
+     * Identifier of the user.
      */
     private final U userId;
     
@@ -56,7 +58,7 @@ public abstract class UserState<U> implements Serializable, Cloneable
     /**
      * Adds a piece of information to the own created information pieces.
      * @param info Information to add.
-     * @return true if everything is OK
+     * @return true if everything is OK.
      */
     protected abstract boolean addOwnInformation(PropagatedInformation info);
     
@@ -65,35 +67,35 @@ public abstract class UserState<U> implements Serializable, Cloneable
      * This information can only be added if it was previously on the newly received
      * information data. This method also deletes the data from that list.
      * @param info Information to add.
-     * @return true if everything is OK
+     * @return true if everything is OK.
      */
     protected abstract boolean addReceivedInformation(PropagatedInformation info);
     
     /**
      * Adds a piece of information to the newly seen information pieces.
      * @param info Information to add.
-     * @return true if everything is OK
+     * @return true if everything is OK.
      */
     protected abstract boolean addSeenInformation(PropagatedInformation info);   
     /**
      * Adds a piece of information to the discarded information pieces. This information
      * can only be
      * @param info Information to add.
-     * @return true if everything is OK
+     * @return true if everything is OK.
      */
     protected abstract boolean addDiscardedInformation(PropagatedInformation info);
     
     /**
      * Adds a piece of information to the propagated information pieces.
      * @param info Information to add.
-     * @return true if everything is OK
+     * @return true if everything is OK.
      */
     protected abstract boolean addPropagatedInformation(PropagatedInformation info);
     
     /**
      * Adds a piece of information to all the received information pieces.
      * @param info Information to add.
-     * @return true if everything is OK
+     * @return true if everything is OK.
      */
     protected abstract boolean addAllInformation(PropagatedInformation info);
     
@@ -127,14 +129,14 @@ public abstract class UserState<U> implements Serializable, Cloneable
     /**
      * Gets an individual piece of discarded information.
      * @param info The identifier of the discarded information.
-     * @return The corresponding piece of information
+     * @return The corresponding piece of information.
      */
     protected abstract PropagatedInformation getDiscardedInformation(int info);
     
     /**
      * Gets an individual piece of the set of all previously received information
      * @param info The identifier of the discarded information.
-     * @return The corresponding piece of information
+     * @return The corresponding piece of information.
      */
     protected abstract PropagatedInformation getAllInformation(int info);
     
@@ -153,22 +155,22 @@ public abstract class UserState<U> implements Serializable, Cloneable
     public abstract boolean containsReceivedInformation(int info);
     
     /**
-     * Gets an individual piece of newly seen information
-     * @param info The identifier of the information
+     * Gets an individual piece of newly seen information.
+     * @param info The identifier of the information.
      * @return The corresponding piece of information.
      */
     public abstract boolean containsSeenInformation(int info);
     
     /**
      * Gets an individual piece of propagated information.
-     * @param info The identifier of the propagated information
+     * @param info The identifier of the propagated information.
      * @return The corresponding piece of information.
      */
     public abstract boolean containsPropagatedInformation(int info);
     /**
      * Gets an individual piece of discarded information.
      * @param info The identifier of the discarded information.
-     * @return The corresponding piece of information
+     * @return The corresponding piece of information.
      */
     public abstract boolean containsDiscardedInformation(int info);
     
@@ -214,7 +216,7 @@ public abstract class UserState<U> implements Serializable, Cloneable
         
     
     /**
-     * Resets the list of own information
+     * Resets the list of own information.
      * @param information The new own information.
      */
     public void resetOwnInformation(Stream<PropagatedInformation> information)
@@ -249,8 +251,8 @@ public abstract class UserState<U> implements Serializable, Cloneable
     }
     /**
      * Updates an individual seen piece of information to received.
-     * @param info the information piece
-     * @param update the update mechanism
+     * @param info the information piece.
+     * @param update the update mechanism.
      */
     public void updateSeenToReceived(int info, UpdateMechanism update) 
     {
@@ -418,7 +420,7 @@ public abstract class UserState<U> implements Serializable, Cloneable
     
     /**
      * Gets all the information that the user has received along time
-     * @return A stream with all the identifiers
+     * @return A stream with all the identifiers.
      */
     public Stream<Integer> getAllInformationIds()
     {
@@ -458,7 +460,7 @@ public abstract class UserState<U> implements Serializable, Cloneable
     
     /**
      * Gets all the information that the user has received during the simulations
-     * @return A stream with all the information
+     * @return A stream with all the information.
      */
     public abstract Stream<PropagatedInformation> getAllInformation();
     

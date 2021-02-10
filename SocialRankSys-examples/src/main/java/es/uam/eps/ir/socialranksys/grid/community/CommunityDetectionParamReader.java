@@ -11,7 +11,6 @@ package es.uam.eps.ir.socialranksys.grid.community;
 
 import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.grid.ParametersReader;
-import org.openide.util.Exceptions;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -90,7 +89,7 @@ public class CommunityDetectionParamReader extends ParametersReader
         }
         catch(ParserConfigurationException | SAXException | IOException ex)
         {
-            Exceptions.printStackTrace(ex);
+            ex.printStackTrace();
         }
     }
     

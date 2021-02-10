@@ -12,6 +12,7 @@ import java.io.Serializable;
 
 /**
  * Selection mechanism that only selects a set of own pieces of information.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *

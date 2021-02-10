@@ -50,7 +50,7 @@ public class WeaklyConnectedComponents<U> implements CommunityDetectionAlgorithm
     /**
      * Finds the weakly connected components of the graph.
      *
-     * @param g The graph
+     * @param g The graph.
      *
      * @return The weakly connected clusters of the graph.
      */
@@ -81,10 +81,10 @@ public class WeaklyConnectedComponents<U> implements CommunityDetectionAlgorithm
     /**
      * Visits a node by using the inlinks
      *
-     * @param u          The starting node
-     * @param g          The graph
-     * @param discovered The dsiscovered items
-     * @param component  The component
+     * @param u          The starting node.
+     * @param g          The graph.
+     * @param discovered The discovered items.
+     * @param component  The component.
      */
     private void visit(U u, Graph<U> g, Set<U> discovered, Collection<U> component)
     {

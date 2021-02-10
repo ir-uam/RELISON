@@ -13,6 +13,7 @@ import es.uam.eps.ir.socialranksys.diffusion.data.PropagatedInformation;
 
 /**
  * Update Mechanism for the Independent Cascade Model.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  * */

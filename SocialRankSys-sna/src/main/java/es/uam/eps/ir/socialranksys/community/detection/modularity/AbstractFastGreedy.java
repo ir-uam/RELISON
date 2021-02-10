@@ -23,13 +23,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * bstract class for the implementation of Fast Greedy algorithm versions for optimizing modularity
+ * Abstract class for the implementation of Fast Greedy algorithm versions for optimizing modularity.
  *
  * <p>
  * <b>Reference:</b> M.E.J. Newman. Fast Algorithm for detecting community structure in networks. Physical Review E 69(6): 066133 (2004)
  * </p>
  *
- * @param <U> Type of the users
+ * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

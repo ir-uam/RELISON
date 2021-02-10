@@ -46,7 +46,7 @@ public class PageRank<U> implements VertexMetric<U>
      */
     private final double r;
     /**
-     * Original node (if PageRank is personalized)
+     * Original node (if PageRank is personalized).
      */
     private final U u;
 
@@ -62,7 +62,7 @@ public class PageRank<U> implements VertexMetric<U>
     }
 
     /**
-     * Constructor (for personalized PageRank)
+     * Constructor (for personalized PageRank).
      *
      * @param r the teleport parameter.
      * @param u the original user.

@@ -14,11 +14,13 @@ import java.io.Serializable;
 
 /**
  * Interface for defining stop conditions for simulations.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
- * @param <I> Type of the information
- * @param <P> Type of the parameters
+ * @param <I> Type of the information.
+ * @param <P> Type of the parameters.
  */
 public interface StopCondition<U extends Serializable,I extends Serializable,P>
 {

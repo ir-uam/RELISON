@@ -19,11 +19,17 @@ import java.io.Serializable;
 /**
  * Protocol that applies the push strategy for diffunding the information. In this strategy, each
  * user selects a neighbour, and obtains from it all the information.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
  * @param <P> type of the parameters.
+ *
+ * <p>
+ * <b>Reference:</b> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987)
+ * </p>
  */
 public class PullModelProtocol<U extends Serializable,I extends Serializable,P> extends Protocol<U,I,P>
 {

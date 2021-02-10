@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * Interface that defines methods for computing distance-based metrics for a network and retrieving them.
  *
- * @param <U> type of the users
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -49,7 +49,7 @@ public interface DistanceCalculator<U>
     double getNodeBetweenness(U node);
 
     /**
-     * Gets all the values of the edge betweenness
+     * Gets all the values of the edge betweenness.
      *
      * @return the edge betweenness value for each edge.
      */
