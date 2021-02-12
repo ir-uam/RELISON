@@ -33,19 +33,19 @@ public interface UnweightedMultiEdges extends MultiEdges
     }
 
     @Override
-    default Stream<MultiEdgeWeights> getIncidentWeight(int node)
+    default Stream<MultiEdgeWeights> getIncidentWeights(int node)
     {
         return this.getIncidentNodes(node).map(val -> new MultiEdgeWeights(val, MultiEdgeWeights.getDefaultValue(this.getNumEdges(val, node))));
     }
 
     @Override
-    default Stream<MultiEdgeWeights> getAdjacentWeight(int node)
+    default Stream<MultiEdgeWeights> getAdjacentWeights(int node)
     {
         return this.getAdjacentNodes(node).map((val) -> new MultiEdgeWeights(val, MultiEdgeWeights.getDefaultValue(this.getNumEdges(node, val))));
     }
 
     @Override
-    default Stream<MultiEdgeWeights> getNeighbourWeight(int node)
+    default Stream<MultiEdgeWeights> getNeighbourWeights(int node)
     {
         return this.getNeighbourNodes(node).map((val) -> new MultiEdgeWeights(val, MultiEdgeWeights.getDefaultValue(this.getNumEdges(node, val))));
     }

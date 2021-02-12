@@ -88,6 +88,13 @@ public interface MultiEdges
     Stream<Integer> getNeighbourNodes(int node);
 
     /**
+     * Gets the neighbors of the user with whom he has both incoming and outgoing links.
+     * @param node The node.
+     * @return a stream containing the ids of the mutual neighborhood.
+     */
+    Stream<Integer> getMutualNodes(int node);
+
+    /**
      * Gets the types of the incident edges of a node.
      *
      * @param node The node.
@@ -115,13 +122,22 @@ public interface MultiEdges
     Stream<MultiEdgeTypes> getNeighbourTypes(int node);
 
     /**
+     * Gets the types of the neighbourhood edges of a node.
+     *
+     * @param node The node.
+     *
+     * @return a stream containing all the edge types.
+     */
+    Stream<MultiEdgeTypes> getMutualTypes(int node);
+
+    /**
      * Gets the weights of the incident edges of a node.
      *
      * @param node The node.
      *
      * @return a stream containing all the edge types.
      */
-    Stream<MultiEdgeWeights> getIncidentWeight(int node);
+    Stream<MultiEdgeWeights> getIncidentWeights(int node);
 
     /**
      * Gets the weights of the adjacent edges of a node.
@@ -130,7 +146,7 @@ public interface MultiEdges
      *
      * @return a stream containing all the edge types.
      */
-    Stream<MultiEdgeWeights> getAdjacentWeight(int node);
+    Stream<MultiEdgeWeights> getAdjacentWeights(int node);
 
     /**
      * Gets the weights of the neighbour edges of a node.
@@ -139,7 +155,16 @@ public interface MultiEdges
      *
      * @return a sream containing all the edge types.
      */
-    Stream<MultiEdgeWeights> getNeighbourWeight(int node);
+    Stream<MultiEdgeWeights> getNeighbourWeights(int node);
+
+    /**
+     * Gets the weights of the neighbour edges of a node.
+     *
+     * @param node The node.
+     *
+     * @return a sream containing all the edge types.
+     */
+    Stream<MultiEdgeWeights> getMutualWeights(int node);
 
     /**
      * Adds a user to the edges.
@@ -266,4 +291,44 @@ public interface MultiEdges
      * @return true if it has mutual edges, false otherwise
      */
     boolean hasMutualEdges(int idx);
+
+    /**
+     * Removes an edge.
+     *
+     * @param orig Source node.
+     * @param dest Incoming node.
+     *
+     * @return true if everything went OK, false if not.
+     */
+    boolean removeEdge(int orig, int dest, int idx);
+
+    /**
+     * Removes a node from the edge list.
+     *
+     * @param idx The identifier of the node.
+     *
+     * @return true if everything went OK, false otherwise.
+     */
+    boolean removeNode(int idx);
+
+    /**
+     * Removes all the edges between a pair of nodes.
+     *
+     * @param orig Source node.
+     * @param dest Incoming node.
+     *
+     * @return true if everything went OK, false otherwise.
+     */
+    boolean removeEdges(int orig, int dest);
+
+    /**
+     * Modifies the weight of an edge.
+     *
+     * @param orig   Source node.
+     * @param dest   Incoming node.
+     * @param weight The new weight of the edge.
+     *
+     * @return true if everything went OK, false if not, or the edge does not exist.
+     */
+    boolean updateEdgeWeight(int orig, int dest, double weight, int idx);
 }

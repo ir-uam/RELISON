@@ -49,19 +49,7 @@ public class FastUndirectedWeightedMultiEdges extends FastMultiEdges implements 
     }
 
     @Override
-    public Stream<MultiEdgeWeights> getIncidentWeight(int node)
-    {
-        return this.getNeighbourWeight(node);
-    }
-
-    @Override
-    public Stream<MultiEdgeWeights> getAdjacentWeight(int node)
-    {
-        return this.getNeighbourWeight(node);
-    }
-
-    @Override
-    public Stream<MultiEdgeWeights> getNeighbourWeight(int node)
+    public Stream<MultiEdgeWeights> getNeighbourWeights(int node)
     {
         return this.weights.getIdsFirst(node).map(weight -> new MultiEdgeWeights(weight.getIdx(), weight.getValue()));
     }
@@ -101,27 +89,110 @@ public class FastUndirectedWeightedMultiEdges extends FastMultiEdges implements 
     }
 
     @Override
-    public IntStream getNodesWithIncidentEdges()
-    {
-        return this.weights.secondsWithFirsts();
-    }
-
-    @Override
-    public IntStream getNodesWithAdjacentEdges()
-    {
-        return this.weights.firstsWithSeconds();
-    }
-
-    @Override
     public IntStream getNodesWithEdges()
     {
         return this.weights.firstsWithSeconds();
     }
 
     @Override
-    public IntStream getNodesWithMutualEdges()
+    public boolean removeEdge(int orig, int dest, int idx)
     {
-        return this.weights.firstsWithSeconds();
+        if(this.weights.containsPair(orig, dest) && this.types.containsPair(orig, dest))
+        {
+            if (orig == dest)
+            {
+
+                List<Double> weightList = this.weights.getValue(orig, dest);
+                List<Integer> typeList = this.types.getValue(orig, dest);
+
+                if (idx < 0 || idx >= weightList.size()) return false;
+                weightList.remove(idx);
+                typeList.remove(idx);
+                this.numEdges--;
+
+                if (weightList.isEmpty())
+                    return this.weights.removePair(orig, dest) && this.types.removePair(orig, dest);
+                else return true;
+            }
+            else
+            {
+                List<Double> weightListA = this.weights.getValue(orig, dest);
+                List<Double> weightListB = this.weights.getValue(dest, orig);
+                List<Integer> typeListA = this.types.getValue(orig, dest);
+                List<Integer> typeListB = this.types.getValue(dest, orig);
+
+                if (idx < 0 || idx >= weightListA.size()) return false;
+                weightListA.remove(idx);
+                weightListB.remove(idx);
+                typeListA.remove(idx);
+                typeListB.remove(idx);
+                this.numEdges--;
+                if (weightListA.isEmpty())
+                {
+                    return this.weights.removePair(orig, dest) && this.weights.removePair(dest, orig) && this.types.removePair(orig, dest) && this.types.removePair(dest, orig);
+                }
+                else return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean removeNode(int idx)
+    {
+        long toDel = this.getAdjacentCount(idx);
+        if (this.weights.remove(idx) && this.types.remove(idx))
+        {
+            this.numEdges -= toDel;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean removeEdges(int orig, int dest)
+    {
+        int numRemoved = this.getNumEdges(orig, dest);
+        if (orig == dest)
+        {
+            if (this.weights.removePair(orig, dest) && this.types.removePair(dest, orig))
+            {
+                this.numEdges -= numRemoved;
+                return true;
+            }
+            return false;
+        }
+        else if (this.weights.removePair(orig, dest) && this.weights.removePair(dest, orig) && this.types.removePair(orig, dest) && this.types.removePair(dest, orig))
+        {
+            this.numEdges -= numRemoved;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean updateEdgeWeight(int orig, int dest, double weight, int idx)
+    {
+        if(this.containsEdge(orig, dest))
+        {
+            if(orig == dest)
+            {
+                List<Double> weights = this.getEdgeWeights(orig, dest);
+                if (idx < 0 || idx >= weights.size()) return false;
+                weights.set(idx, weight);
+                return true;
+            }
+            else
+            {
+                List<Double> weightsA = this.getEdgeWeights(orig, dest);
+                List<Double> weightsB = this.getEdgeWeights(dest, orig);
+                if (idx < 0 || idx >= weightsA.size()) return false;
+                weightsA.set(idx, weight); weightsB.set(idx, weight);
+                return true;
+            }
+        }
+        return false;
     }
 
 }

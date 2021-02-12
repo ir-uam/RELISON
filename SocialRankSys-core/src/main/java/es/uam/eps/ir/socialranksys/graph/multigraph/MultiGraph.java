@@ -45,7 +45,6 @@ public interface MultiGraph<U> extends Graph<U>
      */
     List<Double> getEdgeWeights(U nodeA, U nodeB);
 
-
     /**
      * Gets the different weights for the edges of the incident nodes.
      *
@@ -73,7 +72,6 @@ public interface MultiGraph<U> extends Graph<U>
      */
     Stream<Weights<U, Double>> getNeighbourNodesWeightsLists(U node);
 
-
     /**
      * Gets the different weights for the edges of the selected neighbour nodes.
      *
@@ -93,7 +91,6 @@ public interface MultiGraph<U> extends Graph<U>
      * @return The number of edges between the nodes.
      */
     List<Integer> getEdgeTypes(U nodeA, U nodeB);
-
 
     /**
      * Gets the different weights for the edges of the incident nodes.
@@ -138,4 +135,41 @@ public interface MultiGraph<U> extends Graph<U>
     {
         return true;
     }
+
+    /**
+     * Removes an edge from the graph.
+     *
+     * @param nodeA The incident node of the edge to remove.
+     * @param nodeB The adjacent node of the edge to remove.
+     * @param idx The number of the edge to remove.
+     *
+     * @return true if everything went ok, false if not.
+     */
+    default boolean removeEdge(U nodeA, U nodeB, int idx)
+    {
+        throw new UnsupportedOperationException("Deleting edges is not allowed");
+    }
+
+    /**
+     * Deletes all the edges between a pair of nodes.
+     * @param nodeA The incident node of the edges to remove.
+     * @param nodeB The adjacent node of the edges to remove.
+     * @return true if everything went ok, false otherwise.
+     */
+    default boolean removeEdges(U nodeA, U nodeB)
+    {
+        throw new UnsupportedOperationException("Deleting edges is not allowed");
+    }
+
+    /**
+     * Updates the weight of an edge from the graph.
+     *
+     * @param orig The incident node of the edge to remove.
+     * @param dest The adjacent node of the edge to remove.
+     * @param weight the new weight for the edge.
+     * @param idx The number of the edge to remove.
+     *
+     * @return true if everything went ok, false if not.
+     */
+    boolean updateEdgeWeight(int orig, int dest, double weight, int idx);
 }

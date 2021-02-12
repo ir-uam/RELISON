@@ -27,7 +27,7 @@ public interface WeightedMultiEdges extends MultiEdges
      * @return A stream of the weights of incident nodes.
      */
     @Override
-    default Stream<MultiEdgeWeights> getIncidentWeight(int node)
+    default Stream<MultiEdgeWeights> getIncidentWeights(int node)
     {
         return this.getIncidentNodes(node).map((inc) -> new MultiEdgeWeights(inc, this.getEdgeWeights(inc, node)));
     }
@@ -40,7 +40,7 @@ public interface WeightedMultiEdges extends MultiEdges
      * @return A stream containing the weights adjacent nodes.
      */
     @Override
-    default Stream<MultiEdgeWeights> getAdjacentWeight(int node)
+    default Stream<MultiEdgeWeights> getAdjacentWeights(int node)
     {
         return this.getAdjacentNodes(node).map((inc) -> new MultiEdgeWeights(inc, this.getEdgeWeights(node, inc)));
     }
@@ -53,7 +53,7 @@ public interface WeightedMultiEdges extends MultiEdges
      * @return A stream containing all the weights of the nodes in the neighbourhood.
      */
     @Override
-    default Stream<MultiEdgeWeights> getNeighbourWeight(int node)
+    default Stream<MultiEdgeWeights> getNeighbourWeights(int node)
     {
         return this.getNeighbourNodes(node).map((inc) -> new MultiEdgeWeights(inc, this.getEdgeWeights(node, inc)));
     }

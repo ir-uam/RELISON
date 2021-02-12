@@ -221,18 +221,6 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
     }
 
     @Override
-    public int object2idx(U u)
-    {
-        throw new UnsupportedOperationException("Not available yet.");
-    }
-
-    @Override
-    public U idx2object(int idx)
-    {
-        throw new UnsupportedOperationException("Not available yet.");
-    }
-
-    @Override
     public Stream<U> getIsolatedNodes()
     {
         return this.getAllNodes().filter(u -> this.graph.getNeighborCount(u) == 0);

@@ -18,6 +18,7 @@ import es.uam.eps.ir.socialranksys.graph.multigraph.edges.fast.FastDirectedUnwei
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
+import org.jblas.DoubleMatrix;
 
 import java.util.stream.Stream;
 
@@ -29,7 +30,7 @@ import java.util.stream.Stream;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class FastDirectedUnweightedMultiGraph<U> extends FastMultiGraph<U> implements DirectedUnweightedMultiGraph<U>
+public class FastDirectedUnweightedMultiGraph<U> extends AbstractFastMultiGraph<U> implements DirectedUnweightedMultiGraph<U>
 {
     /**
      * Constructor.
@@ -40,42 +41,47 @@ public class FastDirectedUnweightedMultiGraph<U> extends FastMultiGraph<U> imple
     }
 
     @Override
-    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
+    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
     {
-        DoubleMatrix2D matrix = new SparseDoubleMatrix2D(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
-        // Creation of the adjacency matrix
-        for (int row = 0; row < matrix.rows(); ++row)
-        {
-            for (int col = 0; col < matrix.rows(); ++col)
-            {
-                switch (direction)
-                {
-                    case IN:
-                        if (this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)))
-                        {
-                            matrix.setQuick(row, col, this.edges.getNumEdges(row, col));
-                        }
-                        break;
-                    case OUT:
-                        if (this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
-                        {
-                            matrix.setQuick(row, col, this.edges.getNumEdges(row, col));
-                        }
-                        break;
-                    default: //case UND
-                        if (this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)) ||
-                                this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
-                        {
-                            matrix.setQuick(row, col, this.edges.getNumEdges(row, col) + this.edges.getNumEdges(col, row));
-                        }
-                }
-            }
-        }
+        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
+        DoubleMatrix matrix = DoubleMatrix.zeros(numUsers, numUsers);
 
+        this.getNodesIdsWithEdges(orientation).forEach(uidx ->
+            this.getNeighborhood(uidx, orientation).forEach(vidx ->
+            {
+                double weight = switch (orientation)
+                {
+                    case IN -> this.getNumEdges(vidx, uidx);
+                    case OUT -> this.getNumEdges(uidx, vidx);
+                    case UND, MUTUAL -> this.getNumEdges(uidx, vidx) + this.getNumEdges(vidx, uidx);
+                };
+                matrix.put(uidx, vidx, weight);
+            })
+        );
         return matrix;
     }
 
     @Override
+    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation orientation)
+    {
+        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
+        DoubleMatrix2D matrix = new SparseDoubleMatrix2D(numUsers, numUsers);
+
+        this.getNodesIdsWithEdges(orientation).forEach(uidx ->
+            this.getNeighborhood(uidx, orientation).forEach(vidx ->
+            {
+                double weight = switch (orientation)
+                {
+                    case IN -> this.getNumEdges(vidx, uidx);
+                    case OUT -> this.getNumEdges(uidx, vidx);
+                    case UND, MUTUAL -> this.getNumEdges(uidx, vidx) + this.getNumEdges(vidx, uidx);
+                };
+                matrix.setQuick(uidx, vidx, weight);
+            })
+        );
+        return matrix;
+    }
+
     public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
     {
         Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());

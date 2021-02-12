@@ -17,6 +17,7 @@ import es.uam.eps.ir.socialranksys.graph.edges.fast.FastUndirectedWeightedEdges;
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
+import org.jblas.DoubleMatrix;
 
 /**
  * Fast implementation for an Undirected Weighted graph.
@@ -28,7 +29,7 @@ import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class FastUndirectedWeightedGraph<V> extends FastGraph<V> implements UndirectedWeightedGraph<V>
+public class FastUndirectedWeightedGraph<V> extends AbstractFastGraph<V> implements UndirectedWeightedGraph<V>
 {
     /**
      * Constructor for an empty graph.
@@ -39,39 +40,37 @@ public class FastUndirectedWeightedGraph<V> extends FastGraph<V> implements Undi
     }
 
     @Override
-    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
+    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
     {
-        DoubleMatrix2D matrix = new SparseDoubleMatrix2D(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
-        // Creation of the adjacency matrix.
-        for (int row = 0; row < matrix.rows(); ++row)
-        {
-            for (int col = 0; col < matrix.rows(); ++col)
-            {
-                if (this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)) ||
-                        this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
-                {
-                    matrix.setQuick(row, col, 1.0);
-                }
+        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
+        DoubleMatrix matrix = DoubleMatrix.zeros(numUsers, numUsers);
 
-            }
-        }
-
+        this.getAllNodesIds().forEach(uidx -> this.getNeighborhoodWeights(uidx, EdgeOrientation.UND).forEach(vidx -> matrix.put(uidx, vidx.v1, vidx.v2)));
         return matrix;
     }
 
     @Override
+    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
+    {
+        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
+        DoubleMatrix2D matrix = new SparseDoubleMatrix2D(numUsers, numUsers);
+
+        this.getAllNodesIds().forEach(uidx -> this.getNeighborhoodWeights(uidx, EdgeOrientation.UND).forEach(vidx -> matrix.setQuick(uidx, vidx.v1, vidx.v2)));
+        return matrix;
+    }
+
     public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
     {
         Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
         this.vertices.getAllObjects().forEach(u ->
-                                              {
-                                                  int uIdx = this.vertices.object2idx(u);
-                                                  this.getNeighbourNodes(u).forEach(v ->
-                                                                                    {
-                                                                                        int vIdx = this.vertices.object2idx(v);
-                                                                                        matrix.set(uIdx, vIdx, 1.0);
-                                                                                    });
-                                              });
+        {
+            int uIdx = this.vertices.object2idx(u);
+            this.getNeighbourNodes(u).forEach(v ->
+            {
+                int vIdx = this.vertices.object2idx(v);
+                matrix.set(uIdx, vIdx, 1.0);
+            });
+        });
 
         return matrix;
     }

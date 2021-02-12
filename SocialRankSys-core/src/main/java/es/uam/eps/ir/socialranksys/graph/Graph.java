@@ -13,8 +13,7 @@ import cern.colt.matrix.DoubleMatrix2D;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
-import es.uam.eps.ir.socialranksys.index.ReducedIndex;
-import no.uib.cipr.matrix.Matrix;
+import org.jblas.DoubleMatrix;
 
 import java.io.Serializable;
 import java.util.stream.Stream;
@@ -29,7 +28,7 @@ import java.util.stream.Stream;
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public interface Graph<V> extends Serializable, ReducedIndex<V>
+public interface Graph<V> extends Serializable
 {
     /**
      * Adds a new node to the graph.
@@ -599,11 +598,11 @@ public interface Graph<V> extends Serializable, ReducedIndex<V>
     /**
      * Gets the adjacency matrix.
      *
-     * @param direction The direction of the edges.
+     * @param orientation The direction of the edges.
      *
-     * @return the matrix (MTJ Package).
+     * @return the matrix (JBLAS Package).
      */
-    Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction);
+    DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation);
 
     /**
      * Obtains the set of nodes without edges.

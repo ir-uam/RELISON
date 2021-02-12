@@ -13,6 +13,7 @@ import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import es.uam.eps.ir.socialranksys.graph.UndirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import no.uib.cipr.matrix.Matrix;
+import org.jblas.DoubleMatrix;
 
 /**
  * Undirected Graph Wrapper for <a href="http://jung.sourceforge.net/">JUNG</a>
@@ -45,6 +46,11 @@ public class UndirectedJungGraph<U> extends JungGraph<U> implements UndirectedUn
     }
 
     @Override
+    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
+    {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
     public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
     {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.

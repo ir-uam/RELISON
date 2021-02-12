@@ -13,10 +13,12 @@ import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import es.uam.eps.ir.socialranksys.graph.UndirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
 import es.uam.eps.ir.socialranksys.graph.edges.fast.FastUndirectedUnweightedEdges;
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
+import org.jblas.DoubleMatrix;
 
 /**
  * Fast implementation of an undirected unweighted graph.
@@ -28,7 +30,7 @@ import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class FastUndirectedUnweightedGraph<V> extends FastGraph<V> implements UndirectedUnweightedGraph<V>
+public class FastUndirectedUnweightedGraph<V> extends AbstractFastGraph<V> implements UndirectedUnweightedGraph<V>
 {
     /**
      * Constructor.
@@ -39,41 +41,37 @@ public class FastUndirectedUnweightedGraph<V> extends FastGraph<V> implements Un
     }
 
     @Override
-    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
+    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
     {
-        DoubleMatrix2D matrix = new SparseDoubleMatrix2D(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
+        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
+        DoubleMatrix matrix = DoubleMatrix.zeros(numUsers, numUsers);
 
-        // Creation of the adjacency matrix.
-        for (int row = 0; row < matrix.rows(); ++row)
-        {
-            for (int col = 0; col < matrix.rows(); ++col)
-            {
-
-                if (this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)) ||
-                        this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
-                {
-                    matrix.setQuick(row, col, 1.0);
-                }
-
-            }
-        }
-
+        this.getAllNodesIds().forEach(uidx -> this.getNeighborhood(uidx, EdgeOrientation.UND).forEach(vidx -> matrix.put(uidx, vidx, EdgeWeight.getDefaultValue())));
         return matrix;
     }
 
     @Override
+    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
+    {
+        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
+        DoubleMatrix2D matrix = new SparseDoubleMatrix2D(numUsers, numUsers);
+
+        this.getAllNodesIds().forEach(uidx -> this.getNeighborhood(uidx, EdgeOrientation.UND).forEach(vidx -> matrix.setQuick(uidx, vidx, EdgeWeight.getDefaultValue())));
+        return matrix;
+    }
+
     public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
     {
         Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
         this.vertices.getAllObjects().forEach(u ->
-                                              {
-                                                  int uIdx = this.vertices.object2idx(u);
-                                                  this.getNeighbourNodes(u).forEach(v ->
-                                                                                    {
-                                                                                        int vIdx = this.vertices.object2idx(v);
-                                                                                        matrix.set(uIdx, vIdx, 1.0);
-                                                                                    });
-                                              });
+        {
+            int uIdx = this.vertices.object2idx(u);
+            this.getNeighbourNodes(u).forEach(v ->
+            {
+                int vIdx = this.vertices.object2idx(v);
+                matrix.set(uIdx, vIdx, 1.0);
+            });
+        });
 
         return matrix;
     }

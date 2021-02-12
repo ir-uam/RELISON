@@ -42,8 +42,6 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
     @Override
     public Stream<Integer> getIncidentNodes(int node)
     {
-        List<Integer> incidentNodes = new ArrayList<>();
-
         return this.types.getIdsFirst(node).map(IdxValue::getIdx);
     }
 
@@ -51,7 +49,6 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
     public Stream<Integer> getAdjacentNodes(int node)
     {
         return this.types.getIdsSecond(node).map(IdxValue::getIdx);
-
     }
 
     @Override
@@ -67,12 +64,6 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
     }
 
     @Override
-    public Stream<MultiEdgeWeights> getNeighbourWeight(int node)
-    {
-        throw new UnsupportedOperationException("Invalid Operation");
-    }
-
-    @Override
     public boolean addEdge(int orig, int dest, double weight, int type)
     {
         boolean failed;
@@ -84,7 +75,7 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
             List<Integer> typeList = this.types.getValue(orig, dest);
             typeList.add(type);
 
-            failed = this.weights.updatePair(orig, dest, weightList) & this.types.updatePair(orig, dest, typeList);
+            failed = this.weights.updatePair(orig, dest, weightList) && this.types.updatePair(orig, dest, typeList);
         }
         else
         {
@@ -94,7 +85,7 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
             List<Integer> typeList = new ArrayList<>();
             typeList.add(type);
 
-            failed = this.weights.addRelation(orig, dest, weightList) & this.types.addRelation(orig, dest, typeList);
+            failed = this.weights.addRelation(orig, dest, weightList) && this.types.addRelation(orig, dest, typeList);
         }
 
         if (failed)
@@ -148,4 +139,58 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
 
         return users.stream().mapToInt(x -> x);
     }
+
+    @Override
+    public boolean removeEdge(int orig, int dest, int idx)
+    {
+        if(this.weights.containsPair(orig, dest) && this.types.containsPair(orig, dest))
+        {
+            List<Double> weightList = this.weights.getValue(orig, dest);
+            List<Integer> typeList = this.types.getValue(orig, dest);
+            if (idx < 0 || idx >= weightList.size()) return false;
+            weightList.remove(idx);
+            typeList.remove(idx);
+            this.numEdges--;
+            if (weightList.isEmpty())
+                return this.weights.removePair(orig, dest) && this.types.removePair(orig, dest);
+            else return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean removeNode(int idx)
+    {
+        int toDel = 0;
+        if (this.weights.containsPair(idx, idx))
+        {
+            toDel -= this.getNumEdges(idx, idx);
+        }
+        toDel += this.getAdjacentCount(idx) + this.getIncidentCount(idx);
+        if (this.weights.remove(idx) && this.types.remove(idx))
+        {
+            this.numEdges -= toDel;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean removeEdges(int orig, int dest)
+    {
+        int numRemoved = this.getNumEdges(orig, dest);
+        if (this.weights.removePair(orig, dest) && this.types.removePair(orig, dest))
+        {
+            this.numEdges-= numRemoved;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean updateEdgeWeight(int orig, int dest, double weight, int idx)
+    {
+        return this.containsEdge(orig, dest) && idx >= 0 && idx < this.getNumEdges(orig, dest);
+    }
+
 }

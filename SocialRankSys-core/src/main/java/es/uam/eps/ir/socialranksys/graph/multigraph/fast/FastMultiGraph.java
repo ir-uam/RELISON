@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
- * de Madrid, http://ir.ii.uam.es
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
+ * http://terrierteam.dcs.gla.ac.uk/.
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,445 +9,77 @@
  */
 package es.uam.eps.ir.socialranksys.graph.multigraph.fast;
 
-
-import es.uam.eps.ir.socialranksys.graph.Graph;
-import es.uam.eps.ir.socialranksys.graph.Weight;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
-import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
-import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
+import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.graph.multigraph.MultiGraph;
-import es.uam.eps.ir.socialranksys.graph.multigraph.Weights;
-import es.uam.eps.ir.socialranksys.graph.multigraph.edges.MultiEdges;
-import es.uam.eps.ir.socialranksys.index.Index;
+import es.uam.eps.ir.socialranksys.graph.multigraph.edges.MultiEdgeTypes;
+import es.uam.eps.ir.socialranksys.graph.multigraph.edges.MultiEdgeWeights;
 
-import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Fast implementation of a multi graph
+ * Interface for fast implementations of multi-graphs.
  *
- * @param <U> User type
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public abstract class FastMultiGraph<U> implements MultiGraph<U>, Serializable
+public interface FastMultiGraph<U> extends FastGraph<U>, MultiGraph<U>
 {
     /**
-     * Index of vertices
-     */
-    protected final Index<U> vertices;
-    /**
-     * Edges in the network
-     */
-    protected final MultiEdges edges;
-
-    /**
-     * Constructor
+     * Gets the different weights for the edges of the selected neighbour nodes of a node.
      *
-     * @param vertices A index for the vertices of the graph
-     * @param edges    Edges
+     * @param uidx        The identifier of the node to study
+     * @param orientation The orientation to take
+     *
+     * @return A stream containing the weights
      */
-    public FastMultiGraph(Index<U> vertices, MultiEdges edges)
-    {
-        this.vertices = vertices;
-        this.edges = edges;
-    }
+    Stream<MultiEdgeWeights> getNeighbourhoodWeightsLists(int uidx, EdgeOrientation orientation);
+    /**
+     * Gets the different types for the edges of the selected neighbour nodes of a node.
+     *
+     * @param uidx        The identifier of the node to study
+     * @param orientation The orientation to take
+     *
+     * @return A stream containing the types
+     */
+    Stream<MultiEdgeTypes> getNeighbourhoodTypesLists(int uidx, EdgeOrientation orientation);
 
-    @Override
-    public boolean addNode(U node)
-    {
-        if (vertices.containsObject(node))
-        {
-            return false;
-        }
-        int idx = vertices.addObject(node);
+    /**
+     * Obtains the number of edges between a pair of vertices.
+     * @param uidx the identifier of the source node.
+     * @param vidx the identifier of the destination node.
+     * @return the number of edges between the pair of nodes.
+     */
+    int getNumEdges(int uidx, int vidx);
 
-        if (idx != -1)
-        {
-            return edges.addUser(idx);
-        }
-        return false;
-    }
+    /**
+     * Obtains the list of weights of the edges between a pair of vertices.
+     * @param uidx the identifier of the source node.
+     * @param vidx the identifier of the destination node.
+     * @return the list of weights of the edges between the pair of nodes.
+     */
+    List<Double> getEdgeWeights(int uidx, int vidx);
 
-    @Override
-    public boolean addEdge(U nodeA, U nodeB, double weight, int type, boolean insertNodes)
-    {
-        if (insertNodes)
-        {
-            if (this.addNode(nodeA))
-            {
-                this.edges.addUser(EdgeType.getDefaultValue());
-            }
-            if (this.addNode(nodeB))
-            {
-                this.edges.addUser(EdgeType.getDefaultValue());
-            }
-        }
+    /**
+     * Obtains the list of types of the edges between a pair of vertices.
+     * @param uidx the identifier of the source node.
+     * @param vidx the identifier of the destination node.
+     * @return the list of types of the edges between the pair of nodes.
+     */
+    List<Integer> getEdgeTypes(int uidx, int vidx);
+    /**
+     * Updates the weight of an edge from the graph.
+     *
+     * @param orig The incident node of the edge to remove.
+     * @param dest The adjacent node of the edge to remove.
+     * @param weight the new weight for the edge.
+     * @param idx The number of the edge to remove.
+     *
+     * @return true if everything went ok, false if not.
+     */
+    boolean updateEdgeWeight(U orig, U dest, double weight, int idx);
 
-        if (this.containsVertex(nodeA) && this.containsVertex(nodeB))
-        {
-            return this.edges.addEdge(this.vertices.object2idx(nodeA), this.vertices.object2idx(nodeB), weight, type);
-        }
-        return false;
-    }
-
-    @Override
-    public Stream<U> getAllNodes()
-    {
-        return this.vertices.getAllObjects();
-    }
-
-    @Override
-    public Stream<U> getIncidentNodes(U node)
-    {
-        return this.edges.getIncidentNodes(this.vertices.object2idx(node)).map(this.vertices::idx2object);
-    }
-
-    @Override
-    public Stream<U> getAdjacentNodes(U node)
-    {
-        return this.edges.getAdjacentNodes(this.vertices.object2idx(node)).map(this.vertices::idx2object);
-    }
-
-    @Override
-    public Stream<U> getNeighbourNodes(U node)
-    {
-        return this.edges.getNeighbourNodes(this.vertices.object2idx(node)).map(this.vertices::idx2object);
-    }
-
-    @Override
-    public Stream<U> getNeighbourhood(U node, EdgeOrientation direction)
-    {
-        return switch (direction)
-        {
-            case IN -> this.getIncidentNodes(node);
-            case OUT -> this.getAdjacentNodes(node);
-            default -> this.getNeighbourNodes(node);
-        };
-    }
-
-    @Override
-    public int getIncidentEdgesCount(U node)
-    {
-        return this.edges.getIncidentCount(this.vertices.object2idx(node));
-    }
-
-    @Override
-    public int getAdjacentEdgesCount(U node)
-    {
-        return this.edges.getAdjacentCount(this.vertices.object2idx(node));
-    }
-
-    @Override
-    public int getNeighbourEdgesCount(U node)
-    {
-        return this.edges.getNeighbourCount(this.vertices.object2idx(node));
-    }
-
-    @Override
-    public int getNeighbourhoodSize(U node, EdgeOrientation direction)
-    {
-        return switch (direction)
-        {
-            case IN -> this.getIncidentNodesCount(node);
-            case OUT -> this.getAdjacentNodesCount(node);
-            default -> this.getNeighbourNodesCount(node);
-        };
-    }
-
-    @Override
-    public boolean containsVertex(U node)
-    {
-        return this.vertices.containsObject(node);
-    }
-
-    @Override
-    public boolean containsEdge(U nodeA, U nodeB)
-    {
-        if (this.containsVertex(nodeA) && this.containsVertex(nodeB))
-        {
-            return this.edges.containsEdge(this.vertices.object2idx(nodeA), this.vertices.object2idx(nodeB));
-        }
-        return false;
-    }
-
-    @Override
-    public double getEdgeWeight(U nodeA, U nodeB)
-    {
-        List<Double> weights = this.edges.getEdgeWeights(this.vertices.object2idx(nodeA), this.vertices.object2idx(nodeB));
-        if (weights != null && weights.size() > 0)
-        {
-            return weights.get(0);
-        }
-        return EdgeWeight.getErrorValue();
-    }
-
-    @Override
-    public Stream<Weight<U, Double>> getIncidentNodesWeights(U node)
-    {
-        List<Weight<U, Double>> weights = new ArrayList<>();
-
-        this.edges.getIncidentWeight(this.vertices.object2idx(node)).forEach(weight -> weight.getValue().forEach(w ->
-             weights.add(new Weight<>(this.vertices.idx2object(weight.getIdx()), w))));
-
-        return weights.stream();
-    }
-
-    @Override
-    public Stream<Weight<U, Double>> getAdjacentNodesWeights(U node)
-    {
-        List<Weight<U, Double>> weights = new ArrayList<>();
-
-        this.edges.getAdjacentWeight(this.vertices.object2idx(node)).forEach(weight -> weight.getValue().forEach(w -> weights.add(new Weight<>(this.vertices.idx2object(weight.getIdx()), w))));
-
-        return weights.stream();
-    }
-
-    @Override
-    public Stream<Weight<U, Double>> getNeighbourNodesWeights(U node)
-    {
-        List<Weight<U, Double>> weights = new ArrayList<>();
-
-        this.edges.getNeighbourWeight(this.vertices.object2idx(node)).forEach(weight -> weight.getValue().forEach(w ->
-            weights.add(new Weight<>(this.vertices.idx2object(weight.getIdx()), w))));
-
-        return weights.stream();
-    }
-
-    @Override
-    public Stream<Weight<U, Double>> getNeighbourhoodWeights(U node, EdgeOrientation direction)
-    {
-        return switch (direction)
-        {
-            case IN -> this.getIncidentNodesWeights(node);
-            case OUT -> this.getAdjacentNodesWeights(node);
-            default -> this.getNeighbourNodesWeights(node);
-        };
-    }
-
-    @Override
-    public int getEdgeType(U nodeA, U nodeB)
-    {
-        List<Integer> types = this.edges.getEdgeTypes(this.vertices.object2idx(nodeA), this.vertices.object2idx(nodeB));
-        if (types != null && types.size() > 0)
-        {
-            return types.get(0);
-        }
-        return EdgeType.getErrorType();
-    }
-
-    @Override
-    public Stream<Weight<U, Integer>> getIncidentNodesTypes(U node)
-    {
-        List<Weight<U, Integer>> types = new ArrayList<>();
-
-        this.edges.getIncidentTypes(this.vertices.object2idx(node)).forEach(type -> type.getValue().forEach(t ->
-            types.add(new Weight<>(this.vertices.idx2object(type.getIdx()), t))));
-
-        return types.stream();
-    }
-
-    @Override
-    public Stream<Weight<U, Integer>> getAdjacentNodesTypes(U node)
-    {
-        List<Weight<U, Integer>> types = new ArrayList<>();
-
-        this.edges.getAdjacentTypes(this.vertices.object2idx(node)).forEach(type -> type.getValue().forEach(t -> types.add(new Weight<>(this.vertices.idx2object(type.getIdx()), t))));
-
-        return types.stream();
-    }
-
-    @Override
-    public Stream<Weight<U, Integer>> getNeighbourNodesTypes(U node)
-    {
-        List<Weight<U, Integer>> types = new ArrayList<>();
-
-        this.edges.getNeighbourTypes(this.vertices.object2idx(node)).forEach(type -> type.getValue().forEach(t -> types.add(new Weight<>(this.vertices.idx2object(type.getIdx()), t))));
-
-        return types.stream();
-    }
-
-    @Override
-    public Stream<Weight<U, Integer>> getNeighbourhoodTypes(U node, EdgeOrientation direction)
-    {
-        return switch (direction)
-        {
-            case IN -> this.getIncidentNodesTypes(node);
-            case OUT -> this.getAdjacentNodesTypes(node);
-            default -> this.getNeighbourNodesTypes(node);
-        };
-    }
-
-    @Override
-    public long getVertexCount()
-    {
-        return this.vertices.numObjects();
-    }
-
-    @Override
-    public int getNumEdges(U nodeA, U nodeB)
-    {
-        return this.edges.getNumEdges(this.vertices.object2idx(nodeA), this.vertices.object2idx(nodeB));
-    }
-
-    @Override
-    public List<Double> getEdgeWeights(U nodeA, U nodeB)
-    {
-        return this.edges.getEdgeWeights(this.vertices.object2idx(nodeA), this.vertices.object2idx(nodeB));
-    }
-
-    @Override
-    public Stream<Weights<U, Double>> getIncidentNodesWeightsLists(U node)
-    {
-        return this.edges.getIncidentWeight(this.vertices.object2idx(node))
-                .map((weight) -> new Weights<>(this.vertices.idx2object(weight.getIdx()), weight.getValue()));
-    }
-
-    @Override
-    public Stream<Weights<U, Double>> getAdjacentNodesWeightsLists(U node)
-    {
-        return this.edges.getAdjacentWeight(this.vertices.object2idx(node))
-                .map((weight) -> new Weights<>(this.vertices.idx2object(weight.getIdx()), weight.getValue()));
-    }
-
-    @Override
-    public Stream<Weights<U, Double>> getNeighbourNodesWeightsLists(U node)
-    {
-        return this.edges.getIncidentWeight(this.vertices.object2idx(node))
-                .map((weight) -> new Weights<>(this.vertices.idx2object(weight.getIdx()), weight.getValue()));
-    }
-
-    @Override
-    public Stream<Weights<U, Double>> getNeighbourhoodWeightsLists(U node, EdgeOrientation orientation)
-    {
-        return this.edges.getNeighbourWeight(this.vertices.object2idx(node))
-                .map((weight) -> new Weights<>(this.vertices.idx2object(weight.getIdx()), weight.getValue()));
-    }
-
-    @Override
-    public List<Integer> getEdgeTypes(U nodeA, U nodeB)
-    {
-        return this.edges.getEdgeTypes(this.vertices.object2idx(nodeA), this.vertices.object2idx(nodeB));
-    }
-
-    @Override
-    public Stream<Weights<U, Integer>> getIncidentNodesTypesLists(U node)
-    {
-        return this.edges.getIncidentTypes(this.vertices.object2idx(node))
-                .map((weight) -> new Weights<>(this.vertices.idx2object(weight.getIdx()), weight.getValue()));
-    }
-
-    @Override
-    public Stream<Weights<U, Integer>> getAdjacentNodesTypesLists(U node)
-    {
-        return this.edges.getAdjacentTypes(this.vertices.object2idx(node))
-                .map((weight) -> new Weights<>(this.vertices.idx2object(weight.getIdx()), weight.getValue()));
-    }
-
-    @Override
-    public Stream<Weights<U, Integer>> getNeighbourNodesTypesLists(U node)
-    {
-        return this.edges.getNeighbourTypes(this.vertices.object2idx(node))
-                .map((weight) -> new Weights<>(this.vertices.idx2object(weight.getIdx()), weight.getValue()));
-    }
-
-    @Override
-    public long getEdgeCount()
-    {
-        return this.edges.getNumEdges();
-    }
-
-    @Override
-    public Graph<U> complement()
-    {
-        throw new UnsupportedOperationException("The multigraph cannot be complemented");
-    }
-
-    @Override
-    public boolean updateEdgeWeight(U orig, U dest, double weight)
-    {
-        throw new UnsupportedOperationException("Edges weights cannot be updated in multigraphs");
-    }
-
-    @Override
-    public int object2idx(U u)
-    {
-        return this.vertices.object2idx(u);
-    }
-
-    @Override
-    public U idx2object(int idx)
-    {
-        return this.vertices.idx2object(idx);
-    }
-
-    @Override
-    public Stream<U> getIsolatedNodes()
-    {
-        return this.edges.getIsolatedNodes().mapToObj(vertices::idx2object);
-    }
-
-    @Override
-    public Stream<U> getNodesWithEdges(EdgeOrientation orient)
-    {
-        return switch (orient)
-        {
-            case IN -> this.edges.getNodesWithIncidentEdges().mapToObj(vertices::idx2object);
-            case OUT -> this.edges.getNodesWithAdjacentEdges().mapToObj(vertices::idx2object);
-            case UND -> this.edges.getNodesWithEdges().mapToObj(vertices::idx2object);
-            case MUTUAL -> this.edges.getNodesWithMutualEdges().mapToObj(vertices::idx2object);
-            default -> null;
-        };
-    }
-
-    @Override
-    public Stream<U> getNodesWithAdjacentEdges()
-    {
-        return this.getNodesWithEdges(EdgeOrientation.OUT);
-    }
-
-    @Override
-    public Stream<U> getNodesWithIncidentEdges()
-    {
-        return this.getNodesWithEdges(EdgeOrientation.IN);
-    }
-
-    @Override
-    public Stream<U> getNodesWithEdges()
-    {
-        return this.getNodesWithEdges(EdgeOrientation.UND);
-    }
-
-    @Override
-    public Stream<U> getNodesWithMutualEdges()
-    {
-        return this.getNodesWithEdges(EdgeOrientation.MUTUAL);
-    }
-
-    @Override
-    public boolean hasAdjacentEdges(U u)
-    {
-        return this.edges.hasAdjacentEdges(this.object2idx(u));
-    }
-
-    @Override
-    public boolean hasIncidentEdges(U u)
-    {
-        return this.edges.hasIncidentEdges(this.object2idx(u));
-    }
-
-    @Override
-    public boolean hasEdges(U u)
-    {
-        return this.edges.hasEdges(this.object2idx(u));
-    }
-
-    @Override
-    public boolean hasMutualEdges(U u)
-    {
-        return this.edges.hasMutualEdges(this.object2idx(u));
-    }
 }
