@@ -13,7 +13,6 @@ import es.uam.eps.ir.socialranksys.links.data.ml.attributes.Attribute;
 import es.uam.eps.ir.socialranksys.links.data.ml.attributes.Attributes;
 import es.uam.eps.ir.socialranksys.links.data.ml.io.PatternReader;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
-import org.openide.util.Exceptions;
 import org.ranksys.formats.parsing.Parser;
 import weka.core.FastVector;
 import weka.core.Instance;
@@ -216,7 +215,7 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
             
         } 
         catch (IOException ex) {
-            Exceptions.printStackTrace(ex);
+            ex.printStackTrace();
             return false;
         }
         

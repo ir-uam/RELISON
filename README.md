@@ -30,6 +30,9 @@ Up to date, the following packages have been published:
 - **Java JDK:** Java 14 or above.
 - **Maven:** Tested with version 3.6.0.
 - **R:** Tested with version 3.6.3.
+- **GLIBC:** In Linux, to execute path-based approaches, this library uses JBLAS 1.2.5, which requires
+  GLIBC version.
+- **Matlab:** For some matrix-based approaches, the fastest version is coded in Matlab. It has been tested with version R2020a 
 
 ## Instalation
 In order to install this framework, you need to have Maven [http://maven.apache.org](http://maven.apache.org) installed 
@@ -66,5 +69,5 @@ In this case, you will need the following libraries:
 - Terrier v5.1: [http://terrier.org/](http://terrier.org/)
 - Weka v3.6.6.: [https://www.cs.waikato.ac.nz/ml/weka/](https://www.cs.waikato.ac.nz/ml/weka/)
 - Cloning v1.9.2.: [https://github.com/kostaskougios/cloning](https://github.com/kostaskougios/cloning)
-
+- JBLAS v.1.2.5.: [http://jblas.org/](http://jblas.org/)
 ## More information

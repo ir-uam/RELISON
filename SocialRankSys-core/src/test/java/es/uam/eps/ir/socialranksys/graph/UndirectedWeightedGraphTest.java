@@ -12,6 +12,7 @@ package es.uam.eps.ir.socialranksys.graph;
 
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
+import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastUndirectedWeightedGraph;
 import org.jooq.lambda.tuple.Tuple2;
 import org.jooq.lambda.tuple.Tuple3;
@@ -70,7 +71,7 @@ public class UndirectedWeightedGraphTest
         Collections.shuffle(users);
 
         // Build a directed weighted graph and add all the nodes.
-        Graph<String> graph = new FastUndirectedWeightedGraph<>();
+        FastGraph<String> graph = new FastUndirectedWeightedGraph<>();
         users.forEach(graph::addNode);
 
         // Generate a set of links between nodes (including autoloops)

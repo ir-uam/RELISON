@@ -50,4 +50,10 @@ public interface UnweightedMultiEdges extends MultiEdges
         return this.getNeighbourNodes(node).map((val) -> new MultiEdgeWeights(val, MultiEdgeWeights.getDefaultValue(this.getNumEdges(node, val))));
     }
 
+    @Override
+    default Stream<MultiEdgeWeights> getMutualWeights(int node)
+    {
+        return this.getMutualNodes(node).map((val) -> new MultiEdgeWeights(val, MultiEdgeWeights.getDefaultValue(this.getNumEdges(node, val))));
+    }
+
 }

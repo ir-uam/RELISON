@@ -54,7 +54,7 @@ public interface UndirectedMultiEdges extends MultiEdges
         return this.getNeighbourTypes(node);
     }
 
-    @Override
+    /*@Override
     default Stream<MultiEdgeWeights> getIncidentWeights(int node)
     {
         return this.getNeighbourWeights(node);
@@ -70,7 +70,7 @@ public interface UndirectedMultiEdges extends MultiEdges
     default Stream<MultiEdgeWeights> getMutualWeights(int node)
     {
         return this.getNeighbourWeights(node);
-    }
+    }*/
 
     @Override
     default int getNeighbourCount(int node)

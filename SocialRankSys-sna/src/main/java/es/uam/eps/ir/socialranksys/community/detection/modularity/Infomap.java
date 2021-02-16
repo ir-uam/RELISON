@@ -11,6 +11,8 @@ package es.uam.eps.ir.socialranksys.community.detection.modularity;
 import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.index.Index;
+import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 import es.uam.eps.ir.socialranksys.io.graph.GraphWriter;
 import es.uam.eps.ir.socialranksys.io.graph.PajekGraphWriter;
 import org.ranksys.formats.parsing.Parsers;
@@ -144,6 +146,8 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
     private Communities<U> detectCommunities(Graph<U> graph, String network, String path)
     {
         Communities<U> comms = new Communities<>();
+        Index<U> index = new FastIndex<>();
+        graph.getAllNodes().forEach(index::addObject);
 
         try
         {
@@ -193,7 +197,7 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
                         aux.put(commId, aux.size());
                         comms.addCommunity();
                     }
-                    comms.add(graph.idx2object(userId), aux.get(commId));
+                    comms.add(index.idx2object(userId), aux.get(commId));
                 }
             }
 

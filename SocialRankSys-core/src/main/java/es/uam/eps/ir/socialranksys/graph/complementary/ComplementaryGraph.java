@@ -15,9 +15,10 @@ import es.uam.eps.ir.socialranksys.graph.Weight;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
-import no.uib.cipr.matrix.Matrix;
-import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
+import org.jblas.DoubleMatrix;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -330,8 +331,7 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
         return matrix;
     }
 
-    @Override
-    public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
+    /*public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
     {
         if (this.isMultigraph())
         {
@@ -348,7 +348,7 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
             }
         }
         return matrix;
-    }
+    }*/
 
     @Override
     public Graph<U> complement()
@@ -360,18 +360,6 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     public boolean updateEdgeWeight(U orig, U dest, double weight)
     {
         throw new UnsupportedOperationException("Edges weights cannot be updated in complementary graphs");
-    }
-
-    @Override
-    public int object2idx(U u)
-    {
-        return this.graph.object2idx(u);
-    }
-
-    @Override
-    public U idx2object(int idx)
-    {
-        return this.graph.idx2object(idx);
     }
 
     @Override
@@ -432,6 +420,19 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     public boolean hasMutualEdges(U u)
     {
         return this.getMutualNodesCount(u) > 0;
+    }
+
+    @Override
+    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
+    {
+        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
+        DoubleMatrix matrix = DoubleMatrix.zeros(numUsers, numUsers);
+
+        Map<U, Integer> map = new HashMap<>();
+        this.getAllNodes().forEach(u -> map.put(u, map.size()));
+
+        this.getAllNodes().forEach(u -> this.getNeighbourhood(u, orientation).forEach(v -> matrix.put(map.get(u), map.get(v), EdgeWeight.getDefaultValue())));
+        return matrix;
     }
 
 }

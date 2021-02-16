@@ -31,6 +31,6 @@ public interface FastNormalizer<U,I> extends Normalizer<U,I>
      */
     FastRecommendation normalize(FastRecommendation rec);
 
-    FastIndividualNormalizer getInstance();
+    //FastIndividualNormalizer getInstance();
 
 }

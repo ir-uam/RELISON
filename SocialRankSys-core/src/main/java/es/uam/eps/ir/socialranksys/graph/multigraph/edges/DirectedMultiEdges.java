@@ -52,7 +52,7 @@ public interface DirectedMultiEdges extends MultiEdges
         throw new UnsupportedOperationException("Not supported");
     }
 
-    @Override
+    /*@Override
     default Stream<MultiEdgeWeights> getNeighbourWeights(int node)
     {
         throw new UnsupportedOperationException("Not supported");
@@ -62,7 +62,7 @@ public interface DirectedMultiEdges extends MultiEdges
     default Stream<MultiEdgeWeights> getMutualWeights(int node)
     {
         throw new UnsupportedOperationException("Not supported");
-    }
+    }*/
 
     @Override
     default int getNeighbourCount(int node)

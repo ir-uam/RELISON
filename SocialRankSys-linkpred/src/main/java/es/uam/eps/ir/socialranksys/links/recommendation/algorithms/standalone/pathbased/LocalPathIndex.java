@@ -11,40 +11,48 @@ package es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.p
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import org.jblas.DoubleMatrix;
-import org.jblas.Solve;
 
 /**
- * Katz algorithm.
+ * Local path index recommender.
  * @param <U> Type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class Katz<U> extends MatrixBasedRecommender<U>
+public class LocalPathIndex<U> extends MatrixBasedRecommender<U>
 {
-    private final double b;
+    private final double beta;
+    private final double k;
 
     /**
      * Constructor.
      *
      * @param graph A fast graph representing the social network.
      */
-    public Katz(FastGraph<U> graph, double b)
+    public LocalPathIndex(FastGraph<U> graph, double beta, int k)
     {
         super(graph);
-        this.b = b;
+        this.beta = beta;
+        this.k = k;
         this.matrix = this.getMatrix();
+
     }
 
-    /**
-     * Obtains the matrix for the recommendation.
-     * @return the matrix for the recommendation.
-     */
+    @Override
     protected DoubleMatrix getMatrix()
     {
-        DoubleMatrix matrix = graph.getJBLASAdjacencyMatrix(EdgeOrientation.OUT);
-        DoubleMatrix eye = DoubleMatrix.eye(matrix.columns);
-        eye = eye.add(matrix.mul(-b));
-        return Solve.solve(eye, DoubleMatrix.eye(matrix.columns));
+        DoubleMatrix adj = graph.getJBLASAdjacencyMatrix(EdgeOrientation.OUT);
+        DoubleMatrix matrix = DoubleMatrix.zeros(adj.rows, adj.columns);
+        DoubleMatrix aux = DoubleMatrix.eye(adj.rows);
+        aux.mmuli(adj);
+        double auxBeta = 1.0;
+        for(int i = 2; i <= k; ++i)
+        {
+            matrix = matrix.add(aux.mmuli(adj).mul(auxBeta));
+            auxBeta *= beta;
+        }
+
+        return matrix;
     }
+
 }

@@ -15,7 +15,6 @@ import es.uam.eps.ir.socialranksys.links.recommendation.UserFastRankingRecommend
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
-import org.openide.util.Exceptions;
 import weka.core.FastVector;
 
 import java.util.Map;
@@ -58,7 +57,7 @@ public class MachineLearningRecommender<U> extends UserFastRankingRecommender<U>
             classifier.train(trainSet);
         } 
         catch (Exception ex) {
-            Exceptions.printStackTrace(ex);
+            ex.printStackTrace();
         }
     }
 

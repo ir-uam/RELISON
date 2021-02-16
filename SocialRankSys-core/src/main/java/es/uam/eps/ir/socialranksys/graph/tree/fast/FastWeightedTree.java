@@ -16,6 +16,7 @@ import es.uam.eps.ir.socialranksys.graph.tree.Tree;
 import es.uam.eps.ir.socialranksys.graph.tree.WeightedTree;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
+import org.jblas.DoubleMatrix;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -115,6 +116,11 @@ public class FastWeightedTree<U> extends FastTree<U> implements WeightedTree<U>
     }
 
     @Override
+    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
+    {
+        return null;
+    }
+
     public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
     {
         Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());

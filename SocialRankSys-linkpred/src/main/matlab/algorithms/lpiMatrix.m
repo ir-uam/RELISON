@@ -18,7 +18,8 @@ function lpi = lpiMatrix(adjMatrix, numUsers, b, k)
 %   @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
 %   @author Pablo Castells (pablo.castells@uam.es)
 %
-    aux = adjMatrix;
+    aux = eye(numusers);
+    aux = adjMatrix * aux;
     beta = 1;
     lpi = zeros(numUsers,numUsers);
     for i = 2:k

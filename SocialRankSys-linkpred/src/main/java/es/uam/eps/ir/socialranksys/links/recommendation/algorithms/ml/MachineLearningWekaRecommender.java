@@ -13,7 +13,6 @@ import es.uam.eps.ir.socialranksys.links.recommendation.UserFastRankingRecommend
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
-import org.openide.util.Exceptions;
 import weka.core.Attribute;
 import weka.core.FastVector;
 import weka.core.Instance;
@@ -72,7 +71,7 @@ public class MachineLearningWekaRecommender<U> extends UserFastRankingRecommende
             System.out.println("AA");
         } 
         catch (Exception ex) {
-            Exceptions.printStackTrace(ex);
+            ex.printStackTrace();
         }
     }
 
@@ -99,7 +98,7 @@ public class MachineLearningWekaRecommender<U> extends UserFastRankingRecommende
                 catch (Exception ex) 
                 {
                     scores.put(this.item2iidx(v), Double.NEGATIVE_INFINITY);
-                    Exceptions.printStackTrace(ex);
+                    ex.printStackTrace();
                 } 
             }
             else

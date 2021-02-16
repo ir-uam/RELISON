@@ -11,7 +11,6 @@ package es.uam.eps.ir.socialranksys.links.linkprediction;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.links.data.ml.MLConstants;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
-import org.openide.util.Exceptions;
 import org.ranksys.core.util.tuples.Tuple2od;
 import weka.classifiers.Classifier;
 import weka.core.Attribute;
@@ -72,7 +71,7 @@ public class SupervisedLinkPredictor<U> extends AbstractLinkPredictor<U>
         try {
             this.classifier.buildClassifier(this.trainInstances);
         } catch (Exception ex) {
-            Exceptions.printStackTrace(ex);
+            ex.printStackTrace();
         }
     }
     
@@ -102,7 +101,7 @@ public class SupervisedLinkPredictor<U> extends AbstractLinkPredictor<U>
                         catch (Exception ex) 
                         {
                             auxSet.add(new Tuple2od<>(pair, Double.NEGATIVE_INFINITY));
-                            Exceptions.printStackTrace(ex);
+                            ex.printStackTrace();
                         }
                         
                     }

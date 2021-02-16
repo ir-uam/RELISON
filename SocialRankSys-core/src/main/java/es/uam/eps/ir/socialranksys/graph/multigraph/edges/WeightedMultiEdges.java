@@ -57,4 +57,17 @@ public interface WeightedMultiEdges extends MultiEdges
     {
         return this.getNeighbourNodes(node).map((inc) -> new MultiEdgeWeights(inc, this.getEdgeWeights(node, inc)));
     }
+
+    /**
+     * Given a node, finds all the all the weights of edges so that both (node to u) and (u to node) are in the graph.
+     *
+     * @param node The node
+     *
+     * @return A stream containing all the weights of the nodes in the neighbourhood.
+     */
+    @Override
+    default Stream<MultiEdgeWeights> getMutualWeights(int node)
+    {
+        return this.getMutualNodes(node).map((inc) -> new MultiEdgeWeights(inc, this.getEdgeWeights(node, inc)));
+    }
 }

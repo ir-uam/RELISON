@@ -9,6 +9,8 @@
 package es.uam.eps.ir.socialranksys.io.graph;
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.index.Index;
+import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 
 import java.io.*;
 import java.util.logging.Level;
@@ -67,20 +69,22 @@ public class PajekGraphWriter<U extends Serializable> implements GraphWriter<U>
         }
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(file)))
         {
+            Index<U> index = new FastIndex<>();
+            graph.getAllNodes().forEach(index::addObject);
 
             bw.write("*Vertices " + graph.getVertexCount() + "\n");
             for (int l = 0; l < graph.getVertexCount(); ++l)
             {
-                bw.write((l + 1) + " \"" + graph.idx2object(l) + "\"\n");
+                bw.write((l + 1) + " \"" + index.idx2object(l) + "\"\n");
             }
 
             bw.write("*Edges " + graph.getEdgeCount());
             graph.getAllNodes().forEach(u ->
             {
-                int uidx = graph.object2idx(u);
+                int uidx = index.object2idx(u);
                 graph.getAdjacentNodesWeights(u).forEach(v ->
                 {
-                    int vidx = graph.object2idx(v.getIdx());
+                    int vidx = index.object2idx(v.getIdx());
                     try
                     {
                         if (writeWeights)

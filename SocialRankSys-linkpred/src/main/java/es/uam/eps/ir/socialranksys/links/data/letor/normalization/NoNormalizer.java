@@ -45,7 +45,6 @@ public class NoNormalizer<U,I> implements FastNormalizer<U,I>
         return new FastRecommendation(uidx, rec);
     }
 
-    @Override
     public FastIndividualNormalizer getInstance()
     {
         return new IndividualNoNormalizer();

@@ -18,6 +18,8 @@ import es.uam.eps.ir.socialranksys.community.clustering.KMeans;
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
+import es.uam.eps.ir.socialranksys.index.Index;
+import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 import org.ranksys.core.util.tuples.Tuple2id;
 
 import java.util.ArrayList;
@@ -56,6 +58,9 @@ public abstract class SpectralClustering<U> implements CommunityDetectionAlgorit
     @Override
     public Communities<U> detectCommunities(Graph<U> graph)
     {
+        Index<U> index = new FastIndex<>();
+        graph.getAllNodes().forEach(index::addObject);
+
         int vertexCount = Long.valueOf(graph.getVertexCount()).intValue();
         DoubleMatrix2D adjacencyMatrix = graph.getAdjacencyMatrix(EdgeOrientation.UND);
 
@@ -63,7 +68,7 @@ public abstract class SpectralClustering<U> implements CommunityDetectionAlgorit
         for (int i = 0; i < vertexCount; ++i)
         {
             // To ensure the presence of eigenvalues, we 
-            degree.setQuick(i, i, graph.getNeighbourhoodSize(graph.idx2object(i), EdgeOrientation.UND));
+            degree.setQuick(i, i, graph.getNeighbourhoodSize(index.idx2object(i), EdgeOrientation.UND));
         }
 
         DoubleMatrix2D laplacian = this.laplacian(degree, adjacencyMatrix);
@@ -102,7 +107,7 @@ public abstract class SpectralClustering<U> implements CommunityDetectionAlgorit
         Communities<U> comms = new Communities<>();
         clusters.getCommunities().forEach(c -> {
             comms.addCommunity();
-            clusters.getUsers(c).forEach(uIdx -> comms.add(graph.idx2object(uIdx), comms.getNumCommunities() - 1));
+            clusters.getUsers(c).forEach(uIdx -> comms.add(index.idx2object(uIdx), comms.getNumCommunities() - 1));
         });
 
         return comms;

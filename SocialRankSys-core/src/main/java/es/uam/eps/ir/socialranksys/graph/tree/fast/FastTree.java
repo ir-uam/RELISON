@@ -10,7 +10,7 @@ package es.uam.eps.ir.socialranksys.graph.tree.fast;
 
 import es.uam.eps.ir.socialranksys.graph.Weight;
 import es.uam.eps.ir.socialranksys.graph.edges.DirectedEdges;
-import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
+import es.uam.eps.ir.socialranksys.graph.fast.AbstractFastGraph;
 import es.uam.eps.ir.socialranksys.graph.tree.Tree;
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 
@@ -26,7 +26,7 @@ import java.util.stream.Stream;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
-public abstract class FastTree<U> extends FastGraph<U> implements Tree<U>
+public abstract class FastTree<U> extends AbstractFastGraph<U> implements Tree<U>
 {
     /**
      * Constructor.
@@ -193,9 +193,9 @@ public abstract class FastTree<U> extends FastGraph<U> implements Tree<U>
                 return null;
             }
 
-            int parentIdx = this.edges.getIncidentNodes(this.vertices.object2idx(u)).findFirst().get();
-            return this.vertices.idx2object(parentIdx);
-
+            Optional<Integer> parent = this.edges.getIncidentNodes(this.vertices.object2idx(u)).findFirst();
+            if(parent.isPresent()) return this.vertices.idx2object(parent.get());
+            else throw new RuntimeException("ERROR: The node should have a parent, but it does not");
         }
         else
         {

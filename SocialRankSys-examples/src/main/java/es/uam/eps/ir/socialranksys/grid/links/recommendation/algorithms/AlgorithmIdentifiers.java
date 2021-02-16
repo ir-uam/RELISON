@@ -50,6 +50,11 @@ public class AlgorithmIdentifiers
 
     // Distances
     public final static String DISTANCE = "Distance";
+
+    // Path-based
+    public static final String KATZ = "Katz";
+    public static final String LPI = "Local path index";
+
     // Random walks
     public final static String PAGERANK = "PageRank";
     public final static String SALSA = "PageRank";
@@ -77,4 +82,5 @@ public class AlgorithmIdentifiers
 
     public final static String POP = "Popularity";
     public final static String RANDOM = "Random";
+
 }

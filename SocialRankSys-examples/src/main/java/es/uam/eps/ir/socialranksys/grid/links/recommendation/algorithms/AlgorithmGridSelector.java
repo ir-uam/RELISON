@@ -23,6 +23,8 @@ import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalo
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.foaf.*;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.ir.*;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.mf.ImplicitMFGridSearch;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.pathbased.KatzGridSearch;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.pathbased.LocalPathIndexGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.PersonalizedHITSGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.PersonalizedPageRankGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.PersonalizedSALSAGridSearch;
@@ -238,6 +240,8 @@ public class AlgorithmGridSelector<U>
 
             // Path-based algorithms
             case DISTANCE -> new ShortestDistanceGridSearch<>();
+            case KATZ -> new KatzGridSearch<>();
+            case LPI -> new LocalPathIndexGridSearch<>();
 
             // Random walks
             case PERSPAGERANK -> new PersonalizedPageRankGridSearch<>();
