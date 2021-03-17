@@ -78,6 +78,6 @@ public class RanksimNormalizer<U,I> implements FastNormalizer<U,I>
         for (int i = 0; i < length; ++i) {
             newItems.add(new Tuple2od<>(items.get(i).v1(), (length - i + 0.0) / (length + 0.0)));
         }
-        return new Recommendation<>(u, items);
+        return new Recommendation<>(u, newItems);
     }
 }

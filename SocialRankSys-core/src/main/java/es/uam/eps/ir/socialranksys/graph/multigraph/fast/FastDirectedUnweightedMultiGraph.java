@@ -9,16 +9,11 @@
 package es.uam.eps.ir.socialranksys.graph.multigraph.fast;
 
 
-import cern.colt.matrix.DoubleMatrix2D;
-import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import es.uam.eps.ir.socialranksys.graph.Weight;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.multigraph.DirectedUnweightedMultiGraph;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.fast.FastDirectedUnweightedMultiEdges;
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
-import no.uib.cipr.matrix.Matrix;
-import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
-import org.jblas.DoubleMatrix;
 
 import java.util.stream.Stream;
 
@@ -41,68 +36,24 @@ public class FastDirectedUnweightedMultiGraph<U> extends AbstractFastMultiGraph<
     }
 
     @Override
-    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
+    public double[][] getAdjacencyMatrix(EdgeOrientation direction)
     {
         int numUsers = Long.valueOf(this.getVertexCount()).intValue();
-        DoubleMatrix matrix = DoubleMatrix.zeros(numUsers, numUsers);
+        double[][] matrix = new double[numUsers][numUsers];
 
-        this.getNodesIdsWithEdges(orientation).forEach(uidx ->
-            this.getNeighborhood(uidx, orientation).forEach(vidx ->
-            {
-                double weight = switch (orientation)
-                {
-                    case IN -> this.getNumEdges(vidx, uidx);
-                    case OUT -> this.getNumEdges(uidx, vidx);
-                    case UND, MUTUAL -> this.getNumEdges(uidx, vidx) + this.getNumEdges(vidx, uidx);
-                };
-                matrix.put(uidx, vidx, weight);
-            })
-        );
-        return matrix;
-    }
-
-    @Override
-    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation orientation)
-    {
-        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
-        DoubleMatrix2D matrix = new SparseDoubleMatrix2D(numUsers, numUsers);
-
-        this.getNodesIdsWithEdges(orientation).forEach(uidx ->
-            this.getNeighborhood(uidx, orientation).forEach(vidx ->
-            {
-                double weight = switch (orientation)
-                {
-                    case IN -> this.getNumEdges(vidx, uidx);
-                    case OUT -> this.getNumEdges(uidx, vidx);
-                    case UND, MUTUAL -> this.getNumEdges(uidx, vidx) + this.getNumEdges(vidx, uidx);
-                };
-                matrix.setQuick(uidx, vidx, weight);
-            })
-        );
-        return matrix;
-    }
-
-    public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
-    {
-        Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
-        this.vertices.getAllObjects().forEach(u ->
+        this.getAllNodesIds().forEach(uidx -> this.getNeighborhood(uidx, direction).forEach(vidx ->
         {
-            int uIdx = this.vertices.object2idx(u);
-            this.getNeighbourhood(u, direction).forEach(v ->
-            {
-                int vIdx = this.vertices.object2idx(v);
-                switch (direction)
-                {
-                    case IN -> matrix.set(uIdx, vIdx, this.edges.getNumEdges(vIdx, uIdx));
-                    case OUT -> matrix.set(uIdx, vIdx, this.edges.getNumEdges(uIdx, vIdx));
-                    default -> matrix.set(uIdx, vIdx, this.edges.getNumEdges(vIdx, uIdx) + this.edges.getNumEdges(uIdx, vIdx));
-                }
-            });
-        });
+            double weight = switch (direction)
+                    {
+                        case IN -> this.getNumEdges(vidx, uidx);
+                        case OUT -> this.getNumEdges(uidx, vidx);
+                        case UND, MUTUAL -> this.getNumEdges(uidx, vidx) + this.getNumEdges(vidx, uidx);
+                    };
+            matrix[uidx][vidx] = weight;
+        }));
 
         return matrix;
     }
-
 
     //TODO: All below
     @Override

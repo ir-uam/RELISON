@@ -62,7 +62,8 @@ public abstract class SpectralClustering<U> implements CommunityDetectionAlgorit
         graph.getAllNodes().forEach(index::addObject);
 
         int vertexCount = Long.valueOf(graph.getVertexCount()).intValue();
-        DoubleMatrix2D adjacencyMatrix = graph.getAdjacencyMatrix(EdgeOrientation.UND);
+        double[][] adj = graph.getAdjacencyMatrix(EdgeOrientation.UND);
+        DoubleMatrix2D adjacencyMatrix = new SparseDoubleMatrix2D(adj);
 
         DoubleMatrix2D degree = new SparseDoubleMatrix2D(vertexCount, vertexCount);
         for (int i = 0; i < vertexCount; ++i)

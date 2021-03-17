@@ -18,7 +18,8 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 /**
  * Recommender that uses the Adamic-Adar coefficient of the neighbours.
  * <p>
- * Adamic, L.A., Adar, E.: Friends and neighbors on the Web. Social Networks25(3), 211–230 (2003)
+ * Adamic, L.A., Adar, E.: Friends and neighbors on the Web. Social Networks, 25(3), 211–230 (2003)
+ * </p>
  *
  * @param <U> type of the users.
  *

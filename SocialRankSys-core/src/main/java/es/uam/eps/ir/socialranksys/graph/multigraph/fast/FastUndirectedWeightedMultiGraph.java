@@ -9,8 +9,6 @@
 package es.uam.eps.ir.socialranksys.graph.multigraph.fast;
 
 
-import cern.colt.matrix.DoubleMatrix2D;
-import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import es.uam.eps.ir.socialranksys.graph.Weight;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.multigraph.UndirectedWeightedMultiGraph;
@@ -18,7 +16,6 @@ import es.uam.eps.ir.socialranksys.graph.multigraph.edges.fast.FastUndirectedWei
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 import no.uib.cipr.matrix.Matrix;
 import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
-import org.jblas.DoubleMatrix;
 
 import java.util.stream.Stream;
 
@@ -34,28 +31,15 @@ public class FastUndirectedWeightedMultiGraph<U> extends AbstractFastMultiGraph<
 {
 
     @Override
-    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
+    public double[][] getAdjacencyMatrix(EdgeOrientation direction)
     {
         int numUsers = Long.valueOf(this.getVertexCount()).intValue();
-        DoubleMatrix matrix = DoubleMatrix.zeros(numUsers, numUsers);
+        double[][] matrix = new double[numUsers][numUsers];
 
-        this.getNodesIdsWithEdges(EdgeOrientation.UND).forEach(uidx ->
-            this.getNeighborhood(uidx, EdgeOrientation.UND).forEach(vidx ->
-                matrix.put(uidx, vidx, this.getEdgeWeight(uidx, vidx)))
-        );
-        return matrix;
-    }
+        this.getAllNodesIds().forEach(uidx -> this.getNeighborhoodWeights(uidx, direction).forEach(vidx ->
+            matrix[uidx][vidx.v1] = vidx.v2
+        ));
 
-    @Override
-    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
-    {
-        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
-        DoubleMatrix2D matrix = new SparseDoubleMatrix2D(numUsers, numUsers);
-
-        this.getNodesIdsWithEdges(EdgeOrientation.UND).forEach(uidx ->
-            this.getNeighborhood(uidx, EdgeOrientation.UND).forEach(vidx ->
-                matrix.setQuick(uidx, vidx, this.getEdgeWeight(uidx, vidx)))
-        );
         return matrix;
     }
 

@@ -8,17 +8,12 @@
  */
 package es.uam.eps.ir.socialranksys.graph.complementary;
 
-import cern.colt.matrix.DoubleMatrix2D;
-import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.Weight;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
-import org.jblas.DoubleMatrix;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -315,40 +310,23 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     }
 
     @Override
-    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
+    public double[][] getAdjacencyMatrix(EdgeOrientation direction)
     {
+        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
+
         if (this.isMultigraph())
         {
             throw new UnsupportedOperationException("The complementary adjacency matrix of a multigraph cannot be computed");
         }
 
-        DoubleMatrix2D matrix = new SparseDoubleMatrix2D(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
-
-        DoubleMatrix2D complAdjMatrix = this.graph.getAdjacencyMatrix(direction);
-
-        matrix.assign(complAdjMatrix, (double a, double b) -> 1.0 - b);
+        double[][] graphMatrix = graph.getAdjacencyMatrix(direction);
+        double[][] matrix = new double[numUsers][numUsers];
+        for(int i = 0; i < numUsers; ++i)
+            for(int j = 0; j < numUsers; ++j)
+                matrix[i][j] = graphMatrix[i][j] == 0.0 ? 1.0 : 0.0;
 
         return matrix;
     }
-
-    /*public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
-    {
-        if (this.isMultigraph())
-        {
-            throw new UnsupportedOperationException("The complementary adjacency matrix of a multigraph cannot be computed");
-        }
-
-        Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
-        Matrix complAdjMatrix = this.graph.getAdjacencyMatrixMTJ(direction);
-        for (int i = 0; i < this.getVertexCount(); ++i)
-        {
-            for (int j = 0; j < this.getVertexCount(); ++j)
-            {
-                matrix.set(i, j, 1.0 - complAdjMatrix.get(i, j));
-            }
-        }
-        return matrix;
-    }*/
 
     @Override
     public Graph<U> complement()
@@ -421,18 +399,4 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     {
         return this.getMutualNodesCount(u) > 0;
     }
-
-    @Override
-    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
-    {
-        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
-        DoubleMatrix matrix = DoubleMatrix.zeros(numUsers, numUsers);
-
-        Map<U, Integer> map = new HashMap<>();
-        this.getAllNodes().forEach(u -> map.put(u, map.size()));
-
-        this.getAllNodes().forEach(u -> this.getNeighbourhood(u, orientation).forEach(v -> matrix.put(map.get(u), map.get(v), EdgeWeight.getDefaultValue())));
-        return matrix;
-    }
-
 }

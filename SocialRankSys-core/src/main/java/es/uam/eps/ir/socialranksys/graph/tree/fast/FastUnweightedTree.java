@@ -8,16 +8,11 @@
  */
 package es.uam.eps.ir.socialranksys.graph.tree.fast;
 
-import cern.colt.matrix.DoubleMatrix2D;
-import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
 import es.uam.eps.ir.socialranksys.graph.edges.fast.FastDirectedUnweightedEdges;
 import es.uam.eps.ir.socialranksys.graph.tree.Tree;
 import es.uam.eps.ir.socialranksys.graph.tree.UnweightedTree;
-import no.uib.cipr.matrix.Matrix;
-import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
-import org.jblas.DoubleMatrix;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -81,61 +76,15 @@ public class FastUnweightedTree<U> extends FastTree<U> implements UnweightedTree
     }
 
     @Override
-    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
+    public double[][] getAdjacencyMatrix(EdgeOrientation direction)
     {
-        DoubleMatrix2D matrix = new SparseDoubleMatrix2D(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
-        // Creation of the adjacency matrix
-        for (int row = 0; row < matrix.rows(); ++row)
-        {
-            for (int col = 0; col < matrix.rows(); ++col)
-            {
-                switch (direction)
-                {
-                    case IN:
-                        if (this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)))
-                        {
-                            matrix.setQuick(row, col, 1.0);
-                        }
-                        break;
-                    case OUT:
-                        if (this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
-                        {
-                            matrix.setQuick(row, col, 1.0);
-                        }
-                        break;
-                    default: //case UND
-                        if (this.containsEdge(this.vertices.idx2object(col), this.vertices.idx2object(row)) ||
-                                this.containsEdge(this.vertices.idx2object(row), this.vertices.idx2object(col)))
-                        {
-                            matrix.setQuick(row, col, 1.0);
-                        }
-                }
-            }
-        }
-
+        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
+        double[][] matrix = new double[numUsers][numUsers];
+        this.getAllNodesIds().forEach(uidx ->
+            this.getNeighborhood(uidx, direction).forEach(vidx ->
+                matrix[uidx][vidx] = EdgeWeight.getDefaultValue()
+            )
+        );
         return matrix;
     }
-
-    @Override
-    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
-    {
-        return null;
-    }
-
-    public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
-    {
-        Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
-        this.vertices.getAllObjects().forEach(u ->
-        {
-            int uIdx = this.vertices.object2idx(u);
-            this.getNeighbourhood(u, direction).forEach(v ->
-            {
-                int vIdx = this.vertices.object2idx(v);
-                matrix.set(uIdx, vIdx, EdgeWeight.getDefaultValue());
-            });
-        });
-
-        return matrix;
-    }
-
 }

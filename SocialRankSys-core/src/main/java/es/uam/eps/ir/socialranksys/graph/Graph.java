@@ -9,11 +9,9 @@
  */
 package es.uam.eps.ir.socialranksys.graph;
 
-import cern.colt.matrix.DoubleMatrix2D;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
-import org.jblas.DoubleMatrix;
 
 import java.io.Serializable;
 import java.util.stream.Stream;
@@ -591,18 +589,9 @@ public interface Graph<V> extends Serializable
      *
      * @param direction The direction of the edges.
      *
-     * @return the matrix (Cern Colt Package).
+     * @return the adjacency matrix.
      */
-    DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction);
-
-    /**
-     * Gets the adjacency matrix.
-     *
-     * @param orientation The direction of the edges.
-     *
-     * @return the matrix (JBLAS Package).
-     */
-    DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation);
+    double[][] getAdjacencyMatrix(EdgeOrientation direction);
 
     /**
      * Obtains the set of nodes without edges.

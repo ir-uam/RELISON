@@ -8,12 +8,9 @@
  */
 package es.uam.eps.ir.socialranksys.graph.jung;
 
-import cern.colt.matrix.DoubleMatrix2D;
 import edu.uci.ics.jung.graph.DirectedSparseGraph;
 import es.uam.eps.ir.socialranksys.graph.DirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
-import no.uib.cipr.matrix.Matrix;
-import org.jblas.DoubleMatrix;
 
 /**
  * Directed Graph Wrapper for <a href="http://jung.sourceforge.net/">JUNG</a>
@@ -34,18 +31,7 @@ public class DirectedJungGraph<U> extends JungGraph<U> implements DirectedUnweig
     }
 
     @Override
-    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
-    {
-        throw new UnsupportedOperationException("Unavailable method");
-    }
-
-    @Override
-    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
-    {
-        throw new UnsupportedOperationException("Unavailable method");
-    }
-
-    public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
+    public double[][] getAdjacencyMatrix(EdgeOrientation direction)
     {
         throw new UnsupportedOperationException("Unavailable method");
     }

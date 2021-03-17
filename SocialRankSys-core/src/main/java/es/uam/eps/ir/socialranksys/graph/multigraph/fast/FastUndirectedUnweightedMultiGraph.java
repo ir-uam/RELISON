@@ -9,16 +9,10 @@
 package es.uam.eps.ir.socialranksys.graph.multigraph.fast;
 
 
-import cern.colt.matrix.DoubleMatrix2D;
-import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.multigraph.UndirectedUnweightedMultiGraph;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.fast.FastUndirectedUnweightedMultiEdges;
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
-import no.uib.cipr.matrix.Matrix;
-import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
-import org.jblas.DoubleMatrix;
-
 
 /**
  * Fast implementation of an undirected unweighted multi-graph
@@ -39,43 +33,14 @@ public class FastUndirectedUnweightedMultiGraph<U> extends AbstractFastMultiGrap
     }
 
     @Override
-    public DoubleMatrix getJBLASAdjacencyMatrix(EdgeOrientation orientation)
+    public double[][] getAdjacencyMatrix(EdgeOrientation direction)
     {
         int numUsers = Long.valueOf(this.getVertexCount()).intValue();
-        DoubleMatrix matrix = DoubleMatrix.zeros(numUsers, numUsers);
+        double[][] matrix = new double[numUsers][numUsers];
 
-        this.getNodesIdsWithEdges(EdgeOrientation.UND).forEach(uidx ->
-           this.getNeighborhood(uidx, EdgeOrientation.UND).forEach(vidx ->
-               matrix.put(uidx, vidx, this.getNumEdges(uidx, vidx)))
-        );
-        return matrix;
-    }
-
-    @Override
-    public DoubleMatrix2D getAdjacencyMatrix(EdgeOrientation direction)
-    {
-        int numUsers = Long.valueOf(this.getVertexCount()).intValue();
-        DoubleMatrix2D matrix = new SparseDoubleMatrix2D(numUsers, numUsers);
-
-        this.getNodesIdsWithEdges(EdgeOrientation.UND).forEach(uidx ->
-            this.getNeighborhood(uidx, EdgeOrientation.UND).forEach(vidx ->
-                matrix.setQuick(uidx, vidx, this.getNumEdges(uidx, vidx)))
-        );
-        return matrix;
-    }
-
-    public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
-    {
-        Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());
-        this.vertices.getAllObjects().forEach(u ->
-        {
-            int uIdx = this.vertices.object2idx(u);
-                this.getNeighbourNodes(u).forEach(v ->
-                {
-                    int vIdx = this.vertices.object2idx(v);
-                    matrix.set(uIdx, vIdx, this.edges.getNumEdges(vIdx, uIdx));
-                });
-        });
+        this.getAllNodesIds().forEach(uidx -> this.getNeighborhood(uidx, direction).forEach(vidx ->
+               matrix[uidx][vidx] = this.getNumEdges(uidx, vidx)
+        ));
 
         return matrix;
     }
