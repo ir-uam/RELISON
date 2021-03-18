@@ -23,16 +23,22 @@ import static java.lang.Double.isNaN;
 import static java.lang.Double.min;
 
 /**
- * Generalization of the greedy local rerankers for processing several of them in a row.
- * @author Javier Sanz-Cruzado Puig.
- * @param <U> Type of the users.
- * @param <I> Type of the items.
+ * Generalization of greedy local reranking strategies, for processing several recommendations at a time.
+ *
+ * These rerankers, given a set of recommendations, sequentially process them one by one. Those
+ * recommendations which are processed later are aware of the previously processed recommendations.
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the items.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public abstract class LocalGreedyReranker<U,I> extends LocalReranker<U,I> 
 {
 
     /**
-     * Maximum lenght of the rankings
+     * Maximum length of the rankings
      */
     protected final int cutOff;
     
@@ -48,8 +54,8 @@ public abstract class LocalGreedyReranker<U,I> extends LocalReranker<U,I>
     
     /**
      * Constructor
-     * @param cutOff the maximum length of the definitive rankings
-     * @param seed random seed.
+     * @param cutOff    the maximum length of the definitive rankings
+     * @param seed      random seed.
      */
     public LocalGreedyReranker(int cutOff, int seed)
     {
@@ -67,9 +73,9 @@ public abstract class LocalGreedyReranker<U,I> extends LocalReranker<U,I>
 
     /**
      * Given a recommendation, permutates it according to the given criteria
-     * @param rec Original recommendation
+     * @param rec       original recommendation
      * @param maxLength the maximum length of the definitive rankings
-     * @return The permutation
+     * @return the permutation
      */
     protected int[] rerankPermutation(Recommendation<U, I> rec, int maxLength) 
     {
@@ -97,9 +103,9 @@ public abstract class LocalGreedyReranker<U,I> extends LocalReranker<U,I>
 
     /**
      * Given a recommendation and a permutation, builds a new recommendation with the changed order.
-     * @param rec The original recommendation.
-     * @param perm The permutation.
-     * @return The permuted recommendation.
+     * @param rec   the original recommendation.
+     * @param perm  the permutation.
+     * @return the permuted recommendation.
      */
     private Recommendation<U, I> permuteRecommendation(Recommendation<U, I> rec, int[] perm) {
         List<Tuple2od<I>> from = rec.getItems();
@@ -130,15 +136,16 @@ public abstract class LocalGreedyReranker<U,I> extends LocalReranker<U,I>
 
     /**
      * Selects the next item to add in the permutation
-     * @param u The user
-     * @param remainingI Remaining items for user u
-     * @param list The list of scored items.
+     * @param u             the user.
+     * @param remainingI    remaining items for user u
+     * @param list          the list of scored items.
      * @return the next item.
      */
-    protected int selectItem(U u, IntSortedSet remainingI, List<Tuple2od<I>> list) {
+    protected int selectItem(U u, IntSortedSet remainingI, List<Tuple2od<I>> list)
+    {
         double[] max = new double[]{Double.NEGATIVE_INFINITY};
         int[] bestI = new int[]{remainingI.firstInt()};
-        remainingI.stream().mapToInt(i->i).forEach(i ->
+        remainingI.intStream().forEach(i ->
         {
             double value = this.value(list.get(i));
             if(isNaN(value)) return;

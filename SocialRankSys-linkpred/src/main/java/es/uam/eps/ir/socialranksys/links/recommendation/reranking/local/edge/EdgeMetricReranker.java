@@ -8,16 +8,23 @@
  */
 package es.uam.eps.ir.socialranksys.links.recommendation.reranking.local.edge;
 
-
 import es.uam.eps.ir.ranksys.core.Recommendation;
-import es.uam.eps.ir.ranksys.core.util.Stats;
-import es.uam.eps.ir.ranksys.novdiv.reranking.LambdaReranker;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.local.LambdaReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import es.uam.eps.ir.socialranksys.metrics.PairMetric;
 
+import java.util.function.Supplier;
+
 /**
- * Reranks a graph according to a global graph metric which we want to improve.
- * @author Javier Sanz-Cruzado Puig
+ * Abstract implementation of a reranking algorithm that modifies the ranking according
+ * to the values of an edge metric.
+ *
+ * Individually reranks each recommendation.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users
  */
 public abstract class EdgeMetricReranker<U> extends LambdaReranker<U,U>
@@ -26,31 +33,25 @@ public abstract class EdgeMetricReranker<U> extends LambdaReranker<U,U>
      * The graph.
      */
     protected final Graph<U> graph;
-    
+
     /**
-     * The selected metric
+     * The selected metric.
      */
     protected final PairMetric<U> metric;
-    
-    /**
-     * Indicates if the scores have to be normalized.
-     */
-    protected final boolean norm;
+
     /**
      * Constructor.
-     * @param lambda Param that establishes a balance between the score and the 
-     * novelty/diversity value.
-     * @param cutoff Number of elements to take.
-     * @param norm Indicates if scores have to be normalized.
-     * @param graph The graph.
-     * @param graphMetric The graph metric to optimize.
+     * @param lambda        trade-off between the recommendation score and the novelty/diversity value.
+     * @param cutoff        number of elements to take.
+     * @param norm          the normalization strategy.
+     * @param graph         the original graph.
+     * @param metric        the metric to optimize.
      */
-    public EdgeMetricReranker(double lambda, int cutoff, boolean norm, Graph<U> graph, PairMetric<U> graphMetric) 
+    public EdgeMetricReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, PairMetric<U> metric)
     {
         super(lambda, cutoff, norm);
         this.graph = graph;
-        this.metric = graphMetric;
-        this.norm = norm;
+        this.metric = metric;
     }
 
 
@@ -69,10 +70,10 @@ public abstract class EdgeMetricReranker<U> extends LambdaReranker<U,U>
         protected final PairMetric<U> metric;
         /**
          * Constructor
-         * @param recommendation the recommendation to be reranked.
-         * @param maxLength the maximum length of the definitive ranking
-         * @param graph the graph
-         * @param metric the metric
+         * @param recommendation    the recommendation to be reranked.
+         * @param maxLength         the maximum length of the definitive ranking.
+         * @param graph             the graph.
+         * @param metric            the metric.
          */
         public GraphMetricEdgeReranker(Recommendation<U, U> recommendation, int maxLength, Graph<U> graph, PairMetric<U> metric)
         {
@@ -81,22 +82,6 @@ public abstract class EdgeMetricReranker<U> extends LambdaReranker<U,U>
             this.metric = metric;
             
         }
-
-        @Override
-        protected double norm(double score, Stats stats)
-        {
-            if(norm)
-            {
-                return (score - stats.getMin())/(stats.getMax()-stats.getMin());
-            }
-            else
-                return score;
-        }
-        
-        
-
-        
-        
     }
     
 }

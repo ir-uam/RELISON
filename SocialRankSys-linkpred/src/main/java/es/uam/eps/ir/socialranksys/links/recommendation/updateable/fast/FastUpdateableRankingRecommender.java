@@ -22,11 +22,17 @@ import static java.lang.Integer.min;
 import static java.util.stream.Collectors.toList;
 
 /**
+ * Fast recommender that ranks the user. It can be updated over time.
  *
- * @author Javier
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public abstract class FastUpdateableRankingRecommender<U,I> extends AbstractFastUpdateableRecommender<U,I> 
 {
+    /**
+     * Constructor.
+     * @param prefData the updateable preference data.
+     */
     public FastUpdateableRankingRecommender(FastUpdateablePreferenceData<U, I> prefData)
     {
         super(prefData);

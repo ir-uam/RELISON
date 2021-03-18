@@ -15,11 +15,12 @@ import cern.colt.matrix.impl.DenseDoubleMatrix2D;
 import es.uam.eps.ir.socialranksys.links.data.updateable.index.fast.FastUpdateableItemIndex;
 import es.uam.eps.ir.socialranksys.links.data.updateable.index.fast.FastUpdateableUserIndex;
 
-
 /**
- * Matrix factorization.
+ * Updateable version of a matrix factorization.
  *
  * @author Saúl Vargas (saul.vargas@uam.es)
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the users
  * @param <I> type of the items
@@ -55,10 +56,10 @@ public class UpdateableFactorization<U, I> implements FastUpdateableItemIndex<I>
     /**
      * Constructor.
      *
-     * @param uIndex fast user index
-     * @param iIndex fast item index
-     * @param K dimension of the latent feature space
-     * @param initFunction function to initialize the cells of the matrices
+     * @param uIndex        fast user index
+     * @param iIndex        fast item index
+     * @param K             dimension of the latent feature space
+     * @param initFunction  function to initialize the cells of the matrices
      */
     public UpdateableFactorization(FastUpdateableUserIndex<U> uIndex, FastUpdateableItemIndex<I> iIndex, int K, DoubleFunction initFunction) {
         this.userMatrix = new DenseDoubleMatrix2D(uIndex.numUsers(), K);
@@ -74,11 +75,11 @@ public class UpdateableFactorization<U, I> implements FastUpdateableItemIndex<I>
     /**
      * Constructor for stored factorizations.
      *
-     * @param uIndex fast user index
-     * @param iIndex fast item index
-     * @param userMatrix user matrix
-     * @param itemMatrix item matrix
-     * @param K dimension of the latent feature space
+     * @param uIndex        fast user index
+     * @param iIndex        fast item index
+     * @param userMatrix    user matrix
+     * @param itemMatrix    item matrix
+     * @param K             dimension of the latent feature space
      */
     public UpdateableFactorization(FastUpdateableUserIndex<U> uIndex, FastUpdateableItemIndex<I> iIndex, DenseDoubleMatrix2D userMatrix, DenseDoubleMatrix2D itemMatrix, int K) {
         this.userMatrix = userMatrix;

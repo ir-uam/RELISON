@@ -21,28 +21,43 @@ import java.util.function.DoubleUnaryOperator;
 
 /**
  * Implicit matrix factorization of Hu, Koren and Volinsky.
- *
+ * <p>
  * Y. Hu, Y. Koren, C. Volinsky. Collaborative filtering for implicit feedback
  * datasets. ICDM 2008.
+ * </p>
  *
  * @author Saúl Vargas (saul.vargas@uam.es)
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the users
  * @param <I> type of the items
  */
-public class HKVUpdateableFactorizer<U, I> extends ALSUpdateableFactorizer<U, I> {
-
+public class HKVUpdateableFactorizer<U, I> extends ALSUpdateableFactorizer<U, I>
+{
+    /**
+     * An algebra.
+     */
     private static final Algebra ALG = new Algebra();
+    /**
+     * Regularization factor for the user vectors.
+     */
     private final double lambdaP;
+    /**
+     * Regularization factor for the item vectors.
+     */
     private final double lambdaQ;
+    /**
+     * Confidence function.
+     */
     private final DoubleUnaryOperator confidence;
 
     /**
      * Constructor. Same regularization factor for user and item matrices.
      *
-     * @param lambda regularization factor
-     * @param confidence confidence function
-     * @param numIter number of iterations
+     * @param lambda        regularization factor
+     * @param confidence    confidence function
+     * @param numIter       number of iterations
      */
     public HKVUpdateableFactorizer(double lambda, DoubleUnaryOperator confidence, int numIter) {
         this(lambda, lambda, confidence, numIter);
@@ -51,10 +66,10 @@ public class HKVUpdateableFactorizer<U, I> extends ALSUpdateableFactorizer<U, I>
     /**
      * Constructor. Different regularization factors for user and item matrices.
      *
-     * @param lambdaP regularization factor for user matrix
-     * @param lambdaQ regularization factor for item matrix
-     * @param confidence confidence function
-     * @param numIter number of iterations
+     * @param lambdaP       regularization factor for user matrix
+     * @param lambdaQ       regularization factor for item matrix
+     * @param confidence    confidence function
+     * @param numIter       number of iterations
      */
     public HKVUpdateableFactorizer(double lambdaP, double lambdaQ, DoubleUnaryOperator confidence, int numIter) {
         super(numIter);

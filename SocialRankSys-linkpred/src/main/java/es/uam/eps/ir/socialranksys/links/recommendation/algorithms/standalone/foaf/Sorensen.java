@@ -19,11 +19,14 @@ import java.util.Map;
 
 /**
  * Recommender based on Sorensen similarity.
- * 
+ * <p>
  * Lü, L., Zhou. T. Link Prediction in Complex Networks: A survey. Physica A: Statistical Mechanics and its Applications, 390(6), March 2011, pp. 1150-1170.
- * 
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * </p>
+ *
+ * @param <U> type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class Sorensen<U> extends UserFastRankingRecommender<U>
 {
@@ -47,8 +50,8 @@ public class Sorensen<U> extends UserFastRankingRecommender<U>
     /**
      * Constructor.
      * @param graph the graph.
-     * @param uSel the neighborhood selection for the target user.
-     * @param vSel the neighborhood selection for the candidate user.
+     * @param uSel  the neighborhood selection for the target user.
+     * @param vSel  the neighborhood selection for the candidate user.
      */
     public Sorensen(FastGraph<U> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {

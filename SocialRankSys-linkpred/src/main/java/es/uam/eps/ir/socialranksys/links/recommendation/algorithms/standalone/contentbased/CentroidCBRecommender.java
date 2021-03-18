@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -31,13 +31,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Content-based recommendation algorithm, based on a TF-IDF scheme.
  *
- * @author Javier Sanz-Cruzado Puig
  * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class CentroidCBRecommender<U> extends UserFastRankingRecommender<U>
 {
+    /**
+     * The centroids of the users.
+     */
     private final Map<U, Map<String, Double>> centroids;
+    /**
+     * Inverse index for the centroids.
+     */
     private final Map<String, Map<U, Double>> invCentroids;
+    /**
+     * Modules of the centroids.
+     */
     private final Map<U, Double> modules;
 
     /**
@@ -124,6 +135,10 @@ public class CentroidCBRecommender<U> extends UserFastRankingRecommender<U>
         graph.getAllNodes().parallel().forEach(u -> modules.put(u, Math.sqrt(this.centroids.get(u).values().stream().mapToDouble(v -> v*v).sum())));
     }
 
+    /**
+     * Add a term to the inverse centroid.
+     * @param term the term.
+     */
     private synchronized void createTerm(String term)
     {
         if(!invCentroids.containsKey(term))

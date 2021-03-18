@@ -15,7 +15,10 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
  * Hiperlink-Induced Topic Search (HITS) Recommender
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users
  */
 public class HITSRecommender<U> extends BipartiteRecommender<U>
@@ -28,15 +31,11 @@ public class HITSRecommender<U> extends BipartiteRecommender<U>
      * Number of iterations.
      */
     private static final int NUMITER = 25;
-    /**
-     * Minimum threshold.
-     */
-    private static final double THRESHOLD = 0.001;
 
     /**
      * Constructor.
      * @param graph the graph.
-     * @param mode true if we want to recommend authorities, false if we want to recommend hubs.
+     * @param mode  true if we want to recommend authorities, false if we want to recommend hubs.
      */
     public HITSRecommender(FastGraph<U> graph, boolean mode) {
         super(graph, mode);

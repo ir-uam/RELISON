@@ -8,16 +8,17 @@
  */
 package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.edge;
 
-
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.graph.Graph;
-import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.SwapRerankerGraph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.GraphSwapReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
  * @author Javier Sanz-Cruzado Puig
  * @param <U> type of the users
  */
-public abstract class AbstractNeighborOverlapReranker<U> extends SwapRerankerGraph<U>
+public abstract class AbstractNeighborOverlapReranker<U> extends GraphSwapReranker<U>
 {
     /**
      * Map containing the intersections between two nodes in the network (CN)
@@ -36,22 +37,21 @@ public abstract class AbstractNeighborOverlapReranker<U> extends SwapRerankerGra
      */
     private Map<U, Map<U, Double>> union;
     /**
-        true if we want edges with greater embeddedness, false if we want edges with smaller embeddedness (more weakness)
-    */
+     * True if we want edges with greater embeddedness, false if we want edges with smaller embeddedness (more weakness)
+     */
     private final boolean promote;
     
     /**
      * Constructor
-     * @param cutOff maximum number of edges to consider
-     * @param lambda trade-off between the average embeddedness and the original score
-     * @param norm indicates if the elements have to be normalized
-     * @param rank indicates if the normalization is done by ranking (true) or by score (false)
-     * @param graph the original graph
-     * @param promote true if we want edges with greater embeddedness, false if we want edges with smaller embeddedness (more weakness)
+     * @param cutOff    the maximum length of the definitive recommendation rankings.
+     * @param lambda    trade-off between the average embeddedness and the original score.
+     * @param norm      the normalization scheme.
+     * @param graph     the original graph
+     * @param promote   true if we want edges with greater embeddedness, false if we want edges with smaller embeddedness (more weakness)
      */
-    public AbstractNeighborOverlapReranker(double lambda, int cutOff, boolean norm, boolean rank, Graph<U> graph, boolean promote)
+    public AbstractNeighborOverlapReranker(double lambda, int cutOff, Supplier<Normalizer<U>> norm, Graph<U> graph, boolean promote)
     {
-        super(lambda, cutOff, norm, rank, graph);
+        super(lambda, cutOff, norm, graph);
         this.promote = promote;
     }
 
@@ -114,9 +114,9 @@ public abstract class AbstractNeighborOverlapReranker<U> extends SwapRerankerGra
     
     /**
      * Computes the embededness in a directed graph (adding and deleting an edge)
-     * @param u the target user.
-     * @param itemValue The new candidate user
-     * @param compared The old candidate user
+     * @param u         the target user.
+     * @param itemValue the new candidate user
+     * @param compared  the old candidate user
      * @return the new novelty score.
      */
     private double novAddDeleteDirected(U u, Tuple2od<U> itemValue, Tuple2od<U> compared)
@@ -214,10 +214,10 @@ public abstract class AbstractNeighborOverlapReranker<U> extends SwapRerankerGra
     
     
     /**
-     * Computes the embededness in a directed graph (adding and deleting an edge)
-     * @param u the target user.
-     * @param itemValue The new candidate user
-     * @param compared The old candidate user
+     * Computes the embededness in an undirected graph (adding and deleting an edge)
+     * @param u         the target user.
+     * @param itemValue the new candidate user
+     * @param compared  the old candidate user
      * @return the new novelty score.
      */
     private double novAddDeleteUndirected(U u, Tuple2od<U> itemValue, Tuple2od<U> compared)
@@ -760,9 +760,9 @@ public abstract class AbstractNeighborOverlapReranker<U> extends SwapRerankerGra
     
     /**
      * Updates the statistics for an undirected graph (adding the reranked edge and deleting the previous one).
-     * @param u target user
-     * @param updated new recommended user
-     * @param old the old recommended user
+     * @param u         target user
+     * @param updated   new recommended user
+     * @param old       the old recommended user
      */
     private void updateAddDeleteUndirected(U u, Tuple2od<U> updated, Tuple2od<U> old)
     {
@@ -957,12 +957,12 @@ public abstract class AbstractNeighborOverlapReranker<U> extends SwapRerankerGra
     
     /**
      * Updates the statistics for an undirected graph (adding the reranked edge and not deleting anyone).
-     * @param u target user
+     * @param u       target user
      * @param updated new recommended user
      */
     private void updateAdd(U u, Tuple2od<U> updated)
     {
-        //We already assume that the graph is undirected.
+        // We already assume that the graph is undirected.
         U w = updated.v1;
         
         if(!intersection.get(u).containsKey(w) || !union.get(u).containsKey(w) || !intersection.get(w).containsKey(u) || !union.get(w).containsKey(u))
@@ -1108,8 +1108,8 @@ public abstract class AbstractNeighborOverlapReranker<U> extends SwapRerankerGra
     
     /**
      * Updates the statistics for an undirected graph (deleting the old edge and not adding anyone).
-     * @param u target user
-     * @param old the old recommended user
+     * @param u     target user
+     * @param old   the old recommended user
      */
     private void updateDelete(U u, Tuple2od<U> old)
     {

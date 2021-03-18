@@ -13,7 +13,7 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.rerankers.RerankerGridSearch;
 import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.GlobalReranker;
-import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.comm.gini.edge.sizenormalized.SizeNormalizedInterCommunityEdgeGiniReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.comm.gini.edge.sizenormalized.SizeNormalizedInterCommunityEdgeGiniComplement;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -82,7 +82,7 @@ public class SizeNormInterCommunityEdgeGiniRerankerGridSearch<U> implements Rera
         
         grid.getDoubleValues(LAMBDA).forEach(lambda ->
             rerankers.put(SNICEDGEGINI + "-" + lambda, () ->
-                new SizeNormalizedInterCommunityEdgeGiniReranker<>(lambda, cutoff, norm, rank, graph, comms)
+                new SizeNormalizedInterCommunityEdgeGiniComplement<>(lambda, cutoff, norm, rank, graph, comms)
             )
         );
         

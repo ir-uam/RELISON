@@ -22,6 +22,7 @@ import org.jblas.DoubleMatrix;
 
 /**
  * Local path index recommender.
+ *
  * @param <U> Type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
@@ -29,13 +30,21 @@ import org.jblas.DoubleMatrix;
  */
 public class LocalPathIndex<U> extends GlobalMatrixBasedRecommender<U>
 {
+    /**
+     * Dampening factor.
+     */
     private final double beta;
+    /**
+     * The maximum distance between users.
+     */
     private final double k;
 
     /**
      * Constructor.
      *
-     * @param graph A fast graph representing the social network.
+     * @param graph a fast graph representing the social network.
+     * @param beta  the dampening factor.
+     * @param k     the maximum distance between the target and candidate users (k >= 2)
      */
     public LocalPathIndex(FastGraph<U> graph, double beta, int k)
     {

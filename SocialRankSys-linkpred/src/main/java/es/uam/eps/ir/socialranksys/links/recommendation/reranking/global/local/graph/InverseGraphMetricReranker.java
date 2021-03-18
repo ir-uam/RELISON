@@ -11,40 +11,49 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.local.
 import com.rits.cloning.Cloner;
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
 import org.ranksys.core.util.tuples.Tuple2od;
 
+import java.util.function.Supplier;
+
 /**
- * Reranks a graph according to a global graph metric which we want to update.
- * The negative value of the metric is taken as the novelty score.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Reranker strategy that reorders the candidate users for minimizing a graph metric.
+ *
+ * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class InverseGraphMetricReranker<U> extends GraphMetricReranker<U> 
 {
     /**
      * Constructor.
-     * @param lambda Param that establishes a balance between the score and the 
-     * novelty/diversity value.
-     * @param cutoff Number of elements to take.
-     * @param norm Indicates if scores have to be normalized.
-     * @param graph The graph.
-     * @param graphMetric the global graph metric to minimize
-     * @param rank Indicates if the normalization is by ranking (true) or by score (false)
+     * @param lambda    trade-off between the original and novelty scores
+     * @param cutoff    maximum length of the definitive ranking.
+     * @param norm      the normalization strategy.
+     * @param graph     the original graph.
+     * @param metric    the vertex metric to optimize.
      */
-    public InverseGraphMetricReranker(double lambda, int cutoff, boolean norm, boolean rank, Graph<U> graph, GraphMetric<U> graphMetric)
+    public InverseGraphMetricReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, GraphMetric<U> metric)
     {
-        super(lambda, cutoff, norm, rank, graph, graphMetric);
+        super(lambda, cutoff, norm, graph, metric);
     }
 
     @Override
     protected double nov(U u, Tuple2od<U> iv)
     {
         U item = iv.v1;
-        
-        Cloner cloner  = new Cloner();
-        Graph<U> cloneGraph = cloner.deepClone(this.graph);
-        cloneGraph.addEdge(u, item);
+        Graph<U> cloneGraph;
+        if(graph.isDirected() || !graph.containsEdge(u, item))
+        {
+            Cloner cloner = new Cloner();
+            cloneGraph = cloner.deepClone(graph);
+            cloneGraph.addEdge(u, item);
+        }
+        else
+            cloneGraph = graph;
+
         return -metric.compute(cloneGraph);
     }
 
@@ -52,5 +61,10 @@ public class InverseGraphMetricReranker<U> extends GraphMetricReranker<U>
     protected void update(Recommendation<U, U> reranked)
     {
     }
-    
+
+    @Override
+    protected void innerUpdate(U user, Tuple2od<U> updated)
+    {
+
+    }
 }

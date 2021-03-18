@@ -13,20 +13,25 @@ import es.uam.eps.ir.ranksys.core.Recommendation;
 import java.util.stream.Stream;
 
 /**
- * Re-ranker. Changes the position of items in a list of recommendations to optimize global criteria
- * other than relevance. Previous added recommendations are considered when computing the global value
- * we want to optimize.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the items.
+ * Interface for defining reranking strategies which change the position of items in recommendation lists
+ * to optimize global properties of the system beyond relevance.
+ *
+ * Global rerankers go user by user, and consider the recommendations made to the previously visited users
+ * when optimizing the global value.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the items.
  */
 public interface GlobalReranker<U, I> 
 {
     /**
-     * Re-ranks a set of recommendations
-     * @param recommendation A stream containing all the recommendations to rerank
-     * @param maxLength Maximum length of the re-ranking for each user
-     * @return a stream of recommendations containing the re-rankings of the inputs
+     * Reranks a set of recommendations.
+     * @param recommendation a stream containing all the recommendations to rerank.
+     * @param maxLength      maximum length of the definitive ranking for each user.
+     * @return a stream of recommendations containing the definitive rankings.
      */
     Stream<Recommendation<U,I>> rerankRecommendations(Stream<Recommendation<U,I>> recommendation, int maxLength);
 }

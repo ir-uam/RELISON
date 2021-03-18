@@ -22,8 +22,9 @@ import org.ranksys.core.util.tuples.Tuple2id;
  * Ponte, J. M. Croft, W. B. A language modeling approach to information retrieval.
  * 21st Annual International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR 1998).
  * Melbourne, Australia, August 1998, pp. 275-281.
+ * </p>
  *
- * @param <U> Type of the users
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
@@ -65,10 +66,10 @@ public class QLD<U> extends UserFastRankingRecommender<U>
     /**
      * Constructor.
      *
-     * @param graph The original social network graph.
-     * @param uSel  Neighborhood selection for the target user.
-     * @param vSel  Neighborhood selection for the candidate user.
-     * @param mu    Parameter which controls the trade-off between the regularization term and the original probability.
+     * @param graph the original social network graph.
+     * @param uSel  neighborhood selection for the target user.
+     * @param vSel  neighborhood selection for the candidate user.
+     * @param mu    parameter which controls the trade-off between the regularization term and the original probability.
      */
     public QLD(FastGraph<U> graph, EdgeOrientation uSel, EdgeOrientation vSel, double mu)
     {

@@ -19,10 +19,13 @@ import es.uam.eps.ir.ranksys.mf.als.ALSFactorizer;
 import es.uam.eps.ir.socialranksys.utils.math.MathFunctions;
 
 /**
- * Factorizes a matrix for the Probabilistic Matrix Factorization Algorithm
- * @author Javier Sanz-Cruzado
- * @param <U> Class of the users
- * @param <I> Class of the items
+ * Factorizer for the probabilistic matrix factorization algorithm (PMF).
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the items.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class PMFFactorizerBasic<U,I> extends ALSFactorizer<U,I>
 {
@@ -46,8 +49,8 @@ public class PMFFactorizerBasic<U,I> extends ALSFactorizer<U,I>
  
     /**
      * Constructor.
-     * @param lambda Regularization rate.
-     * @param learningRate Learning rate for the gradient descent.
+     * @param lambda        regularization rate.
+     * @param learningRate  learning rate for the gradient descent.
      */
     public PMFFactorizerBasic(double lambda, double learningRate)
     {
@@ -57,9 +60,9 @@ public class PMFFactorizerBasic<U,I> extends ALSFactorizer<U,I>
     
     /**
      * Constructor.
-     * @param lambdaU Regularization rate for matrix U.
-     * @param lambdaV Regularization rate for matrix V.
-     * @param learningRate Learning rate for the gradient descent.
+     * @param lambdaU       regularization rate for matrix U.
+     * @param lambdaV       regularization rate for matrix V.
+     * @param learningRate  learning rate for the gradient descent.
      */
     public PMFFactorizerBasic(double lambdaU, double lambdaV, double learningRate)
     {
@@ -68,10 +71,10 @@ public class PMFFactorizerBasic<U,I> extends ALSFactorizer<U,I>
     
     /**
      * 
-     * @param lambdaU Regularization rate for matrix U
-     * @param lambdaV Regularization rate for matrix V
-     * @param learningRate Learning rate for the gradient descent
-     * @param numEpochs Number of epochs
+     * @param lambdaU       regularization rate for matrix U.
+     * @param lambdaV       regularization rate for matrix V.
+     * @param learningRate  learning rate for the gradient descent.
+     * @param numEpochs     number of epochs.
      */
     public PMFFactorizerBasic(double lambdaU, double lambdaV, double learningRate, int numEpochs)
     {
@@ -113,10 +116,10 @@ public class PMFFactorizerBasic<U,I> extends ALSFactorizer<U,I>
     
     /**
      * Minimizes the parameters for one of the two matrices.
-     * @param p Matrix to optimize.
-     * @param q Fixed matrix.
-     * @param lambda The regularization parameter for this matrix.
-     * @param data Preference data.
+     * @param p         matrix to optimize.
+     * @param q         fixed matrix.
+     * @param lambda    the regularization parameter for this matrix.
+     * @param data      preference data.
      */
     protected static <U,I,O> void set_min(final DenseDoubleMatrix2D p, final DenseDoubleMatrix2D q, double lambda, FastPreferenceData<U,I> data, double learningRate)
     {
@@ -159,9 +162,9 @@ public class PMFFactorizerBasic<U,I> extends ALSFactorizer<U,I>
     
     /**
      * Finds an intermediate matrix used for factorization.
-     * @param p User Matrix
-     * @param q Item Matrix
-     * @param data User preferences data
+     * @param p     user Matrix
+     * @param q     item Matrix
+     * @param data  user preferences data
      * @return The intermediate matrix
      */
     private DenseDoubleMatrix2D findM(DenseDoubleMatrix2D p, DenseDoubleMatrix2D q, FastPreferenceData<U,I> data)

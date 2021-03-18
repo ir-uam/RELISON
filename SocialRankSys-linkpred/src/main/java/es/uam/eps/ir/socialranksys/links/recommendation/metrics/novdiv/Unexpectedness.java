@@ -15,15 +15,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Global version of expected profile distance .
- * @author Javier Sanz-Cruzado Puig
+ * Global version of the unexpectedness (expected profile distance).
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the items.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class Unexpectedness<U,I> extends ItemNoveltyMetric<U,I>
 {
-    private List<Recommendation<U,I>> list = new ArrayList<>();
-
     /**
      * Constructor.
      * @param cutoff maximum length of recommendation lists to evaluate

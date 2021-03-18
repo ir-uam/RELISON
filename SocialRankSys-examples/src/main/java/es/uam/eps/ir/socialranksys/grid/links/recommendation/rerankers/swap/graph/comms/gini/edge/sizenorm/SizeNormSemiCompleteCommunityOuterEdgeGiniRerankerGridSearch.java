@@ -13,7 +13,7 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.rerankers.RerankerGridSearch;
 import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.GlobalReranker;
-import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.comm.gini.edge.sizenormalized.SizeNormalizedSemiCompleteCommunityOuterEdgeGiniReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.comm.gini.edge.sizenormalized.OuterSizeNormalizedSemiCompleteCommunityEdgeGiniComplement;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -86,7 +86,7 @@ public class SizeNormSemiCompleteCommunityOuterEdgeGiniRerankerGridSearch<U> imp
         grid.getDoubleValues(LAMBDA).forEach(lambda ->
             grid.getBooleanValues(AUTOLOOPS).forEach(autoloop ->
                 rerankers.put(OUTERSNSCEDGEGINI + "-" + (autoloop ? "autoloops" : "noautoloops") + "-" + lambda, () ->
-                    new SizeNormalizedSemiCompleteCommunityOuterEdgeGiniReranker<>(lambda, cutoff, norm, rank, graph, comms, autoloop)
+                    new OuterSizeNormalizedSemiCompleteCommunityEdgeGiniComplement<>(lambda, cutoff, norm, rank, graph, comms, autoloop)
                 )
             )
         );

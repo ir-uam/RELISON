@@ -28,15 +28,20 @@ import org.ranksys.core.util.tuples.Tuple2od;
  */
 public class TRECAveragePrecision<U, I> extends AbstractRecommendationMetric<U, I>
 {
-
+    /**
+     * An ideal relevance model.
+     */
     private final IdealRelevanceModel<U, I> relModel;
+    /**
+     * The cutoff of the metric.
+     */
     private final int cutoff;
 
     /**
      * Constructor.
      *
-     * @param cutoff cutoff of the metric
-     * @param relevanceModel relevance model
+     * @param cutoff            cutoff of the metric
+     * @param relevanceModel    relevance model
      */
     public TRECAveragePrecision(int cutoff, IdealRelevanceModel<U, I> relevanceModel)
     {

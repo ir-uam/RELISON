@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package es.uam.eps.ir.socialranksys.links.recommendation.metrics.novdiv;
 
 import es.uam.eps.ir.ranksys.core.Recommendation;
@@ -13,7 +21,11 @@ import java.util.List;
 /**
  * Metric that finds the harmonic mean of the reciprocal distances between the different target user - candidate user pairs
  * of the recommendation.
+ *
  * @param <U> Type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class MeanPredictionDistance<U> implements SystemMetric<U,U>
 {
@@ -37,8 +49,8 @@ public class MeanPredictionDistance<U> implements SystemMetric<U,U>
     /**
      * Constructor.
      *
-     * @param graph the training graph.
-     * @param cutoff recommendation cutoff.
+     * @param graph     the training graph.
+     * @param cutoff    recommendation cutoff.
      */
     public MeanPredictionDistance(Graph<U> graph, int cutoff)
     {
@@ -48,9 +60,9 @@ public class MeanPredictionDistance<U> implements SystemMetric<U,U>
     /**
      * Constructor.
      *
-     * @param graph the training graph.
-     * @param calc distance calculator.
-     * @param cutoff recommendation cutoff.
+     * @param graph     the training graph.
+     * @param calc      distance calculator.
+     * @param cutoff    recommendation cutoff.
      */
     public MeanPredictionDistance(Graph<U> graph, DistanceCalculator<U> calc, int cutoff)
     {

@@ -17,8 +17,10 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 /**
  * Recommender that uses the Jaccard coefficient of the neighbours.
  * 
- * @author Javier Sanz-Cruzado Puig
  * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class ResourceAllocation<U> extends UserFastRankingRecommender<U>
 {
@@ -42,9 +44,9 @@ public class ResourceAllocation<U> extends UserFastRankingRecommender<U>
     /**
      * Constructor.
      * @param graph the graph.
-     * @param uSel the neighborhood selection for the target user.
-     * @param vSel the neighborhood selection for the candidate user.
-     * @param wSel the neighborhood selection for the users in the intersection
+     * @param uSel  the neighborhood selection for the target user.
+     * @param vSel  the neighborhood selection for the candidate user.
+     * @param wSel  the neighborhood selection for the users in the intersection
      */
     public ResourceAllocation(FastGraph<U> graph, EdgeOrientation uSel, EdgeOrientation vSel, EdgeOrientation wSel)
     {

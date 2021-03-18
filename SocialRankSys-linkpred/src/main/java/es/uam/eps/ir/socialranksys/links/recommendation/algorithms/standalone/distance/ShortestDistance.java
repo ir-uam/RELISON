@@ -25,9 +25,12 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * Recommends users by computing the distance between two of them
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Recommends users by computing the distance between two of them.
+ *
+ * @param <U> Type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class ShortestDistance<U> extends UserFastRankingRecommender<U>
 {
@@ -42,15 +45,15 @@ public class ShortestDistance<U> extends UserFastRankingRecommender<U>
     
     /**
      * Constructor.
-     * @param graph Graph 
-     * @param dir Direction of the paths to take.
+     * @param graph       the training graph.
+     * @param orientation direction of the paths for computing the distance.
      */
-    public ShortestDistance(FastGraph<U> graph, EdgeOrientation dir)
+    public ShortestDistance(FastGraph<U> graph, EdgeOrientation orientation)
     {
         super(graph);
         PairMetric<U> pairMetric = new Distance<>();
         Map<Pair<U>, Double> values;
-        if(dir != EdgeOrientation.UND || !graph.isDirected())
+        if(orientation != EdgeOrientation.UND || !graph.isDirected())
         {
             values = pairMetric.compute(graph);
         }
@@ -60,7 +63,7 @@ public class ShortestDistance<U> extends UserFastRankingRecommender<U>
             values = pairMetric.compute(aux);
         }
         
-        this.orientation = dir;
+        this.orientation = orientation;
         this.distances = new SparseDoubleMatrix2D(uIndex.numUsers(), uIndex.numUsers());
         values.forEach((key, value) ->
         {
@@ -72,9 +75,9 @@ public class ShortestDistance<U> extends UserFastRankingRecommender<U>
     
     /**
      * Constructor.
-     * @param graph Graph
-     * @param orientation Direction of the paths for computing the distance
-     * @param distances Distance map
+     * @param graph       the training graph.
+     * @param orientation direction of the paths for computing the distance.
+     * @param distances   distance map.
      */
     public ShortestDistance(FastGraph<U> graph, EdgeOrientation orientation, DoubleMatrix2D distances)
     {
@@ -84,7 +87,6 @@ public class ShortestDistance<U> extends UserFastRankingRecommender<U>
             
     }
     
-
     @Override
     public Int2DoubleMap getScoresMap(int i) 
     {
@@ -99,7 +101,4 @@ public class ShortestDistance<U> extends UserFastRankingRecommender<U>
         }
         return scores;
     }
-
-   
-    
 }

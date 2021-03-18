@@ -1,12 +1,12 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
- *  de Madrid, http://ir.ii.uam.es
- * 
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
+ * http://terrierteam.dcs.gla.ac.uk/.
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
 package es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.foaf;
 
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
@@ -23,8 +23,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Similarity based on the Most Common Neighbors link prediction algorithm
- * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
+ * Similarity based on the Jaccard similarity link prediction algorithm
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
+ * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.foaf.Jaccard
  */
 public class JaccardSimilarity extends GraphSimilarity
 {
@@ -36,15 +42,21 @@ public class JaccardSimilarity extends GraphSimilarity
      * Orientation for the selection of neighbors for the candidate user.
      */
     private final EdgeOrientation vSel;
-    
+
+    /**
+     * Number of neighbors of the target users.
+     */
     private final Int2DoubleMap uSizes;
+    /**
+     * Number of neighbors of the candidate users.
+     */
     private final Int2DoubleMap vSizes;
     
     /**
      * Constructor.
      * @param graph the training graph.
-     * @param uSel selection for the target user neighborhood.
-     * @param vSel selection for the candidate user neighborhood
+     * @param uSel  selection for the target user neighborhood.
+     * @param vSel  selection for the candidate user neighborhood
      */
     public JaccardSimilarity(FastGraph<?> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {

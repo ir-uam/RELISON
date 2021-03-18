@@ -10,61 +10,34 @@ package es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.t
 
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.bipartite.BipartiteRecommender;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.randomwalk.PersonalizedHITS;
 import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.randomwalk.PersonalizedSALSA;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
- * Twitter Money algorithm.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> type of the users.
+ * Twitter Money algorithm. This algorithm applies a personalized SALSA algorithm over a circle of trust between
+ * users.
+ *
+ * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.randomwalk.PersonalizedHITS
  */
 public class Money<U> extends TwitterRecommender<U>
 {
     /**
-     * True for authorities, false for hubs
-     */
-    private final boolean mode;
-    /**
-     * Teleport rate for the Money algorithm.
-     */
-    private final double alpha;
-    /**
      * Constructor.
-     * @param graph Original graph.
-     * @param circlesize Size of the circles of trust.
-     * @param r Teleport rate for the circles of trust.
-     * @param mode true for recommending authorities, false for recommending hubs.
-     * @param alpha teleport rate for the Money algorithm.
+     * @param graph         original graph.
+     * @param circlesize    size of the circles of trust.
+     * @param r             teleport rate for the circles of trust.
+     * @param mode          true for recommending authorities, false for recommending hubs.
+     * @param alpha         teleport rate for the personalized SALSA algorithm.
      */
-    public Money(FastGraph<U> graph, int circlesize, double r, boolean mode, double alpha) {
-        super(graph, circlesize, r);
-        
-        this.mode = mode;
-        this.alpha = alpha;
-    }
-
-    @Override
-    public Int2DoubleMap getScoresMap(int uIdx) 
+    public Money(FastGraph<U> graph, int circlesize, double r, boolean mode, double alpha)
     {
-        Int2DoubleMap output = new Int2DoubleOpenHashMap();
-        U u = uIndex.uidx2user(uIdx);
-        
-        FastGraph<U> graph = this.circles.get(u);
-        BipartiteRecommender<U> rec = new PersonalizedSALSA<>(graph, mode, alpha);
-        Int2DoubleMap scores = rec.getScoresMap(rec.user2uidx(u));
-        
-        iIndex.getAllIidx().forEach(iIdx -> {
-            if(scores.containsKey(iIdx))
-            {
-                output.put(iIdx, scores.get(iIdx));
-            }
-            else
-            {
-                output.put(iIdx, 0.0);
-            }
-        });
-        
-        return output;
+        super(graph, circlesize, r, circle -> new PersonalizedSALSA<>(circle, mode, alpha));
     }
 }

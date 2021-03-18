@@ -10,27 +10,34 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.e
 
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
+
+import java.util.function.Supplier;
 
 /**
- * Class that tries to maximize the average embededness of the graph.
- * @author Javier Sanz-Cruzado Puig
+ * Swap reranker for optimizing the embeddedness of the graph. It uses heuristics to optimize the execution times.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users
  */
 public class HeuristicEmbedednessReranker<U> extends AbstractHeuristicNeighborOverlapReranker<U>
 {
     /**
      * Constructor
-     * @param cutOff maximum number of edges to consider
-     * @param lambda trade-off between the average embeddedness and the original score
-     * @param norm indicates if the elements have to be normalized
-     * @param rank indicates if the normalization is done by ranking (true) or by score (false)
-     * @param graph the original graph
-     * @param mode mode the execution mode: 1) Embededness is corrected any time a swap is done. 2) Embededness is corrected every time a user has finished its reranking.
-     * 3) Embededness is never corrected (only use the heuristic)
+     * @param cutOff    the definitive length of the recommendation rankings.
+     * @param lambda    trade-off between the average embeddedness and the original score
+     * @param norm      the normalization scheme.
+     * @param graph     the original graph
+     * @param mode      the execution mode:
+     *                  1) Embededness is corrected any time a swap is done.
+     *                  2) Embededness is corrected every time a user has finished its reranking.
+     *                  3) Embededness is never corrected (only use the heuristic)
      */
-    public HeuristicEmbedednessReranker(double lambda, int cutOff, boolean norm, boolean rank, Graph<U> graph, int mode)
+    public HeuristicEmbedednessReranker(double lambda, int cutOff, Supplier<Normalizer<U>> norm, Graph<U> graph, int mode)
     {
-        super(lambda, cutOff, norm, rank, graph, mode, true);
+        super(lambda, cutOff, norm, graph, mode, true);
     }
 
 }

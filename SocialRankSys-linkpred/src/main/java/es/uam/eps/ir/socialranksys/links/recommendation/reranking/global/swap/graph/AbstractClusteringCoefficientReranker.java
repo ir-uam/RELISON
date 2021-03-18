@@ -11,30 +11,30 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.g
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.graph.DirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.Graph;
-import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.SwapRerankerGraph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.GraphSwapReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
 /**
- * Reranker that tries to promote the opposite of the clustering coefficient of
- * the graph.
- * @author Javier Sanz-Cruzado Puig
+ * Swap reranker that promotes a metric related to the global clustering coefficient of the network.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
+ *
+ * @see es.uam.eps.ir.socialranksys.metrics.graph.ClusteringCoefficient
  */
-public abstract class AbstractClusteringCoefficientReranker<U> extends SwapRerankerGraph<U>
+public abstract class AbstractClusteringCoefficientReranker<U> extends GraphSwapReranker<U>
 {
-
-    /**
-     * Indicates if the scores have to be normalized.
-     */
-    protected final boolean norm;
-    
     /**
      * Number of triplets
      */
@@ -43,7 +43,6 @@ public abstract class AbstractClusteringCoefficientReranker<U> extends SwapReran
      * Number of triangles or closed triplets
      */
     private double triangles;
-    
     /**
      * Indicates if the metric has to be promoted or its complement has to be promoted.
      */
@@ -51,17 +50,15 @@ public abstract class AbstractClusteringCoefficientReranker<U> extends SwapReran
     
     /**
      * Constructor
-     * @param lambda Trade-off between the original and novelty score (clustering coefficient)
-     * @param cutoff Maximum length of the recommendation ranking
-     * @param norm true if the scores have to be normalized, false if not.
-     * @param rank true if the normalization is by ranking position, false if it is by score
-     * @param graph The original graph.
-     * @param promote true if the metric has to be promoted, false if the complementary metric has to be promoted.
+     * @param lambda    trade-off between the original and novelty score (clustering coefficient)
+     * @param cutoff    maximum length of the recommendation ranking
+     * @param norm      the normalization scheme.
+     * @param graph     the original graph.
+     * @param promote   true if the metric has to be promoted, false if the complementary metric has to be promoted.
      */
-    public AbstractClusteringCoefficientReranker(double lambda, int cutoff, boolean norm, boolean rank, Graph<U> graph, boolean promote)
+    public AbstractClusteringCoefficientReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, boolean promote)
     {
-        super(lambda, cutoff, norm, rank, graph);
-        this.norm = norm;
+        super(lambda, cutoff, norm, graph);
         this.promote = promote;
     }
 

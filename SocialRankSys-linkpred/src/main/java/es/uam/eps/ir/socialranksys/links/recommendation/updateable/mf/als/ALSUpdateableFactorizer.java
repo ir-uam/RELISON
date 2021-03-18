@@ -25,10 +25,12 @@ import static java.lang.Math.sqrt;
 
 
 /**
- * UpdateableFactorizer. Abstract class for matrix factorization algorithms.
+ * Updateable alternate least squares factorizer. Abstract class for matrix factorization algorithms.
  *
  * @author Saúl Vargas (saul.vargas@uam.es)
- * 
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users
  * @param <I> type of the items
  */
@@ -57,7 +59,7 @@ public abstract class ALSUpdateableFactorizer<U, I> extends UpdateableFactorizer
      * Global loss of the factorization.
      *
      * @param factorization matrix factorization
-     * @param data preference data
+     * @param data          preference data
      * @return the global loss
      */
     @Override
@@ -72,8 +74,8 @@ public abstract class ALSUpdateableFactorizer<U, I> extends UpdateableFactorizer
     /**
      * Creates and calculates a factorization.
      *
-     * @param K size of the latent feature space.
-     * @param data preference data
+     * @param K         size of the latent feature space.
+     * @param data      preference data
      * @return a matrix factorization
      */
     @Override
@@ -91,7 +93,7 @@ public abstract class ALSUpdateableFactorizer<U, I> extends UpdateableFactorizer
      * factorization.
      *
      * @param factorization matrix factorization
-     * @param data preference data
+     * @param data          preference data
      */
     @Override
     public void factorize(UpdateableFactorization<U, I> factorization, FastUpdateablePreferenceData<U, I> data)
@@ -121,10 +123,10 @@ public abstract class ALSUpdateableFactorizer<U, I> extends UpdateableFactorizer
     /**
      * Updates a factorization, when a new rating is received.
      * @param factorization the factorization.
-     * @param u updated user
-     * @param i updated item
-     * @param weight the weight
-     * @param data the updated data.
+     * @param u             updated user
+     * @param i             updated item
+     * @param weight        the weight
+     * @param data          the updated data.
      */
     @Override
     public void update(UpdateableFactorization<U,I> factorization, FastUpdateablePreferenceData<U,I> data, U u, I i, double weight)
@@ -158,9 +160,9 @@ public abstract class ALSUpdateableFactorizer<U, I> extends UpdateableFactorizer
     /**
      * Updates a factorization, when a new rating is removed.
      * @param factorization the factorization.
-     * @param u updated user
-     * @param i updated item
-     * @param data the updated data.
+     * @param u             updated user
+     * @param i             updated item
+     * @param data          the updated data.
      */
     @Override
     public void updateDelete(UpdateableFactorization<U,I> factorization, FastUpdateablePreferenceData<U,I> data, U u, I i)
@@ -180,38 +182,38 @@ public abstract class ALSUpdateableFactorizer<U, I> extends UpdateableFactorizer
     /**
      * Squared loss of two matrices.
      *
-     * @param p user matrix
-     * @param q item matrix
-     * @param data preference data
-     * @return squared loss
+     * @param p         user matrix
+     * @param q         item matrix
+     * @param data      preference data
+     * @return          squared loss
      */
     protected abstract double error(DenseDoubleMatrix2D p, DenseDoubleMatrix2D q, FastUpdateablePreferenceData<U, I> data);
     
     /**
      * User matrix least-squares step.
      *
-     * @param p user matrix
-     * @param q item matrix
-     * @param data preference data
+     * @param p         user matrix
+     * @param q         item matrix
+     * @param data      preference data
      */
     protected abstract void set_minP(DenseDoubleMatrix2D p, DenseDoubleMatrix2D q, FastUpdateablePreferenceData<U, I> data);
 
     /**
      * Item matrix least-squares step.
      *
-     * @param q item matrix
-     * @param p user matrix
-     * @param data preference data
+     * @param q         item matrix
+     * @param p         user matrix
+     * @param data      preference data
      */
     protected abstract void set_minQ(DenseDoubleMatrix2D q, DenseDoubleMatrix2D p, FastUpdateablePreferenceData<U, I> data);
     
     /**
      * User matrix least-squares step.
      *
-     * @param u the user
-     * @param p user matrix
-     * @param q item matrix
-     * @param data preference data
+     * @param u         the user
+     * @param p         user matrix
+     * @param q         item matrix
+     * @param data      preference data
      * @return a vector containing the vector for user u
      */
     protected abstract DoubleMatrix1D set_minP(U u, DenseDoubleMatrix2D p, DenseDoubleMatrix2D q, FastUpdateablePreferenceData<U, I> data);
@@ -219,10 +221,10 @@ public abstract class ALSUpdateableFactorizer<U, I> extends UpdateableFactorizer
     /**
      * Item matrix least-squares step.
      *
-     * @param i the item
-     * @param q item matrix
-     * @param p user matrix
-     * @param data preference data
+     * @param i         the item
+     * @param q         item matrix
+     * @param p         user matrix
+     * @param data      preference data
      * @return a vector containing the vector for item i
      */
     protected abstract DoubleMatrix1D set_minQ(I i, DenseDoubleMatrix2D q, DenseDoubleMatrix2D p, FastUpdateablePreferenceData<U, I> data);

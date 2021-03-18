@@ -27,7 +27,7 @@ import es.uam.eps.ir.socialranksys.links.data.letor.InstanceSet;
 import es.uam.eps.ir.socialranksys.links.data.letor.io.InstanceSetReader;
 import es.uam.eps.ir.socialranksys.links.data.letor.io.LETORInstanceReader;
 import es.uam.eps.ir.socialranksys.links.recommendation.SocialFastFilters;
-import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.letor.LambdaMARTRecommender;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.supervised.LambdaMARTRecommender;
 import es.uam.eps.ir.socialranksys.utils.generator.Generators;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import org.ranksys.formats.parsing.Parsers;

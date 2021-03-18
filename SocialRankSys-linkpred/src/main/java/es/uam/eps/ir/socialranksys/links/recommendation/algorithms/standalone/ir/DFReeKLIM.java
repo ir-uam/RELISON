@@ -21,6 +21,9 @@ import java.util.Optional;
  * <p>
  * Amati, G., Amodeo, G., Bianchi, M., Marcone, G., Bordoni, F.U., Gaibisso, C.,Gambosi, G., Celi, A., Nicola, C.D., Flammini, M.:
  * FUB, IASI-CNR, UNIVAQ at TREC 2011 Microblog Track. In: Proceedings of the 20th Text REtrieval Confer-ence (TREC 2011). NIST (2011)
+ * </p>
+ *
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)

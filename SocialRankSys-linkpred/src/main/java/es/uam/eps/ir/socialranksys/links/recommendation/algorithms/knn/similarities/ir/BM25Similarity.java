@@ -1,12 +1,12 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
- *  de Madrid, http://ir.ii.uam.es
- * 
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
+ * http://terrierteam.dcs.gla.ac.uk/.
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
 package es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.ir;
 
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
@@ -24,8 +24,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
+ * Similarity based on the BM25 method from Information Retrieval.
  *
- * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
+ * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.ir.BM25
  */
 public class BM25Similarity extends GraphSimilarity
 {
@@ -69,11 +75,11 @@ public class BM25Similarity extends GraphSimilarity
     /**
      * Constructor.
      * @param graph the training graph.
-     * @param uSel neighborhood selection for the target user.
-     * @param vSel neighborhood selection for the candidate user.
+     * @param uSel  neighborhood selection for the target user.
+     * @param vSel  neighborhood selection for the candidate user.
      * @param dlSel neighborhood selection for the document length
-     * @param b parameter that tunes the effect of the neighborhood size. Between 0 and 1.
-     * @param k parameter of the algorithm that tunes the effect of the weight.
+     * @param b     parameter that tunes the effect of the neighborhood size. Between 0 and 1.
+     * @param k     parameter of the algorithm that tunes the effect of the weight.
      */
     public BM25Similarity(FastGraph<?> graph, EdgeOrientation uSel, EdgeOrientation vSel, EdgeOrientation dlSel, double b, double k)
     {

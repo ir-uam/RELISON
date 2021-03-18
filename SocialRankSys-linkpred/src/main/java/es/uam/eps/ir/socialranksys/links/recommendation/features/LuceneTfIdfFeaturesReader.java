@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -23,14 +23,16 @@ import java.util.stream.Stream;
 
 /**
  * Class that loads tf-idf features from a content index.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class LuceneTfIdfFeaturesReader<U>
+public class LuceneTfIdfFeaturesReader
 {
     /**
      * Loads features from an index.
-     * @param route The index route.
-     * @param graph the graph containing the users to retrieve.
+     * @param route     the index route.
+     * @param graph     the graph containing the users to retrieve.
      * @return a stream containing the features.
      */
     public static <U> Stream<Tuple3<U,String,Double>> load(String route, Graph<U> graph, Parser<U> uParser)

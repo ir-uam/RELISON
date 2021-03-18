@@ -18,13 +18,13 @@ import es.uam.eps.ir.socialranksys.links.data.GraphIndex;
 /**
  * Abstract class for user recommendation in social networks.
  *
- * @param <U> Type of the users
+ * @param <U> type of the users
  *
- * @author Javier Sanz-Cruzado Puig.
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public abstract class UserFastRankingRecommender<U> extends FastRankingRecommender<U, U>
 {
-
     /**
      * The graph which represents the social network relations.
      */
@@ -33,7 +33,7 @@ public abstract class UserFastRankingRecommender<U> extends FastRankingRecommend
     /**
      * Constructor.
      *
-     * @param graph A fast graph representing the social network.
+     * @param graph a fast graph representing the social network.
      */
     public UserFastRankingRecommender(FastGraph<U> graph)
     {

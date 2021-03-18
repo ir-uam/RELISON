@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
- * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
- * http://terrierteam.dcs.gla.ac.uk/.
+ * de Madrid, http://ir.ii.uam.es.
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,6 +16,7 @@ import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import cern.colt.matrix.linalg.Algebra;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.MatrixLibrary;
 import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.DenseVector;
 import no.uib.cipr.matrix.Matrix;
@@ -35,18 +35,32 @@ import org.jblas.DoubleMatrix;
 public class PersonalizedPageRankHittingTime<U> extends AbstractHittingTime<U>
 {
     /**
-     * Teleport vector.
+     * Teleport probability.
      */
     private final double r;
 
     /**
      * Constructor.
      *
-     * @param graph A fast graph representing the social network.
+     * @param graph a fast graph representing the social network.
+     * @param r     teleport probability.
      */
     public PersonalizedPageRankHittingTime(FastGraph<U> graph, double r)
     {
         super(graph);
+        this.r = r;
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param graph     a fast graph representing the social network.
+     * @param library   the matrix library to use.
+     * @param r         teleport probability.
+     */
+    public PersonalizedPageRankHittingTime(FastGraph<U> graph, MatrixLibrary library, double r)
+    {
+        super(graph, library);
         this.r = r;
     }
 

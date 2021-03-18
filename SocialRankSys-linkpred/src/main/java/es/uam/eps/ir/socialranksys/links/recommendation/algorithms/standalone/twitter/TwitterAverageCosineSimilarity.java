@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,44 +15,24 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
- * Twitter Money algorithm.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Twitter average cosine: executes the average cosine over bipartite graphs from
+ * the reduced graph.
+ *
+ * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class TwitterAverageCosineSimilarity<U> extends TwitterRecommender<U>
 {
-
     /**
      * Constructor.
-     * @param graph Original graph.
-     * @param circlesize Size of the circles of trust.
-     * @param r Teleport rate for the circles of trust.
+     * @param graph         original graph.
+     * @param circlesize    size of the circles of trust.
+     * @param r             teleport rate for the circles of trust.
      */
-    public TwitterAverageCosineSimilarity(FastGraph<U> graph, int circlesize, double r) {
-        super(graph, circlesize, r);
-    }
-
-    @Override
-    public Int2DoubleMap getScoresMap(int uIdx) 
+    public TwitterAverageCosineSimilarity(FastGraph<U> graph, int circlesize, double r)
     {
-        Int2DoubleMap output = new Int2DoubleOpenHashMap();
-        U u = uIndex.uidx2user(uIdx);
-        
-        FastGraph<U> graph = this.circles.get(u);
-        BipartiteRecommender<U> rec = new AverageCosineSimilarity<>(graph);
-        Int2DoubleMap scores = rec.getScoresMap(rec.user2uidx(u));
-        
-        iIndex.getAllIidx().forEach(iIdx -> {
-            if(scores.containsKey(iIdx))
-            {
-                output.put(iIdx, scores.get(iIdx));
-            }
-            else
-            {
-                output.put(iIdx, 0.0);
-            }
-        });
-        
-        return output;
+        super(graph, circlesize, r, AverageCosineSimilarity::new);
     }
 }

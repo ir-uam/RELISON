@@ -11,31 +11,38 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.local.edge;
 import com.rits.cloning.Cloner;
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import es.uam.eps.ir.socialranksys.metrics.PairMetric;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
- * Reranks a graph according to a global graph metric which we want to update.
- * The inverse value of the metric is taken as the novelty score.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Reranker that minimizes the average value of an edge metric.
+ * The value of the metric in the original graph is taken as the novelty score.
+ *
+ * Individually reranks each recommendation.
+ *
+ * @param <U> type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class OriginalInverseEdgeMetricReranker<U> extends EdgeMetricReranker<U> 
 {
     /**
-     * Constructor
-     * @param lambda trade-off between the original ranking and the reranked one
-     * @param cutoff maximum length of the definitive ranking.
-     * @param norm true if the original score and the metric score have to be reranked.
-     * @param graph the graph
-     * @param graphMetric the graph metric we want to update.
+     * Constructor.
+     * @param lambda        trade-off between the recommendation score and the novelty/diversity value.
+     * @param cutoff        number of elements to take.
+     * @param norm          the normalization strategy.
+     * @param graph         the original graph.
+     * @param metric        the metric to optimize.
      */
-    public OriginalInverseEdgeMetricReranker(double lambda, int cutoff, boolean norm, Graph<U> graph, PairMetric<U> graphMetric)
+    public OriginalInverseEdgeMetricReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, PairMetric<U> metric)
     {
-        super(lambda, cutoff, norm, graph, graphMetric);
+        super(lambda, cutoff, norm, graph, metric);
     }
 
     @Override

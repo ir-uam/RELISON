@@ -8,7 +8,6 @@
  */
 package es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.bipartite;
 
-
 import es.uam.eps.ir.socialranksys.graph.DirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.graph.generator.EmptyGraphGenerator;
@@ -23,8 +22,11 @@ import java.util.Map;
 /**
  * Abstract class which represents a bipartite recommender. In those recommenders, there are two types 
  * of users: authorities and hubs. Hubs only have outgoing links, and authorities only have incoming links.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> Type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public abstract class BipartiteRecommender<U> extends UserFastRankingRecommender<U>
 {
@@ -51,7 +53,7 @@ public abstract class BipartiteRecommender<U> extends UserFastRankingRecommender
     /**
      * Constructor.
      * @param graph the graph.
-     * @param mode true if we want to recommend authorities, false if we want to recommmend hubs.
+     * @param mode  true if we want to recommend authorities, false if we want to recommmend hubs.
      */
     public BipartiteRecommender(FastGraph<U> graph, boolean mode)
     {

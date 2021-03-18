@@ -19,14 +19,17 @@ import java.util.List;
 
 /**
  * Item novelty metric.
- * 
+ * <p>
  * S. Vargas. Novelty and diversity evaluation and enhancement in Recommender
  * Systems. PhD Thesis.
- * 
+ * </p>
+ * <p>
  * S. Vargas and P. Castells. Rank and relevance in novelty and diversity for
  * Recommender Systems. RecSys 2011.
- *
+ * </p>
+ * <p>
  * J. Sanz-Cruzado and P. Castells. Beyond Accuracy in Link Prediction. SoMePeaS 2019.
+ * </p>
  *
  * @author Saúl Vargas (saul.vargas@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -37,11 +40,17 @@ import java.util.List;
  */
 public abstract class ItemNoveltyMetric<U, I> extends AbstractSystemMetric<U, I>
 {
+    /**
+     * The cutoff for each recommendation.
+     */
     private final int cutoff;
+    /**
+     * The list of recommendations.
+     */
     private List<Recommendation<U,I>> list = new ArrayList<>();
 
     /**
-     * item novelty model
+     * item novelty model.
      */
     protected final ItemNovelty<U, I> novelty;
 

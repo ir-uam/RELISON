@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -13,16 +13,26 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.graph.generator.EmptyGraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
 import es.uam.eps.ir.socialranksys.links.recommendation.UserFastRankingRecommender;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.RecommenderSupplier;
 import es.uam.eps.ir.socialranksys.metrics.vertex.PageRank;
+import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
+import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.*;
 
 /**
- * Twitter Recommender. Computes a reduced training graph for each user. This reduced
- * training graph is a bipartite graph which has, on the left side, a circle of trust of the user
- * formed by the nodes with greater personalized pagerank, and on the right side, all their 
- * adjacent nodes.
+ * Twitter-based recommender. Following the details disclosed by Twitter about their contact
+ * recommendation approaches, these algorithms:
+ * <ol>
+ * <li>for the target user, compute a reduced bipartite training graph.
+ *      <ul>
+ *          <li>Left side: a circle of trust of the users (nodes with greater pers. PageRank value)</li>
+ *          <li>Right side: the adjacent nodes to those in the left side</li>
+ *      </ul>
+ * </li>
+ * <li>use a given recommendation (bipartite) algorithm to finish.</li>
+ *
  * @author Javier Sanz-Cruzado Puig
  * @param <U> Type of the users.
  */
@@ -40,26 +50,32 @@ public abstract class TwitterRecommender<U> extends UserFastRankingRecommender<U
      * Reduced training graphs.
      */
     protected final Map<U, FastGraph<U>> circles;
+    /**
+     * The recommender supplier
+     */
+    protected final RecommenderSupplier<U> supplier;
     
     /**
      * Constructor.
-     * @param graph Original graph.
-     * @param circlesize Size of the circle of trust.
-     * @param r Teleport rate for the circle of trust.
+     * @param graph         original graph.
+     * @param circlesize    size of the circle of trust.
+     * @param r             teleport rate for the personalized PageRank algorithm for computing the circle of trust.
+     * @param supplier      a supplier for the contact recommendation algorithm to apply in the reduced network.
      */
-    public TwitterRecommender(FastGraph<U> graph, int circlesize, double r) 
+    public TwitterRecommender(FastGraph<U> graph, int circlesize, double r, RecommenderSupplier<U> supplier)
     {
         super(graph);
         this.circlesize = circlesize;        
         this.r = r;
         this.circles = new HashMap<>();
         graph.getAllNodes().forEach(u -> circles.put(u, this.trainingGraph(u)));
+        this.supplier = supplier;
     }
     
     /**
      * Computes the circle of trust for a single user.
-     * @param u The user
-     * @return The circle of trust
+     * @param u the user
+     * @return the circle of trust
      */
     private Set<U> getCircleOfTrust(U u)
     {
@@ -118,18 +134,44 @@ public abstract class TwitterRecommender<U> extends UserFastRankingRecommender<U
             }
             
             graph.addNode(u);
-            this.getGraph().getAdjacentNodes(u).forEach(adj -> {
+            this.getGraph().getAdjacentNodes(u).forEach(adj ->
+            {
                 graph.addNode(adj);
                 graph.addEdge(u, adj);
             });
             
             return (FastGraph<U>) graph;
-        } catch (GeneratorNotConfiguredException ex) {
+        }
+        catch (GeneratorNotConfiguredException ex)
+        {
             return null;
         }
     }
-    
-    
+
+    @Override
+    public Int2DoubleMap getScoresMap(int uIdx)
+    {
+        Int2DoubleMap output = new Int2DoubleOpenHashMap();
+        U u = uIndex.uidx2user(uIdx);
+
+        FastGraph<U> graph = this.circles.get(u);
+        UserFastRankingRecommender<U> rec = supplier.get(graph);
+        Int2DoubleMap scores = rec.getScoresMap(rec.user2uidx(u));
+
+        iIndex.getAllIidx().forEach(iIdx ->
+        {
+            if(scores.containsKey(iIdx))
+            {
+                output.put(iIdx, scores.get(iIdx));
+            }
+            else
+            {
+                output.put(iIdx, 0.0);
+            }
+        });
+
+        return output;
+    }
     
     
 }

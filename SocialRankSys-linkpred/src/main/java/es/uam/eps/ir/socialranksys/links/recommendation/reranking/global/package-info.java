@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -8,7 +8,10 @@
  */
 
 /**
- * Rerankers for enhancing a global property of the network. Previous added recommendations are considered when computing the global value
- * we want to optimize.
+ * Definition and implementation of reranking algorithms for enhancing global properties of
+ * the system.
+ *
+ * These rerankers do not only consider an individual recommendation ranking, but the rankings
+ * for the rest of users in the network.
  */
 package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global;

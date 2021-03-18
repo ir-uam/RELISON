@@ -22,7 +22,7 @@ import java.util.Map;
  * Recommender using the cosine similarity to produce recommendations.
  * <p>
  * Lü, L., Zhou. T. Link Prediction in Complex Networks: A survey. Physica A: Statistical Mechanics and its Applications, 390(6), March 2011, pp. 1150-1170.
- *
+ * </p>
  * @param <U> Type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)

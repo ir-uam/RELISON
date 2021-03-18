@@ -23,12 +23,14 @@ import java.util.Optional;
 /**
  * Recommender. Builds a centroid for each user in the network, using the vectors of the 
  * followed users. The score is then computed as the cosine similarity of those centroids.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class CentroidCosineSimilarity<U> extends BipartiteRecommender<U>
 {
-
     /**
      * Vectorial representation of the authorities.
      */
@@ -99,9 +101,9 @@ public class CentroidCosineSimilarity<U> extends BipartiteRecommender<U>
 
     
     /**
-     * Computes the vector for an authority
-     * @param auth The identifier of the authority
-     * @param vector The vector
+     * Computes the vector for an authority.
+     * @param auth      The identifier of the authority.
+     * @param vector    The vector.
      * @return The norm of the vector (L2 norm)
      */
     private double computeVector(long auth, DoubleMatrix1D vector)
@@ -124,9 +126,9 @@ public class CentroidCosineSimilarity<U> extends BipartiteRecommender<U>
     
     /**
      * Computes a centroid for a hub
-     * @param hub The identifier of the hub
-     * @param centroid The vector
-     * @return The norm of the vector (L2 norm)
+     * @param hub       The identifier of the hub.
+     * @param centroid  The vector.
+     * @return The norm of the vector (L2 norm).
      */
     private double computeCentroid(long hub, DoubleMatrix1D centroid) 
     {

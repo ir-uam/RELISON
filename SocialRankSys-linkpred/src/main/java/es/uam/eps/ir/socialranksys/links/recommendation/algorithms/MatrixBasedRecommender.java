@@ -31,8 +31,8 @@ public abstract class MatrixBasedRecommender<U> extends UserFastRankingRecommend
     /**
      * Constructor.
      *
-     * @param graph   A fast graph representing the social network.
-     * @param library The matrix library to use.
+     * @param graph   a fast graph representing the social network.
+     * @param library the matrix library to use.
      */
     public MatrixBasedRecommender(FastGraph<U> graph, MatrixLibrary library)
     {
@@ -44,7 +44,7 @@ public abstract class MatrixBasedRecommender<U> extends UserFastRankingRecommend
      * Default constructor. If possible, uses the JBLAS library. Otherwise,
      * it takes the COLT library.
      *
-     * @param graph A fast graph representing the social network.
+     * @param graph a fast graph representing the social network.
      */
     public MatrixBasedRecommender(FastGraph<U> graph)
     {

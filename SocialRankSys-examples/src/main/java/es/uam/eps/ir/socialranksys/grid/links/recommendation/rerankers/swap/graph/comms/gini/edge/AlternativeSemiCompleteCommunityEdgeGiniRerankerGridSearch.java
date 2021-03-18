@@ -13,7 +13,7 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.rerankers.RerankerGridSearch;
 import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.GlobalReranker;
-import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.comm.gini.edge.AlternativeSemiCompleteCommunityEdgeGiniReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.comm.gini.edge.AlternativeSemiCompleteCommunityEdgeGiniComplement;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -85,7 +85,7 @@ public class AlternativeSemiCompleteCommunityEdgeGiniRerankerGridSearch<U> imple
         grid.getDoubleValues(LAMBDA).forEach(lambda ->
             grid.getBooleanValues(AUTOLOOPS).forEach(autoloop ->
                 rerankers.put(ALTSCEDGEGINI + "-" + (autoloop ? "autoloops" : "noautoloops") + "-" + lambda, () ->
-                    new AlternativeSemiCompleteCommunityEdgeGiniReranker<>(lambda, cutoff, norm, rank, graph, comms, autoloop))
+                    new AlternativeSemiCompleteCommunityEdgeGiniComplement<>(lambda, cutoff, norm, rank, graph, comms, autoloop))
             )
         );
         

@@ -18,10 +18,13 @@ import java.util.Map;
 
 /**
  * General personalized SALSA recommender.
- * 
+ * <p>
  * Goel, A. et al. The who-to-follow system at Twitter: Strategy, algorithms and revenue impact. Interfaces 45(1), 2015, pp. 98-107
- * 
- * @author Javier Sanz-Cruzado Puig
+ * </p>
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users
  */
 public class PersonalizedSALSA<U> extends BipartiteRecommender<U>
@@ -38,9 +41,9 @@ public class PersonalizedSALSA<U> extends BipartiteRecommender<U>
 
     /**
      * Constructor.
-     * @param graph User graph.
-     * @param mode True if the recommendation scores are the authorities scores, false if the recommendation scores are the hubs scores
-     * @param alpha Teleport probability.
+     * @param graph     user graph.
+     * @param mode      true if the recommendation scores are the authorities scores, false if the recommendation scores are the hubs scores.
+     * @param alpha     teleport probability.
      */
     public PersonalizedSALSA(FastGraph<U> graph, boolean mode, double alpha)
     {

@@ -30,22 +30,30 @@ import static org.ranksys.core.util.tuples.Tuples.tuple;
 
 /**
  * Matrix factorization recommender. Scores are calculated as the inner product of user and item vectors.
+ * This version is specially built for contact recommendation, and can be updated over time.
  *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  * @author Saúl Vargas (saul.vargas@uam.es)
  *
  * @param <U> type of the users
  */
 public class MFGraphUpdateableRecommender<U> extends AbstractFastUpdateableRecommender<U,U>
 {
-
+    /**
+     * Updateable matrix factorization.
+     */
     private final UpdateableFactorization<U,U> factorization;
+    /**
+     * Updateable matrix factorizer.
+     */
     private final UpdateableFactorizer<U,U> factorizer;
     /**
      * Constructor.
      *
-     * @param dataPref preferences
+     * @param dataPref      preferences
      * @param factorization matrix factorization
-     * @param factorizer the factorizer
+     * @param factorizer    the factorizer
      */
     public MFGraphUpdateableRecommender(FastUpdateablePreferenceData<U,U> dataPref, UpdateableFactorization<U, U> factorization, UpdateableFactorizer<U,U> factorizer) {
         super(dataPref);

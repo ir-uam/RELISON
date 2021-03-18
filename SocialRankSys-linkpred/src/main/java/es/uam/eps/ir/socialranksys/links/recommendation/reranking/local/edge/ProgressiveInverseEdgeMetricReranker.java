@@ -11,34 +11,42 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.local.edge;
 import com.rits.cloning.Cloner;
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import es.uam.eps.ir.socialranksys.metrics.PairMetric;
 import org.ranksys.core.util.tuples.Tuple2od;
 
+import java.util.function.Supplier;
+
 /**
- * Reranks a graph according to a global graph metric which we want to update.
- * The value of the metric is taken as the novelty score. Each time an edge is 
- * added, the metric is updated.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Reranker that minimizes the average value of an edge metric.
+ * The value of the metric is updated each time we choose an edge to recommend.
+ *
+ * Individually reranks each recommendation.
+ *
+ * @param <U> type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class ProgressiveInverseEdgeMetricReranker<U> extends EdgeMetricReranker<U> 
 {
 
     /**
-     * Constructor
-     * @param lambda Trade-off between the original score and the metric value.
-     * @param cutoff Maximum length of the ranking.
-     * @param norm True if the scores have to be normalized, false if not (recommended value: true)
-     * @param graph The original graph.
-     * @param graphMetric The pair metric.
+     * Constructor.
+     * @param lambda        trade-off between the recommendation score and the novelty/diversity value.
+     * @param cutoff        number of elements to take.
+     * @param norm          the normalization strategy.
+     * @param graph         the original graph.
+     * @param metric        the metric to optimize.
      */
-    public ProgressiveInverseEdgeMetricReranker(double lambda, int cutoff, boolean norm, Graph<U> graph, PairMetric<U> graphMetric)
+    public ProgressiveInverseEdgeMetricReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, PairMetric<U> metric)
     {
-        super(lambda, cutoff, norm, graph, graphMetric);
+        super(lambda, cutoff, norm, graph, metric);
     }
 
     @Override
-    protected GreedyUserReranker<U, U> getUserReranker(Recommendation<U, U> recommendation, int maxLength) {
+    protected GreedyUserReranker<U, U> getUserReranker(Recommendation<U, U> recommendation, int maxLength)
+    {
         Cloner cloner = new Cloner();
         return new ProgressiveInverseGraphMetricEdgeReranker(recommendation, maxLength, cloner.deepClone(this.graph), this.metric);
     }
@@ -48,13 +56,21 @@ public class ProgressiveInverseEdgeMetricReranker<U> extends EdgeMetricReranker<
      */
     protected class ProgressiveInverseGraphMetricEdgeReranker extends GraphMetricEdgeReranker
     {
+        /**
+         * Constructor.
+         * @param recommendation    the recommendation we want to rerank.
+         * @param maxLength         the maximum length of the ranking.
+         * @param graph             the graph.
+         * @param metric            the metric.
+         */
         public ProgressiveInverseGraphMetricEdgeReranker(Recommendation<U, U> recommendation, int maxLength, Graph<U> graph, PairMetric<U> metric) 
         {
             super(recommendation, maxLength, graph, metric);
         }
 
         @Override
-        protected double nov(Tuple2od<U> iv) {
+        protected double nov(Tuple2od<U> iv)
+        {
             U user = recommendation.getUser();
             U item = iv.v1;
             

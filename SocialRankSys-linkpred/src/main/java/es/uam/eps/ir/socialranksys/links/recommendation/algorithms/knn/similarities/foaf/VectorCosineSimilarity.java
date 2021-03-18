@@ -1,12 +1,12 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
- *  de Madrid, http://ir.ii.uam.es
- * 
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
+ * http://terrierteam.dcs.gla.ac.uk/.
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
 package es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.foaf;
 
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
@@ -24,15 +24,23 @@ import java.util.stream.Stream;
 
 /**
  * Similarity based on the Salton index (a.k.a.as cosine similarity).
- * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
+ * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.foaf.Cosine
  */
 public class VectorCosineSimilarity extends GraphSimilarity
 {
     /**
-     * Map containing the length of the common neighborhoods between target and candidate users.
+     * Map containing the length of the target users.
      */
     private final Int2DoubleMap uMods;
-    
+    /**
+     * Map containing the lenght of the candidate users.
+     */
     private final Int2DoubleMap vMods;
     /**
      * Neighborhood selection for the target users.
@@ -46,8 +54,8 @@ public class VectorCosineSimilarity extends GraphSimilarity
     /**
      * Constructor.
      * @param graph the training graph.
-     * @param uSel neighborhood selection for the first user.
-     * @param vSel neighborhood selection for the second user.
+     * @param uSel  neighborhood selection for the first user.
+     * @param vSel  neighborhood selection for the second user.
      */
     public VectorCosineSimilarity(FastGraph<?> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {

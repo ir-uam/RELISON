@@ -18,12 +18,15 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
  * Preferential Attachment recommender. Recommender based on the Preferential Attachment link prediction method.
  * When the selected neighbourhood is formed by the incoming nodes, then this method is equal to the Popularity
  * recommender method.
- * 
- * Newman, M.E.J. Clustering and Preferential Attachment in Growing Networks. Physical Review Letters E, 64(025102), April 2001.
- * 
- * @author Javier Sanz-Cruzado Puig
- * 
+ * <p>
+ *  Newman, M.E.J. Clustering and Preferential Attachment in Growing Networks. Physical Review Letters E, 64(025102), April 2001.
+ * </p>
+ *
  * @param <U> Type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ * 
  */
 public class PreferentialAttachment<U> extends UserFastRankingRecommender<U>
 {
@@ -46,8 +49,8 @@ public class PreferentialAttachment<U> extends UserFastRankingRecommender<U>
     /**
      * Constructor for recommendation mode.
 
-     * @param graph Graph.
-     * @param vSel Link orientation for selecting the neighbours of the candidate node.
+     * @param graph     training graph.
+     * @param vSel      link orientation for selecting the neighbours of the candidate node.
      */
     public PreferentialAttachment(FastGraph<U> graph, EdgeOrientation vSel)
     {
@@ -59,9 +62,9 @@ public class PreferentialAttachment<U> extends UserFastRankingRecommender<U>
     
     /**
      * Constructor for link prediction mode.
-     * @param graph Graph.
-     * @param uSel Link orientation for selecting the neighbours of the target node
-     * @param vSel Link orientation for selecting the neighbours of the candidate node
+     * @param graph training graph.
+     * @param uSel  link orientation for selecting the neighbours of the target node.
+     * @param vSel  link orientation for selecting the neighbours of the candidate node.
      */
     public PreferentialAttachment(FastGraph<U> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {
@@ -70,8 +73,6 @@ public class PreferentialAttachment<U> extends UserFastRankingRecommender<U>
         this.vSel = vSel;
         linkprediction = true;
     }
-    
-    
 
     @Override
     public Int2DoubleMap getScoresMap(int uidx) 

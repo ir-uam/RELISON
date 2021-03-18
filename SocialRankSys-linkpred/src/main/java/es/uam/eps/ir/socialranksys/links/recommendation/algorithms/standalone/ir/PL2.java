@@ -31,6 +31,9 @@ import java.util.Optional;
  */
 public class PL2<U> extends TerrierRecommender<U>
 {
+    /**
+     * Parameter for tuning the importance of the candidate user length.
+     */
     private final double c;
 
     /**

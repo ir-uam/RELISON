@@ -11,21 +11,36 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.local.user;
 import com.rits.cloning.Cloner;
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 import org.ranksys.core.util.tuples.Tuple2od;
 
+import java.util.function.Supplier;
+
 /**
- * Reranks a graph according to a global graph metric which we want to update.
- * The value of the metric is taken as the novelty score.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Implementation of a reranking strategy for contact recommendation that promotes the
+ * average value of some vertex metric in the resulting network.
+ *
+ * Individually reranks each recommendation.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 public class ProgressiveDirectUserMetricReranker<U> extends UserMetricReranker<U> 
 {
-
-    public ProgressiveDirectUserMetricReranker(double lambda, int cutoff, boolean norm, Graph<U> graph, VertexMetric<U> graphMetric)
+    /**
+     * Constructor.
+     * @param lambda        trade-off between the original recommendation score and the metric we want to promote.
+     * @param cutoff        the size of the recommendation ranking.
+     * @param norm          the normalization approach.
+     * @param graph         the graph we want to use.
+     * @param metric        the vertex metric to demote.
+     */
+    public ProgressiveDirectUserMetricReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, VertexMetric<U> metric)
     {
-        super(lambda, cutoff, norm, graph, graphMetric);
+        super(lambda, cutoff, norm, graph, metric);
     }
 
     @Override
@@ -34,9 +49,19 @@ public class ProgressiveDirectUserMetricReranker<U> extends UserMetricReranker<U
         Cloner cloner = new Cloner();
         return new ProgressiveDirectUserMetricUserReranker(recommendation, maxLength, cloner.deepClone(graph), metric);
     }
-    
+
+    /**
+     * The class for generating the reranking.
+     */
     protected class ProgressiveDirectUserMetricUserReranker extends UserMetricUserReranker
     {
+        /**
+         * Constructor.
+         * @param recommendation    the recommendation to rerank.
+         * @param maxLength         the maximum length of the definitive ranking.
+         * @param graph             the network.
+         * @param metric            the metric to promote.
+         */
         public ProgressiveDirectUserMetricUserReranker(Recommendation<U, U> recommendation, int maxLength, Graph<U> graph, VertexMetric<U> metric) 
         {
             super(recommendation, maxLength, graph, metric);
@@ -63,8 +88,6 @@ public class ProgressiveDirectUserMetricReranker<U> extends UserMetricReranker<U
             
             this.graph.addEdge(user, item);
         }
-
-        
     }
     
 }

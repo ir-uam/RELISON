@@ -19,14 +19,19 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Generalization of the local rerankers for processing several of them in a row.
- * @author Javier Sanz-Cruzado Puig.
- * @param <U> Type of the users.
- * @param <I> Type of the items.
+ * Generalization of local reranking strategies, for processing several recommendations at a time.
+ *
+ * These rerankers, given a set of recommendations, sequentially process them one by one. Those
+ * recommendations which are processed later are aware of the previously processed recommendations.
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the items.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public abstract class LocalReranker<U,I> implements GlobalReranker<U,I>
 {
-
     /**
      * Random number generator seed.
      */
@@ -42,7 +47,7 @@ public abstract class LocalReranker<U,I> implements GlobalReranker<U,I>
     
     /**
      * Constructor.
-     * @param seed Random number generator seed.
+     * @param seed random number generator seed.
      */
     public LocalReranker(long seed)
     {
@@ -66,16 +71,16 @@ public abstract class LocalReranker<U,I> implements GlobalReranker<U,I>
     }
 
     /**
-     * Updates the values, given a new recomemendation.
-     * @param reranked The reranked recommendation.
+     * Updates the values, given a new recommendation.
+     * @param reranked the reranked recommendation.
      */
     protected abstract void update(Recommendation<U, I> reranked);
 
     /**
      * Given a recommendation, reranks it.
-     * @param rec The recommendation to rerank
-     * @param maxLength Maximum length of the recommendation
-     * @return The updated recommendation.
+     * @param rec       the recommendation to rerank.
+     * @param maxLength number of items to take from the original recommendation.
+     * @return the updated recommendation.
      */
     protected abstract Recommendation<U, I> rerankRecommendation(Recommendation<U, I> rec, int maxLength);
     

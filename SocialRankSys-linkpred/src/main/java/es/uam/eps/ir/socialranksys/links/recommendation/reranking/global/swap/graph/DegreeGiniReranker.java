@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -12,7 +12,8 @@ import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.graph.DirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
-import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.SwapRerankerGraph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.GraphSwapReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import es.uam.eps.ir.socialranksys.utils.indexes.GiniIndex;
 import org.ranksys.core.util.tuples.Tuple2od;
 
@@ -20,14 +21,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 
 /**
  * Optimizes the degree Gini of a graph.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ *
+ * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class DegreeGiniReranker<U> extends SwapRerankerGraph<U>
+public class DegreeGiniReranker<U> extends GraphSwapReranker<U>
 {
     /**
      * Sorted list that contains the degrees of the nodes.
@@ -54,16 +59,15 @@ public class DegreeGiniReranker<U> extends SwapRerankerGraph<U>
     
     /**
      * Constructor
-     * @param lambda Trade-off between the original and novelty score (clustering coefficient)
-     * @param cutOff Maximum length of the recommendation ranking
-     * @param norm true if the scores have to be normalized, false if not.
-     * @param rank true if the normalization is by ranking position, false if it is by score
-     * @param graph The original graph.
-     * @param orient Degree orientation
+     * @param lambda    trade-off between the original and novelty score (clustering coefficient).
+     * @param cutOff    maximum length of the recommendation ranking.
+     * @param norm      the normalization strategy.
+     * @param graph     the original graph.
+     * @param orient    orientation for selecting the degree.
      */
-    public DegreeGiniReranker(double lambda, int cutOff, boolean norm, boolean rank, Graph<U> graph, EdgeOrientation orient)
+    public DegreeGiniReranker(double lambda, int cutOff, Supplier<Normalizer<U>> norm, Graph<U> graph, EdgeOrientation orient)
     {
-        super(lambda, cutOff, norm, rank, graph);
+        super(lambda, cutOff, norm, graph);
         
         this.orient = orient;
     }
@@ -295,8 +299,8 @@ public class DegreeGiniReranker<U> extends SwapRerankerGraph<U>
     /**
      * Updates the parameters, considering that a only new edge is added. Every
      * edge that enters this function is considered to be undirected.
-     * @param user the target user.
-     * @param updated the new candidate user.
+     * @param user      the target user.
+     * @param updated   the new candidate user.
      * @return the new global value.
      */
     private double newcoefadd(U user, Tuple2od<U> updated)
@@ -364,9 +368,9 @@ public class DegreeGiniReranker<U> extends SwapRerankerGraph<U>
 
     /**
      * Updates the parameters, considering that a new edge is added, and the old edge is removed.
-     * @param user the target user.
-     * @param updated the new candidate user.
-     * @param old the old candidate user.
+     * @param user      the target user.
+     * @param updated   the new candidate user.
+     * @param old       the old candidate user.
      * @return the new global value.
      */
     private double newcoef(U user, Tuple2od<U> updated, Tuple2od<U> old)
@@ -467,8 +471,8 @@ public class DegreeGiniReranker<U> extends SwapRerankerGraph<U>
     
     /**
      * Updates the parameters, considering that the new edge is not added (only the old is removed.)
-     * @param user the target user.
-     * @param old the old candidate user.
+     * @param user  the target user.
+     * @param old   the old candidate user.
      * @return the new global value.
      */
     private double newcoefdel(U user, Tuple2od<U> old)

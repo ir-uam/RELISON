@@ -20,6 +20,7 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
  * <p>
  * Jaccard,  P.: Etude comparative de la distribution florale dans une portion des Alpes et des Jura.
  * Bulletin de la Societe Vaudoise des Sciences Naturelles 37(142),547–579 (1901)
+ * </p>
  *
  * @param <U> type of the users.
  *

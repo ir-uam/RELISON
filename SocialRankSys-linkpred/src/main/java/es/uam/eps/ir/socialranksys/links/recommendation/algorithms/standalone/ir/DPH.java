@@ -19,7 +19,10 @@ import java.util.Optional;
  * Class that applies the DPH Divergence from Randomness model as a contact
  * recommendation algorithm.
  * <p>
- * Amati, G.: Frequentist and Bayesian Approach to Information Retrieval. In: Pro-ceedings of the 28th European Conference on Information Retrieval (ECIR 2006).pp. 13–24. No. 3936 in LNCS, Springer (2006)
+ * Amati, G.: Frequentist and Bayesian Approach to Information Retrieval. In: Proceedings of the 28th European Conference on Information Retrieval (ECIR 2006).pp. 13–24. No. 3936 in LNCS, Springer (2006)
+ * </p>
+ *
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)

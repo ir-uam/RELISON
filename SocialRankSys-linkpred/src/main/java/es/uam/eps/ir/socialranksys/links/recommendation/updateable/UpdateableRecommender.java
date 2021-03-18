@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -14,8 +14,11 @@ import org.jooq.lambda.tuple.Tuple3;
 import java.util.stream.Stream;
 
 /**
- * Recommender which can be updated.
- * @author Javier Sanz-Cruzado Puig
+ * Interface for defining recommendation algorithms which can be updated over time.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the items.
  */

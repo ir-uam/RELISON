@@ -20,6 +20,9 @@ import java.util.Optional;
  * recommendation algorithm.
  * <p>
  * Amati, G., Ambrosi, E., Bianchi, M., Gaibisso, C., Gambosi, G.: FUB, IASI-CNRand University of Tor Vergata at TREC 2007 Blog Track. In: Proceedings of the16th Text REtrieval Conference (TREC 2007). NIST (2007
+ * </p>
+ *
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)

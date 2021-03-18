@@ -8,7 +8,6 @@
  */
 
 /**
- * Rerankers that optimize global properties of the network. This rerankers start from a graph containing all the recommended edges. Then, edges are
- * swapped with some of the not recommended edges, in order to improve the global parameter.
+ * Implementation of rerankers that use the swap strategy to optimize global properties.
  */
 package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap;

@@ -30,11 +30,11 @@ public class EBM25<U> extends BM25<U>
     /**
      * Constructor
      *
-     * @param graph Graph
-     * @param uSel  Selection of the neighbours of the target user
-     * @param vSel  Selection of the neighbours of the candidate user
-     * @param dlSel Selection of the neighbours for the document length
-     * @param b     Tunes the effect of the neighborhood size. Between 0 and 1
+     * @param graph the training graph
+     * @param uSel  selection of the neighbours of the target user
+     * @param vSel  selection of the neighbours of the candidate user
+     * @param dlSel selection of the neighbours for the document length
+     * @param b     tunes the effect of the neighborhood size. Between 0 and 1
      */
     public EBM25(FastGraph<U> graph, EdgeOrientation uSel, EdgeOrientation vSel, EdgeOrientation dlSel, double b)
     {

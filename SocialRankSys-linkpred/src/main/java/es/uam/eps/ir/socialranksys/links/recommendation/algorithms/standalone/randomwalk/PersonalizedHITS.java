@@ -22,7 +22,9 @@ import java.util.Map;
  *
  * Personalized HITS Recommender.
  * 
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users
  */
 public class PersonalizedHITS<U> extends BipartiteRecommender<U>
@@ -37,9 +39,9 @@ public class PersonalizedHITS<U> extends BipartiteRecommender<U>
     private static final double THRESHOLD = 0.01;
     /**
      * Constructor
-     * @param graph original graph.
-     * @param mode true to recommend authorities, false to recommend hubs.
-     * @param alpha the teleport rate.
+     * @param graph     original graph.
+     * @param mode      true to recommend authorities, false to recommend hubs.
+     * @param alpha     the teleport rate.
      */
     public PersonalizedHITS(FastGraph<U> graph, boolean mode, double alpha)
     {

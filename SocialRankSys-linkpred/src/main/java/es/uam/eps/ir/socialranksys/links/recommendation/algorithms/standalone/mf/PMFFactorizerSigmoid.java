@@ -15,10 +15,13 @@ import es.uam.eps.ir.ranksys.fast.preference.TransposedPreferenceData;
 import es.uam.eps.ir.ranksys.mf.als.ALSFactorizer;
 
 /**
- * Factorizes a matrix for the Probabilistic Matrix Factorization Algorithm
- * @author Javier Sanz-Cruzado
- * @param <U> Class of the users
- * @param <I> Class of the items
+ * Factorizer for the sigmoid version of the probabilistic matrix factorization algorithm (PMF).
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the items.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class PMFFactorizerSigmoid<U,I> extends ALSFactorizer<U,I>
 {
@@ -38,8 +41,8 @@ public class PMFFactorizerSigmoid<U,I> extends ALSFactorizer<U,I>
 
     /**
      * Constructor.
-     * @param lambda Regularization rate.
-     * @param learningRate Learning rate for the gradient descent.
+     * @param lambda        regularization rate.
+     * @param learningRate  learning rate for the gradient descent.
      */
     public PMFFactorizerSigmoid(double lambda, double learningRate)
     {
@@ -49,9 +52,9 @@ public class PMFFactorizerSigmoid<U,I> extends ALSFactorizer<U,I>
     
     /**
      * Constructor.
-     * @param lambdaU Regularization rate for matrix U.
-     * @param lambdaV Regularization rate for matrix V.
-     * @param learningRate Learning rate for the gradient descent.
+     * @param lambdaU       regularization rate for matrix U.
+     * @param lambdaV       regularization rate for matrix V.
+     * @param learningRate  learning rate for the gradient descent.
      */
     public PMFFactorizerSigmoid(double lambdaU, double lambdaV, double learningRate)
     {
@@ -60,10 +63,10 @@ public class PMFFactorizerSigmoid<U,I> extends ALSFactorizer<U,I>
     
     /**
      * 
-     * @param lambdaU Regularization rate for matrix U
-     * @param lambdaV Regularization rate for matrix V
-     * @param learningRate Learning rate for the gradient descent
-     * @param numEpochs Number of epochs
+     * @param lambdaU       regularization rate for matrix U
+     * @param lambdaV       regularization rate for matrix V
+     * @param learningRate  learning rate for the gradient descent
+     * @param numEpochs     number of epochs
      */
     public PMFFactorizerSigmoid(double lambdaU, double lambdaV, double learningRate, int numEpochs)
     {
@@ -104,10 +107,10 @@ public class PMFFactorizerSigmoid<U,I> extends ALSFactorizer<U,I>
     
     /**
      * Minimizes the parameters for one of the two matrices.
-     * @param p Matrix to optimize.
-     * @param q Fixed matrix.
-     * @param lambda The regularization parameter for this matrix.
-     * @param data Preference data.
+     * @param p         matrix to optimize.
+     * @param q         fixed matrix.
+     * @param lambda    the regularization parameter for this matrix.
+     * @param data      preference data.
      */
     protected static <U,I,O> void set_min(DenseDoubleMatrix2D p, final DenseDoubleMatrix2D q, double lambda, FastPreferenceData<U,I> data, double learningRate)
     {

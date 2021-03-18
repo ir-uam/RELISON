@@ -19,11 +19,14 @@ import java.util.stream.Collectors;
 
 /**
  * Recommender which uses the PropFlow algorithm.
- * 
+ * <p>
  * Lichtenwalter, R., Lussier, J., Chawla, N. New perspectives and methods in link prediction.
- * 
- * @author Javier Sanz-Cruzado Puig
+ * </p>
+ *
  * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class PropFlow<U> extends UserFastRankingRecommender<U>
 {
@@ -76,15 +79,13 @@ public class PropFlow<U> extends UserFastRankingRecommender<U>
                 double nodeInput = propFlow.get(userId);
                 
                 List<U> neighbourhood = this.getGraph().getNeighbourhood(user, orientation).collect(Collectors.toCollection(ArrayList::new));
-                double sumOutput = neighbourhood.stream().mapToDouble(neigh -> 
-                {
-                    return switch (orientation)
-                    {
-                        case IN -> this.getGraph().getEdgeWeight(neigh, user);
-                        case OUT -> this.getGraph().getEdgeWeight(user, neigh);
-                        default -> Math.max(this.getGraph().getEdgeWeight(neigh, user), this.getGraph().getEdgeWeight(user, neigh));
-                    };
-                }).sum();
+                double sumOutput = neighbourhood.stream().mapToDouble(neigh ->
+                        switch (orientation)
+                        {
+                            case IN -> this.getGraph().getEdgeWeight(neigh, user);
+                            case OUT -> this.getGraph().getEdgeWeight(user, neigh);
+                            default -> Math.max(this.getGraph().getEdgeWeight(neigh, user), this.getGraph().getEdgeWeight(user, neigh));
+                        }).sum();
                 
                 
                 double flow;

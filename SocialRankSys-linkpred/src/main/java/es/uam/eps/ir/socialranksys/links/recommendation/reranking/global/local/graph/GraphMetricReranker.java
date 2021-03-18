@@ -9,47 +9,43 @@
 package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.local.graph;
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.local.GraphLocalReranker;
 import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.local.LocalLambdaReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
+import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 import org.ranksys.core.util.tuples.Tuple2od;
 
+import java.util.function.Supplier;
+
 /**
- * Reranks a graph according to a global graph metric which we want to maximize.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Reranker strategy that reorders the candidate users according to
+ * a graph metric.
+ *
+ * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public abstract class GraphMetricReranker<U> extends LocalLambdaReranker<U,U>
+public abstract class GraphMetricReranker<U> extends GraphLocalReranker<U>
 {
-    /**
-     * The graph.
-     */
-    protected final Graph<U> graph;
-    
     /**
      * The selected metric
      */
     protected final GraphMetric<U> metric;
-    
-    /**
-     * Indicates if the scores have to be normalized.
-     */
-    protected final boolean norm;
+
     /**
      * Constructor.
-     * @param lambda Param that establishes a balance between the score and the 
-     * novelty/diversity value.
-     * @param cutoff Number of elements to take.
-     * @param norm Indicates if scores have to be normalized.
-     * @param graph The graph.
-     * @param graphMetric The graph metric to maximize.
-     * @param rank Indicates if the normalization is by ranking (true) or by score (false)
+     * @param lambda    trade-off between the original and novelty scores
+     * @param cutoff    maximum length of the definitive ranking.
+     * @param norm      the normalization strategy.
+     * @param graph     the original graph.
+     * @param metric    the vertex metric to optimize.
      */
-    public GraphMetricReranker(double lambda, int cutoff, boolean norm, boolean rank, Graph<U> graph, GraphMetric<U> graphMetric) 
+    public GraphMetricReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, GraphMetric<U> metric)
     {
-        super(cutoff, lambda, norm, rank);
-        this.graph = graph;
-        this.metric = graphMetric;
-        this.norm = norm;
+        super(cutoff, lambda, norm, graph);
+        this.metric = metric;
     }
     
     

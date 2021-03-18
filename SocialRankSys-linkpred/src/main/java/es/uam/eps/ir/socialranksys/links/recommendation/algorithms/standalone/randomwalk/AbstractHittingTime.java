@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
- * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
- * http://terrierteam.dcs.gla.ac.uk/.
+ * de Madrid, http://ir.ii.uam.es.
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -58,11 +57,7 @@ public abstract class AbstractHittingTime<U> extends MatrixBasedRecommender<U>
         super(graph, library);
     }
 
-    /**
-     * Obtains the matrix for each user,
-     * @param uidx the identifier of the target user.
-     * @return the hitting time matrix.
-     */
+    @Override
     protected double[][] getJBLASMatrix(int uidx)
     {
         int nUsers = Long.valueOf(graph.getVertexCount()).intValue();
@@ -107,11 +102,7 @@ public abstract class AbstractHittingTime<U> extends MatrixBasedRecommender<U>
         return aux.mmuli(Pi).toArray2();
     }
 
-    /**
-     * Generates the first passage time matrix using the COLT library.
-     * @param uidx the identifier of the user.
-     * @return the matrix using the COLT library.
-     */
+    @Override
     protected double[][] getCOLTMatrix(int uidx)
     {
         // First, we find the transition matrix:
@@ -179,7 +170,7 @@ public abstract class AbstractHittingTime<U> extends MatrixBasedRecommender<U>
         return alg.mult(J,Pi).toArray();
     }
 
-
+    @Override
     protected double[][] getMTJMatrix(int uidx)
     {
         Matrix transition = this.getMTJTransitionMatrix(uidx);
@@ -285,7 +276,22 @@ public abstract class AbstractHittingTime<U> extends MatrixBasedRecommender<U>
         return defMatrix;
     }
 
+    /**
+     * Obtains the transition matrix, for its use with the JBLAS library.
+     * @param uidx the target user of the recommendation.
+     * @return a JBLAS matrix containing the transitions.
+     */
     protected abstract DoubleMatrix getJBLASTransitionMatrix(int uidx);
+    /**
+     * Obtains the transition matrix, for its use with the COLT library.
+     * @param uidx the target user of the recommendation.
+     * @return a COLT matrix containing the transitions.
+     */
     protected abstract DoubleMatrix2D getCOLTTransitionMatrix(int uidx);
+    /**
+     * Obtains the transition matrix, for its use with the MTJ library.
+     * @param uidx the target user of the recommendation.
+     * @return a MTJ matrix containing the transitions.
+     */
     protected abstract DenseMatrix getMTJTransitionMatrix(int uidx);
 }

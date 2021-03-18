@@ -14,7 +14,7 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.rerankers.RerankerGridSearch;
 import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.GlobalReranker;
-import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.comm.gini.edge.sizenormalized.SizeNormalizedCompleteCommunityEdgeGiniReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.comm.gini.edge.sizenormalized.SizeNormalizedCompleteCommunityEdgeGiniComplement;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -88,7 +88,7 @@ public class SizeNormCompleteCommunityEdgeGiniRerankerGridSearch<U> implements R
         grid.getDoubleValues(LAMBDA).forEach(lambda -> 
             grid.getBooleanValues(AUTOLOOPS).forEach(autoloop ->
                 rerankers.put(SNCEDGEGINI + "-" + (autoloop ? "autoloops" : "noautoloops") + "-" + lambda, () ->
-                    new SizeNormalizedCompleteCommunityEdgeGiniReranker<>(lambda, cutoff, norm, rank, graph, comms, autoloop))
+                    new SizeNormalizedCompleteCommunityEdgeGiniComplement<>(lambda, cutoff, norm, rank, graph, comms, autoloop))
             )
         );
         

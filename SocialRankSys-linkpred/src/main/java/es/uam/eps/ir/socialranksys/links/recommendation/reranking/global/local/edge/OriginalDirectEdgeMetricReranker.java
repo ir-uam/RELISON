@@ -10,18 +10,22 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.local.
 
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import es.uam.eps.ir.socialranksys.metrics.PairMetric;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
- * Reranks a graph according to a edge graph metric which we want to improve.
- * The value of the metric is taken as the novelty score. We use as novelty
- * score the original value of the metric.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Reranker strategy that optimizes the average value of an edge metric.
+ * It uses the value of the metric for the original network as the novelty value.
+ *
+ * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class OriginalDirectEdgeMetricReranker<U> extends EdgeMetricReranker<U> 
 {
@@ -29,24 +33,22 @@ public class OriginalDirectEdgeMetricReranker<U> extends EdgeMetricReranker<U>
     /**
      * A map containing the edge metric values for each pair in the original graph.
      */
-    private Map<U, Map<U, Double>> values;
-    
+    private final Map<U, Map<U, Double>> values;
+
     /**
      * Constructor.
-     * @param lambda Param that establishes a balance between the score and the 
-     * novelty/diversity value.
-     * @param cutoff Number of elements to take.
-     * @param norm Indicates if scores have to be normalized.
-     * @param graph The graph.
-     * @param graphMetric The graph metric to optimize.
-     * @param rank Indicates if the normalization is by ranking (true) or by score (false)
+     * @param lambda        trade-off between the recommendation score and the novelty/diversity value.
+     * @param cutoff        number of elements to take.
+     * @param norm          the normalization strategy.
+     * @param graph         the original graph.
+     * @param metric        the metric we want to optimize.
      */
-    public OriginalDirectEdgeMetricReranker(double lambda, int cutoff, boolean norm, boolean rank, Graph<U> graph, PairMetric<U> graphMetric)
+    public OriginalDirectEdgeMetricReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, PairMetric<U> metric)
     {
-        super(lambda, cutoff, norm, rank, graph, graphMetric);
+        super(lambda, cutoff, norm, graph, metric);
+        values = new HashMap<>();
     }
-    
-    
+
     @Override
     protected double nov(U u, Tuple2od<U> iv)
     {
@@ -68,7 +70,13 @@ public class OriginalDirectEdgeMetricReranker<U> extends EdgeMetricReranker<U>
     }
 
     @Override
-    protected void update(U user, Tuple2od<U> bestItemValue) {
+    protected void innerUpdate(U user, Tuple2od<U> bestItemValue) {
+    }
+
+    @Override
+    protected void update(U user, Tuple2od<U> bestItemValue)
+    {
+
     }
 
     @Override

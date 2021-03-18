@@ -22,22 +22,26 @@ import java.util.stream.IntStream;
 import static java.lang.Double.isNaN;
 
 /**
- * Greedy Reranker for optimizing a global metric of the recommendation algorithm.
- * @author Javier Sanz-Cruzado Puig.
- * @param <U> Type of the users.
- * @param <I> Type of the items.
+ * Abstract greedy implementation of the swap reranking strategy for optimizing global properties
+ * of the system.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the items.
  */
 public abstract class SwapGreedyReranker<U,I> extends SwapReranker<U,I> 
 {
-
     /**
-     * Cut-off of the ranking
+     * The definitive size of the recommendation ranking (i.e. the number of user-item pairs we consider that
+     * we add to the system.
      */
     protected final int cutOff;
     
     /**
      * Constructor.
-     * @param cutOff maximum cut-off the ranking.
+     * @param cutOff the definitive size of the recommendation ranking.
      */
     public SwapGreedyReranker(int cutOff)
     {
@@ -54,8 +58,8 @@ public abstract class SwapGreedyReranker<U,I> extends SwapReranker<U,I>
 
     /**
      * Obtains a permutation for a ranking that greedily optimizes the global metric.
-     * @param rec the recommendation ranking.
-     * @param maxLength maximum length of the permutation.
+     * @param rec       the recommendation ranking.
+     * @param maxLength the maximum number of items to consider.
      * @return a permutation of the indexes.
      */
     protected int[] rerankPermutation(Recommendation<U, I> rec, int maxLength)
@@ -73,12 +77,13 @@ public abstract class SwapGreedyReranker<U,I> extends SwapReranker<U,I>
         // Generate the top k and the remaining list recommendation
         IntStream.range(permSize, list.size()).forEach(remainingI::add);
         IntStream.range(0, permSize).forEach(perm::add);
-        
+
+        // We run over the top-k items.
         for(int i = 0; i < permSize; ++i)
         {
             Tuple2od<I> compared = list.get(perm.getInt(i));
             int bestI = selectItem(rec.getUser(), remainingI, compared, list);
-            if(bestI != -1)
+            if(bestI != -1) // If bestI == -1, then, we do not change anything.
             {
                 //Swap the elements in the ranking
                 remainingI.add(perm.getInt(i));
@@ -95,8 +100,8 @@ public abstract class SwapGreedyReranker<U,I> extends SwapReranker<U,I>
 
     /**
      * Permutes a recommendation.
-     * @param rec The original recommendation.
-     * @param perm The permutation of the data.
+     * @param rec   the original recommendation.
+     * @param perm  the permutation of the data.
      * @return the new recommendation.
      */
     private Recommendation<U, I> permuteRecommendation(Recommendation<U, I> rec, int[] perm) 
@@ -129,10 +134,10 @@ public abstract class SwapGreedyReranker<U,I> extends SwapReranker<U,I>
 
     /**
      * Select the next item to add.
-     * @param user the target user of the recommendation.
-     * @param remainingI elements outside the top k
-     * @param compared the element we want to compare with the elements out of the top N.
-     * @param list List of values for all the elements
+     * @param user          the target user of the recommendation.
+     * @param remainingI    elements outside the top k
+     * @param compared      the element we want to compare with the elements out of the top N.
+     * @param list          list of values for all the elements
      * @return the selected item if we have to swap elements, -1 if not.
      */
     protected int selectItem(U user, IntSortedSet remainingI, Tuple2od<I> compared, List<Tuple2od<I>> list)
@@ -140,7 +145,7 @@ public abstract class SwapGreedyReranker<U,I> extends SwapReranker<U,I>
         double[] max = new double[]{this.valuetop(compared)};
         int[] bestI = new int[]{-1};
         
-        remainingI.stream().mapToInt(i -> i).forEach(i ->
+        remainingI.intStream().forEach(i ->
         {
             double value = this.value(list.get(i));
             if(isNaN(value)) value = Double.NEGATIVE_INFINITY;
@@ -157,9 +162,9 @@ public abstract class SwapGreedyReranker<U,I> extends SwapReranker<U,I>
     
     /**
      * Updates the value of the global metric.
-     * @param user The user whose recommendation we are reranking.
-     * @param updated The new item.
-     * @param old The old item.
+     * @param user      the user whose recommendation we are reranking.
+     * @param updated   the new item.
+     * @param old       the old item.
      */
     protected abstract void update(U user, Tuple2od<I> updated, Tuple2od<I> old);
     

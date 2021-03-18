@@ -8,18 +8,24 @@
  */
 package es.uam.eps.ir.socialranksys.links.recommendation.reranking.local.graph;
 
-
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.ranksys.core.util.Stats;
-import es.uam.eps.ir.ranksys.novdiv.reranking.LambdaReranker;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.local.LambdaReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
 import org.ranksys.core.util.tuples.Tuple2od;
 
+import java.util.function.Supplier;
+
 /**
- * Reranks a graph according to a global graph metric which we want to improve.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Individual reranker, which reorders a recommendation according to
+ * a graph metric.
+ *
+ * @param <U> type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public abstract class GraphMetricReranker<U> extends LambdaReranker<U,U>
 {
@@ -32,35 +38,43 @@ public abstract class GraphMetricReranker<U> extends LambdaReranker<U,U>
      * The selected metric
      */
     protected final GraphMetric<U> metric;
-    
-    /**
-     * Indicates if the scores have to be normalized.
-     */
-    protected final boolean norm;
+
     /**
      * Constructor.
-     * @param lambda Param that establishes a balance between the score and the 
-     * novelty/diversity value.
-     * @param cutoff Number of elements to take.
-     * @param norm Indicates if scores have to be normalized.
-     * @param graph The graph.
-     * @param graphMetric The graph metric to optimize.
+     * @param lambda        param that establishes a balance between the score and the novelty/diversity value.
+     * @param cutoff        number of elements to take.
+     * @param norm          the normalization function.
+     * @param graph         the graph.
+     * @param metric        the metric to optimize.
      */
-    public GraphMetricReranker(double lambda, int cutoff, boolean norm, Graph<U> graph, GraphMetric<U> graphMetric) 
+    public GraphMetricReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, GraphMetric<U> metric)
     {
         super(lambda, cutoff, norm);
         this.graph = graph;
-        this.metric = graphMetric;
-        this.norm = norm;
+        this.metric = metric;
     }
 
-
-    
-    protected abstract class GraphMetricUserReranker extends LambdaUserReranker
+    /**
+     * The user reranker.
+     */
+    protected abstract class GraphMetricUserReranker extends LambdaReranker<U,U>.LambdaUserReranker
     {
-        
+        /**
+         * The values.
+         */
         protected final Graph<U> graph;
+
+        /**
+         * The graph metric
+         */
         protected final GraphMetric<U> metric;
+        /**
+         * Constructor.
+         * @param recommendation    the recommendation to rerank.
+         * @param maxLength         the maximum length of the definitive ranking.
+         * @param graph             the network.
+         * @param metric            the metric to promote.
+         */
         public GraphMetricUserReranker(Recommendation<U, U> recommendation, int maxLength, Graph<U> graph, GraphMetric<U> metric)
         {
             super(recommendation, maxLength);
@@ -68,19 +82,6 @@ public abstract class GraphMetricReranker<U> extends LambdaReranker<U,U>
             this.metric = metric;
             
         }
-
-        @Override
-        protected double norm(double score, Stats stats)
-        {
-            if(norm)
-            {
-                return (score - stats.getMin())/(stats.getMax()-stats.getMin());
-            }
-            else
-                return score;
-        }
-        
-        
 
         @Override
         protected void update(Tuple2od<U> bestItemValue)

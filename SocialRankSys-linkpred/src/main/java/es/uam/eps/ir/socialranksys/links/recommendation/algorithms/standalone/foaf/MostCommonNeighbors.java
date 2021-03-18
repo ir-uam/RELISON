@@ -19,8 +19,10 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
  * Recommended that sorts candidate users according to the number of neighbors in common with the target one.
  * <p>
  * Liben-Nowell, D., Kleinberg, J. The Link Prediction Problem for Social Networks. Journal of the American Society for Information Science and Technology 58(7), May 2007.
+ * </p>
  * <p>
  * Newman, M.E.J. Clustering and Preferential Attachment in Growing Networks. Physical Review Letters E, 64(025102), April 2001.
+ * </p>
  *
  * @param <U> type of the users.
  *
@@ -43,9 +45,9 @@ public class MostCommonNeighbors<U> extends UserFastRankingRecommender<U>
     /**
      * Constructor.
      *
-     * @param graph User graph.
-     * @param uSel  Link orientation for the target users.
-     * @param vSel  Link orientation for the candidate users.
+     * @param graph user graph.
+     * @param uSel  link orientation for the target users.
+     * @param vSel  link orientation for the candidate users.
      */
     public MostCommonNeighbors(FastGraph<U> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {

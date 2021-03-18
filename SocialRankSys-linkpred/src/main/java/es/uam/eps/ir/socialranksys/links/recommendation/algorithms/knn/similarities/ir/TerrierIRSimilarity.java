@@ -1,5 +1,13 @@
+/*
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
+ * http://terrierteam.dcs.gla.ac.uk/.
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.ir;
-
 
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
@@ -23,7 +31,11 @@ import java.util.stream.Stream;
 
 /**
  * Class that uses the Terrier IR engine to generate similarities between elements.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
+ * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public abstract class TerrierIRSimilarity extends GraphSimilarity
 {
@@ -43,8 +55,8 @@ public abstract class TerrierIRSimilarity extends GraphSimilarity
     /**
      * Constructor.
      * @param graph the graph.
-     * @param uSel orientation for the first user.
-     * @param vSel orientation for the second user.
+     * @param uSel  orientation for the first user.
+     * @param vSel  orientation for the second user.
      */
     public TerrierIRSimilarity(FastGraph<?> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {
@@ -55,9 +67,9 @@ public abstract class TerrierIRSimilarity extends GraphSimilarity
     }
     /**
      * Constructor.
-     * @param graph the training graph.
-     * @param uSel orientation selection for the target user.
-     * @param vSel orientation selection for the candidate user.
+     * @param graph     the training graph.
+     * @param uSel      orientation selection for the target user.
+     * @param vSel      orientation selection for the candidate user.
      * @param structure Terrier basic structures for the algorithm.
      */
     public TerrierIRSimilarity(FastGraph<?> graph, EdgeOrientation uSel, EdgeOrientation vSel, TerrierStructure structure)

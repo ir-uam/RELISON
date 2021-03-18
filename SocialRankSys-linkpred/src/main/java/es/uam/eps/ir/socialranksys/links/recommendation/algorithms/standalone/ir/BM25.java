@@ -22,6 +22,7 @@ import java.util.OptionalDouble;
  * <p>
  * Sparck Jones, K., Walker, S., Roberton S.E. A Probabilistic Model of Information Retrieval: Development and Comparative Experiments.
  * Information Processing and Management 36. February 2000, pp. 779-808 (part 1), pp. 809-840 (part 2).
+ * </p>
  *
  * @param <U> type of the users
  *
@@ -55,11 +56,11 @@ public class BM25<U> extends UserFastRankingRecommender<U>
     /**
      * Average size of the neighborhood of the candidate nodes.
      */
-    private double avgSize;
+    private final double avgSize;
     /**
      * Number of users in the network.
      */
-    private long numUsers;
+    private final long numUsers;
     /**
      * Robertson-Sparck-Jones formula values for each user.
      */
@@ -68,17 +69,19 @@ public class BM25<U> extends UserFastRankingRecommender<U>
      * Neighborhood sizes for each user.
      */
     private final Int2DoubleOpenHashMap size;
-
+    /**
+     * Lengths of the users, according to the neighborhood selection for the candidate user.
+     */
     private final Int2DoubleOpenHashMap wLengths;
 
     /**
      * Constructor.
      *
-     * @param graph Graph
-     * @param uSel  Selection of the neighbours of the target user
-     * @param vSel  Selection of the neighbours of the candidate user
-     * @param dlSel Selection of the neighbours for the document length
-     * @param b     Tunes the effect of the neighborhood size. Between 0 and 1.
+     * @param graph graph
+     * @param uSel  selection of the neighbours of the target user
+     * @param vSel  selection of the neighbours of the candidate user
+     * @param dlSel selection of the neighbours for the document length
+     * @param b     tunes the effect of the neighborhood size. Between 0 and 1.
      * @param k     parameter of the algorithm.
      */
     public BM25(FastGraph<U> graph, EdgeOrientation uSel, EdgeOrientation vSel, EdgeOrientation dlSel, double b, double k)

@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package es.uam.eps.ir.socialranksys.links.recommendation.features;
 
 import es.uam.eps.ir.ranksys.core.feature.FeatureData;
@@ -14,9 +22,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+/**
+ * Class for loading feature data from an index.
+ *
+ * @param <I> type of the items.
+ */
 public class IndexFeatureData<I> implements FeatureData<I,String,Double>
 {
+    /**
+     * Item to feature map.
+     */
     private final Map<I, Map<String,Double>> itemMap;
+    /**
+     * Feature to item map.
+     */
     private final Map<String, Map<I, Double>> featMap;
 
     /**
@@ -115,6 +134,12 @@ public class IndexFeatureData<I> implements FeatureData<I,String,Double>
         return itemMap.keySet().stream();
     }
 
+    /**
+     * Loads the feature data from a forward index.
+     * @param fIndex the forward index.
+     * @param <I> type of the items.
+     * @return the feature data object.
+     */
     public static <I> IndexFeatureData<I> load(ForwardIndex<I> fIndex)
     {
         Map<I, Map<String, Double>> itemMap = new ConcurrentHashMap<>();

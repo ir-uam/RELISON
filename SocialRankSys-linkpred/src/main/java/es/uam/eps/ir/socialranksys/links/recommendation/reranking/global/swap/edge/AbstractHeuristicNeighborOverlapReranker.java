@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,21 +10,27 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.e
 
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.graph.Graph;
-import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.SwapRerankerGraph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.GraphSwapReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
- * Class that tries to maximize the average embededness of the graph.
- * @author Javier Sanz-Cruzado Puig
+ * Swap reranker that modifies the rankings according to the average embeddedness of the network.
+ * It uses heuristics to improve the execution times.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users
  */
-public abstract class AbstractHeuristicNeighborOverlapReranker<U> extends SwapRerankerGraph<U>
+public abstract class AbstractHeuristicNeighborOverlapReranker<U> extends GraphSwapReranker<U>
 {
     /**
      * Map containing the intersections between two nodes in the network (CN)
@@ -47,18 +53,19 @@ public abstract class AbstractHeuristicNeighborOverlapReranker<U> extends SwapRe
     
     /**
      * Constructor
-     * @param cutOff maximum number of edges to consider
-     * @param lambda trade-off between the average embeddedness and the original score
-     * @param norm indicates if the elements have to be normalized
-     * @param rank indicates if the normalization is done by ranking (true) or by score (false)
-     * @param graph the original graph
-     * @param mode the execution mode: 1) Embededness is corrected any time a swap is done. 2) Embededness is corrected every time a user has finished its reranking.
-     * 3) Embededness is never corrected (only use the heuristic)
-     * @param promote true if we want edges with greater embeddedness, false if we want edges with smaller embeddedness (more weakness)
+     * @param cutOff    the definitive length of the recommendation rankings.
+     * @param lambda    trade-off between the average embeddedness and the original score
+     * @param norm      the normalization scheme.
+     * @param graph     the original graph
+     * @param mode      the execution mode:
+     *                  1) Embededness is corrected any time a swap is done.
+     *                  2) Embededness is corrected every time a user has finished its reranking.
+     *                  3) Embededness is never corrected (only use the heuristic)
+     * @param promote   true if we want edges with greater embeddedness, false if we want edges with smaller embeddedness (more weakness)
      */
-    public AbstractHeuristicNeighborOverlapReranker(double lambda, int cutOff, boolean norm, boolean rank, Graph<U> graph, int mode, boolean promote)
+    public AbstractHeuristicNeighborOverlapReranker(double lambda, int cutOff, Supplier<Normalizer<U>> norm, Graph<U> graph, int mode, boolean promote)
     {
-        super(lambda, cutOff, norm, rank, graph);
+        super(lambda, cutOff, norm, graph);
         this.mode = mode;
         this.promote = promote;
     }

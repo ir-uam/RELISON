@@ -21,9 +21,12 @@ import java.util.stream.Collectors;
 
 /**
  * Recommender algorithm based in a modified Personalized PageRank.
+ *
+ * @param <U> type of the users.
+ *
  * @author Sofía Marina Pepa
- * @author Javier Sanz-Cruzado Puig
- * @param <U> type of the users
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class PurePersonalizedPageRank<U> extends UserFastRankingRecommender<U>
 {
@@ -54,10 +57,10 @@ public class PurePersonalizedPageRank<U> extends UserFastRankingRecommender<U>
 
     /**
      * Constructor
-     * @param graph the original graph.
-     * @param lambda the teleport rate.
-     * @param simple indicates if the target node can only be accessed via teleport or not.
-     * @param S2U Indicates if teleports always go to the origin node.
+     * @param graph     the original graph.
+     * @param lambda    the teleport rate.
+     * @param simple    indicates if the target node can only be accessed via teleport or not.
+     * @param S2U       Indicates if teleports always go to the origin node.
      */
     public PurePersonalizedPageRank(FastGraph<U> graph, double lambda, boolean simple, boolean S2U) {
         super(graph);
@@ -83,7 +86,7 @@ public class PurePersonalizedPageRank<U> extends UserFastRankingRecommender<U>
     
     /**
      * Calculates the PageRank value
-     * @param uId Root node.
+     * @param uId root node.
      * @return The PageRank value for all the nodes.
      */
     protected Map<U, Double> calculatePagerank(U uId) {
@@ -193,8 +196,4 @@ public class PurePersonalizedPageRank<U> extends UserFastRankingRecommender<U>
 
         return pagerank;
     }
-
-
-
-   
 }

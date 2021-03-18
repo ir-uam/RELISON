@@ -9,17 +9,25 @@
 package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap;
 
 import es.uam.eps.ir.ranksys.core.Recommendation;
-import es.uam.eps.ir.ranksys.core.util.Stats;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import it.unimi.dsi.fastutil.ints.IntSortedSet;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.*;
+import java.util.function.Supplier;
 
 /**
- * Generalization of the local rerankers for processing several of them in a row.
- * @author Javier Sanz-Cruzado Puig.
+ * Abstract implementation of the greedy swap strategy that allows to optimize
+ * at the same time the accuracy of the system (given by the original ranking) and the
+ * global property we want to optimize.
+ *
+ * We keep for that a trade-off between the original ranking and the new one.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the items.
  */
@@ -28,19 +36,11 @@ public abstract class SwapLambdaReranker<U,I> extends SwapGreedyReranker<U,I>
     /**
      * Statistics for the original scores.
      */
-    protected Stats relStats;
+    protected Normalizer<I> relStats;
     /**
      * Statistics for the novelty scores.
      */
-    protected Stats novStats;
-    /**
-     * Relevance ranking
-     */
-    protected Map<I,Integer> relRanking;
-    /**
-     * Novelty ranking
-     */
-    protected Map<I,Integer> novRanking;
+    protected Normalizer<I> novStats;
     /**
      * Novelty of the items.
      */
@@ -50,83 +50,42 @@ public abstract class SwapLambdaReranker<U,I> extends SwapGreedyReranker<U,I>
      */
     private final double lambda;
     /**
-     * Indicates if both original and novelty scores have to be normalized.
+     * The normalization algorithm to apply.
      */
-    private final boolean norm;
-    /**
-     * Indicates if the normalization is by ranking (true) or by score (false)
-     */
-    private final boolean rank;
-    
+    private final Supplier<Normalizer<I>> norm;
+
     /**
      * Constructor.
-     * @param cutOff Maximum length of the recommendation ranking.
-     * @param lambda Trade-off between original and novelty scores.
-     * @param norm true if scores have to be normalized, false if not.
-     * @param rank Indicates if the normalization is by ranking (true) or by score (false)
+     * @param cutOff    maximum length of the recommendation ranking.
+     * @param lambda    trade-off between original and novelty scores.
+     * @param norm      the normalization scheme to apply.
      */
-    public SwapLambdaReranker(double lambda, int cutOff, boolean norm, boolean rank)
+    public SwapLambdaReranker(double lambda, int cutOff, Supplier<Normalizer<I>> norm)
     {
         super(cutOff);
         this.lambda = lambda;
         this.norm = norm;
-        this.rank = rank;
     }
 
     @Override
     protected int selectItem(U u, IntSortedSet remainingI, Tuple2od<I> oldValue, List<Tuple2od<I>> list)
     {
         novMap = new Object2DoubleOpenHashMap<>();
-        relStats = new Stats();
-        novStats = new Stats();
-        relRanking = new HashMap<>();
-        novRanking = new HashMap<>();
-        
-        Comparator<Tuple2od<I>> comp = (Tuple2od<I> t, Tuple2od<I> t1) ->
-        {
-            double val = Double.compare(t1.v2, t.v2);
-                        
-            if(val == 0.0)
-            {
-                val = ((Comparable<I>)t1.v1).compareTo(t.v1);
-            }
-
-            return Double.compare(val, 0.0);
-        };
-        
-        TreeSet<Tuple2od<I>> auxRelRank = new TreeSet<>(comp);
-        TreeSet<Tuple2od<I>> auxNovRank = new TreeSet<>(comp);
-        remainingI.stream().mapToInt(i->i).forEach(i ->
+        relStats = norm.get();
+        novStats = norm.get();
+                
+        remainingI.intStream().forEach(i ->
         {
             Tuple2od<I> itemValue = list.get(i);
             double nov = this.nov(u, itemValue, oldValue);
             novMap.put(itemValue.v1, nov);
-            relStats.accept(itemValue.v2);
-            novStats.accept(nov);
-            auxRelRank.add(new Tuple2od<>(itemValue.v1, itemValue.v2));
-            auxNovRank.add(new Tuple2od<>(itemValue.v1, nov));
-            
+            relStats.add(itemValue.v1, itemValue.v2);
+            novStats.add(itemValue.v1, nov);
         });
         
-        relStats.accept(oldValue.v2);
-        novStats.accept(this.globalvalue);
-        auxRelRank.add(new Tuple2od<>(oldValue.v1, oldValue.v2));
-        auxNovRank.add(new Tuple2od<>(oldValue.v1, this.globalvalue));
- 
-        int size = auxRelRank.size();
-        int i = 0;
-        while(!auxRelRank.isEmpty() && !auxNovRank.isEmpty())
-        {
-            Tuple2od<I> rel = auxRelRank.pollFirst();
-            assert rel != null;
-            relRanking.put(rel.v1, i);
+        relStats.add(oldValue.v1, oldValue.v2);
+        novStats.add(oldValue.v1, this.globalvalue);
 
-            Tuple2od<I> nov = auxNovRank.pollFirst();
-            assert nov != null;
-            novRanking.put(nov.v1, i);
-
-            ++i;
-        }
         return super.selectItem(u, remainingI, oldValue, list);
     }
     
@@ -142,68 +101,21 @@ public abstract class SwapLambdaReranker<U,I> extends SwapGreedyReranker<U,I>
     @Override
     protected double value(Tuple2od<I> iv)
     {
-        if(rank)
-        {
-            return (1-lambda) * norm(iv.v1, relRanking) + lambda * norm(iv.v1, novRanking);
-        }
-        else
-        {
-            return (1 - lambda) * norm(iv.v2, relStats) + lambda * norm(novMap.getDouble(iv.v1), novStats);
-        }
+        return (1.0-lambda) * relStats.norm(iv.v1, iv.v2) + lambda*novStats.norm(iv.v1, novMap.getDouble(iv.v1));
     }
 
     @Override
     protected double valuetop(Tuple2od<I> iv)
     {
-        if(rank)
-        {
-            return (1-lambda) * norm(iv.v1, relRanking) + lambda * norm(iv.v1, novRanking);
-        }
-        else
-        {
-            return (1 - lambda) * norm(iv.v2, relStats) + lambda * norm(this.globalvalue, novStats);
-        }
-        
+        return (1.0-lambda) * relStats.norm(iv.v1, iv.v2) + lambda * novStats.norm(iv.v1, this.globalvalue);
     }
 
     /**
      * Computes the novelty score of an edge.
-     * @param u the user
-     * @param newValue the value of the original candidate item.
-     * @param oldValue the value of the new candidate item.
+     * @param u         the user
+     * @param newValue  the value of the new candidate item.
+     * @param oldValue  the value of the original candidate item.
      * @return the novelty value
      */
     protected abstract double nov(U u, Tuple2od<I> newValue, Tuple2od<I> oldValue);
-
-    /**
-     * Normalizes the scores using the min-max score
-     * @param score the score.
-     * @param stats the statistics.
-     * @return the normalized value.
-     */
-    private double norm(double score, Stats stats) 
-    {
-        if(norm)
-        {
-            return (score - stats.getMin())/(stats.getMax() - stats.getMin());
-        }
-        return score;
-    }
-    
-    /**
-     * Normalizes the scores using the rank-sim score
-     * @param i element to rank
-     * @param stats the map containing the ranking positions
-     * @return the normalized value
-     */
-    private double norm(I i, Map<I, Integer> stats)
-    {
-        double pos = stats.get(i);
-        double size = stats.size();
-        return 1.0 - pos/size;
-    }
-
-    
-    
-    
 }

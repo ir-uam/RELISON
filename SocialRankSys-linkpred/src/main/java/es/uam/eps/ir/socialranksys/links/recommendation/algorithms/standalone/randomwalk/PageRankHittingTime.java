@@ -27,6 +27,7 @@ import org.jblas.DoubleMatrix;
 /**
  * Implementation of the Hitting time (using the not-personalized
  * PageRank transition matrix)
+ *
  * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
@@ -46,7 +47,8 @@ public class PageRankHittingTime<U> extends AbstractHittingTime<U>
     /**
      * Constructor.
      *
-     * @param graph A fast graph representing the social network.
+     * @param graph a fast graph representing the social network.
+     * @param r     teleport probability.
      */
     public PageRankHittingTime(FastGraph<U> graph, double r)
     {
@@ -58,7 +60,9 @@ public class PageRankHittingTime<U> extends AbstractHittingTime<U>
     /**
      * Constructor.
      *
-     * @param graph A fast graph representing the social network.
+     * @param graph     a fast graph representing the social network.
+     * @param library   the matrix library to use.
+     * @param r         teleport probability.
      */
     public PageRankHittingTime(FastGraph<U> graph, MatrixLibrary library, double r)
     {

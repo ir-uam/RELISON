@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autï¿½noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -11,28 +11,31 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.local.
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import org.ranksys.core.util.tuples.Tuple2od;
 
-/**
- * Global local reranker for increasing the number of weak ties in the graph, thus
- * reducing the modularity.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> type of the users
- */
-public class StrongTiesReranker<U> extends CommunityReranker<U>
-{
+import java.util.function.Supplier;
 
+/**
+ * Reranker that promotes the number of links inside communities.
+ *
+ * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ */
+public class StrongTiesReranker<U> extends CompleteCommunityReranker<U>
+{
     /**
      * Constructor.
-     * @param lambda Establishes the trade-off between the value of the Gini Index and the original score
-     * @param cutoff The number of recommended items for each user.
-     * @param norm true if the score and the Gini Index value have to be normalized.
-     * @param graph The user graph.
-     * @param communities A relation between communities and users in the graph.
-     * @param rank Indicates if the normalization is by ranking (true) or by score (false)
+     * @param lambda        trade-off between the recommendation score and the novelty/diversity value.
+     * @param cutoff        number of elements to take.
+     * @param norm          the normalization strategy.
+     * @param graph         the original graph.
+     * @param communities   the relation between users and communities.
      */
-    public StrongTiesReranker(double lambda, int cutoff, boolean norm, Graph<U> graph, Communities<U> communities, boolean rank) {
-        super(lambda, cutoff, norm, rank, graph, communities);
+    public StrongTiesReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, Communities<U> communities, boolean rank) {
+        super(lambda, cutoff, norm, graph, communities, false);
     }
 
     @Override
@@ -42,11 +45,10 @@ public class StrongTiesReranker<U> extends CommunityReranker<U>
     }
 
     @Override
-    protected void update(U user, Tuple2od<U> bestItemValue)
+    protected void innerUpdate(U user, Tuple2od<U> bestItemValue)
     {
-        
-    }
 
+    }
     @Override
     protected void update(Recommendation<U, U> reranked)
     {

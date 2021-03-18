@@ -19,12 +19,22 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Reranker for optimizing a certain global parameter of the recommendations (e.g. Gini).
- * This rerankers start from a graph containing all the recommended edges. Then, edges are
- * swapped with some of the not recommended edges, in order to improve the global parameter.
- * @author Javier Sanz-Cruzado Puig.
- * @param <U> Type of the users.
- * @param <I> Type of the items.
+ * Abstract implementation for a family of reranking strategies for optimizing a global
+ * parameter of the recommendations (e.g. Gini).
+ *
+ * These reranking strategies start from a system which has a certain value of the property
+ * to optimize. Then, the rerankers consider an initial scenario where all the user-item pairs
+ * among the top-k recommended items for each user are added to the system.
+ *
+ * Then, we run over the top-k recommended items. For each of them, we check whether it is better
+ * to keep this item in the ranking, or choose one of the remaining (the not recommended ones) instead.
+ * If we decide that it is better to change them, we swap them, and update the global property accordingly.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the items.
  */
 public abstract class SwapReranker<U,I> implements GlobalReranker<U,I>
 {
@@ -47,7 +57,7 @@ public abstract class SwapReranker<U,I> implements GlobalReranker<U,I>
     
     /**
      * Constructor.
-     * @param seed Seed of the reranking.
+     * @param seed random seed for establishing the order in which we run over the users.
      */
     public SwapReranker(long seed)
     {
@@ -78,14 +88,14 @@ public abstract class SwapReranker<U,I> implements GlobalReranker<U,I>
 
     /**
      * Updates the reranking algorithm values, using a certain recommendation.
-     * @param reranked The recommendation.
+     * @param reranked the recommendation.
      */
     protected abstract void update(Recommendation<U, I> reranked);
 
     /**
      * Reranks the recommendation for a user.
-     * @param rec the original recommendation.
-     * @param maxLength maximum length of the reranking.
+     * @param rec       the original recommendation.
+     * @param maxLength maximum length of the definitive ranking.
      * @return the new recommendation.
      */
     protected abstract Recommendation<U, I> rerankRecommendation(Recommendation<U, I> rec, int maxLength);

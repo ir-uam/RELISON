@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -22,8 +22,10 @@ import java.util.Map;
 /**
  * Content-based recommendation algorithm, based on a TF-IDF scheme.
  *
- * @author Javier Sanz-Cruzado Puig
  * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class TwittomenderRecommender<U> extends UserFastRankingRecommender<U>
 {

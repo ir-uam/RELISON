@@ -25,6 +25,8 @@ import static java.util.stream.Collectors.toList;
 /**
  * Abstract (fast) recommender. It implements the free and candidate-based recommendation methods as variants of the filter recommendation.
  *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  * @author Saúl Vargas (saul.vargas@uam.es)
  *
  * @param <U> type of the users
@@ -32,8 +34,6 @@ import static java.util.stream.Collectors.toList;
  */
 public abstract class AbstractFastUpdateableRecommender<U, I> extends AbstractRecommender<U, I> implements FastUpdateableRecommender<U, I>
 {
-
-
     /**
      * Fast preference data.
      */

@@ -15,15 +15,18 @@ import org.jooq.lambda.tuple.Tuple3;
 import java.util.stream.Stream;
 
 /**
- * Abstract class for user recommendation in social networks.
- * @author Javier Sanz-Cruzado Puig.
- * @param <U> Type of the users
+ * Abstract class for user recommendation in social networks. The recommendation algorithm can be updated over time.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users
  */
 public abstract class UserFastRankingUpdateableRecommender<U> extends UserFastRankingRecommender<U> implements UpdateableRecommender<U,U>
 {
     /**
      * Constructor.
-     * @param graph A fast graph representing the social network.
+     * @param graph a fast graph representing the social network.
      */
     public UserFastRankingUpdateableRecommender(FastGraph<U> graph)
     {

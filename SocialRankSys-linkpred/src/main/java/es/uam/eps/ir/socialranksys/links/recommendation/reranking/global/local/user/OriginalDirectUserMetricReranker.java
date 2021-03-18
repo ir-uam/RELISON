@@ -10,17 +10,22 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.local.
 
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
- * Reranks a graph according to an average vertex graph metric which we want to maximize.
- * The value of the metric (in the original graph) is taken as the novelty score.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Reranker that optimizes the average value of vertex metric.
+ * The value of the metric in the original graph is taken as the novelty score.
+ *
+ * @param <U> type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class OriginalDirectUserMetricReranker<U> extends UserMetricReranker<U> 
 {
@@ -28,26 +33,25 @@ public class OriginalDirectUserMetricReranker<U> extends UserMetricReranker<U>
      * Metric values for each node in the graph
      */
     private final Map<U,Double> values;
-    
+
     /**
      * Constructor.
-     * @param lambda Param that establishes a balance between the score and the 
-     * novelty/diversity value.
-     * @param cutoff Number of elements to take.
-     * @param norm Indicates if scores have to be normalized.
-     * @param graph The graph.
-     * @param graphMetric The graph metric to optimize.
-     * @param rank Indicates if the normalization is by ranking (true) or by score (false)
+     * @param lambda    trade-off between the original and novelty scores
+     * @param cutoff    maximum length of the definitive ranking.
+     * @param norm      the normalization strategy.
+     * @param graph     the original graph.
+     * @param metric    the vertex metric to optimize.
      */
-    public OriginalDirectUserMetricReranker(double lambda, int cutoff, boolean norm, boolean rank, Graph<U> graph, VertexMetric<U> graphMetric)
+    public OriginalDirectUserMetricReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, VertexMetric<U> metric)
     {
-        super(lambda, cutoff, norm, rank, graph, graphMetric);
+        super(lambda, cutoff, norm, graph, metric);
         values = new HashMap<>();
     }
 
 
     @Override
-    protected double nov(U u, Tuple2od<U> iv) {
+    protected double nov(U u, Tuple2od<U> iv)
+    {
         U item = iv.v1;
         if(values.containsKey(item))
             return values.get(item);
@@ -57,11 +61,19 @@ public class OriginalDirectUserMetricReranker<U> extends UserMetricReranker<U>
     }
 
     @Override
-    protected void update(U user, Tuple2od<U> bestItemValue) {
+    protected void innerUpdate(U user, Tuple2od<U> bestItemValue)
+    {
     }
 
     @Override
-    protected void update(Recommendation<U, U> reranked) {
+    protected void update(U user, Tuple2od<U> bestItemValue)
+    {
+
+    }
+
+    @Override
+    protected void update(Recommendation<U, U> reranked)
+    {
     }
     
 }

@@ -15,10 +15,12 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
- * Recommender that uses the HPI coefficient of the neighbours.
- * 
- * @author Javier Sanz-Cruzado Puig
+ * Recommender that uses the hub promoted index of the neighbours.
+ *
  * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class HubPromotedIndex<U> extends UserFastRankingRecommender<U>
 {
@@ -42,8 +44,8 @@ public class HubPromotedIndex<U> extends UserFastRankingRecommender<U>
     /**
      * Constructor.
      * @param graph the graph.
-     * @param uSel the neighborhood selection for the target user.
-     * @param vSel the neighborhood selection for the candidate user.
+     * @param uSel  the neighborhood selection for the target user.
+     * @param vSel  the neighborhood selection for the candidate user.
      */
     public HubPromotedIndex(FastGraph<U> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {

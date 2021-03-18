@@ -8,26 +8,23 @@
  */
 package es.uam.eps.ir.socialranksys.links.recommendation.metrics.novdiv;
 
-import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.ranksys.novelty.longtail.PCItemNovelty;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Global version of EILD.
- * @author Javier Sanz-Cruzado Puig
+ * Global version of the long tail novelty.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the items.
  */
 public class LTN<U,I> extends ItemNoveltyMetric<U,I>
 {
-    private List<Recommendation<U,I>> list = new ArrayList<>();
-
     /**
      * Constructor.
-     * @param cutoff maximum length of recommendation lists to evaluate
-     * @param distModel item distance model
+     * @param cutoff    maximum length of recommendation lists to evaluate.
+     * @param distModel item distance model.
      */
     public LTN(int cutoff, PCItemNovelty<U,I> distModel)
     {

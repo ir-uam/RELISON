@@ -17,10 +17,12 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
- * Recommender system that uses SALSA Algorithm
+ * Recommender system that uses SALSA Algorithm.
  * 
- * @author Javier Sanz-Cruzado Puig
  * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class SALSA<U> extends UserFastRankingRecommender<U>
 {
@@ -51,8 +53,8 @@ public class SALSA<U> extends UserFastRankingRecommender<U>
 
     /**
      * Constructor.
-     * @param graph The graph.
-     * @param mode true if we want to use the Authorities score, false if we want to use the Hubs score.
+     * @param graph the graph.
+     * @param mode  true if we want to use the Authorities score, false if we want to use the Hubs score.
      */
     public SALSA(FastGraph<U> graph, boolean mode) {
         super(graph);

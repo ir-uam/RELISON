@@ -18,6 +18,7 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
  * <p>
  * Sparck Jones, K., Walker, S., Roberton S.E. A Probabilistic Model of Information Retrieval: Development and Comparative Experiments.
  * Information Processing and Management 36. February 2000, pp. 779-808 (part 1), pp. 809-840 (part 2).
+ * </p>
  *
  * @param <U> type of the users
  *
@@ -31,9 +32,9 @@ public class BIR<U> extends BM25<U>
     /**
      * Constructor
      *
-     * @param graph Graph
-     * @param uSel  Selection of the neighbours of the target user
-     * @param vSel  Selection of the neighbours of the candidate user
+     * @param graph graph
+     * @param uSel  selection of the neighbours of the target user
+     * @param vSel  selection of the neighbours of the candidate user
      */
     public BIR(FastGraph<U> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {

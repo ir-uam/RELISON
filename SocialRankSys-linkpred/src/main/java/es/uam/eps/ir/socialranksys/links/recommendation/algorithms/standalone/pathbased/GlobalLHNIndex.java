@@ -30,7 +30,6 @@ import org.jblas.Solve;
  *  <b>Reference:</b> E.A. Leicht, P. Holme, M.E.J. Newman. Vertex similarity in networks. Physical Review E 73(2): 026120 (2006)
  * </p>
  *
- *
  * @param <U> Type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)

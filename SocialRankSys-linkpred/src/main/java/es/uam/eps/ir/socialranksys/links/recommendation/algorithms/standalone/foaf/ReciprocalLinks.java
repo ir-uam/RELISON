@@ -17,8 +17,11 @@ import java.util.Random;
 
 /**
  * Recommends reciprocal links (only useful for directed contact recommendation).
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class ReciprocalLinks<U> extends UserFastRankingRecommender<U>
 {
@@ -37,8 +40,8 @@ public class ReciprocalLinks<U> extends UserFastRankingRecommender<U>
     
     /**
      * Constructor.
-     * @param graph The original graph.
-     * @param randomseed A random seed for the RNG which solves draws
+     * @param graph      the original graph.
+     * @param randomseed a random seed for the RNG which solves draws
      */
     public ReciprocalLinks(FastGraph<U> graph, int randomseed)
     {

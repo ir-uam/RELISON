@@ -29,8 +29,8 @@ public class SocialFastFilters
     /**
      * Prevents recommenders from recommending links which are not in the training set.
      *
-     * @param <U>        Type of the users.
-     * @param trainGraph The original graph.
+     * @param <U>        type of the users.
+     * @param trainGraph the original graph.
      * @param gindex     the graph index.
      *
      * @return the filter.
@@ -43,8 +43,8 @@ public class SocialFastFilters
     /**
      * Prevents recommenders from recommending users to themselves.
      *
-     * @param <U>        Type of the users.
-     * @param trainGraph The original graph.
+     * @param <U>        type of the users.
+     * @param trainGraph the original graph.
      *
      * @return the filter.
      */
@@ -57,8 +57,8 @@ public class SocialFastFilters
     /**
      * Prevents recommenders from recommending reciprocal links.
      *
-     * @param <U>        Type of the users.
-     * @param trainGraph The original graph.
+     * @param <U>        type of the users.
+     * @param trainGraph the original graph.
      * @param gindex     the graph index
      *
      * @return The filter.
@@ -72,7 +72,7 @@ public class SocialFastFilters
      * Prevents recommenders from recommending links outside of the network (mainly used for detecting
      * if the links will remain in the network or not.
      *
-     * @param <U>        Type of the users.
+     * @param <U>        type of the users.
      * @param trainGraph the original graph.
      *
      * @return The filter
@@ -85,7 +85,7 @@ public class SocialFastFilters
     /**
      * Prevents recommenders from recommending links to nodes with indegree equal to zero.
      *
-     * @param <U>        Type of the users.
+     * @param <U>        type of the users.
      * @param trainGraph the original graph.
      *
      * @return The filter

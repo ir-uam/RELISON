@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -8,19 +8,23 @@
  */
 package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.local;
 
-
 import es.uam.eps.ir.ranksys.core.Recommendation;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
  * Random reranker. Reorders recommendations (gradually) at random.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the items.
+ +
+ * @param <U> type of the users.
+ * @param <I> type of the items.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class LocalRandomReranker<U,I> extends LocalLambdaReranker<U,I>
 {
@@ -33,30 +37,28 @@ public class LocalRandomReranker<U,I> extends LocalLambdaReranker<U,I>
      * A map containing the random scores for the different user-item pairs.
      */
     private final Map<U, Map<I, Double>> map;
-    
+
     /**
      * Constructor.
-     * @param cutOff maximum ranking length.
-     * @param lambda trade-off between relevance and random scores.
-     * @param norm true if scores have to be normalized, false if they do not.
-     * @param rank true if scores are combined using rank-sim, false if they use min-max.
+     * @param cutOff    maximum length of the definitive ranking.
+     * @param lambda    trade-off between the original and novelty scores
+     * @param norm      the normalization strategy.
      */
-    public LocalRandomReranker(int cutOff, double lambda, boolean norm, boolean rank) 
+    public LocalRandomReranker(int cutOff, double lambda, Supplier<Normalizer<I>> norm)
     {
-        this(cutOff, lambda, norm, rank, 0);       
+        this(cutOff, lambda, norm, 0);
     }
-        
+
     /**
      * Constructor.
-     * @param cutOff maximum ranking length.
-     * @param lambda trade-off between relevance and random scores.
-     * @param norm true if scores have to be normalized, false if they do not.
-     * @param rank true if scores are combined using rank-sim, false if they use min-max.
-     * @param seed the random seed.
+     * @param cutOff    maximum length of the definitive ranking.
+     * @param lambda    trade-off between the original and novelty scores
+     * @param norm      the normalization strategy.
+     * @param seed      the random seed.
      */
-    public LocalRandomReranker(int cutOff, double lambda, boolean norm, boolean rank, int seed)
+    public LocalRandomReranker(int cutOff, double lambda, Supplier<Normalizer<I>> norm, int seed)
     {
-        super(cutOff, lambda, norm, rank, seed);
+        super(cutOff, lambda, norm, seed);
         this.seed = seed;
         this.map = new HashMap<>();
     }

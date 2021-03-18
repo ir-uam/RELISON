@@ -17,22 +17,25 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import java.util.Map;
 
 /**
- * Recommends an user by his PageRank score.
- * @author Javier Sanz-Cruzado Puig
+ * Recommends an user by her personalized PageRank score.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users
  */
 public class PersonalizedPageRank<U> extends UserFastRankingRecommender<U>
 {
 
     /**
-     * Teleport rate
+     * Teleport rate.
      */
     private final double r;
     
     /**
      * Constructor.
-     * @param graph Graph
-     * @param r Teleport rate.
+     * @param graph     the training graph.
+     * @param r         teleport rate.
      */
     public PersonalizedPageRank(FastGraph<U> graph, double r)
     {
@@ -41,7 +44,8 @@ public class PersonalizedPageRank<U> extends UserFastRankingRecommender<U>
     }
 
     @Override
-    public Int2DoubleMap getScoresMap(int i) {
+    public Int2DoubleMap getScoresMap(int i)
+    {
         U u = this.uIndex.uidx2user(i);
         Int2DoubleMap scores = new Int2DoubleOpenHashMap();
         PageRank<U> pageRank = new PageRank<>(this.r, u);

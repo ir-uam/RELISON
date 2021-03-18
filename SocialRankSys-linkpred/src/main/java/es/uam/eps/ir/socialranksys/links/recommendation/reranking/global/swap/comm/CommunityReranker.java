@@ -14,14 +14,20 @@ import es.uam.eps.ir.socialranksys.community.graph.CompleteCommunityGraphGenerat
 import es.uam.eps.ir.socialranksys.community.graph.CompleteCommunityNoSelfLoopsGraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.multigraph.MultiGraph;
-import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.SwapRerankerGraph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.GraphSwapReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
+
+import java.util.function.Supplier;
 
 /**
- * Reranker that uses community metrics of the user graph.
- * @author Javier Sanz-Cruzado Puig
+ * Swap reranker for modifying it according to the community metrics of the network.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users
  */
-public abstract class CommunityReranker<U> extends SwapRerankerGraph<U>
+public abstract class CommunityReranker<U> extends GraphSwapReranker<U>
 {
     /**
      * Communities.
@@ -32,31 +38,30 @@ public abstract class CommunityReranker<U> extends SwapRerankerGraph<U>
      */
     protected MultiGraph<Integer> communityGraph;
     /**
-     * Indicates if autoloops are allowed or not
+     * Indicates if self-loops are allowed or not
      */
-    protected boolean autoloops;
+    protected boolean selfloops;
     
     /**
      * Constructor
-     * @param lambda A trait-off between the original score and the metric value
-     * @param cutoff The number of items to rerank
-     * @param norm true if the original score and the metric value require optimization
-     * @param rank true if the normalization is by ranking position, false if it is by score
-     * @param graph The user graph
-     * @param communities A relation between communities and users.
-     * @param autoloops true if autoloops are allowed, false if they are not.
+     * @param lambda        a trade-off between the original score and the metric value
+     * @param cutoff        the number of items to rerank
+     * @param norm          the normalization scheme.
+     * @param graph         the original network.
+     * @param communities   relation between communities and users.
+     * @param selfloops     true if selfloops are allowed, false if they are not.
      */
-    public CommunityReranker(double lambda, int cutoff, boolean norm, boolean rank, Graph<U> graph, Communities<U> communities, boolean autoloops)
+    public CommunityReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, Communities<U> communities, boolean selfloops)
     {
-        super(lambda, cutoff, norm, rank, graph);
+        super(lambda, cutoff, norm, graph);
         this.communities = communities;
-        this.autoloops = autoloops;
+        this.selfloops = selfloops;
     }
     
     @Override
     protected void computeGlobalValue()
     {
-        CommunityGraphGenerator<U> cgg = autoloops ? new CompleteCommunityGraphGenerator<>() : new CompleteCommunityNoSelfLoopsGraphGenerator<>();
+        CommunityGraphGenerator<U> cgg = selfloops ? new CompleteCommunityGraphGenerator<>() : new CompleteCommunityNoSelfLoopsGraphGenerator<>();
         this.communityGraph = cgg.generate(this.graph, this.communities);       
     }
 }

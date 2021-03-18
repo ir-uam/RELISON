@@ -16,7 +16,18 @@ package es.uam.eps.ir.socialranksys.links.recommendation.algorithms;
  */
 public enum MatrixLibrary
 {
-    COLT, MTJ, JBLAS;
+    /**
+     * Identifier for the COLT library
+     */
+    COLT,
+    /**
+     * Identifier for the Matrix Toolkit Java library
+     */
+    MTJ,
+    /**
+     * Identifier for the JBLAS library.
+     */
+    JBLAS;
 
     @Override
     public String toString()

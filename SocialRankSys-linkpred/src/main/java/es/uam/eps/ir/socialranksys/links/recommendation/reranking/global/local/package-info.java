@@ -9,5 +9,8 @@
 
 /**
  * Generalizations of local rerankers, which allow processing several users in a row.
+ *
+ * These rerankers, given a set of recommendations, sequentially process them one by one. Those
+ * recommendations which are processed later are aware of the previously processed recommendations.
  */
 package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.local;

@@ -25,12 +25,14 @@ import java.util.stream.Collectors;
  * Recommender. This method computes all the similarities between the authorities,
  * and scores recommended contacts by the maximum similarity over the authorities
  * that the target user is currently following.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class MaximumCosineSimilarity<U> extends BipartiteRecommender<U>
 {
-
     /**
      * Vectorial representation of the authorities
      */
@@ -49,7 +51,7 @@ public class MaximumCosineSimilarity<U> extends BipartiteRecommender<U>
     private final Object2DoubleMap<Pair<U>> similarities;
     
     /**
-     * Constructor
+     * Constructor.
      * @param graph the graph.
      */    
     public MaximumCosineSimilarity(FastGraph<U> graph)
@@ -133,8 +135,8 @@ public class MaximumCosineSimilarity<U> extends BipartiteRecommender<U>
     
     /**
      * Computes the vector for an authority
-     * @param auth The identifier of the authority
-     * @param vector The vector
+     * @param auth      The identifier of the authority
+     * @param vector    The vector
      * @return The norm of the vector (L2 norm)
      */
     private double computeVector(long auth, DoubleMatrix1D vector)

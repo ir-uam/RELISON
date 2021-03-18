@@ -27,12 +27,14 @@ import java.util.Optional;
  * Recommender. This method computes all the similarities between the authorities,
  * and scores recommended contacts by the average similarity over the authorities
  * that the target user is currently following.
- * @author Javier Sanz-Cruzado Puig
+ *
  * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class AverageCosineSimilarity<U> extends BipartiteRecommender<U>
 {
-
     /**
      * Vectorial representation of the authorities
      */
@@ -134,8 +136,8 @@ public class AverageCosineSimilarity<U> extends BipartiteRecommender<U>
     
     /**
      * Computes the vector for an authority
-     * @param auth The identifier of the authority
-     * @param vector The vector
+     * @param auth      The identifier of the authority
+     * @param vector    The vector
      * @return The norm of the vector (L2 norm)
      */
     private double computeVector(long auth, DoubleMatrix1D vector)

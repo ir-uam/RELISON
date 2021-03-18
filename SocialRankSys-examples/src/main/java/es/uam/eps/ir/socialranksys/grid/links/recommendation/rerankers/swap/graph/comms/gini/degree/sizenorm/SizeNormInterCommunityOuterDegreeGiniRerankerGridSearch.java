@@ -13,7 +13,7 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.rerankers.RerankerGridSearch;
 import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.GlobalReranker;
-import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.comm.gini.degree.sizenormalized.SizeNormalizedInterCommunityOuterDegreeGiniReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.comm.gini.degree.sizenormalized.OuterSizeNormalizedInterCommunityDegreeGiniComplement;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -86,7 +86,7 @@ public class SizeNormInterCommunityOuterDegreeGiniRerankerGridSearch<U> implemen
         grid.getDoubleValues(LAMBDA).forEach(lambda ->
             grid.getOrientationValues(ORIENTATION).forEach(orient ->
                 rerankers.put(OUTERSNICDEGREEGINI + "-" + orient + "-" + lambda, () ->
-                    new SizeNormalizedInterCommunityOuterDegreeGiniReranker<>(lambda, cutoff, norm, rank, graph, comms, orient)
+                    new OuterSizeNormalizedInterCommunityDegreeGiniComplement<>(lambda, cutoff, norm, rank, graph, comms, orient)
                 )
             )
         );

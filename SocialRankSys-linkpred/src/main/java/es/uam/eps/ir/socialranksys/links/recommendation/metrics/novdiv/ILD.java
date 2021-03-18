@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -19,19 +19,31 @@ import java.util.function.ToDoubleFunction;
 
 /**
  * Global version of EILD.
- * @author Javier Sanz-Cruzado Puig
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> Type of the users.
  * @param <I> Type of the items.
  */
 public class ILD<U,I> implements SystemMetric<U,I>
 {
+    /**
+     * A list of recommendations.
+     */
     private List<Recommendation<U,I>> list = new ArrayList<>();
+    /**
+     * The cutoff for each recommendation.
+     */
     private final int cutoff;
+    /**
+     * A model for the distances between items.
+     */
     private final ItemDistanceModel<I> distModel;
 
     /**
      * Constructor.
-     * @param cutoff maximum length of recommendation lists to evaluate
+     * @param cutoff    maximum length of recommendation lists to evaluate
      * @param distModel item distance model
      */
     public ILD(int cutoff, ItemDistanceModel<I> distModel)

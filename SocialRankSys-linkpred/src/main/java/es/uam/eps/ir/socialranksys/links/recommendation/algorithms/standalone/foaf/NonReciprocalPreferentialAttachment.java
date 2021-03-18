@@ -20,12 +20,14 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
  * neighbors, we remove both from the count.
  * When the selected neighbourhood is formed by the incoming nodes, then this method is equal to the Popularity
  * recommender method.
- * 
+ * <p>
  * Newman, M.E.J. Clustering and Preferential Attachment in Growing Networks. Physical Review Letters E, 64(025102), April 2001.
- * 
- * @author Javier Sanz-Cruzado Puig
- * 
+ * </p>
+ *
  * @param <U> Type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class NonReciprocalPreferentialAttachment<U> extends UserFastRankingRecommender<U>
 {

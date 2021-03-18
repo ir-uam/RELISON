@@ -15,10 +15,12 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
- * Recommender that uses sorts users at distance 2 by popularity
- * 
- * @author Javier Sanz-Cruzado Puig
+ * Recommender that uses sorts users at distance 2 by popularity.
+ *
  * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class Dist2Popularity<U> extends UserFastRankingRecommender<U>
 {
@@ -34,11 +36,12 @@ public class Dist2Popularity<U> extends UserFastRankingRecommender<U>
      * Neighborhood selection for the candidate users.
      */
     private final EdgeOrientation vSel;
+
     /**
      * Constructor.
      * @param graph the graph.
-     * @param uSel the neighborhood selection for the target user.
-     * @param vSel the neighborhood selection for the candidate user.
+     * @param uSel  the neighborhood selection for the target user.
+     * @param vSel  the neighborhood selection for the candidate user.
      */
     public Dist2Popularity(FastGraph<U> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {

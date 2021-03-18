@@ -23,6 +23,7 @@ import org.jblas.Solve;
 
 /**
  * Katz algorithm.
+ *
  * @param <U> Type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
@@ -38,7 +39,8 @@ public class Katz<U> extends GlobalMatrixBasedRecommender<U>
     /**
      * Constructor.
      *
-     * @param graph A fast graph representing the social network.
+     * @param graph a fast graph representing the social network.
+     * @param b     the dampening factor.
      */
     public Katz(FastGraph<U> graph, double b)
     {

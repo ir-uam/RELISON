@@ -10,26 +10,31 @@ package es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.swap.e
 
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
+
+import java.util.function.Supplier;
 
 /**
- * Class that tries to maximize the average weakness of the graph, i.e. minimize
- * the average embeddedness of the graph.
- * @author Javier Sanz-Cruzado Puig
+ * Swap reranker for maximizing the average weakness of the graph, i.e. for minimizing the
+ * average embeddedness of the network.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users
  */
 public class WeaknessReranker<U> extends AbstractNeighborOverlapReranker<U>
 {
     /**
      * Constructor
-     * @param cutOff maximum number of edges to consider
-     * @param lambda trade-off between the average embeddedness and the original score
-     * @param norm indicates if the elements have to be normalized
-     * @param rank indicates if the normalization is done by ranking (true) or by score (false)
-     * @param graph the original graph
+     * @param cutOff    maximum number of edges to consider
+     * @param lambda    trade-off between the average embeddedness and the original score
+     * @param norm      normalization strategy.
+     * @param graph     the original graph
      */
-    public WeaknessReranker(double lambda, int cutOff, boolean norm, boolean rank, Graph<U> graph)
+    public WeaknessReranker(double lambda, int cutOff, Supplier<Normalizer<U>> norm, Graph<U> graph)
     {
-        super(lambda, cutOff, norm, rank, graph, false);
+        super(lambda, cutOff, norm, graph, false);
     }
 
 }

@@ -12,6 +12,7 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 
 /**
  * Contact recommendation algorithm that on operations over a global matrix.
+ *
  * @param <U> Type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
@@ -27,8 +28,8 @@ public abstract class GlobalMatrixBasedRecommender<U> extends MatrixBasedRecomme
     /**
      * Constructor.
      *
-     * @param graph A fast graph representing the social network.
-     * @param library The matrix library to use.
+     * @param graph     a fast graph representing the social network.
+     * @param library   the matrix library to use.
      */
     public GlobalMatrixBasedRecommender(FastGraph<U> graph, MatrixLibrary library)
     {
@@ -37,7 +38,7 @@ public abstract class GlobalMatrixBasedRecommender<U> extends MatrixBasedRecomme
 
     /**
      * Constructor.
-     * @param graph A fast graph representing the social network.
+     * @param graph a fast graph representing the social network.
      */
     public GlobalMatrixBasedRecommender(FastGraph<U> graph)
     {
