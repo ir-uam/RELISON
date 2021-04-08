@@ -13,10 +13,13 @@ import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.community.io.TextCommunitiesReader;
 import es.uam.eps.ir.socialranksys.graph.Adapters;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.rerankers.GlobalRerankerFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.rerankers.RerankerGridReader;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.rerankers.RerankerGridSelector;
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.links.recommendation.reranking.global.GlobalReranker;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizer;
+import es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer.Normalizers;
 import org.jooq.lambda.Unchecked;
 import org.ranksys.formats.parsing.Parsers;
 import org.ranksys.formats.rec.RecommendationFormat;
@@ -66,10 +69,10 @@ public class StructuralDiversityReranking
             System.err.println("\tCommunities file: Route to a file containing the communities");
             System.err.println("\tOutput folder: Route in which to store the different rerankers");
             System.err.println("\tGrid: File containing the different rerankers to execute");
-            System.err.println("\tCutoff: Number of recommended users to consider");
+            System.err.println("\tCutoff: Number of recommended users to return");
+            System.err.println("\tMax. length: the number of recommended users to consider.");
             System.err.println("\tDirected: Indicates if the graph is directed");
-            System.err.println("\tNormalize: true if the scores have to be normalized, false if they do not have to");
-            System.err.println("\tRank: indicates if normalization is rank-based (rank-sim) or score-based (min-max)");
+            System.err.println("\tNormalize: the normalization function: ranksim, zscore, minmax or none");
             return;
         }
 
@@ -80,11 +83,11 @@ public class StructuralDiversityReranking
         String outputPath = args[3];
         String gridPath = args[4];
         int cutoff = Integer.parseInt(args[5]);
-        boolean directed = args[6].equalsIgnoreCase("true");
-        boolean weighted = args[7].equalsIgnoreCase("true");
-        boolean norm = args[8].equalsIgnoreCase("true");
-        boolean rank = args[9].equalsIgnoreCase("true");
-        
+        int maxLength = Integer.parseInt(args[6]);
+        boolean directed = args[7].equalsIgnoreCase("true");
+        boolean weighted = args[8].equalsIgnoreCase("true");
+        String normalizer = args[9];
+
         long timea = System.currentTimeMillis();
 
         // Read the training graph.
@@ -102,12 +105,21 @@ public class StructuralDiversityReranking
         // Select the rerankers to apply
         RerankerGridReader gridreader = new RerankerGridReader(gridPath);
         gridreader.readDocument();
-        Map<String, Supplier<GlobalReranker<Long,Long>>> rerankerMap = new HashMap<>();
+        Map<String, GlobalRerankerFunction<Long>> rerankerMap = new HashMap<>();
         gridreader.getRerankers().forEach(reranker -> 
         {
-            RerankerGridSelector<Long> rgs = new RerankerGridSelector<>(reranker, gridreader.getGrid(reranker), cutoff, norm, rank, graph, comms);
-            rerankerMap.putAll(rgs.getRecommenders());
+            RerankerGridSelector<Long> rgs = new RerankerGridSelector<>();
+            rerankerMap.putAll(rgs.getRerankers(reranker, gridreader.getGrid(reranker)));
         });
+
+        // Obtain the normalizer
+        Supplier<Normalizer<Long>> norm = switch(normalizer.toLowerCase())
+        {
+            case "minmax" -> Normalizers.minmax();
+            case "zscore" -> Normalizers.zscore();
+            case "ranksim" -> Normalizers.ranksim();
+            default -> Normalizers.noNorm();
+        };
         
         
         List<String> recFiles = new ArrayList<>();
@@ -151,11 +163,11 @@ public class StructuralDiversityReranking
                     {
                         System.out.println("Running " + name);
                         String recOut = String.format("%s_%s", outputPath + recName, name + ".txt");
-                        GlobalReranker<Long, Long> reranker = rerankerSupplier.get();
+                        GlobalReranker<Long, Long> reranker = rerankerSupplier.apply(cutoff, norm, graph, comms);
                         try (RecommendationFormat.Writer<Long, Long> writer = format.getWriter(recOut))
                         {
                             long startTime = System.nanoTime();
-                            reranker.rerankRecommendations(recommendations.stream(), cutoff)
+                            reranker.rerankRecommendations(recommendations.stream(), maxLength)
                                     .forEach(Unchecked.consumer(writer::write));
                             long difference = System.nanoTime() - startTime;
                             System.out.println(name + ": " + TimeUnit.NANOSECONDS.toSeconds(difference) + "," + (TimeUnit.NANOSECONDS.toMillis(difference) - TimeUnit.NANOSECONDS.toSeconds(difference) * 1000) + " s.");

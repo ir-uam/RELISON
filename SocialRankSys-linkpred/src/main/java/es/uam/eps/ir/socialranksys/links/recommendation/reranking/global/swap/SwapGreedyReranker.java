@@ -75,7 +75,7 @@ public abstract class SwapGreedyReranker<U,I> extends SwapReranker<U,I>
         int permSize = Math.min(length, cutOff);
 
         // Generate the top k and the remaining list recommendation
-        IntStream.range(permSize, list.size()).forEach(remainingI::add);
+        IntStream.range(permSize, length).forEach(remainingI::add);
         IntStream.range(0, permSize).forEach(perm::add);
 
         // We run over the top-k items.

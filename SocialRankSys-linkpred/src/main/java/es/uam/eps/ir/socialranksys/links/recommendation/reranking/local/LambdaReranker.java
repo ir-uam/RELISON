@@ -44,9 +44,9 @@ public abstract class LambdaReranker<U, I> extends GreedyReranker<U, I>
     /**
      * Constructor.
      *
-     * @param lambda trade-off parameter of the linear combination
-     * @param cutoff how many items are re-ranked by the greedy selection.
-     * @param norm supplier for normalizing functions.
+     * @param lambda    trade-off parameter of the linear combination.
+     * @param cutoff    how many items are re-ranked by the greedy selection (length of the definitive ranking).
+     * @param norm      supplier for normalizing functions.
      */
     public LambdaReranker(double lambda, int cutoff, Supplier<Normalizer<I>> norm)
     {
@@ -59,9 +59,9 @@ public abstract class LambdaReranker<U, I> extends GreedyReranker<U, I>
      * Returns the permutation that is applied to the input recommendation
      * to generate the re-ranked recommendation.
      *
-     * @param recommendation input recommendation
-     * @param maxLength maximum length of the permutation
-     * @return permutation that encodes the re-ranking
+     * @param recommendation    input recommendation.
+     * @param maxLength         maximum length of the permutation.
+     * @return permutation that encodes the re-ranking.
      */
     @Override
     public int[] rerankPermutation(Recommendation<U, I> recommendation, int maxLength)

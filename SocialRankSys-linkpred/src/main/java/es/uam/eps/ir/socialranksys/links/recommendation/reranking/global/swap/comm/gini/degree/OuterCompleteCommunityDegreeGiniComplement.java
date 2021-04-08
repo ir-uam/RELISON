@@ -39,7 +39,7 @@ public class OuterCompleteCommunityDegreeGiniComplement<U> extends CompleteCommu
      * @param selfloops     true if selfloops are allowed, false if they are not.
      * @param orientation   the orientation of the community degree to take.
      */
-    protected OuterCompleteCommunityDegreeGiniComplement(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, Communities<U> communities, boolean selfloops, EdgeOrientation orientation)
+    public OuterCompleteCommunityDegreeGiniComplement(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, Communities<U> communities, boolean selfloops, EdgeOrientation orientation)
     {
         super(lambda, cutoff, norm, graph, communities, selfloops, true, orientation);
     }

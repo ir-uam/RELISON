@@ -35,7 +35,7 @@ public class WeakTiesReranker<U> extends CompleteCommunityReranker<U>
      * @param graph         the original graph.
      * @param communities   the relation between users and communities.
      */
-    public WeakTiesReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, Communities<U> communities, boolean rank) {
+    public WeakTiesReranker(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, Communities<U> communities) {
         super(lambda, cutoff, norm, graph, communities, false);
     }
 
