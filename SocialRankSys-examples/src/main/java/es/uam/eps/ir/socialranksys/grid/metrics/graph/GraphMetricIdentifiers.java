@@ -16,6 +16,7 @@ public class GraphMetricIdentifiers
 {
     public static final String ASL = "ASL";
     public static final String ARSL = "ARSL";
+    public static final String RADIUS = "RADIUS";
     public static final String DIAMETER = "Diameter";
     public static final String INFINITEDIST = "Infinite Distances";
     public static final String CLUSTCOEF = "Clustering Coefficient";

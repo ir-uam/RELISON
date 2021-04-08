@@ -286,7 +286,7 @@ public class DegreeGiniReranker<U> extends GraphSwapReranker<U>
         {
             this.globalvalue = newcoefadd(user, updated);
         }
-        else if(this.recs.get(updated.v1).contains(user))
+        else if(this.recs   .get(updated.v1).contains(user))
         {
             this.globalvalue = newcoefdel(user, old);
         }

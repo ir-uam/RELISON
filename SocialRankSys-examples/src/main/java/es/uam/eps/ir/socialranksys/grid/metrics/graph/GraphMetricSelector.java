@@ -34,6 +34,7 @@ public class GraphMetricSelector<U>
             case ASL -> new ASLGridSearch<>();
             case ARSL -> new AverageReciprocalShortestPathLengthGridSearch<>();
             case DIAMETER -> new DiameterGridSearch<>();
+            case RADIUS -> new RadiusGridSearch<>();
             case INFINITEDIST -> new InfiniteDistancePairsGridSearch<>();
             case CLUSTCOEF -> new ClusteringCoefficientGridSearch<>();
             case CLUSTCOEFCOMPL -> new ClusteringCoefficientComplementGridSearch<>();
