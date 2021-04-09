@@ -565,4 +565,10 @@ public abstract class AbstractFastGraph<V> implements FastGraph<V>, Serializable
             return null;
         }
     }
+
+    @Override
+    public Index<V> getAdjacencyMatrixMap()
+    {
+        return this.vertices;
+    }
 }

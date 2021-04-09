@@ -17,7 +17,6 @@ import es.uam.eps.ir.socialranksys.metrics.distance.edge.EdgeBetweenness;
 import es.uam.eps.ir.socialranksys.metrics.distance.graph.ASL;
 import es.uam.eps.ir.socialranksys.metrics.distance.graph.Diameter;
 import es.uam.eps.ir.socialranksys.metrics.distance.modes.ASLMode;
-import es.uam.eps.ir.socialranksys.metrics.distance.modes.ClosenessMode;
 import es.uam.eps.ir.socialranksys.metrics.distance.pair.Geodesics;
 import es.uam.eps.ir.socialranksys.metrics.distance.vertex.Closeness;
 import es.uam.eps.ir.socialranksys.metrics.distance.vertex.Eccentricity;
@@ -477,55 +476,55 @@ public class BetweennessMetricsTest
         // Directed empty graph
         VertexMetric<Integer> betw = new Closeness<>(deBetweennessCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.directedEmpty), 0.0001);
-        betw = new Closeness<>(deBetweennessCalculator, ClosenessMode.COMPONENTS);
+        betw = new Closeness<>(deBetweennessCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.directedEmpty), 0.0001);
 
         // Undirected empty graph
         betw = new Closeness<>(ueBetweennessCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedEmpty), 0.0001);
-        betw = new Closeness<>(ueBetweennessCalculator, ClosenessMode.COMPONENTS);
+        betw = new Closeness<>(ueBetweennessCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedEmpty), 0.0001);
 
         // Undirected complete graph
         betw = new Closeness<>(ucBetweennessCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.undirectedComplete), 0.0001);
-        betw = new Closeness<>(ucBetweennessCalculator, ClosenessMode.COMPONENTS);
+        betw = new Closeness<>(ucBetweennessCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.undirectedComplete), 0.0001);
 
         // Directed complete graph
         betw = new Closeness<>(dcBetweennessCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.directedComplete), 0.0001);
-        betw = new Closeness<>(dcBetweennessCalculator, ClosenessMode.COMPONENTS);
+        betw = new Closeness<>(dcBetweennessCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.directedComplete), 0.0001);
 
         // Directed weakly connected graph
         betw = new Closeness<>(dwcBetweennessCalculator);
         Assert.assertEquals(0.265873, betw.averageValue(this.directedWeaklyConnected), 0.0001);
-        betw = new Closeness<>(dwcBetweennessCalculator, ClosenessMode.COMPONENTS);
+        betw = new Closeness<>(dwcBetweennessCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.directedWeaklyConnected), 0.0001);
 
         // Directed strongly connected graph
         betw = new Closeness<>(dscBetweennessCalculator);
         Assert.assertEquals(0.54126984, betw.averageValue(this.directedStronglyConnected), 0.0001);
-        betw = new Closeness<>(dscBetweennessCalculator, ClosenessMode.COMPONENTS);
+        betw = new Closeness<>(dscBetweennessCalculator);
         Assert.assertEquals(0.43778602, betw.averageValue(this.directedStronglyConnected), 0.0001);
 
         // Directed non connected graph
         betw = new Closeness<>(dncBetweennessCalculator);
         Assert.assertEquals(0.25, betw.averageValue(this.directedNonConnected), 0.0001);
-        betw = new Closeness<>(dncBetweennessCalculator, ClosenessMode.COMPONENTS);
+        betw = new Closeness<>(dncBetweennessCalculator);
         Assert.assertEquals(0.333333, betw.averageValue(this.directedNonConnected), 0.0001);
 
         // Undirected connected graph
         betw = new Closeness<>(uscBetweennessCalculator);
         Assert.assertEquals(0.7555555, betw.averageValue(this.undirectedConnected), 0.0001);
-        betw = new Closeness<>(uscBetweennessCalculator, ClosenessMode.COMPONENTS);
+        betw = new Closeness<>(uscBetweennessCalculator);
         Assert.assertEquals(0.66633598, betw.averageValue(this.undirectedConnected), 0.0001);
 
         // Undirected non connected graph
         betw = new Closeness<>(uncBetweennessCalculator);
         Assert.assertEquals(0.4, betw.averageValue(this.undirectedNonConnected), 0.0001);
-        betw = new Closeness<>(uncBetweennessCalculator, ClosenessMode.COMPONENTS);
+        betw = new Closeness<>(uncBetweennessCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.undirectedNonConnected), 0.0001);
     }
 }

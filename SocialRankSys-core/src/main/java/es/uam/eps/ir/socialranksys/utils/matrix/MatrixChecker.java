@@ -6,7 +6,7 @@
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package es.uam.eps.ir.socialranksys.links.recommendation.algorithms;
+package es.uam.eps.ir.socialranksys.utils.matrix;
 
 import org.jblas.DoubleMatrix;
 import org.jblas.Solve;

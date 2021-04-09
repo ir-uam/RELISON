@@ -13,6 +13,7 @@ import es.uam.eps.ir.socialranksys.graph.Weight;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
+import es.uam.eps.ir.socialranksys.index.Index;
 
 import java.util.stream.Stream;
 
@@ -398,5 +399,11 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     public boolean hasMutualEdges(U u)
     {
         return this.getMutualNodesCount(u) > 0;
+    }
+
+    @Override
+    public Index<U> getAdjacencyMatrixMap()
+    {
+        return this.graph.getAdjacencyMatrixMap();
     }
 }

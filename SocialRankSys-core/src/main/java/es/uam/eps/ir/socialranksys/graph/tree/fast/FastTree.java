@@ -12,6 +12,7 @@ import es.uam.eps.ir.socialranksys.graph.Weight;
 import es.uam.eps.ir.socialranksys.graph.edges.DirectedEdges;
 import es.uam.eps.ir.socialranksys.graph.fast.AbstractFastGraph;
 import es.uam.eps.ir.socialranksys.graph.tree.Tree;
+import es.uam.eps.ir.socialranksys.index.Index;
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 
 import java.util.*;
@@ -363,5 +364,11 @@ public abstract class FastTree<U> extends AbstractFastGraph<U> implements Tree<U
         {
             return this.getEdgeWeight(this.getParent(u), u);
         }
+    }
+
+    @Override
+    public Index<U> getAdjacencyMatrixMap()
+    {
+        return this.vertices;
     }
 }

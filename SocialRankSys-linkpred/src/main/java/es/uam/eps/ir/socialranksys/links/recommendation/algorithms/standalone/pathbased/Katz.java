@@ -37,7 +37,12 @@ public class Katz<U> extends GlobalMatrixBasedRecommender<U>
     private final double b;
 
     /**
-     * Constructor.
+     * Edge orientation to take.
+     */
+    private final EdgeOrientation orient;
+
+    /**
+     * Constructor. Uses, by default, the classical orientation (OUT).
      *
      * @param graph a fast graph representing the social network.
      * @param b     the dampening factor.
@@ -47,6 +52,21 @@ public class Katz<U> extends GlobalMatrixBasedRecommender<U>
         super(graph);
         this.b = b;
         this.matrix = this.getMatrix();
+        this.orient = EdgeOrientation.OUT;
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param graph a fast graph representing the social network.
+     * @param b     the dampening factor.
+     */
+    public Katz(FastGraph<U> graph, double b, EdgeOrientation orient)
+    {
+        super(graph);
+        this.b = b;
+        this.matrix = this.getMatrix();
+        this.orient = orient;
     }
 
     /**
@@ -55,7 +75,7 @@ public class Katz<U> extends GlobalMatrixBasedRecommender<U>
      */
     protected double[][] getJBLASMatrix()
     {
-        double[][] adj = graph.getAdjacencyMatrix(EdgeOrientation.OUT);
+        double[][] adj = graph.getAdjacencyMatrix(orient);
         DoubleMatrix matrix = new DoubleMatrix(adj);
         DoubleMatrix eye = DoubleMatrix.eye(matrix.columns);
         eye = eye.add(matrix.mul(-b));
@@ -69,7 +89,7 @@ public class Katz<U> extends GlobalMatrixBasedRecommender<U>
      */
     protected double[][] getCOLTMatrix()
     {
-        double[][] adj = graph.getAdjacencyMatrix(EdgeOrientation.OUT);
+        double[][] adj = graph.getAdjacencyMatrix(orient);
         DoubleMatrix2D matrix = new SparseDoubleMatrix2D(adj);
         DoubleMatrix2D eye = DoubleFactory2D.sparse.identity(matrix.columns());
         matrix.assign(eye, (x,y) -> -b*x + y);
@@ -87,7 +107,7 @@ public class Katz<U> extends GlobalMatrixBasedRecommender<U>
      */
     protected double[][] getMTJMatrix()
     {
-        double[][] adj = graph.getAdjacencyMatrix(EdgeOrientation.OUT);
+        double[][] adj = graph.getAdjacencyMatrix(orient);
         Matrix aux = new DenseMatrix(adj);
         DenseMatrix lsm = Matrices.identity(this.numUsers());
         lsm.add(-this.b, aux);

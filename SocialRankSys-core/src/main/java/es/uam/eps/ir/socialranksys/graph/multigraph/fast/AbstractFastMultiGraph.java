@@ -653,4 +653,10 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
     {
         return this.edges.updateEdgeWeight(uidx, vidx, weight, idx);
     }
+
+    @Override
+    public Index<U> getAdjacencyMatrixMap()
+    {
+        return this.vertices;
+    }
 }

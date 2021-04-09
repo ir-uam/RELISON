@@ -11,6 +11,9 @@ package es.uam.eps.ir.socialranksys.graph.jung;
 import edu.uci.ics.jung.graph.DirectedSparseGraph;
 import es.uam.eps.ir.socialranksys.graph.DirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
+import es.uam.eps.ir.socialranksys.index.Index;
+import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 
 /**
  * Directed Graph Wrapper for <a href="http://jung.sourceforge.net/">JUNG</a>
@@ -33,7 +36,21 @@ public class DirectedJungGraph<U> extends JungGraph<U> implements DirectedUnweig
     @Override
     public double[][] getAdjacencyMatrix(EdgeOrientation direction)
     {
-        throw new UnsupportedOperationException("Unavailable method");
+        Index<U> index = new FastIndex<>();
+        this.graph.getVertices().stream().sorted().forEach(index::addObject);
+
+        double[][] matrix = new double[graph.getVertexCount()][graph.getVertexCount()];
+        this.graph.getVertices().stream().sorted().forEach(u ->
+        {
+            int uidx = index.object2idx(u);
+            this.getNeighbourhood(u, direction).forEach(v ->
+            {
+                int vidx = index.object2idx(v);
+                matrix[uidx][vidx] = EdgeWeight.getDefaultValue();
+            });
+        });
+
+        return matrix;
     }
 
     @Override

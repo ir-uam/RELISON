@@ -17,7 +17,7 @@ import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import cern.colt.matrix.linalg.Algebra;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
-import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.MatrixLibrary;
+import es.uam.eps.ir.socialranksys.utils.matrix.MatrixLibrary;
 import no.uib.cipr.matrix.DenseMatrix;
 import no.uib.cipr.matrix.DenseVector;
 import no.uib.cipr.matrix.Matrix;

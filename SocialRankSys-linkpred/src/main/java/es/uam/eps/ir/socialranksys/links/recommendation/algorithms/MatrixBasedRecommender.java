@@ -10,6 +10,8 @@ package es.uam.eps.ir.socialranksys.links.recommendation.algorithms;
 
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.links.recommendation.UserFastRankingRecommender;
+import es.uam.eps.ir.socialranksys.utils.matrix.MatrixChecker;
+import es.uam.eps.ir.socialranksys.utils.matrix.MatrixLibrary;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 

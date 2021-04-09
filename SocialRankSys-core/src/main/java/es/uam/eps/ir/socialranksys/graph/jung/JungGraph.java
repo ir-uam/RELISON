@@ -17,6 +17,8 @@ import es.uam.eps.ir.socialranksys.graph.generator.ComplementaryGraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
+import es.uam.eps.ir.socialranksys.index.Index;
+import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -284,5 +286,13 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
     public boolean hasMutualEdges(U u)
     {
         return this.getMutualNodesCount(u) > 0;
+    }
+
+    @Override
+    public Index<U> getAdjacencyMatrixMap()
+    {
+        Index<U> index = new FastIndex<>();
+        this.graph.getVertices().stream().sorted().forEach(index::addObject);
+        return index;
     }
 }

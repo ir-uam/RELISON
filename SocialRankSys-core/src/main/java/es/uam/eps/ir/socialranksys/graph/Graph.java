@@ -12,6 +12,7 @@ package es.uam.eps.ir.socialranksys.graph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeType;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeWeight;
+import es.uam.eps.ir.socialranksys.index.Index;
 
 import java.io.Serializable;
 import java.util.stream.Stream;
@@ -592,6 +593,12 @@ public interface Graph<V> extends Serializable
      * @return the adjacency matrix.
      */
     double[][] getAdjacencyMatrix(EdgeOrientation direction);
+
+    /**
+     * For an adjacency matrix, obtains the mapping between indexes and nodes.
+     * @return the mapping between indexes and nodes.
+     */
+    Index<V> getAdjacencyMatrixMap();
 
     /**
      * Obtains the set of nodes without edges.

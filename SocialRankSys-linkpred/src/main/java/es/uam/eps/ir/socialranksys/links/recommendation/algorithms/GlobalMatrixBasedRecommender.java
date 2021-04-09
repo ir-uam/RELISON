@@ -9,6 +9,7 @@
 package es.uam.eps.ir.socialranksys.links.recommendation.algorithms;
 
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
+import es.uam.eps.ir.socialranksys.utils.matrix.MatrixLibrary;
 
 /**
  * Contact recommendation algorithm that on operations over a global matrix.

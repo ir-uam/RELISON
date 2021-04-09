@@ -49,7 +49,7 @@ public class Closeness<U> implements VertexMetric<U>
      */
     public Closeness()
     {
-        this(new FastDistanceCalculator<>(), ClosenessMode.HARMONICMEAN);
+        this(new FastDistanceCalculator<>(), ClosenessMode.COMPONENTS);
     }
 
     /**
@@ -57,7 +57,7 @@ public class Closeness<U> implements VertexMetric<U>
      *
      * @param mode Computing algorithm to use.
      */
-    public Closeness(ClosenessMode mode)
+    protected Closeness(ClosenessMode mode)
     {
         this(new FastDistanceCalculator<>(), mode);
     }
@@ -70,7 +70,7 @@ public class Closeness<U> implements VertexMetric<U>
      */
     public Closeness(DistanceCalculator<U> dc)
     {
-        this(dc, ClosenessMode.HARMONICMEAN);
+        this(dc, ClosenessMode.COMPONENTS);
     }
 
     /**
@@ -79,7 +79,7 @@ public class Closeness<U> implements VertexMetric<U>
      * @param dc   distance calculator.
      * @param mode computing algorithm.
      */
-    public Closeness(DistanceCalculator<U> dc, ClosenessMode mode)
+    protected Closeness(DistanceCalculator<U> dc, ClosenessMode mode)
     {
         this.dc = dc;
         this.mode = mode;
