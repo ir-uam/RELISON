@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,16 +15,19 @@ import java.util.*;
 
 /**
  * Comparators for ordering the link prediction algorithms.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 public class MLComparators<U>
 {   
     /**
-     * Orders values in descending score ordering, and descending node position (top ranking is the greatest value)
-     * @param <U> Type of the users
-     * @param nodes List of nodes.
-     * @return The comparator.
+     * Sorts values in descending score order (top ranking is the greatest value)
+     * @param <U> type of the users
+     * @param nodes a list of nodes.
+     * @return the comparator.
      */
     public static <U> Comparator<Tuple2od<Pair<U>>> descendingComparator(List<U> nodes)
     {
@@ -47,12 +50,12 @@ public class MLComparators<U>
             return Double.compare(val, 0.0);
         };
     }
-    
+
     /**
-     * Orders values in descending score ordering, and descending node position (top ranking is the greatest value)
-     * @param <U> Type of the users
-     * @param nodes List of nodes.
-     * @return The comparator.
+     * Sorts values in ascending score order (top ranking is the lowest value)
+     * @param <U> type of the users
+     * @param nodes a list of nodes.
+     * @return the comparator.
      */
     public static <U> Comparator<Tuple2od<Pair<U>>> ascendingComparator(List<U> nodes)
     {

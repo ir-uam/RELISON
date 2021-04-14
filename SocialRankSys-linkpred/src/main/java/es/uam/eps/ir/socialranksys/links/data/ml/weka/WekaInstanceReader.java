@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -8,9 +8,9 @@
  */
 package es.uam.eps.ir.socialranksys.links.data.ml.weka;
 
-import es.uam.eps.ir.socialranksys.links.data.ml.attributes.AttrType;
-import es.uam.eps.ir.socialranksys.links.data.ml.attributes.Attribute;
-import es.uam.eps.ir.socialranksys.links.data.ml.attributes.Attributes;
+import es.uam.eps.ir.socialranksys.links.data.ml.features.Feature;
+import es.uam.eps.ir.socialranksys.links.data.ml.features.FeatureType;
+import es.uam.eps.ir.socialranksys.links.data.ml.features.Features;
 import es.uam.eps.ir.socialranksys.links.data.ml.io.PatternReader;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import org.ranksys.formats.parsing.Parser;
@@ -25,9 +25,12 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 /**
- * Reads patterns for Weka.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Reads link prediction instances from Weka.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance>
 {
@@ -35,11 +38,11 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
     /**
      * Attribute information for Weka
      */
-    FastVector attributes;
+    FastVector features;
     /**
      * Types of the attribute (Nominal, Continuous or Numerical, Class...)
      */
-    List<AttrType> types;
+    List<FeatureType> types;
     /**
      * Names of the attributes
      */
@@ -66,7 +69,7 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
      */
     public WekaInstanceReader()
     {
-        attributes = null;
+        features = null;
         types = null;
         classIndex = -1;
         trainSet = null;
@@ -75,14 +78,14 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
     }
     
     @Override
-    public boolean readAttributes(String attributeFile)
+    public boolean readFeatures(String featureFile)
     {
-        this.attributes = new FastVector();
+        this.features = new FastVector();
         this.types = new ArrayList<>();
         this.names = new ArrayList<>();
         List<FastVector> nominalAttrs = new ArrayList<>();
 
-        try(BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(attributeFile))))
+        try(BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(featureFile))))
         {
             String line = br.readLine(); // Header line
             int i = 0;
@@ -90,13 +93,13 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
             {
                 String[] split = line.split("\t");
                 String name = split[0];
-                AttrType type = AttrType.getValue(split[1]);
+                FeatureType type = FeatureType.getValue(split[1]);
                 names.add(name);
                 types.add(type);
                 nominalAttrs.add(new FastVector());
-                if(type.equals(AttrType.CONTINUOUS))
+                if(type.equals(FeatureType.CONTINUOUS))
                 {
-                    this.attributes.addElement(new weka.core.Attribute(name));
+                    this.features.addElement(new weka.core.Attribute(name));
                 }
                 else
                 {
@@ -105,8 +108,8 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
                     {
                         nominalAttrs.get(i).addElement(value);
                     }
-                    this.attributes.addElement(new weka.core.Attribute(name, nominalAttrs.get(i)));
-                    if(type.equals(AttrType.CLASS))
+                    this.features.addElement(new weka.core.Attribute(name, nominalAttrs.get(i)));
+                    if(type.equals(FeatureType.CLASS))
                         this.classIndex = i;
                 }
                 ++i;
@@ -124,12 +127,12 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
     @Override
     public boolean readTrain(String trainFile)
     {
-        if(this.attributes == null || this.types == null || this.classIndex == -1)
+        if(this.features == null || this.types == null || this.classIndex == -1)
         {
             return false;
         }
         
-        this.trainSet = new Instances("train", attributes, 0);
+        this.trainSet = new Instances("train", features, 0);
         this.trainSet.setClassIndex(this.classIndex);
         try(BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(trainFile))))
         {
@@ -140,11 +143,11 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
             while((line = br.readLine()) != null)
             {
                 String[] split = line.split("\t");
-                Instance inst = new Instance(attributes.size());
+                Instance inst = new Instance(features.size());
                 inst.setDataset(trainSet);
                 for(int i = 0; i < split.length; ++i)
                 {
-                    if(types.get(i) == AttrType.CONTINUOUS)
+                    if(types.get(i) == FeatureType.CONTINUOUS)
                         inst.setValue(i, Double.parseDouble(split[i]));
                     else
                         inst.setValue(i, split[i]);
@@ -169,14 +172,14 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
     @Override
     public boolean readTest(String testFile, Parser<U> parser)
     {
-        if(this.attributes == null || this.types == null || this.classIndex == -1)
+        if(this.features == null || this.types == null || this.classIndex == -1)
         {
             return false;
         }
         
         try(BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(testFile))))
         {
-            this.testSet = new Instances("test", attributes, 0);
+            this.testSet = new Instances("test", features, 0);
             testSet.setClassIndex(trainSet.classIndex());
             this.instanceIndexer = new HashMap<>();
             
@@ -191,11 +194,11 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
                 String[] split = line.split("\t");
                 U u = parser.parse(split[0]);
                 U v = parser.parse(split[1]);
-                Instance inst = new Instance(attributes.size());
+                Instance inst = new Instance(features.size());
                 inst.setDataset(testSet);
                 for(int i = 0; i < split.length - 2; ++i)
                 {
-                    if(types.get(i) == AttrType.CONTINUOUS)
+                    if(types.get(i) == FeatureType.CONTINUOUS)
                         inst.setValue(i, Double.parseDouble(split[i+2]));
                     else
                     {
@@ -263,24 +266,24 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
      */
     public FastVector getFVAttributes()
     {
-        return this.attributes;
+        return this.features;
     }
     @Override
-    public Attributes getAttributes()
+    public Features getFeatures()
     {
-        if(this.attributes == null)
+        if(this.features == null)
             return null;
         
-        List<Attribute> attribs = new ArrayList<>();
+        List<Feature> attribs = new ArrayList<>();
         
         for(int i = 0; i < this.names.size(); ++i)
         {
             String name = this.names.get(i);
-            AttrType type = this.types.get(i);
-            Attribute attrib = new Attribute(name,type);
-            if(!type.equals(AttrType.CONTINUOUS))
+            FeatureType type = this.types.get(i);
+            Feature attrib = new Feature(name, type);
+            if(!type.equals(FeatureType.CONTINUOUS))
             {
-                weka.core.Attribute attr = (weka.core.Attribute) this.attributes.elementAt(i);
+                weka.core.Attribute attr = (weka.core.Attribute) this.features.elementAt(i);
                 Enumeration<String> values = (Enumeration<String>) attr.enumerateValues();
                 while(values.hasMoreElements())
                 {
@@ -290,7 +293,7 @@ public class WekaInstanceReader<U> implements PatternReader<U,Instances,Instance
             attribs.add(attrib);
         }
         
-        return new Attributes(attribs, this.classIndex);
+        return new Features(attribs, this.classIndex);
     }
     
     

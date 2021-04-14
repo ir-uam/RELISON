@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -14,36 +14,39 @@ import es.uam.eps.ir.socialranksys.links.data.letor.InstanceSet;
 import java.util.Map;
 
 /**
- * Class that represents a binary classifier.
- * @author Javier Sanz-Cruzado Puig
+ * Methods for defining a supervised machine learning classifier.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public interface Classifier<U> 
 {
     /**
      * Trains the classifier.
-     * @param trainSet The training set.
+     * @param trainSet the training set.
      */
     void train(InstanceSet<U> trainSet);
     
     /**
-     * Computes the scores for an individual pattern (once the training has been done).
-     * @param pattern The individual pattern. 
+     * Computes the scores for an individual instance (once the training has been done).
+     * @param instance the individual instance.
      * @return A score for each class.
      */
-    Map<Integer,Double> computeScores(Instance<U> pattern);
+    Map<Integer,Double> computeScores(Instance<U> instance);
     
     /**
      * Gets the score for an individual pattern in a certain category.
-     * @param category The class.
-     * @param pattern The pattern.
+     * @param category the class.
+     * @param instance the pattern.
      * @return the score.
      */
-    double computeScore(Instance<U> pattern, int category);
+    double computeScore(Instance<U> instance, int category);
+
     /**
-     * Obtains the most probable class for a certain instance.
-     * @param pattern The individual instance.
-     * @return The most probable class.
+     * Obtains the most likely class for a certain instance.
+     * @param instance the individual instance.
+     * @return The most likely class.
      */
-    int classify(Instance<U> pattern);
+    int classify(Instance<U> instance);
     
 }

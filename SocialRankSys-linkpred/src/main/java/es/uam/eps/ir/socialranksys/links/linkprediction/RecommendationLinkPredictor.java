@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -19,26 +19,40 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * Unsupervised link prediction algorithm.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ * Link prediction algorithm based on a contact recommendation algorithm.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 public class RecommendationLinkPredictor<U> extends AbstractLinkPredictor<U>
 {
     /**
-     * The unsupervised method.
+     * The original contact recommendation algorithm.
      */
     private final Recommender<U,U> recommender;
     
     /**
      * Constructor.
-     * @param graph The graph we are going to perform link prediction in.
-     * @param comparator The comparator for ordering the pairs
-     * @param recommender The unsupervised method.
+     * @param graph         the social network graph.
+     * @param comparator    the comparator for sorting the pairs.
+     * @param recommender   the original contact recommendation algorithm.
      */
     public RecommendationLinkPredictor(Graph<U> graph, Comparator<Tuple2od<Pair<U>>> comparator, Recommender<U,U> recommender)
     {
         super(graph, comparator);
+        this.recommender = recommender;
+    }
+
+    /**
+     * Constructor.
+     * @param graph         the social network graph.
+     * @param recommender   the original contact recommendation algorithm.
+     */
+    public RecommendationLinkPredictor(Graph<U> graph, Recommender<U,U> recommender)
+    {
+        super(graph);
         this.recommender = recommender;
     }
 

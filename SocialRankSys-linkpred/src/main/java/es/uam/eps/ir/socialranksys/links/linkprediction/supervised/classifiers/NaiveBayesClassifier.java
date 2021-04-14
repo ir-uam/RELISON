@@ -209,7 +209,7 @@ public class NaiveBayesClassifier<U> implements Classifier<U>
     }
 
     @Override
-    public Map<Integer, Double> computeScores(Instance<U> pattern)
+    public Map<Integer, Double> computeScores(Instance<U> instance)
     {
         if(!this.trained)
             return null;
@@ -219,14 +219,14 @@ public class NaiveBayesClassifier<U> implements Classifier<U>
         Map<Integer, Double> scores = new HashMap<>();
         for (Integer aClass : this.classes)
         {
-            scores.put(aClass, this.computeScore(pattern, aClass));
+            scores.put(aClass, this.computeScore(instance, aClass));
         }
         
         return scores;
     }
 
     @Override
-    public double computeScore(Instance<U> pattern, int category) 
+    public double computeScore(Instance<U> instance, int category)
     {
         if(!this.trained || !this.classes.contains(category))
             return Double.NaN;      
@@ -238,7 +238,7 @@ public class NaiveBayesClassifier<U> implements Classifier<U>
         {
             if(this.types.get(i).equals(FeatureType.NOMINAL))
             {
-                double val = pattern.getValue(i);
+                double val = instance.getValue(i);
                 int idx = ((NominalStats) this.stats.get(i)).indexOfValue(val);
                 
                 int l = this.frequencies.get(i).length;
@@ -255,9 +255,9 @@ public class NaiveBayesClassifier<U> implements Classifier<U>
                 if(var == 0.0)
                     continue;
 
-                double value = pattern.getValue(i);
+                double value = instance.getValue(i);
                 if(this.normalize)
-                    value = (pattern.getValue(i) - stats.get(i).getMean())/stats.get(i).getStandardDeviation();
+                    value = (instance.getValue(i) - stats.get(i).getMean())/stats.get(i).getStandardDeviation();
                 double aux = (value - mean)*(value - mean)/(2*var);
                 double aux1 = Math.exp(-aux);
                 double aux2 = (value - mean)*(value - mean)/(2*var);
@@ -271,11 +271,11 @@ public class NaiveBayesClassifier<U> implements Classifier<U>
     }
 
     @Override
-    public int classify(Instance<U> pattern) {
+    public int classify(Instance<U> instance) {
         if(!this.trained)
             return -1;
         
-        Map<Integer, Double> scores = this.computeScores(pattern);
+        Map<Integer, Double> scores = this.computeScores(instance);
         
         int currentClass = -1;
         double max = Double.NEGATIVE_INFINITY;

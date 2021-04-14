@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -20,11 +20,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Classifier that applies the logistic regression classifier
+ * Classifier that applies a logistic regression (i.e. finds a linear separation between
+ * elements in both positive and negative classes).
  * 
- * Bishop,C.M.Instance Recognition and Machine Learning, Springer, 2006, pp. 205-207
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ * <p><b>Reference:</b> Bishop,C.M.Instance Recognition and Machine Learning, Springer, 2006, pp. 205-207</p>
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 public class LogisticRegressionClassifier<U> implements Classifier<U>
 {
@@ -84,7 +88,12 @@ public class LogisticRegressionClassifier<U> implements Classifier<U>
      * Indicates if the classifier has been trained.
      */
     private boolean trained;
-    
+
+    /**
+     * Constructor.
+     * @param eta       the learning coefficient of the classifier.
+     * @param maxEpochs the maximum number of iterations.
+     */
     public LogisticRegressionClassifier(double eta, int maxEpochs)
     {
         this(eta, maxEpochs, false);
@@ -92,8 +101,8 @@ public class LogisticRegressionClassifier<U> implements Classifier<U>
     
     /**
      * Constructor.
-     * @param eta Learning coefficient of the classifier.
-     * @param maxEpochs Maximum number of iterations.
+     * @param eta       the learning coefficient of the classifier.
+     * @param maxEpochs the maximum number of iterations.
      * @param normalize indicates if the data has to be normalized.
      */
     public LogisticRegressionClassifier(double eta, int maxEpochs, boolean normalize)
@@ -108,7 +117,8 @@ public class LogisticRegressionClassifier<U> implements Classifier<U>
     }
     
     @Override
-    public void train(InstanceSet<U> trainSet) {
+    public void train(InstanceSet<U> trainSet)
+    {
         trained = false;
         FeatureInformation featInfo = trainSet.getFeatInfo();
 
@@ -177,14 +187,14 @@ public class LogisticRegressionClassifier<U> implements Classifier<U>
     }
 
     @Override
-    public Map<Integer, Double> computeScores(Instance<U> pattern) 
+    public Map<Integer, Double> computeScores(Instance<U> instance)
     {
         if(!this.trained)
             return null;
         
         Map<Integer, Double> scores = new HashMap<>();
         
-        double score = this.computeScore(pattern, this.classes.get(0));
+        double score = this.computeScore(instance, this.classes.get(0));
         
         scores.put(this.classes.get(0), score);
         scores.put(this.classes.get(1), 1.0 - score);
@@ -192,7 +202,7 @@ public class LogisticRegressionClassifier<U> implements Classifier<U>
     }
 
     @Override
-    public double computeScore(Instance<U> pattern, int category) 
+    public double computeScore(Instance<U> instance, int category)
     {
         if(!this.classes.contains(category))
             return Double.NaN;
@@ -204,23 +214,24 @@ public class LogisticRegressionClassifier<U> implements Classifier<U>
             {
                 if(this.normalize)
                 {
-                    x.set(j, (pattern.getValue(j) - stats.get(j).getMean())/ stats.get(j).getStandardDeviation());
+                    x.set(j, (instance.getValue(j) - stats.get(j).getMean())/ stats.get(j).getStandardDeviation());
                 }
                 else
                 {
-                    x.set(j, pattern.getValue(j));
+                    x.set(j, instance.getValue(j));
                 }
             }
             x.set(dimension-1, 1.0);
             
             return MathFunctions.sigmoid.applyAsDouble(omega.scalarProd(x));
         }
-        return 1.0 - this.computeScore(pattern, this.classes.get(0));
+        return 1.0 - this.computeScore(instance, this.classes.get(0));
     }
 
     @Override
-    public int classify(Instance<U> pattern) {
-        if(computeScore(pattern, this.classes.get(0)) > 0.5)
+    public int classify(Instance<U> instance)
+    {
+        if(computeScore(instance, this.classes.get(0)) > 0.5)
             return classes.get(0);
         else
             return classes.get(1);

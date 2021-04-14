@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -23,9 +23,12 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * Supervised method for link prediction (WEKA)
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ * A supervised link prediction method, based on Weka classifiers.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 public class SupervisedLinkPredictor<U> extends AbstractLinkPredictor<U>
 {
@@ -51,18 +54,44 @@ public class SupervisedLinkPredictor<U> extends AbstractLinkPredictor<U>
     private final FastVector attributes;
     
     /**
-     * Constructor
-     * @param graph the graph.
-     * @param comparator comparator for ordering the different pairs.
-     * @param classifier a classifier that performs the prediction.
-     * @param trainInstances instances for building the model.
-     * @param testInstances instances for applying the model.
-     * @param relation relation between pairs of users and test instances.
-     * @param attributes the list of attributes.
+     * Constructor.
+     * @param graph             the social network graph.
+     * @param comparator        comparator for ordering the different pairs.
+     * @param classifier        a classifier that performs the prediction.
+     * @param trainInstances    instances for building the model.
+     * @param testInstances     instances for applying the model.
+     * @param relation          relation between pairs of users and test instances.
+     * @param attributes        the list of attributes.
      */
     public SupervisedLinkPredictor(Graph<U> graph, Comparator<Tuple2od<Pair<U>>> comparator, Classifier classifier, Instances trainInstances, Instances testInstances, Map<Pair<U>,Integer> relation, FastVector attributes)
     {
         super(graph, comparator);
+        this.classifier = classifier;
+        this.trainInstances = trainInstances;
+        this.testInstances = testInstances;
+        this.relation = relation;
+        this.attributes = attributes;
+        try
+        {
+            this.classifier.buildClassifier(this.trainInstances);
+        } catch (Exception ex)
+        {
+            ex.printStackTrace();
+        }
+    }
+
+    /**
+     * Constructor.
+     * @param graph             the social network graph.
+     * @param classifier        a classifier that performs the prediction.
+     * @param trainInstances    instances for building the model.
+     * @param testInstances     instances for applying the model.
+     * @param relation          relation between pairs of users and test instances.
+     * @param attributes        the list of attributes.
+     */
+    public SupervisedLinkPredictor(Graph<U> graph, Classifier classifier, Instances trainInstances, Instances testInstances, Map<Pair<U>,Integer> relation, FastVector attributes)
+    {
+        super(graph);
         this.classifier = classifier;
         this.trainInstances = trainInstances;
         this.testInstances = testInstances;

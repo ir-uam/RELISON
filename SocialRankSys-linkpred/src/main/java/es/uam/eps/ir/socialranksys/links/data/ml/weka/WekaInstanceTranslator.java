@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,14 +18,17 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Class for changing between different pattern sets and Weka ones.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ * Class for transforming InstanceSet to WekaInstanceSet.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 public class WekaInstanceTranslator<U>
 {
     /**
-     * Translates a pattern set to a WekaInstanceSet
+     * Translates an InstanceSet to a WekaInstanceSet.
      * @param patternSet the original pattern set.
      * @param name the name of the dataset (ex: train/test).
      * @return the Weka pattern set.
@@ -47,10 +50,11 @@ public class WekaInstanceTranslator<U>
     }
     
     /**
-     * Translates the information about features from the InstanceSet one
-     * to Weka.
+     * Given the feature information in a given InstanceSet, translates it into an object
+     * containing such feature information for its use by Weka.
+     *
      * @param patternSet the original pattern set.
-     * @return the Weka pattern set.
+     * @return the Weka feature information.
      */
     private FastVector translateFeatureInfo(InstanceSet<U> patternSet)
     {
@@ -94,12 +98,13 @@ public class WekaInstanceTranslator<U>
     }
     
     /**
-     * Translates a pattern to a Weka instance.
-     * @param pattern the pattern.
-     * @param wekaInstanceSet the original pattern set.
+     * Translates an individual instance into a Weka one.
+     * @param instance          the original instance.
+     * @param featInfo          the feature information for the original set.
+     * @param wekaInstanceSet   the Weka instance set in which we want to integrate the new instance.
      * @return the Weka instance.
      */
-    private weka.core.Instance translateInstance(Instance<U> pattern, FeatureInformation featInfo, WekaInstanceSet<U> wekaInstanceSet)
+    private weka.core.Instance translateInstance(Instance<U> instance, FeatureInformation featInfo, WekaInstanceSet<U> wekaInstanceSet)
     {
         Instances instances = wekaInstanceSet.getInstances();
         
@@ -109,8 +114,8 @@ public class WekaInstanceTranslator<U>
         weka.core.Instance inst = new weka.core.Instance(numFeats+1);
         inst.setDataset(instances);
         
-        List<Double> values = pattern.getValues();
-        int cat = pattern.getCategory();
+        List<Double> values = instance.getValues();
+        int cat = instance.getCategory();
         
         for(int i = 0; i < numFeats; ++i)
         {

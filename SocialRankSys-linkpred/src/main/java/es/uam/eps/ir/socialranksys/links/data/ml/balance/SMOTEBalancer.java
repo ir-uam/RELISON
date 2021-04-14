@@ -18,25 +18,30 @@ import org.ranksys.core.util.tuples.Tuple2id;
 import java.util.*;
 
 /**
- * Balances a dataset using the Synthetic Minority Over-Sampling Technique (SMOTE)
+ * Balances a dataset using the Synthetic Minority Over-Sampling Technique (SMOTE).
+ * This method creates new instances by joining two different instances from the class.
  * 
- * Chawla, N.V, Bowyer, K.W., Hall, L.O., Kegelmeyer, W.P. SMOTE: Synthetic Minority Over-sampling Technique. 
- * Journal of Artificial Intelligence Research 16 (2002),pp. 321-357.
+ * <p><b>Reference:</b>Chawla, N.V, Bowyer, K.W., Hall, L.O., Kegelmeyer, W.P. SMOTE: Synthetic Minority Over-sampling Technique.
+ * Journal of Artificial Intelligence Research 16 (2002),pp. 321-357.</p>
  * 
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class SMOTEBalancer<U> implements Balancer<U>
 {
-    
     /**
      * Number of neighbours.
      */
     private final int k;
-    
-    private final Generator<U> gen;
+
     /**
-     * Constructor
-     * @param k Number of neighbours.
+     * A user generator.
+     */
+    private final Generator<U> gen;
+
+    /**
+     * Constructor.
+     * @param k number of neighbors of each instance.
      */
     public SMOTEBalancer(int k, Generator<U> gen, U init)
     {
@@ -48,16 +53,16 @@ public class SMOTEBalancer<U> implements Balancer<U>
     @Override
     public InstanceSet<U> balance(InstanceSet<U> original)
     {
-        // Initialize the new pattern set with the original values.
+        // First, we initialize the new pattern set with the original values:
         FeatureInformation featInfo = original.getFeatInfo();
         FeatureInformation newFeatInfo = new FeatureInformation(featInfo.getFeatureDescriptions(), featInfo.getFeatureTypes());
         InstanceSet<U> patternSet = new InstanceSet<>(newFeatInfo, original.getAllInstances());
         
-        // Divide the different patterns according to the classes.
+        // We divide the pattern according to the classes:
         Map<Integer, List<Instance<U>>> classpatterns = new HashMap<>();
         Set<Integer> categories = original.getClasses();
         List<Integer> classes = new ArrayList<>(categories);
-        classes.forEach(clase -> classpatterns.put(clase, new ArrayList<>()));
+        classes.forEach(cat -> classpatterns.put(cat, new ArrayList<>()));
         
         original.getAllInstances().forEach(pat -> classpatterns.get(classes.get(pat.getCategory())).add(pat));
 
@@ -71,15 +76,15 @@ public class SMOTEBalancer<U> implements Balancer<U>
                 max = listsize;
             }
         }
-        
-        
-        int numAttr = original.getFeatInfo().numFeats();
-        List<String> attrNames = new ArrayList<>();
+
+        // Then:
+        int numFeats = original.getFeatInfo().numFeats();
+        List<String> featNames = new ArrayList<>();
         List<FeatureType> types = new ArrayList<>();
         
-        for(int i = 0; i < featInfo.numFeats(); ++i)
+        for(int i = 0; i < numFeats; ++i)
         {
-            attrNames.add(featInfo.getFeatureDescription(i));
+            featNames.add(featInfo.getFeatureDescription(i));
             types.add(featInfo.getFeatureType(i));
         }
           
@@ -111,56 +116,64 @@ public class SMOTEBalancer<U> implements Balancer<U>
     }
     
     /**
-     * Given a pattern and its neighbour, generates a new pattern.
-     * @param numExtra Number of extra examples to compute.
-     * @param p the pattern
-     * @param neighbourhood the neighbourhood of the pattern
-     * @param types types of the attributes.
+     * Given an instance and its neighbours, generates a new list of instances.
+     * @param numExtra          number of extra instances to compute.
+     * @param p                 the instance.
+     * @param neighbourhood     the neighbourhood of the instance
+     * @param types             types of the attributes.
      * @return the number of attributes.
      */
     private List<Instance<U>> populate(int numExtra, Instance<U> p, List<Instance<U>> neighbourhood, List<FeatureType> types)
     {
         Random r = new Random();
-        
-        List<Instance<U>> newpatterns = new ArrayList<>();
+
+        // Initialize the list of new instances.
+        List<Instance<U>> newInstances = new ArrayList<>();
         for(int i = numExtra; i > 0; --i)
         {
+            // We randomly choose a neighbor q
             int selection = r.nextInt(neighbourhood.size());
             Instance<U> q = neighbourhood.get(selection);
-            
+
+            // We generate a list of features.
             List<Double> list = new ArrayList<>();
+
+            // For each feature
             for(int j = 0; j < p.getValues().size(); ++j)
             {
                 double variable;
+                // If it is continuous, we take a random point between the values
+                // of both features.
                 if(types.get(j) == FeatureType.CONTINUOUS)
                 {
                     double dif = q.getValue(j) - p.getValue(j);
                     double gap = r.nextDouble();
                     variable = p.getValue(j) + gap*dif;
                 }
-                else
+                else // If it is nominal, we choose one of the values at random.
                 {
                     variable = (r.nextDouble() > 0.5 ? p.getValue(j) : q.getValue(j));
                 }
                 
                 list.add(variable);
             }
-            
+
+            // We do generate the new instance.
             U u = this.gen.generate();
             Instance<U> pat = new Instance<>(u,u,list,p.getCategory());
-            newpatterns.add(pat);
+            newInstances.add(pat);
         }
         
-        return newpatterns;
+        return newInstances;
     }
     
     /**
-     * Computes the distance between two patterns. It is computed using the euclidean
-     * distance. In case the attribute is nominal, it is considered that two different
+     * Computes the distance between two instances. It is computed using the euclidean
+     * distance. In case the feature is nominal, it is considered that two different
      * values are at distance equal to 1.
-     * @param p1 first pattern
-     * @param p2 second pattern
-     * @param types types of the attributes
+     * @param p1    first instance.
+     * @param p2    second instance.
+     * @param types types of the features.
      * @return the distance.
      */
     private double distance(Instance<U> p1, Instance<U> p2, List<FeatureType> types)
@@ -182,6 +195,14 @@ public class SMOTEBalancer<U> implements Balancer<U>
         return Math.sqrt(distance);
     }
 
+    /**
+     * Generates new instances.
+     * @param numNewInstances   the number of new instances to generate.
+     * @param k                 the number of neighbors of an instance to take.
+     * @param minInstances      the instances from the minority class.
+     * @param types             the types of the different features.
+     * @return a list of new instances.
+     */
     private List<Instance<U>> generateNewInstances(int numNewInstances, int k, List<Instance<U>> minInstances, List<FeatureType> types) 
     {
         Random r = new Random();
@@ -189,9 +210,10 @@ public class SMOTEBalancer<U> implements Balancer<U>
         
         if(numNewInstances <= 0) //If no new set of patterns has to be computed.
             return newpatterns;
-        
+
+        // First, we compute the distances between the instances in the minority class.
         double[][] distances = new double[minInstances.size()][minInstances.size()];
-        
+
         for(int i = 0; i < minInstances.size(); ++i)
         {
             for(int j = 0; j <= i; ++j)
@@ -200,21 +222,24 @@ public class SMOTEBalancer<U> implements Balancer<U>
                 distances[j][i] = distances[i][j];
             }
         }
-    
+
         double percent = (numNewInstances + 0.0) / (minInstances.size() + 0.0);
         int numExtra = Double.valueOf(Math.ceil(percent)).intValue();
 
+        // Then, for each instance in the set:
         for(int i = 0; i < minInstances.size(); ++i)
         {
+            // if percent < 1.0 (i.e. if we have to reduce the number of instances)
             if(percent < 1.0)
             {
+                // we do not use this instance in this case.
                 if(r.nextDouble() >= percent)
                 {
                     continue;
                 }
             }
             
-            // Compute the neighborhood
+            // We compute the neighborhood of the instance (i.e. the set of k closest instances)
             Queue<Tuple2id> queue = new PriorityQueue<>(k, Comparator.comparingDouble((Tuple2id a) -> a.v2));
             
             for(int j = 0; j < minInstances.size(); ++j)
@@ -230,7 +255,8 @@ public class SMOTEBalancer<U> implements Balancer<U>
                 neighbourhood.add(minInstances.get(queue.poll().v1));
                 ++n;
             }
-            
+
+            // Generate the additional instances taking instance i as a basis.
             List<Instance<U>> extra = this.populate(numExtra, minInstances.get(i), neighbourhood, types);
             newpatterns.addAll(extra);
         }

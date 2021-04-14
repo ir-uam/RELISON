@@ -1,26 +1,28 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package es.uam.eps.ir.socialranksys.links.data.ml.attributes;
+package es.uam.eps.ir.socialranksys.links.data.ml.features;
 
 import java.util.List;
 
 /**
- * Set of attributes of a machine learning approach.
- * @author Javier Sanz-Cruzado Puig
- * 
+ * A class for storing the set of attributes which might be used by a machine
+ * learning approach.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class Attributes
+public class Features
 {
     /**
-     * Attribute list.
+     * The list of features.
      */
-    private final List<Attribute> attributes;
+    private final List<Feature> features;
     /**
      * The index of the class attribute in the list.
      */
@@ -31,9 +33,9 @@ public class Attributes
      * @param attrs Attribute list.
      * @param classIdx The index of the class attribute in the list.
      */
-    public Attributes(List<Attribute> attrs, int classIdx)
+    public Features(List<Feature> attrs, int classIdx)
     {
-        this.attributes = attrs;
+        this.features = attrs;
         this.classIdx = classIdx;
     }
     /**
@@ -43,13 +45,13 @@ public class Attributes
      */
     public String getAttributeName(int idx)
     {
-        if(this.attributes == null || this.attributes.isEmpty() || idx < 0 || idx >= attributes.size())
+        if(this.features == null || this.features.isEmpty() || idx < 0 || idx >= features.size())
         {
             return null;
         }
         else
         {
-            return this.attributes.get(idx).getName();
+            return this.features.get(idx).getName();
         }
     }
     
@@ -58,15 +60,15 @@ public class Attributes
      * @param idx index of the attribute.
      * @return the type of the attribute, null if it does not exist.
      */
-    public AttrType getAttributeType(int idx)
+    public FeatureType getAttributeType(int idx)
     {
-        if(this.attributes == null || this.attributes.isEmpty() || idx < 0 || idx >= attributes.size())
+        if(this.features == null || this.features.isEmpty() || idx < 0 || idx >= features.size())
         {
             return null;
         }
         else
         {
-            return this.attributes.get(idx).getType();
+            return this.features.get(idx).getType();
         }
     }
     
@@ -77,13 +79,13 @@ public class Attributes
      */
     public List<String> getAttributeValues(int idx)
     {
-        if(this.attributes == null || this.attributes.isEmpty() || idx < 0 || idx >= attributes.size())
+        if(this.features == null || this.features.isEmpty() || idx < 0 || idx >= features.size())
         {
             return null;
         }
         else
         {
-            return this.attributes.get(idx).getValues();
+            return this.features.get(idx).getValues();
         }
     }
     
@@ -95,13 +97,13 @@ public class Attributes
      */
     public String getAttributeValue(int idx, int attr)
     {
-        if(this.attributes == null || this.attributes.isEmpty() || idx < 0 || idx >= attributes.size())
+        if(this.features == null || this.features.isEmpty() || idx < 0 || idx >= features.size())
         {
             return null;
         }
         else
         {
-            return this.attributes.get(idx).getValue(attr);
+            return this.features.get(idx).getValue(attr);
         }
     }
     
@@ -111,13 +113,13 @@ public class Attributes
      */
     public List<String> getClassValues()
     {
-        if(this.attributes == null || this.attributes.isEmpty() || classIdx < 0 || classIdx >= attributes.size())
+        if(this.features == null || this.features.isEmpty() || classIdx < 0 || classIdx >= features.size())
         {
             return null;
         }
         else
         {
-            return this.attributes.get(classIdx).getValues();
+            return this.features.get(classIdx).getValues();
         }
     }
     
@@ -128,13 +130,13 @@ public class Attributes
      */
     public String getClassValue(int attr)
     {
-        if(this.attributes == null || this.attributes.isEmpty() || classIdx < 0 || classIdx >= attributes.size())
+        if(this.features == null || this.features.isEmpty() || classIdx < 0 || classIdx >= features.size())
         {
             return null;
         }
         else
         {
-            return this.attributes.get(classIdx).getValue(attr);
+            return this.features.get(classIdx).getValue(attr);
         }
     }    
 }

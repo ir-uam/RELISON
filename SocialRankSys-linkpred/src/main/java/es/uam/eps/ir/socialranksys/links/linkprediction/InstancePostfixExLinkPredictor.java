@@ -18,7 +18,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * Predicts the presence or absence of links using some of the patterns of a GraphInstanceSet 
+ * Given
+ *
+ * Predicts the presence or absence of links using some of the patterns of a GraphInstanceSet
  * (a pattern set where the edges which represent the patterns are identified).
  * 
  * It is possible to indicate an operation of some of those patterns using a postfix expression.
@@ -144,40 +146,46 @@ public class InstancePostfixExLinkPredictor<U> extends AbstractLinkPredictor<U>
                 {
                     double v1;
                     double v2;
-                    switch (term) 
+                    switch (term)
                     {
-                        case "+": // sum
-                            if(stack.size() < 2)
+                        // sum
+                        case "+" -> {
+                            if (stack.size() < 2)
                                 throw new UnsupportedOperationException("Invalid regexp: not enough operands");
                             v2 = stack.pop();
                             v1 = stack.pop();
                             stack.push(v1 + v2);
-                            break;
-                        case "-": // substract
-                            if(stack.size() < 2)
+                        }
+                        // substract
+                        case "-" -> {
+                            if (stack.size() < 2)
                                 throw new UnsupportedOperationException("Invalid regexp: not enough operands");
                             v2 = stack.pop();
                             v1 = stack.pop();
                             stack.push(v1 - v2);
-                            break;
-                        case "*": // product
-                            if(stack.size() < 2)
+                        }
+                        // product
+                        case "*" -> {
+                            if (stack.size() < 2)
                                 throw new UnsupportedOperationException("Invalid regexp: not enough operands");
                             v2 = stack.pop();
                             v1 = stack.pop();
                             stack.push(v1 * v2);
-                            break;
-                        case "/": // division
-                            if(stack.size() < 2)
+                        }
+                        // division
+                        case "/" -> {
+                            if (stack.size() < 2)
                                 throw new UnsupportedOperationException("Invalid regexp: not enough operands");
                             v2 = stack.pop();
                             v1 = stack.pop();
                             stack.push(v1 / v2);
-                            break;
-                        default: // store the value of the selected attribute
+                        }
+                        // store the value of the selected attribute
+                        default -> {
                             int attrId = Integer.parseInt(term);
                             v1 = pattern.getValues().get(attrId);
                             stack.push(v1);
+                        }
                     }
                 }
                 

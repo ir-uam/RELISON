@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -7,7 +7,6 @@
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 package es.uam.eps.ir.socialranksys.links.linkprediction;
-
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
@@ -19,14 +18,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Abstract class for defining link prediction algorithms
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ * Abstract definition of a link prediction algorithm.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 public abstract class AbstractLinkPredictor<U> implements LinkPredictor<U>
 {
     /**
-     * The graph we are going to perform link prediction in.
+     * The social network.
      */
     private final Graph<U> graph;
     /**
@@ -36,13 +38,23 @@ public abstract class AbstractLinkPredictor<U> implements LinkPredictor<U>
     
     /**
      * Constructor.
-     * @param graph The graph we are going to perform link prediction in.
-     * @param comparator Comparator for reordering the pairs
+     * @param graph         the social network.
+     * @param comparator    a comparator for reordering the pairs.
      */
     public AbstractLinkPredictor(Graph<U> graph, Comparator<Tuple2od<Pair<U>>> comparator)
     {
         this.graph = graph;
         this.comparator = comparator;
+    }
+
+    /**
+     * Constructor. By default, sorts the pairs in descending score order.
+     * @param graph         the social network.
+     */
+    public AbstractLinkPredictor(Graph<U> graph)
+    {
+        this.graph = graph;
+        this.comparator = MLComparators.descendingComparator(graph.getAllNodes().collect(Collectors.toList()));
     }
 
     @Override
@@ -102,8 +114,4 @@ public abstract class AbstractLinkPredictor<U> implements LinkPredictor<U>
     protected Comparator<Tuple2od<Pair<U>>> getComparator() {
         return comparator;
     }
-    
-    
-    
-    
 }

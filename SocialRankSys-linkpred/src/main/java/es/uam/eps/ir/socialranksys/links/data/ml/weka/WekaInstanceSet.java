@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -19,27 +19,47 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Pattern set for using with Weka.
- * @author Javier Sanz-Cruzado Puig
+ * Instance set to use with Weka classifiers.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class WekaInstanceSet<U>
 {
-    private final FastVector attributes;
+    /**
+     * The information about the different features in the dataset.
+     */
+    private final FastVector features;
+    /**
+     * The set of Weka instances of the dataset.
+     */
     private final Instances values;
+    /**
+     * A map that links the (u,v) link with the instance, indexed by the origin node.
+     */
     private final Map<U, Map<U, Integer>> origInstances;
+    /**
+     * A map that links the (u,v) link with the instance, indexed by the destination node.
+     */
     private final Map<U, Map<U, Integer>> destInstances;
+    /**
+     * The set of user pairs in the instance set.
+     */
     private final List<Pair<U>> users;
+    /**
+     * The total number of instances.
+     */
     private int numInstances;
     
     /**
      * Constructor.
-     * @param attributes the information about the attributes.
+     * @param features the information about the features in the dataset.
      * @param name name of the dataset (f.ex: train/test).
      */
-    public WekaInstanceSet(FastVector attributes, String name)
+    public WekaInstanceSet(FastVector features, String name)
     {
-        this.attributes = attributes;
-        this.values = new Instances(name, attributes, 0);
+        this.features = features;
+        this.values = new Instances(name, features, 0);
         this.origInstances = new HashMap<>();
         this.destInstances = new HashMap<>();
         this.numInstances = 0;
@@ -47,7 +67,7 @@ public class WekaInstanceSet<U>
     }
     
     /**
-     * Add a pattern associated to a given edge.
+     * Adds a pattern associated to a given edge.
      * @param u the origin user.
      * @param v the destination user.
      * @param instance the pattern.
@@ -83,9 +103,9 @@ public class WekaInstanceSet<U>
      * Obtains the vector containing the attributes.
      * @return the attributes.
      */
-    public FastVector getAttributes()
+    public FastVector getFeatures()
     {
-        return this.attributes;
+        return this.features;
     }
     
     /**
