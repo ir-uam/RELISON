@@ -32,7 +32,10 @@ import java.util.List;
 
 /**
  * Class that transforms the output of the JForest package to a recommendation
- * @param <U>
+ * Note: it has to be executed outside.
+ *
+ * @param <U> type of the users.
+ *
  * @see <a href=https://github.com/yasserg/jforests>JForests</a>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)

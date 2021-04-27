@@ -26,28 +26,39 @@ import java.util.function.Supplier;
 import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityIdentifiers.BM25;
 
 /**
- * Grid search for the vector cosine similarity.
- * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
- * @param <U> Type of the users.
+ * Grid search generator for the BM25 similarity.
+ *
+ * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
+ * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.ir.BM25Similarity
  */
 public class BM25SimilarityGridSearch<U> implements SimilarityGridSearch<U>
 {
     /**
-     * Identifier for the selection of neighbors for the target user
+     * Identifier for parameter b
      */
-    private final String USEL = "uSel";
+    private static final String B = "b";
     /**
-     * Identifier for the selection of neighbors for the neighbor user.
+     * Identifier for parameter k
      */
-    private final String VSEL = "vSel";
+    private static final String K = "k";
     /**
-     * Identifier for the selection of neighbors of the common neighbors between both users
+     * Identifier for the orientation of the target user neighborhood
      */
-    private final String WSEL = "dlSel";
-    
-    private final String B = "b";
-    
-    private final String K = "k";
+    private static final String USEL = "uSel";
+    /**
+     * Identifier for the orientation of the neighbor user neighborhood
+     */
+    private static final String VSEL = "vSel";
+    /**
+     * Identifier for the orientation for the document length
+     */
+    private static final String DLSEL = "dlSel";
     
     @Override
     public Map<String, SimilarityFunction<U>> grid(Grid grid)
@@ -56,14 +67,14 @@ public class BM25SimilarityGridSearch<U> implements SimilarityGridSearch<U>
         
         List<EdgeOrientation> uSels = grid.getOrientationValues(USEL);
         List<EdgeOrientation> vSels = grid.getOrientationValues(VSEL);
-        List<EdgeOrientation> dlSels = grid.getOrientationValues(WSEL);
+        List<EdgeOrientation> dlSels = grid.getOrientationValues(DLSEL);
         List<Double> bs = grid.getDoubleValues(B);
         List<Double> ks = grid.getDoubleValues(K);
         if(uSels == null || uSels.isEmpty() || vSels == null || vSels.isEmpty() || dlSels == null || dlSels.isEmpty())
         {
             return sims;
         }
-        
+
         uSels.forEach(uSel ->
             vSels.forEach(vSel ->
                 dlSels.forEach(dlSel ->
@@ -82,7 +93,7 @@ public class BM25SimilarityGridSearch<U> implements SimilarityGridSearch<U>
          
         List<EdgeOrientation> uSels = grid.getOrientationValues(USEL);
         List<EdgeOrientation> vSels = grid.getOrientationValues(VSEL);
-        List<EdgeOrientation> dlSels = grid.getOrientationValues(WSEL);
+        List<EdgeOrientation> dlSels = grid.getOrientationValues(DLSEL);
         List<Double> bs = grid.getDoubleValues(B);
         List<Double> ks = grid.getDoubleValues(K);
         if(uSels == null || uSels.isEmpty() || vSels == null || vSels.isEmpty() || dlSels == null || dlSels.isEmpty())

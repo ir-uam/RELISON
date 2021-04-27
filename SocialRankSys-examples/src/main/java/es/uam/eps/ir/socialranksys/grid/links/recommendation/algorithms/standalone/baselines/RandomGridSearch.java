@@ -27,12 +27,14 @@ import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.A
 /**
  * Grid search generator for Random algorithm.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.basic.Random
  */
 public class RandomGridSearch<U> implements AlgorithmGridSearch<U>
 {

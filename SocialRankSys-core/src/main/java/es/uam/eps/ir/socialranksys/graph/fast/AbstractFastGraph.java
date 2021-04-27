@@ -273,6 +273,17 @@ public abstract class AbstractFastGraph<V> implements FastGraph<V>, Serializable
     }
 
     @Override
+    public Stream<Weight<V, Integer>> getMutualNodesTypes(V node)
+    {
+        if (!this.containsVertex(node))
+        {
+            return this.edges.getMutualTypes(this.vertices.object2idx(node))
+                    .map(weight -> new Weight<>(this.vertices.idx2object(weight.getIdx()), weight.getValue()));
+        }
+        return Stream.empty();
+    }
+
+    @Override
     public int getEdgeType(V nodeA, V nodeB)
     {
         return this.edges.getEdgeType(this.vertices.object2idx(nodeA), this.vertices.object2idx(nodeB));

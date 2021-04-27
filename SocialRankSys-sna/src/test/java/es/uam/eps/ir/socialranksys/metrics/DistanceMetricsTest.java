@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -20,66 +20,96 @@ import es.uam.eps.ir.socialranksys.metrics.distance.modes.ASLMode;
 import es.uam.eps.ir.socialranksys.metrics.distance.pair.Geodesics;
 import es.uam.eps.ir.socialranksys.metrics.distance.vertex.Closeness;
 import es.uam.eps.ir.socialranksys.metrics.distance.vertex.Eccentricity;
+import es.uam.eps.ir.socialranksys.metrics.distance.vertex.HarmonicCentrality;
 import es.uam.eps.ir.socialranksys.metrics.distance.vertex.NodeBetweenness;
 import org.junit.*;
 
 /**
- * Tests for the betweenness metric.
+ * Automatic unit tests for distance-based metrics.
  *
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
-public class BetweennessMetricsTest
+public class DistanceMetricsTest
 {
-
     /**
-     * Directed Strongly Connected Graph
+     * Directed strongly connected graph.
      */
     private final DirectedGraph<Integer> directedStronglyConnected;
     /**
-     * Directed Weakly Connected Graph
+     * Directed weakly connected graph.
      */
     private final DirectedGraph<Integer> directedWeaklyConnected;
     /**
-     * Directed Unconnected Graph (not even weakly)
+     * Directed disconnected graph (not even weakly).
      */
     private final DirectedGraph<Integer> directedNonConnected;
     /**
-     * Undirected Connected Graph
+     * Undirected connected graph.
      */
     private final UndirectedGraph<Integer> undirectedConnected;
     /**
-     * Undirected Unconnected Graph
+     * Undirected disconnected graph.
      */
     private final UndirectedGraph<Integer> undirectedNonConnected;
     /**
-     * Directed complete graph
+     * Directed complete graph.
      */
     private final DirectedGraph<Integer> directedComplete;
     /**
-     * Directed empty graph (only nodes)
+     * Directed empty graph (only nodes).
      */
     private final DirectedGraph<Integer> directedEmpty;
     /**
-     * Undirected complete graph
+     * Undirected complete graph.
      */
     private final UndirectedGraph<Integer> undirectedComplete;
     /**
-     * Undirected empty graph
+     * Undirected empty graph.
      */
     private final UndirectedGraph<Integer> undirectedEmpty;
 
-    CompleteDistanceCalculator<Integer> dscBetweennessCalculator;
-    CompleteDistanceCalculator<Integer> dwcBetweennessCalculator;
-    CompleteDistanceCalculator<Integer> dncBetweennessCalculator;
-    CompleteDistanceCalculator<Integer> uscBetweennessCalculator;
-    CompleteDistanceCalculator<Integer> uncBetweennessCalculator;
-    CompleteDistanceCalculator<Integer> dcBetweennessCalculator;
-    CompleteDistanceCalculator<Integer> ucBetweennessCalculator;
-    CompleteDistanceCalculator<Integer> deBetweennessCalculator;
-    CompleteDistanceCalculator<Integer> ueBetweennessCalculator;
+    /**
+     * Distance calculator for the directed and strongly connected network.
+     */
+    private final CompleteDistanceCalculator<Integer> dscCalculator;
+    /**
+     * Distance calculator for the directed and weakly connected network.
+     */
+    private final CompleteDistanceCalculator<Integer> dwcCalculator;
+    /**
+     * Distance calculator for the directed and disconnected connected network.
+     */
+    private final CompleteDistanceCalculator<Integer> dncCalculator;
+    /**
+     * Distance calculator for the undirected and connected network.
+     */
+    private final CompleteDistanceCalculator<Integer> uscCalculator;
+    /**
+     * Distance calculator for the undirected and disconnected network.
+     */
+    private final CompleteDistanceCalculator<Integer> uncCalculator;
+    /**
+     * Distance calculator for the directed complete network.
+     */
+    private final CompleteDistanceCalculator<Integer> dcCalculator;
+    /**
+     * Distance calculator for the undirected complete network.
+     */
+    private final CompleteDistanceCalculator<Integer> ucCalculator;
+    /**
+     * Distance calculator for the directed and empty network.
+     */
+    private final CompleteDistanceCalculator<Integer> deCalculator;
+    /**
+     * Distance calculator for the undirected and empty network.
+     */
+    private final CompleteDistanceCalculator<Integer> ueCalculator;
 
-
-    public BetweennessMetricsTest()
+    /**
+     * Constructor.
+     */
+    public DistanceMetricsTest()
     {
         // Directed Empty Graph (only nodes)
         this.directedEmpty = new FastDirectedUnweightedGraph<>();
@@ -87,9 +117,9 @@ public class BetweennessMetricsTest
         this.directedEmpty.addNode(2);
         this.directedEmpty.addNode(3);
 
-        deBetweennessCalculator = new CompleteDistanceCalculator<>();
+        deCalculator = new CompleteDistanceCalculator<>();
 
-        deBetweennessCalculator.computeDistances(this.directedEmpty);
+        deCalculator.computeDistances(this.directedEmpty);
 
         // Undirected Empty Graph (only nodes)
         this.undirectedEmpty = new FastUndirectedUnweightedGraph<>();
@@ -97,8 +127,8 @@ public class BetweennessMetricsTest
         this.undirectedEmpty.addNode(2);
         this.undirectedEmpty.addNode(3);
 
-        ueBetweennessCalculator = new CompleteDistanceCalculator<>();
-        ueBetweennessCalculator.computeDistances(this.undirectedEmpty);
+        ueCalculator = new CompleteDistanceCalculator<>();
+        ueCalculator.computeDistances(this.undirectedEmpty);
 
         // Directed Complete Graph
         this.directedComplete = new FastDirectedUnweightedGraph<>();
@@ -119,8 +149,8 @@ public class BetweennessMetricsTest
         this.directedComplete.addEdge(4, 2);
         this.directedComplete.addEdge(4, 3);
 
-        dcBetweennessCalculator = new CompleteDistanceCalculator<>();
-        dcBetweennessCalculator.computeDistances(this.directedComplete);
+        dcCalculator = new CompleteDistanceCalculator<>();
+        dcCalculator.computeDistances(this.directedComplete);
 
         // Undirected Complete Graph
         this.undirectedComplete = new FastUndirectedUnweightedGraph<>();
@@ -135,8 +165,8 @@ public class BetweennessMetricsTest
         this.undirectedComplete.addEdge(2, 4);
         this.undirectedComplete.addEdge(3, 4);
 
-        ucBetweennessCalculator = new CompleteDistanceCalculator<>();
-        ucBetweennessCalculator.computeDistances(this.undirectedComplete);
+        ucCalculator = new CompleteDistanceCalculator<>();
+        ucCalculator.computeDistances(this.undirectedComplete);
 
         // Directed Strongly Connected
         this.directedStronglyConnected = new FastDirectedUnweightedGraph<>();
@@ -159,8 +189,8 @@ public class BetweennessMetricsTest
         this.directedStronglyConnected.addEdge(6, 7);
         this.directedStronglyConnected.addEdge(7, 2);
 
-        dscBetweennessCalculator = new CompleteDistanceCalculator<>();
-        dscBetweennessCalculator.computeDistances(this.directedStronglyConnected);
+        dscCalculator = new CompleteDistanceCalculator<>();
+        dscCalculator.computeDistances(this.directedStronglyConnected);
 
         // Directed Weakly Connected
         this.directedWeaklyConnected = new FastDirectedUnweightedGraph<>();
@@ -180,8 +210,8 @@ public class BetweennessMetricsTest
         this.directedWeaklyConnected.addEdge(5, 6);
         this.directedWeaklyConnected.addEdge(7, 2);
 
-        dwcBetweennessCalculator = new CompleteDistanceCalculator<>();
-        dwcBetweennessCalculator.computeDistances(this.directedWeaklyConnected);
+        dwcCalculator = new CompleteDistanceCalculator<>();
+        dwcCalculator.computeDistances(this.directedWeaklyConnected);
 
         // Directed Non Connected
         this.directedNonConnected = new FastDirectedUnweightedGraph<>();
@@ -198,8 +228,8 @@ public class BetweennessMetricsTest
         this.directedNonConnected.addEdge(5, 6);
         this.directedNonConnected.addEdge(6, 4);
 
-        dncBetweennessCalculator = new CompleteDistanceCalculator<>();
-        dncBetweennessCalculator.computeDistances(this.directedNonConnected);
+        dncCalculator = new CompleteDistanceCalculator<>();
+        dncCalculator.computeDistances(this.directedNonConnected);
 
         // Undirected Connected
         this.undirectedConnected = new FastUndirectedUnweightedGraph<>();
@@ -218,8 +248,8 @@ public class BetweennessMetricsTest
         this.undirectedConnected.addEdge(4, 6);
         this.undirectedConnected.addEdge(5, 6);
 
-        uscBetweennessCalculator = new CompleteDistanceCalculator<>();
-        uscBetweennessCalculator.computeDistances(this.undirectedConnected);
+        uscCalculator = new CompleteDistanceCalculator<>();
+        uscCalculator.computeDistances(this.undirectedConnected);
 
         // Undirected Non Connected
         this.undirectedNonConnected = new FastUndirectedUnweightedGraph<>();
@@ -236,8 +266,8 @@ public class BetweennessMetricsTest
         this.undirectedNonConnected.addEdge(4, 6);
         this.undirectedNonConnected.addEdge(5, 6);
 
-        uncBetweennessCalculator = new CompleteDistanceCalculator<>();
-        uncBetweennessCalculator.computeDistances(this.undirectedNonConnected);
+        uncCalculator = new CompleteDistanceCalculator<>();
+        uncCalculator.computeDistances(this.undirectedNonConnected);
     }
 
     @BeforeClass
@@ -262,269 +292,290 @@ public class BetweennessMetricsTest
     {
     }
 
+    /**
+     * Test the betweenness of the nodes.
+     */
     @Test
     public void nodeBetweenness()
     {
-        VertexMetric<Integer> betw = new NodeBetweenness<>(deBetweennessCalculator);
+        VertexMetric<Integer> betw = new NodeBetweenness<>(deCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.directedEmpty), 0.0001);
 
-        betw = new NodeBetweenness<>(ueBetweennessCalculator);
+        betw = new NodeBetweenness<>(ueCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedEmpty), 0.0001);
 
-        betw = new NodeBetweenness<>(ucBetweennessCalculator);
+        betw = new NodeBetweenness<>(ucCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedComplete), 0.0001);
 
-        betw = new NodeBetweenness<>(dcBetweennessCalculator);
+        betw = new NodeBetweenness<>(dcCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.directedComplete), 0.0001);
 
-        betw = new NodeBetweenness<>(dwcBetweennessCalculator);
+        betw = new NodeBetweenness<>(dwcCalculator);
         Assert.assertEquals(0.04285714, betw.averageValue(this.directedWeaklyConnected), 0.0001);
 
-        betw = new NodeBetweenness<>(dscBetweennessCalculator);
+        betw = new NodeBetweenness<>(dscCalculator);
         Assert.assertEquals(0.2857143, betw.averageValue(this.directedStronglyConnected), 0.0001);
 
-        betw = new NodeBetweenness<>(dncBetweennessCalculator);
+        betw = new NodeBetweenness<>(dncCalculator);
         Assert.assertEquals(0.025, betw.averageValue(this.directedNonConnected), 0.0001);
 
-        betw = new NodeBetweenness<>(uscBetweennessCalculator);
+        betw = new NodeBetweenness<>(uscCalculator);
         Assert.assertEquals(0.2666666667, betw.averageValue(this.undirectedConnected), 0.0001);
 
-        betw = new NodeBetweenness<>(uncBetweennessCalculator);
+        betw = new NodeBetweenness<>(uncCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedNonConnected), 0.0001);
 
     }
 
+    /**
+     * Test the betweenness of the edges.
+     */
     @Test
     public void edgeBetweenness()
     {
-        EdgeMetric<Integer> betw = new EdgeBetweenness<>(deBetweennessCalculator);
+        EdgeMetric<Integer> betw = new EdgeBetweenness<>(deCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.directedEmpty), 0.0001);
 
-        betw = new EdgeBetweenness<>(ueBetweennessCalculator);
+        betw = new EdgeBetweenness<>(ueCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedEmpty), 0.0001);
 
-        betw = new EdgeBetweenness<>(ucBetweennessCalculator);
+        betw = new EdgeBetweenness<>(ucCalculator);
         Assert.assertEquals(1.0 / 6.0, betw.averageValue(this.undirectedComplete), 0.0001);
 
-        betw = new EdgeBetweenness<>(dcBetweennessCalculator);
+        betw = new EdgeBetweenness<>(dcCalculator);
         Assert.assertEquals(1.0 / 12.0, betw.averageValue(this.directedComplete), 0.0001);
 
-        betw = new EdgeBetweenness<>(dwcBetweennessCalculator);
+        betw = new EdgeBetweenness<>(dwcCalculator);
         Assert.assertEquals(3.0 / 42.0, betw.averageValue(this.directedWeaklyConnected), 0.0001);
 
-        betw = new EdgeBetweenness<>(dscBetweennessCalculator);
+        betw = new EdgeBetweenness<>(dscCalculator);
         Assert.assertEquals(9.272727272 / 42.0, betw.averageValue(this.directedStronglyConnected), 0.0001);
 
-        betw = new EdgeBetweenness<>(dncBetweennessCalculator);
+        betw = new EdgeBetweenness<>(dncCalculator);
         Assert.assertEquals(2.0 / 30.0, betw.averageValue(this.directedNonConnected), 0.0001);
 
-        betw = new EdgeBetweenness<>(uscBetweennessCalculator);
+        betw = new EdgeBetweenness<>(uscCalculator);
         Assert.assertEquals(2.875 / 15.0, betw.averageValue(this.undirectedConnected), 0.0001);
 
-        betw = new EdgeBetweenness<>(uncBetweennessCalculator);
+        betw = new EdgeBetweenness<>(uncCalculator);
         Assert.assertEquals(1.0 / 15.0, betw.averageValue(this.undirectedNonConnected), 0.0001);
 
     }
 
+    /**
+     * Test the average shortest path length.
+     */
     @Test
     public void averageShortestPathLength()
     {
-        GraphMetric<Integer> betw = new ASL<>(deBetweennessCalculator);
+        GraphMetric<Integer> betw = new ASL<>(deCalculator);
         Assert.assertEquals(0.0, betw.compute(this.directedEmpty), 0.0001);
-        betw = new ASL<>(deBetweennessCalculator, ASLMode.COMPONENTS);
+        betw = new ASL<>(deCalculator, ASLMode.COMPONENTS);
         Assert.assertEquals(0.0, betw.compute(this.directedEmpty), 0.0001);
 
-        betw = new ASL<>(ueBetweennessCalculator);
+        betw = new ASL<>(ueCalculator);
         Assert.assertEquals(0.0, betw.compute(this.undirectedEmpty), 0.0001);
-        betw = new ASL<>(ueBetweennessCalculator, ASLMode.COMPONENTS);
+        betw = new ASL<>(ueCalculator, ASLMode.COMPONENTS);
         Assert.assertEquals(0.0, betw.compute(this.undirectedEmpty), 0.0001);
 
-        betw = new ASL<>(ucBetweennessCalculator);
+        betw = new ASL<>(ucCalculator);
         Assert.assertEquals(1.0, betw.compute(this.undirectedComplete), 0.0001);
-        betw = new ASL<>(ucBetweennessCalculator, ASLMode.COMPONENTS);
+        betw = new ASL<>(ucCalculator, ASLMode.COMPONENTS);
         Assert.assertEquals(1.0, betw.compute(this.undirectedComplete), 0.0001);
 
-        betw = new ASL<>(dcBetweennessCalculator);
+        betw = new ASL<>(dcCalculator);
         Assert.assertEquals(1.0, betw.compute(this.directedComplete), 0.0001);
-        betw = new ASL<>(dcBetweennessCalculator, ASLMode.COMPONENTS);
+        betw = new ASL<>(dcCalculator, ASLMode.COMPONENTS);
         Assert.assertEquals(1.0, betw.compute(this.directedComplete), 0.0001);
 
-        betw = new ASL<>(dwcBetweennessCalculator);
+        betw = new ASL<>(dwcCalculator);
         Assert.assertEquals(1.6, betw.compute(this.directedWeaklyConnected), 0.0001);
-        betw = new ASL<>(dwcBetweennessCalculator, ASLMode.COMPONENTS);
+        betw = new ASL<>(dwcCalculator, ASLMode.COMPONENTS);
         Assert.assertEquals(0.0, betw.compute(this.directedWeaklyConnected), 0.0001);
 
-        betw = new ASL<>(dscBetweennessCalculator);
+        betw = new ASL<>(dscCalculator);
         Assert.assertEquals(2.428571, betw.compute(this.directedStronglyConnected), 0.0001);
-        betw = new ASL<>(dscBetweennessCalculator, ASLMode.COMPONENTS);
+        betw = new ASL<>(dscCalculator, ASLMode.COMPONENTS);
         Assert.assertEquals(2.428571, betw.compute(this.directedStronglyConnected), 0.0001);
 
-        betw = new ASL<>(dncBetweennessCalculator);
+        betw = new ASL<>(dncCalculator);
         Assert.assertEquals(1.3333333, betw.compute(this.directedNonConnected), 0.0001);
-        betw = new ASL<>(dncBetweennessCalculator, ASLMode.COMPONENTS);
+        betw = new ASL<>(dncCalculator, ASLMode.COMPONENTS);
         Assert.assertEquals(0.375, betw.compute(this.directedNonConnected), 0.0001);
 
-        betw = new ASL<>(uscBetweennessCalculator);
+        betw = new ASL<>(uscCalculator);
         Assert.assertEquals(1.5333333, betw.compute(this.undirectedConnected), 0.0001);
-        betw = new ASL<>(uscBetweennessCalculator, ASLMode.COMPONENTS);
+        betw = new ASL<>(uscCalculator, ASLMode.COMPONENTS);
         Assert.assertEquals(1.5333333, betw.compute(this.undirectedConnected), 0.0001);
 
-        betw = new ASL<>(uncBetweennessCalculator);
+        betw = new ASL<>(uncCalculator);
         Assert.assertEquals(1.0, betw.compute(this.undirectedNonConnected), 0.0001);
-        betw = new ASL<>(uncBetweennessCalculator, ASLMode.COMPONENTS);
+        betw = new ASL<>(uncCalculator, ASLMode.COMPONENTS);
         Assert.assertEquals(1.0, betw.compute(this.undirectedNonConnected), 0.0001);
     }
 
+    /**
+     * Test the eccentricity of the nodes.
+     */
     @Test
     public void eccentricity()
     {
-        VertexMetric<Integer> betw = new Eccentricity<>(deBetweennessCalculator);
+        VertexMetric<Integer> betw = new Eccentricity<>(deCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.directedEmpty), 0.0001);
 
-        betw = new Eccentricity<>(ueBetweennessCalculator);
+        betw = new Eccentricity<>(ueCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedEmpty), 0.0001);
 
-        betw = new Eccentricity<>(ucBetweennessCalculator);
+        betw = new Eccentricity<>(ucCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.undirectedComplete), 0.0001);
 
-        betw = new Eccentricity<>(dcBetweennessCalculator);
+        betw = new Eccentricity<>(dcCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.directedComplete), 0.0001);
 
-        betw = new Eccentricity<>(dwcBetweennessCalculator);
+        betw = new Eccentricity<>(dwcCalculator);
         Assert.assertEquals(1.714286, betw.averageValue(this.directedWeaklyConnected), 0.0001);
 
-        betw = new Eccentricity<>(dscBetweennessCalculator);
+        betw = new Eccentricity<>(dscCalculator);
         Assert.assertEquals(4.0, betw.averageValue(this.directedStronglyConnected), 0.0001);
 
-        betw = new Eccentricity<>(dncBetweennessCalculator);
+        betw = new Eccentricity<>(dncCalculator);
         Assert.assertEquals(1.3333333, betw.averageValue(this.directedNonConnected), 0.0001);
 
-        betw = new Eccentricity<>(uscBetweennessCalculator);
+        betw = new Eccentricity<>(uscCalculator);
         Assert.assertEquals(2.33333333, betw.averageValue(this.undirectedConnected), 0.0001);
 
-        betw = new Eccentricity<>(uncBetweennessCalculator);
+        betw = new Eccentricity<>(uncCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.undirectedNonConnected), 0.0001);
     }
 
+    /**
+     * Test the diameter of the nodes.
+     */
     @Test
     public void diameter()
     {
-        GraphMetric<Integer> betw = new Diameter<>(deBetweennessCalculator);
+        GraphMetric<Integer> betw = new Diameter<>(deCalculator);
         Assert.assertEquals(0.0, betw.compute(this.directedEmpty), 0.0001);
 
-        betw = new Diameter<>(ueBetweennessCalculator);
+        betw = new Diameter<>(ueCalculator);
         Assert.assertEquals(0.0, betw.compute(this.undirectedEmpty), 0.0001);
 
-        betw = new Diameter<>(ucBetweennessCalculator);
+        betw = new Diameter<>(ucCalculator);
         Assert.assertEquals(1.0, betw.compute(this.undirectedComplete), 0.0001);
 
-        betw = new Diameter<>(dcBetweennessCalculator);
+        betw = new Diameter<>(dcCalculator);
         Assert.assertEquals(1.0, betw.compute(this.directedComplete), 0.0001);
 
-        betw = new Diameter<>(dwcBetweennessCalculator);
+        betw = new Diameter<>(dwcCalculator);
         Assert.assertEquals(3.0, betw.compute(this.directedWeaklyConnected), 0.0001);
 
-        betw = new Diameter<>(dscBetweennessCalculator);
+        betw = new Diameter<>(dscCalculator);
         Assert.assertEquals(6.0, betw.compute(this.directedStronglyConnected), 0.0001);
 
-        betw = new Diameter<>(dncBetweennessCalculator);
+        betw = new Diameter<>(dncCalculator);
         Assert.assertEquals(2.0, betw.compute(this.directedNonConnected), 0.0001);
 
-        betw = new Diameter<>(uscBetweennessCalculator);
+        betw = new Diameter<>(uscCalculator);
         Assert.assertEquals(3.0, betw.compute(this.undirectedConnected), 0.0001);
 
-        betw = new Diameter<>(uncBetweennessCalculator);
+        betw = new Diameter<>(uncCalculator);
         Assert.assertEquals(1.0, betw.compute(this.undirectedNonConnected), 0.0001);
     }
 
+    /**
+     * Test the number of shortest paths between two nodes.
+     */
     @Test
     public void geodesics()
     {
         // NOTE: A node has, at least, a path to itself.
 
-        PairMetric<Integer> geod = new Geodesics<>(deBetweennessCalculator);
+        PairMetric<Integer> geod = new Geodesics<>(deCalculator);
         Assert.assertEquals(0.0, geod.averageValue(this.directedEmpty), 0.0001);
 
-        geod = new Geodesics<>(ueBetweennessCalculator);
+        geod = new Geodesics<>(ueCalculator);
         Assert.assertEquals(0.0, geod.averageValue(this.undirectedEmpty), 0.0001);
 
-        geod = new Geodesics<>(ucBetweennessCalculator);
+        geod = new Geodesics<>(ucCalculator);
         Assert.assertEquals(1.0, geod.averageValue(this.undirectedComplete), 0.0001);
 
-        geod = new Geodesics<>(dcBetweennessCalculator);
+        geod = new Geodesics<>(dcCalculator);
         Assert.assertEquals(1.0, geod.averageValue(this.directedComplete), 0.0001);
 
-        geod = new Geodesics<>(dwcBetweennessCalculator);
+        geod = new Geodesics<>(dwcCalculator);
         Assert.assertEquals(0.452381, geod.averageValue(this.directedWeaklyConnected), 0.0001);
 
-        geod = new Geodesics<>(dscBetweennessCalculator);
+        geod = new Geodesics<>(dscCalculator);
         Assert.assertEquals(1.2142857, geod.averageValue(this.directedStronglyConnected), 0.0001);
 
-        geod = new Geodesics<>(dncBetweennessCalculator);
+        geod = new Geodesics<>(dncCalculator);
         Assert.assertEquals(0.3, geod.averageValue(this.directedNonConnected), 0.0001);
 
-        geod = new Geodesics<>(uscBetweennessCalculator);
+        geod = new Geodesics<>(uscCalculator);
         Assert.assertEquals(1.3333333, geod.averageValue(this.undirectedConnected), 0.0001);
 
-        geod = new Geodesics<>(uncBetweennessCalculator);
+        geod = new Geodesics<>(uncCalculator);
         Assert.assertEquals(0.4, geod.averageValue(this.undirectedNonConnected), 0.0001);
     }
 
+    /**
+     * Test the closeness (on its two variants) of the nodes.
+     */
     @Test
     public void closeness()
     {
         // Directed empty graph
-        VertexMetric<Integer> betw = new Closeness<>(deBetweennessCalculator);
+        VertexMetric<Integer> betw = new HarmonicCentrality<>(deCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.directedEmpty), 0.0001);
-        betw = new Closeness<>(deBetweennessCalculator);
+        betw = new Closeness<>(deCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.directedEmpty), 0.0001);
 
         // Undirected empty graph
-        betw = new Closeness<>(ueBetweennessCalculator);
+        betw = new HarmonicCentrality<>(ueCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedEmpty), 0.0001);
-        betw = new Closeness<>(ueBetweennessCalculator);
+        betw = new Closeness<>(ueCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedEmpty), 0.0001);
 
         // Undirected complete graph
-        betw = new Closeness<>(ucBetweennessCalculator);
+        betw = new HarmonicCentrality<>(ucCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.undirectedComplete), 0.0001);
-        betw = new Closeness<>(ucBetweennessCalculator);
+        betw = new Closeness<>(ucCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.undirectedComplete), 0.0001);
 
         // Directed complete graph
-        betw = new Closeness<>(dcBetweennessCalculator);
+        betw = new HarmonicCentrality<>(dcCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.directedComplete), 0.0001);
-        betw = new Closeness<>(dcBetweennessCalculator);
+        betw = new Closeness<>(dcCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.directedComplete), 0.0001);
 
         // Directed weakly connected graph
-        betw = new Closeness<>(dwcBetweennessCalculator);
+        betw = new HarmonicCentrality<>(dwcCalculator);
         Assert.assertEquals(0.265873, betw.averageValue(this.directedWeaklyConnected), 0.0001);
-        betw = new Closeness<>(dwcBetweennessCalculator);
+        betw = new Closeness<>(dwcCalculator);
         Assert.assertEquals(0.0, betw.averageValue(this.directedWeaklyConnected), 0.0001);
 
         // Directed strongly connected graph
-        betw = new Closeness<>(dscBetweennessCalculator);
+        betw = new HarmonicCentrality<>(dscCalculator);
         Assert.assertEquals(0.54126984, betw.averageValue(this.directedStronglyConnected), 0.0001);
-        betw = new Closeness<>(dscBetweennessCalculator);
+        betw = new Closeness<>(dscCalculator);
         Assert.assertEquals(0.43778602, betw.averageValue(this.directedStronglyConnected), 0.0001);
 
         // Directed non connected graph
-        betw = new Closeness<>(dncBetweennessCalculator);
+        betw = new HarmonicCentrality<>(dncCalculator);
         Assert.assertEquals(0.25, betw.averageValue(this.directedNonConnected), 0.0001);
-        betw = new Closeness<>(dncBetweennessCalculator);
+        betw = new Closeness<>(dncCalculator);
         Assert.assertEquals(0.333333, betw.averageValue(this.directedNonConnected), 0.0001);
 
         // Undirected connected graph
-        betw = new Closeness<>(uscBetweennessCalculator);
+        betw = new HarmonicCentrality<>(uscCalculator);
         Assert.assertEquals(0.7555555, betw.averageValue(this.undirectedConnected), 0.0001);
-        betw = new Closeness<>(uscBetweennessCalculator);
+        betw = new Closeness<>(uscCalculator);
         Assert.assertEquals(0.66633598, betw.averageValue(this.undirectedConnected), 0.0001);
 
         // Undirected non connected graph
-        betw = new Closeness<>(uncBetweennessCalculator);
+        betw = new HarmonicCentrality<>(uncCalculator);
         Assert.assertEquals(0.4, betw.averageValue(this.undirectedNonConnected), 0.0001);
-        betw = new Closeness<>(uncBetweennessCalculator);
+        betw = new Closeness<>(uncCalculator);
         Assert.assertEquals(1.0, betw.averageValue(this.undirectedNonConnected), 0.0001);
     }
 }

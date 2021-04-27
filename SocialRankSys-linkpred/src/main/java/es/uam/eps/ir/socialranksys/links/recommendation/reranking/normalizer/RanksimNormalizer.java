@@ -1,3 +1,11 @@
+/*
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
+ *  de Madrid, http://ir.ii.uam.es
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package es.uam.eps.ir.socialranksys.links.recommendation.reranking.normalizer;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -8,7 +16,8 @@ import java.util.Comparator;
 import java.util.TreeSet;
 
 /**
- * Ranksim normalizer.
+ * Ranksim normalizer. It considers the positions in the ranking to
+ * provide normalization of the scores.
  *
  * @param <I> type of the items.
  *

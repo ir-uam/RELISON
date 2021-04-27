@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
- * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
- * http://terrierteam.dcs.gla.ac.uk/.
+ * de Madrid, http://ir.ii.uam.es.
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,6 +10,7 @@ package es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standal
 
 import es.uam.eps.ir.ranksys.fast.preference.FastPreferenceData;
 import es.uam.eps.ir.ranksys.rec.Recommender;
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSearch;
@@ -25,25 +25,29 @@ import java.util.function.Supplier;
 
 
 /**
- * Grid search generator for Binary Independent Retrieval (BIR) algorithm.
+ * Grid search generator for Local Path Index algorithm.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
- * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
- * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.pathbased.LocalPathIndex
  */
 public class LocalPathIndexGridSearch<U> implements AlgorithmGridSearch<U>
 {
     /**
-     * Identifier for the orientation of the target user neighborhood
+     * Identifier for the dump factor of longer length paths.
      */
     private static final String B = "b";
     /**
-     * Identifier for the orientation of the target user neighborhood
+     * Identifier for the maximum distance from the target to the candidate users.
      */
     private static final String K = "k";
+    /**
+     * Identifier for the orientation selection for the adjacency matrix.
+     */
+    private static final String ORIENT = "orient";
 
     @Override
     public Map<String, Supplier<Recommender<U, U>>> grid(Grid grid, FastGraph<U> graph, FastPreferenceData<U, U> prefData)
@@ -52,10 +56,26 @@ public class LocalPathIndexGridSearch<U> implements AlgorithmGridSearch<U>
 
         List<Double> bs = grid.getDoubleValues(B);
         List<Integer> ks = grid.getIntegerValues(K);
-
-        bs.forEach(b ->
-            ks.forEach(k ->
-                recs.put(AlgorithmIdentifiers.LPI + "_" + b + "_" + k, () -> new LocalPathIndex<>(graph, b, k))));
+        if(grid.getOrientationValues().containsKey(ORIENT))
+        {
+            List<EdgeOrientation> orients = grid.getOrientationValues(ORIENT);
+            orients.forEach(orient ->
+                bs.forEach(b ->
+                    ks.forEach(k ->
+                        recs.put(AlgorithmIdentifiers.LPI + "_" + orient + "_" + b + "_" + k, () -> new LocalPathIndex<>(graph, b, k, orient)
+                        )
+                    )
+                )
+            );
+        }
+        else
+        {
+            bs.forEach(b ->
+                ks.forEach(k ->
+                    recs.put(AlgorithmIdentifiers.LPI + "_" + b + "_" + k, () -> new LocalPathIndex<>(graph, b, k))
+                )
+            );
+        }
 
         return recs;
     }
@@ -67,10 +87,26 @@ public class LocalPathIndexGridSearch<U> implements AlgorithmGridSearch<U>
 
         List<Double> bs = grid.getDoubleValues(B);
         List<Integer> ks = grid.getIntegerValues(K);
-
-        bs.forEach(b ->
+        if(grid.getOrientationValues().containsKey(ORIENT))
+        {
+            List<EdgeOrientation> orients = grid.getOrientationValues(ORIENT);
+            orients.forEach(orient ->
+                bs.forEach(b ->
+                    ks.forEach(k ->
+                        recs.put(AlgorithmIdentifiers.LPI + "_" + orient + "_" + b + "_" + k, (graph, prefData) -> new LocalPathIndex<>(graph, b, k, orient)
+                        )
+                    )
+                )
+            );
+        }
+        else
+        {
+            bs.forEach(b ->
                 ks.forEach(k ->
-                        recs.put(AlgorithmIdentifiers.LPI + "_" + b + "_" + k,  (graph, prefData) -> new LocalPathIndex<>(graph, b, k))));
+                    recs.put(AlgorithmIdentifiers.LPI + "_" + b + "_" + k, (graph, prefData) -> new LocalPathIndex<>(graph, b, k))
+                )
+            );
+        }
 
         return recs;
     }

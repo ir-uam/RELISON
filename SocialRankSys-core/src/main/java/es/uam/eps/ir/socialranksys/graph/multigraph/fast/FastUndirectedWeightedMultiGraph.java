@@ -72,19 +72,18 @@ public class FastUndirectedWeightedMultiGraph<U> extends AbstractFastMultiGraph<
     @Override
     public Stream<Weight<U, Double>> getAdjacentMutualNodesWeights(U node)
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return this.getNeighbourNodesWeights(node);
     }
 
     @Override
     public Stream<Weight<U, Double>> getIncidentMutualNodesWeights(U node)
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return this.getNeighbourNodesWeights(node);
     }
 
     @Override
     public Stream<Weight<U, Double>> getMutualNodesWeights(U node)
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return this.getNeighbourNodesWeights(node);
     }
-
 }

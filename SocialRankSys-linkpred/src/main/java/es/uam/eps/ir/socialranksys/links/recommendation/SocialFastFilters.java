@@ -9,7 +9,6 @@
  */
 package es.uam.eps.ir.socialranksys.links.recommendation;
 
-
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.links.data.GraphIndex;
 

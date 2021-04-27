@@ -19,18 +19,17 @@ import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.Item
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.UserBasedCFGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.baselines.PopularityGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.baselines.RandomGridSearch;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.contentbased.CentroidCBGridSearch;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.contentbased.TwittomenderGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.distance.ShortestDistanceGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.foaf.*;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.ir.*;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.mf.ImplicitMFGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.pathbased.KatzGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.pathbased.LocalPathIndexGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.PersonalizedHITSGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.PersonalizedPageRankGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.PersonalizedSALSAGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.PropFlowGridSearch;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.pathbased.*;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.*;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.twitter.*;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import org.ranksys.formats.parsing.Parser;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,9 +40,9 @@ import java.util.function.Supplier;
 import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmIdentifiers.*;
 
 /**
- * Class that translates from a grid to the different contact recommendation algorithns.
+ * Class that translates from a grid to the different contact recommendation algorithms.
  *
- * @param <U> Type of the users
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
@@ -52,6 +51,20 @@ import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.A
  */
 public class AlgorithmGridSelector<U>
 {
+    /**
+     * A parser for users.
+     */
+    private final Parser<U> uParser;
+
+    /**
+     * Constructor.
+     * @param uParser a parser for reading users from text.
+     */
+    public AlgorithmGridSelector(Parser<U> uParser)
+    {
+        this.uParser = uParser;
+    }
+
     /**
      * Given preference data, obtains recommenders.
      *
@@ -242,8 +255,15 @@ public class AlgorithmGridSelector<U>
             case DISTANCE -> new ShortestDistanceGridSearch<>();
             case KATZ -> new KatzGridSearch<>();
             case LPI -> new LocalPathIndexGridSearch<>();
+            case GLOBALLHN -> new GlobalLHNIndexGridSearch<>();
+            case PIC -> new PseudoInverseCosineGridSearch<>();
+            case MATRIXFOREST -> new MatrixForestGridSearch<>();
 
             // Random walks
+            case PAGERANK -> new PageRankGridSearch<>();
+            case HITS -> new HITSGridSearch<>();
+            case SALSA -> new SALSAGridSearch<>();
+
             case PERSPAGERANK -> new PersonalizedPageRankGridSearch<>();
             case PERSHITS -> new PersonalizedHITSGridSearch<>();
             case PERSSALSA -> new PersonalizedSALSAGridSearch<>();
@@ -266,6 +286,11 @@ public class AlgorithmGridSelector<U>
             // Baselines
             case RANDOM -> new RandomGridSearch<>();
             case POP -> new PopularityGridSearch<>();
+
+            // Content-based approaches
+            case CENTROIDCB -> new CentroidCBGridSearch<>(uParser);
+            case TWITTOMENDER -> new TwittomenderGridSearch<>(uParser);
+
             default -> null;
         };
     }

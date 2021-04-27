@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -16,9 +16,10 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import java.util.Random;
 
 /**
- * Recommends reciprocal links (only useful for directed contact recommendation).
+ * Recommends reciprocal links. This recommender is only useful for contact recommendation in directed networks.
+ * Links are randomly sorted.
  *
- * @param <U> Type of the users
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

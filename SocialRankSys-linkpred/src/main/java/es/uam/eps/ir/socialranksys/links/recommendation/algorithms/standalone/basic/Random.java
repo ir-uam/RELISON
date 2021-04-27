@@ -44,8 +44,8 @@ public class Random<U> extends UserFastRankingRecommender<U>
     /**
      * Constructor.
      *
-     * @param graph The graph representing the social networks.
-     * @param seed  The seed for the random number generator.
+     * @param graph the graph representing the social networks.
+     * @param seed  the seed for the random number generator.
      */
     public Random(FastGraph<U> graph, long seed)
     {

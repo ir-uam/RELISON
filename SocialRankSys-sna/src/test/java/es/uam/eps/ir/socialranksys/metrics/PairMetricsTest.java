@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,53 +15,49 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastUndirectedUnweightedGraph;
 import org.junit.*;
 
 /**
- * Tests for pair metrics.
+ * Automated unit tests for metrics computed over pairs of users.
  *
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class PairMetricsTest
 {
-
     /**
-     * Directed Strongly Connected Graph
+     * Directed strongly connected graph.
      */
     private DirectedGraph<Integer> directedStronglyConnected;
     /**
-     * Directed Weakly Connected Graph
+     * Directed weakly connected graph.
      */
     private DirectedGraph<Integer> directedWeaklyConnected;
     /**
-     * Directed Unconnected Graph (not even weakly)
+     * Directed disconnected graph (not even weakly).
      */
     private DirectedGraph<Integer> directedNonConnected;
     /**
-     * Undirected Connected Graph
+     * Undirected connected graph.
      */
     private UndirectedGraph<Integer> undirectedConnected;
     /**
-     * Undirected Unconnected Graph
+     * Undirected disconnected graph.
      */
     private UndirectedGraph<Integer> undirectedNonConnected;
     /**
-     * Directed complete graph
+     * Directed complete graph.
      */
     private DirectedGraph<Integer> directedComplete;
     /**
-     * Directed empty graph (only nodes)
+     * Directed empty graph (only nodes).
      */
     private DirectedGraph<Integer> directedEmpty;
     /**
-     * Undirected complete graph
+     * Undirected complete graph.
      */
     private UndirectedGraph<Integer> undirectedComplete;
     /**
-     * Undirected empty graph
+     * Undirected empty graph.
      */
     private UndirectedGraph<Integer> undirectedEmpty;
-
-    public PairMetricsTest()
-    {
-    }
 
     @BeforeClass
     public static void setUpClass()

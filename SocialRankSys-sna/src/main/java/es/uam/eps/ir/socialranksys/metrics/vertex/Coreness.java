@@ -10,6 +10,7 @@ package es.uam.eps.ir.socialranksys.metrics.vertex;
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
+import es.uam.eps.ir.socialranksys.graph.multigraph.MultiGraph;
 import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -17,6 +18,9 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
+
+import static es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation.MUTUAL;
+import static es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation.UND;
 
 /**
  * Computes the coreness (or core number) of the nodes. A k-core of a graph is the maximal
@@ -89,12 +93,13 @@ public class Coreness<U> implements VertexMetric<U>
         List<U> visited = new ArrayList<>();
 
         Map.Entry<Integer, List<U>> entry = sortedMap.firstEntry();
-        List<U> currentDegreeList = entry.getValue();
+        List<U> currentDegreeList;
 
         while(!sortedMap.isEmpty())
         {
             int degreeU = entry.getKey();
 
+            currentDegreeList = entry.getValue();
             U u = currentDegreeList.get(0);
             currentDegreeList.remove(0);
             coreness.put(u, degreeU + 0.0);
@@ -102,22 +107,50 @@ public class Coreness<U> implements VertexMetric<U>
 
             // Now, run over the different neighbors:
 
-            graph.getNeighbourhood(u, orient).filter(v -> !visited.contains(v)).forEach(v ->
+            graph.getNeighbourhood(u, orient.invertSelection()).filter(v -> !visited.contains(v)).forEach(v ->
             {
                 int degreeV = degreeTable.getInt(v);
                 if(degreeV > degreeU) // Decrease the coreness of the neighbor node:
                 {
-                    degreeTable.put(v, degreeV - 1);
+                    int numEdges;
+
+                    if(graph.isMultigraph())
+                    {
+                        MultiGraph<U> multiGraph = (MultiGraph<U>) graph;
+                        if(graph.isDirected())
+                        {
+                            numEdges = switch (orient.invertSelection())
+                            {
+                                case IN -> multiGraph.getNumEdges(v, u);
+                                case OUT -> multiGraph.getNumEdges(u, v);
+                                default -> multiGraph.getNumEdges(u,v) + multiGraph.getNumEdges(v,u);
+                            };
+                        }
+                        else
+                        {
+                            numEdges = multiGraph.getNumEdges(v,u);
+                        }
+                    }
+                    else if(graph.isDirected() && (orient == UND || orient == MUTUAL))
+                    {
+                        numEdges = (graph.containsEdge(u,v) ? 1 : 0) + (graph.containsEdge(v,u) ? 1 : 0);
+                    }
+                    else
+                    {
+                        numEdges = 1;
+                    }
+
+                    degreeTable.put(v, degreeV - numEdges);
                     sortedMap.get(degreeV).remove(v);
                     if(sortedMap.get(degreeV).isEmpty())
                     {
                         sortedMap.remove(degreeV);
                     }
-                    if(!sortedMap.containsKey(degreeV - 1))
+                    if(!sortedMap.containsKey(degreeV - numEdges))
                     {
-                        sortedMap.put(degreeV - 1, new ArrayList<>());
+                        sortedMap.put(degreeV - numEdges, new ArrayList<>());
                     }
-                    sortedMap.get(degreeV - 1).add(v);
+                    sortedMap.get(degreeV - numEdges).add(v);
                 }
             });
 

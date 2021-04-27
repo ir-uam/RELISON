@@ -1,5 +1,5 @@
 /* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,14 +15,15 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
- * Preferential Attachment recommender. Recommender based on the Preferential Attachment link prediction method.
+ * Recommender based on the preferential attachment phenomena. It takes the product of the degrees of the
+ * target and candidate user, considering that the probability of creating a link is proportional to such product.
  * When the selected neighbourhood is formed by the incoming nodes, then this method is equal to the Popularity
  * recommender method.
  * <p>
- *  Newman, M.E.J. Clustering and Preferential Attachment in Growing Networks. Physical Review Letters E, 64(025102), April 2001.
+ *  <b>Reference: </b>M.E.J. Newman. Clustering and Preferential Attachment in Growing Networks. Physical Review Letters E, 64(025102) (2001).
  * </p>
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

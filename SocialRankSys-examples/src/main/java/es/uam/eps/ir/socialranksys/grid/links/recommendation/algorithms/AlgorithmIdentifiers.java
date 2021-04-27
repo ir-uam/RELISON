@@ -11,7 +11,7 @@ package es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms;
 
 /**
  * Identifiers for the different contact recommendation algorithms available in
- * the library
+ * the library.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
@@ -54,10 +54,13 @@ public class AlgorithmIdentifiers
     // Path-based
     public static final String KATZ = "Katz";
     public static final String LPI = "Local path index";
+    public static final String GLOBALLHN = "Global LHN";
+    public static final String MATRIXFOREST = "Matrix forest";
+    public static final String PIC = "Pseudo-inverse cosine";
 
     // Random walks
     public final static String PAGERANK = "PageRank";
-    public final static String SALSA = "PageRank";
+    public final static String SALSA = "SALSA";
     public final static String HITS = "HITS";
 
     public final static String PERSPAGERANK = "Personalized PageRank";
@@ -74,7 +77,6 @@ public class AlgorithmIdentifiers
     public final static String TWITTERCENTROIDCOS = "Twitter centroid cosine";
     public final static String TWITTERMAXCOS = "Twitter maximum cosine";
 
-
     // Collaborative filtering
     public final static String IMF = "iMF";
     public final static String UB = "UB kNN";
@@ -82,5 +84,9 @@ public class AlgorithmIdentifiers
 
     public final static String POP = "Popularity";
     public final static String RANDOM = "Random";
+
+    // Content-based
+    public final static String CENTROIDCB = "centroidCB";
+    public final static String TWITTOMENDER = "Twittomender";
 
 }

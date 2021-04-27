@@ -17,7 +17,9 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
  * Commute time algorithm. It is computed as the hitting time between the target user
  * and the candidate user plus the time needed to do the backwards path.
  *
- * @param <U> Type of the users
+ * <p><b>Reference: </b> D. Liben-Nowell, D., J. Kleinberg. The Link Prediction Problem for Social Networks. Journal of the American Society for Information Science and Technology 58(7) (2007)</p>
+ *
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

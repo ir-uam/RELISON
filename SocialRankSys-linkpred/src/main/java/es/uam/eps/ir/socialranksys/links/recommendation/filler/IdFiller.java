@@ -17,13 +17,13 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * Filler that completes ranking with random recommendation.
+ * Filler that completes rankings by sorting the remaining items by id.
  *
  * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the items.
+ * @param <U> type of the users.
+ * @param <I> type of the items.
  */
 public class IdFiller<U,I> extends AbstractFastFiller<U,I>
 {

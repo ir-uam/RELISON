@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autonoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -13,44 +13,54 @@ import es.uam.eps.ir.ranksys.fast.preference.FastPreferenceData;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.links.data.letor.sampling.IndividualSampler;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import org.jooq.lambda.tuple.Tuple2;
+import org.ranksys.formats.parsing.Parser;
 
 /**
- * Class that translates from a grid to the different train/test partition algorithns.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Given a grid, this class obtains a sampling algorithm, to apply to every target user for a
+ * link prediction / contact recommendation approach.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 public class IndividualSamplingAlgorithmGridSelector<U>
 {   
     /**
      * Obtains a configured individual sampling algorithm.
-     * @param name the name of the algorithm.
-     * @param param the parameters of the algorithm.
-     * @param graph the graph to sample.
-     * @param extraEdges a graph useful for the sample.
-     * @param prefData preference data representing the graph.
+     *
+     * @param name          the name of the algorithm.
+     * @param param         the set of parameters of the algorithm.
+     * @param graph         the graph to sample.
+     * @param extraEdges    a graph useful for the sample (for example, a test graph).
+     * @param prefData      preference data representing the graph.
+     * @param uParser       a parser for reading users from text.
      * @return a pair containing the name of the algorithm and its configured object.
      */
-    public Tuple2oo<String, IndividualSampler<U>> getIndividualSamplingAlgorithm(String name, Parameters param, FastGraph<U> graph, FastGraph<U> extraEdges, FastPreferenceData<U,U> prefData)
+    public Tuple2<String, IndividualSampler<U>> getIndividualSamplingAlgorithm(String name, Parameters param, FastGraph<U> graph, FastGraph<U> extraEdges, FastPreferenceData<U,U> prefData, Parser<U> uParser)
     {
-        IndividualSamplingAlgorithmConfigurator<U> configurator = this.getConfigurator(name);
+        IndividualSamplingAlgorithmConfigurator<U> configurator = this.getConfigurator(name,uParser);
         if(configurator != null)
         {
-            return configurator.grid(param, graph, graph, prefData);
+            return configurator.grid(param, graph, extraEdges, prefData);
         }
         return null;
     }
     
     /**
      * Obtains a function for obtaining a configured individual sampling algorithm.
-     * @param name the name of the algorithm.
-     * @param param the parameters of the algorithm.
+     *
+     * @param name      the name of the algorithm.
+     * @param param     the parameters of the algorithm.
+     * @param uParser   a parser for reading users from text.
+     *
      * @return a pair containing the name of the algorithm and a function to retrieve
      * a configured sampler.
      */
-    public Tuple2oo<String, IndividualSamplerFunction<U>> getIndividualSamplingAlgorithm(String name, Parameters param)
+    public Tuple2<String, IndividualSamplerFunction<U>> getIndividualSamplingAlgorithm(String name, Parameters param, Parser<U> uParser)
     {
-        IndividualSamplingAlgorithmConfigurator<U> configurator = this.getConfigurator(name);
+        IndividualSamplingAlgorithmConfigurator<U> configurator = this.getConfigurator(name, uParser);
         if(configurator != null)
         {
             return configurator.grid(param);
@@ -60,16 +70,17 @@ public class IndividualSamplingAlgorithmGridSelector<U>
     
     /**
      * Obtains a configurator for an individual sampling algorithm.
+     *
      * @param name the name of the algorithm.
      * @return the configurator if exists, null otherwise.
      */
-    public IndividualSamplingAlgorithmConfigurator<U> getConfigurator(String name)
+    public IndividualSamplingAlgorithmConfigurator<U> getConfigurator(String name, Parser<U> uParser)
     {
         return switch (name)
         {
             case IndividualSamplingAlgorithmIdentifiers.DISTANCETWO -> new DistanceTwoIndividualSamplerConfigurator<>();
             case IndividualSamplingAlgorithmIdentifiers.DISTANCETWOLP -> new DistanceTwoLinkPredictionIndividualSamplerConfigurator<>();
-            case IndividualSamplingAlgorithmIdentifiers.RECOMMENDER -> new RecommenderIndividualSamplerConfigurator<>();
+            case IndividualSamplingAlgorithmIdentifiers.RECOMMENDER -> new RecommenderIndividualSamplerConfigurator<>(uParser);
             default -> null;
         };
     }

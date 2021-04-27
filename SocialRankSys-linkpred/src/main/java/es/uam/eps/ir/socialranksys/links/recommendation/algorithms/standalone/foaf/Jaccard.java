@@ -18,7 +18,7 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 /**
  * Recommended based on the Jaccard similarity.
  * <p>
- * Jaccard,  P.: Etude comparative de la distribution florale dans une portion des Alpes et des Jura.
+ * <b>Reference: </b>P. Jaccard. Etude comparative de la distribution florale dans une portion des Alpes et des Jura.
  * Bulletin de la Societe Vaudoise des Sciences Naturelles 37(142),547–579 (1901)
  * </p>
  *

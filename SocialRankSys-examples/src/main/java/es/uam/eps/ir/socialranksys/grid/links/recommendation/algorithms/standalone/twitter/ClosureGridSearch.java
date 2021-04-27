@@ -1,7 +1,6 @@
 /*
- * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
- * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
- * http://terrierteam.dcs.gla.ac.uk/.
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es.
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,10 +26,12 @@ import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.A
 /**
  * Grid search generator for Closure algorithm.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.twitter.Closure
  */
 public class ClosureGridSearch<U> implements AlgorithmGridSearch<U>
 {

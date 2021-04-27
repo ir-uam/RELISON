@@ -15,7 +15,8 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
- * Recommender that uses the Jaccard coefficient of the neighbours.
+ * Recommender that uses the resource allocation principle to recommend. It weights the common neighbors between
+ * the target and the candidate users by the inverse of the degree of such common user.
  * 
  * @param <U> type of the users.
  *

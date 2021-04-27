@@ -18,19 +18,18 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * Given
+ * Given as set of instances, this algorithm predicts the presence or absence of a link, according
+ * to a function of the different features. The score for a possible pair of indexes is defined by
+ * a postfix expression with the following format:
  *
- * Predicts the presence or absence of links using some of the patterns of a GraphInstanceSet
- * (a pattern set where the edges which represent the patterns are identified).
- * 
- * It is possible to indicate an operation of some of those patterns using a postfix expression.
- * 
  * Format of the postfix expression:
  * - If two numbers are next to each other, they must be separated using a dot (".").
  * - Operations allowed: +,-,*,/
  * 
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of users
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of users
  */
 public class InstancePostfixExLinkPredictor<U> extends AbstractLinkPredictor<U>
 {

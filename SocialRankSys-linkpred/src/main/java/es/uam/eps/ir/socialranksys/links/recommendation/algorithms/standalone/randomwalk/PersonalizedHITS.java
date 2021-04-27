@@ -19,13 +19,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Personalized version of the HITS recommender.
  *
- * Personalized HITS Recommender.
+ * <p><b>Reference: </b> A. Goel. The Who-To-Follow System at Twitter: Algorithms, Impact and Further Research. 32rd Annual International Conference on World Wide Web (2014), industry track (2014)</p>
  * 
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users
+ * @param <U> type of the users
  */
 public class PersonalizedHITS<U> extends BipartiteRecommender<U>
 {

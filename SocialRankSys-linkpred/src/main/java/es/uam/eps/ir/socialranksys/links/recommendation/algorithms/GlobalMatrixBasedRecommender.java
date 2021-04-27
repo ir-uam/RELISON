@@ -14,7 +14,7 @@ import es.uam.eps.ir.socialranksys.utils.matrix.MatrixLibrary;
 /**
  * Contact recommendation algorithm that on operations over a global matrix.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

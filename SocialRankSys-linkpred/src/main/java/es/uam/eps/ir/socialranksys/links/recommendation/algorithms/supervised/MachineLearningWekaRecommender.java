@@ -35,7 +35,6 @@ import static es.uam.eps.ir.socialranksys.links.data.ml.MLConstants.POSITIVECLAS
  */
 public class MachineLearningWekaRecommender<U> extends UserFastRankingRecommender<U>
 {
-
     /**
      * Weka classifier.
      */

@@ -60,7 +60,7 @@ public interface LinkPredictor<U>
      * given by the algorithm. It only ranks those user pairs which pass a given filter.
      * It returns a limited number of such pairs.
      *
-     * @param filter a filter to indicate which user pairs shall be ranked.
+     * @param filter    a filter to indicate which user pairs shall be ranked.
      * @param maxLength the maximum size of the link prediction list.
      *
      * @return a sorted list containing the user-user pairs and the link prediction score (in descending score

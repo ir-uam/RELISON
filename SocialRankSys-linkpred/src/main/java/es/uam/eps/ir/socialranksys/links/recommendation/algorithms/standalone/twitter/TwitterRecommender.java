@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -33,8 +33,10 @@ import java.util.*;
  * </li>
  * <li>use a given recommendation (bipartite) algorithm to finish.</li>
  *
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 public abstract class TwitterRecommender<U> extends UserFastRankingRecommender<U>
 {

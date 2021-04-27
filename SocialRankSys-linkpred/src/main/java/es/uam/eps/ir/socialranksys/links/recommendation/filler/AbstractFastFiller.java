@@ -28,7 +28,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * Abstract class for implementing classes which fill a recommendation with some new data.
+ * Abstract implementation of a fast filler. 
  *
  * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

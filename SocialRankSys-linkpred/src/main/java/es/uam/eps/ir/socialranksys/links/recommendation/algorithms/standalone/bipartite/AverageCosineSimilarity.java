@@ -28,7 +28,7 @@ import java.util.Optional;
  * and scores recommended contacts by the average similarity over the authorities
  * that the target user is currently following.
  *
- * @param <U> Type of the users
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

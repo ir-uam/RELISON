@@ -47,4 +47,16 @@ public interface DirectedMultiGraph<U> extends MultiGraph<U>, DirectedGraph<U>
             default -> Stream.empty();
         };
     }
+
+    @Override
+    default int inDegree(U node)
+    {
+        return this.getIncidentEdgesCount(node);
+    }
+
+    @Override
+    default int outDegree(U node)
+    {
+        return this.getAdjacentEdgesCount(node);
+    }
 }

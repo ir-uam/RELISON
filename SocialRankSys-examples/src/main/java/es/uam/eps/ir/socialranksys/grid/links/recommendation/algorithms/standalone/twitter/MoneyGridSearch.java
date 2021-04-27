@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -24,27 +24,32 @@ import java.util.function.Supplier;
 import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmIdentifiers.MONEY;
 
 /**
- * Grid search generator for Money algorithm.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ * Grid search generator for the Money algorithm.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.twitter.Money
  */
 public class MoneyGridSearch<U> implements AlgorithmGridSearch<U> 
 {   
     /**
-     * Identifier for the mode of the algorithm
+     * Identifier for the mode of the algorithm.
      */
     private final static String MODE = "mode";
     
     /**
-     * Identifier for the teleport rate for the SALSA algorithm
+     * Identifier for the teleport rate for the personalized SALSA algorithm.
      */
     private final static String ALPHA = "alpha";
     /**
-     * Identifier for the teleport rate for computing the circle of trust
+     * Identifier for the teleport rate for computing the circle of trust.
      */
     private final static String R = "r";
     /**
-     * Identifier for the number of users in the circle of trust
+     * Identifier for the number of users in the circle of trust.
      */
     private final static String NEIGH = "neigh";
 

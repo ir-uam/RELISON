@@ -28,71 +28,49 @@ public interface DirectedGraph<V> extends Graph<V>
     @Override
     default Stream<V> getNeighbourhood(V node, EdgeOrientation direction)
     {
-        switch (direction)
+        return switch (direction)
         {
-            case OUT:
-                return this.getAdjacentNodes(node);
-            case IN:
-                return this.getIncidentNodes(node);
-            case UND:
-                return this.getNeighbourNodes(node);
-            case MUTUAL:
-                return this.getMutualNodes(node);
-            default:
-                return Stream.empty();
-        }
+            case OUT -> this.getAdjacentNodes(node);
+            case IN -> this.getIncidentNodes(node);
+            case UND -> this.getNeighbourNodes(node);
+            case MUTUAL -> this.getMutualNodes(node);
+        };
     }
 
     @Override
     default int getNeighbourhoodSize(V node, EdgeOrientation direction)
     {
-        switch (direction)
+        return switch (direction)
         {
-            case OUT:
-                return this.getAdjacentNodesCount(node);
-            case IN:
-                return this.getIncidentNodesCount(node);
-            case UND:
-                return this.getNeighbourNodesCount(node);
-            case MUTUAL:
-                return this.getMutualNodesCount(node);
-            default:
-                return -1;
-        }
+            case OUT -> this.getAdjacentNodesCount(node);
+            case IN -> this.getIncidentNodesCount(node);
+            case UND -> this.getNeighbourNodesCount(node);
+            case MUTUAL -> this.getMutualNodesCount(node);
+        };
     }
 
     @Override
     default Stream<Weight<V, Double>> getNeighbourhoodWeights(V node, EdgeOrientation direction)
     {
-        switch (direction)
+        return switch (direction)
         {
-            case OUT:
-                return this.getAdjacentNodesWeights(node);
-            case IN:
-                return this.getIncidentNodesWeights(node);
-            case UND:
-                return this.getNeighbourNodesWeights(node);
-            case MUTUAL:
-                return this.getMutualNodesWeights(node);
-            default:
-                return Stream.empty();
-        }
+            case OUT -> this.getAdjacentNodesWeights(node);
+            case IN -> this.getIncidentNodesWeights(node);
+            case UND -> this.getNeighbourNodesWeights(node);
+            case MUTUAL -> this.getMutualNodesWeights(node);
+        };
     }
 
     @Override
     default Stream<Weight<V, Integer>> getNeighbourhoodTypes(V node, EdgeOrientation direction)
     {
-        switch (direction)
+        return switch (direction)
         {
-            case OUT:
-                return this.getAdjacentNodesTypes(node);
-            case IN:
-                return this.getIncidentNodesTypes(node);
-            case UND:
-                return this.getNeighbourNodesTypes(node);
-            default:
-                return Stream.empty();
-        }
+            case OUT -> this.getAdjacentNodesTypes(node);
+            case IN -> this.getIncidentNodesTypes(node);
+            case UND -> this.getNeighbourNodesTypes(node);
+            case MUTUAL -> this.getMutualNodesTypes(node);
+        };
     }
 
     @Override
@@ -131,6 +109,18 @@ public interface DirectedGraph<V> extends Graph<V>
         return this.containsVertex(node) ? this.getAdjacentEdgesCount(node) : -1;
     }
 
+    /**
+     * Obtains the mutual degree of a node.
+     *
+     * @param node the node.
+     * @return the mutual degree of the node
+     */
+    @Override
+    default int mutualDegree(V node)
+    {
+        return this.containsVertex(node) ? this.getMutualEdgesCount(node) : -1;
+    }
+
     @Override
     default int degree(V node, EdgeOrientation orientation)
     {
@@ -138,15 +128,13 @@ public interface DirectedGraph<V> extends Graph<V>
         {
             return -1;
         }
-        switch (orientation)
+        return switch (orientation)
         {
-            case IN:
-                return this.inDegree(node);
-            case OUT:
-                return this.outDegree(node);
-            default:
-                return this.inDegree(node) + this.outDegree(node);
-        }
+            case IN -> this.inDegree(node);
+            case OUT -> this.outDegree(node);
+            case UND -> this.inDegree(node) + this.outDegree(node);
+            case MUTUAL -> this.mutualDegree(node);
+        };
     }
 
     @Override

@@ -218,6 +218,11 @@ public interface UndirectedGraph<V> extends Graph<V>
         return this.getNeighbourNodesTypes(node);
     }
 
+    @Override
+    default Stream<Weight<V, Integer>> getMutualNodesTypes(V node)
+    {
+        return this.getNeighbourNodesTypes(node);
+    }
     /**
      * Given a node, finds the types of the edges towards the nodes u such that the edge (node to u) and the edge (u to node) are in the graph.
      *
@@ -274,5 +279,9 @@ public interface UndirectedGraph<V> extends Graph<V>
         return this.degree(node);
     }
 
-
+    @Override
+    default int mutualDegree(V node)
+    {
+        return this.degree(node);
+    }
 }

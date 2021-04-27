@@ -19,9 +19,9 @@ import org.ranksys.core.util.tuples.Tuple2id;
 /**
  * Adaptation of the Query Likelihood Information Retrieval method, with Laplace regularization.
  * <p>
- * Ponte, J. M. Croft, W. B. A language modeling approach to information retrieval.
+ * <b>Reference:</b> J.M. Ponte, W.B. Croft. A language modeling approach to information retrieval.
  * 21st Annual International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR 1998).
- * Melbourne, Australia, August 1998, pp. 275-281.
+ * Melbourne, Australia, 275-281 (1998)
  * </p>
  *
  * @param <U> type of the users

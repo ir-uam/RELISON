@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -7,7 +7,6 @@
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 package es.uam.eps.ir.socialranksys.metrics;
-
 
 import es.uam.eps.ir.socialranksys.graph.DirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.UndirectedGraph;
@@ -20,53 +19,49 @@ import es.uam.eps.ir.socialranksys.metrics.vertex.LocalClusteringCoefficient;
 import org.junit.*;
 
 /**
- * Tests for vertex metrics.
+ * Automated unit tests for the vertex metrics.
  *
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class VertexMetricsTest
 {
-
     /**
-     * Directed Strongly Connected Graph
+     * Directed strongly connected graph.
      */
     private DirectedGraph<Integer> directedStronglyConnected;
     /**
-     * Directed Weakly Connected Graph
+     * Directed weakly connected graph.
      */
     private DirectedGraph<Integer> directedWeaklyConnected;
     /**
-     * Directed Unconnected Graph (not even weakly)
+     * Directed disconnected graph (not even weakly).
      */
     private DirectedGraph<Integer> directedNonConnected;
     /**
-     * Undirected Connected Graph
+     * Undirected connected graph.
      */
     private UndirectedGraph<Integer> undirectedConnected;
     /**
-     * Undirected Unconnected Graph
+     * Undirected disconnected graph.
      */
     private UndirectedGraph<Integer> undirectedNonConnected;
     /**
-     * Directed complete graph
+     * Directed complete graph.
      */
     private DirectedGraph<Integer> directedComplete;
     /**
-     * Directed empty graph (only nodes)
+     * Directed empty graph (only nodes).
      */
     private DirectedGraph<Integer> directedEmpty;
     /**
-     * Undirected complete graph
+     * Undirected complete graph.
      */
     private UndirectedGraph<Integer> undirectedComplete;
     /**
-     * Undirected empty graph
+     * Undirected empty graph.
      */
     private UndirectedGraph<Integer> undirectedEmpty;
-
-    public VertexMetricsTest()
-    {
-    }
 
     @BeforeClass
     public static void setUpClass()
@@ -219,6 +214,9 @@ public class VertexMetricsTest
     }
 
 
+    /**
+     * Tets the degree of the nodes.
+     */
     @Test
     public void degree()
     {
@@ -249,10 +247,11 @@ public class VertexMetricsTest
         Assert.assertEquals(inMetric.averageValue(undirectedNonConnected), outMetric.averageValue(undirectedNonConnected), 0.001);
         Assert.assertEquals(inMetric.averageValue(new FastDirectedUnweightedGraph<>()), outMetric.averageValue(new FastDirectedUnweightedGraph<>()), 0.001);
         Assert.assertEquals(inMetric.averageValue(new FastUndirectedUnweightedGraph<>()), outMetric.averageValue(new FastUndirectedUnweightedGraph<>()), 0.001);
-
-
     }
 
+    /**
+     * Tests the inverse degree of the nodes.
+     */
     @Test
     public void inverseDegree()
     {
@@ -286,6 +285,9 @@ public class VertexMetricsTest
 
     }
 
+    /**
+     * Tests the local clustering coefficient of the nodes.
+     */
     @Test
     public void localClustCoef()
     {
@@ -302,23 +304,5 @@ public class VertexMetricsTest
         Assert.assertEquals(1.0, inMetric.averageValue(undirectedNonConnected), 0.001);
         Assert.assertEquals(0.0, inMetric.averageValue(new FastDirectedUnweightedGraph<>()), 0.001);
         Assert.assertEquals(0.0, inMetric.averageValue(new FastUndirectedUnweightedGraph<>()), 0.001);
-    }
-
-    @Test
-    public void pageRank()
-    {
-
-    }
-
-    @Test
-    public void hitsAuthorities()
-    {
-
-    }
-
-    @Test
-    public void hitsHubs()
-    {
-
     }
 }

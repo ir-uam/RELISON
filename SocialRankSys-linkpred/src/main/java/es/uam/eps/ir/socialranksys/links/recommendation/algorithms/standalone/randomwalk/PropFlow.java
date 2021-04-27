@@ -19,8 +19,9 @@ import java.util.stream.Collectors;
 
 /**
  * Recommender which uses the PropFlow algorithm.
+ *
  * <p>
- * Lichtenwalter, R., Lussier, J., Chawla, N. New perspectives and methods in link prediction.
+ * <b>Reference: </b>R. Lichtenwalter, J. Lussier, N. Chawla. New perspectives and methods in link prediction.
  * </p>
  *
  * @param <U> Type of the users

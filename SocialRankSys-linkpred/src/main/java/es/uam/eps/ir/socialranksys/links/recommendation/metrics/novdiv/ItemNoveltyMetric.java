@@ -19,17 +19,15 @@ import java.util.List;
 
 /**
  * Item novelty metric.
- * <p>
- * S. Vargas. Novelty and diversity evaluation and enhancement in Recommender
- * Systems. PhD Thesis.
- * </p>
- * <p>
- * S. Vargas and P. Castells. Rank and relevance in novelty and diversity for
- * Recommender Systems. RecSys 2011.
- * </p>
- * <p>
- * J. Sanz-Cruzado and P. Castells. Beyond Accuracy in Link Prediction. SoMePeaS 2019.
- * </p>
+ *
+ * <p><b>References:</b>
+ * <ol>
+ *  <li>S. Vargas. Novelty and diversity evaluation and enhancement in Recommender
+ * Systems. PhD Thesis (2015)</li>
+ *  <li>S. Vargas and P. Castells. Rank and relevance in novelty and diversity for
+ *  * Recommender Systems. RecSys 2011.</li>
+ *  <li>J. Sanz-Cruzado and P. Castells. Beyond Accuracy in Link Prediction. SoMePeaS 2019.</li>
+ * </ol></p>
  *
  * @author Saúl Vargas (saul.vargas@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

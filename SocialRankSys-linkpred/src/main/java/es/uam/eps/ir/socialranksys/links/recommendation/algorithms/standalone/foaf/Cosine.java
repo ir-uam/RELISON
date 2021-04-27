@@ -19,11 +19,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Recommender using the cosine similarity to produce recommendations.
+ * Recommender using the cosine similarity to produce recommendations. It considers each user as a vector, where the
+ * i-th coordinate is the weight of the link between u and the i-th user, and takes the cosine between two user vectors
+ * as the recommendation score.
+ *
  * <p>
- * Lü, L., Zhou. T. Link Prediction in Complex Networks: A survey. Physica A: Statistical Mechanics and its Applications, 390(6), March 2011, pp. 1150-1170.
+ * <b>Reference: </b>Lü, L., Zhou. T. Link Prediction in Complex Networks: A survey. Physica A: Statistical Mechanics and its Applications, 390(6), March 2011, pp. 1150-1170.
  * </p>
- * @param <U> Type of the users
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
@@ -102,7 +105,7 @@ public class Cosine<U> extends UserFastRankingRecommender<U>
                 )
         );
 
-        scoresMap.replaceAll((vidx, sim) -> sim / Math.sqrt(this.vSizes.get(vidx) * this.uSizes.get(uidx)));
+        scoresMap.replaceAll((vidx, sim) -> sim / (Math.sqrt(this.vSizes.get(vidx) * this.uSizes.get(uidx))+1.0));
         return scoresMap;
     }
 

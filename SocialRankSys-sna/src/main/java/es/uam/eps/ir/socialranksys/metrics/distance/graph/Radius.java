@@ -21,7 +21,7 @@ import java.util.Map;
  * Computes the radius of a network. The radius is the minimum
  * eccentricity of the network.
  *
- * @param <U> Type of the users
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -29,7 +29,7 @@ import java.util.Map;
 public class Radius<U> implements GraphMetric<U>
 {
     /**
-     * Distance calculator
+     * Distance calculator.
      */
     private final DistanceCalculator<U> dc;
 

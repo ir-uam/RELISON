@@ -17,11 +17,13 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
  * Recommended that sorts candidate users according to the number of neighbors in common with the target one.
+ *
  * <p>
- * Liben-Nowell, D., Kleinberg, J. The Link Prediction Problem for Social Networks. Journal of the American Society for Information Science and Technology 58(7), May 2007.
- * </p>
- * <p>
- * Newman, M.E.J. Clustering and Preferential Attachment in Growing Networks. Physical Review Letters E, 64(025102), April 2001.
+ *     <b>References:</b>
+ *     <ol>
+ *         <li>D. Liben-Nowell, D., J. Kleinberg. The Link Prediction Problem for Social Networks. Journal of the American Society for Information Science and Technology 58(7) (2007)</li>
+ *         <li>M.E.J. Newman. Clustering and Preferential Attachment in Growing Networks. Physical Review Letters E, 64(025102) (2001)</li>
+ *     </ol>
  * </p>
  *
  * @param <U> type of the users.

@@ -1,7 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 package es.uam.eps.ir.socialranksys.grid.links.recommendation.sampling;
 
@@ -23,8 +26,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Reads the grids for several partition algorithms.
- * @author Javier Sanz-Cruzado Puig
+ * Reads the grid for sampling algorithms from an XML file.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class IndividualSamplingAlgorithmGridReader extends ParametersReader
 {
@@ -34,7 +39,7 @@ public class IndividualSamplingAlgorithmGridReader extends ParametersReader
     private final Map<String, Parameters> partitionsGrid;
     
     /**
-     * Constructor 
+     * Constructor.
      */
     public IndividualSamplingAlgorithmGridReader()
     {
@@ -42,8 +47,8 @@ public class IndividualSamplingAlgorithmGridReader extends ParametersReader
     }
     
     /**
-     * Reads a XML document containing a grid
-     * @param file the XML file
+     * Reads a XML document containing a grid.
+     * @param file the XML file.
      */
     public void readDocument(String file)
     {
@@ -78,7 +83,7 @@ public class IndividualSamplingAlgorithmGridReader extends ParametersReader
     
     /**
      * Reads the grid for a single algorithm.
-     * @param element The XML Element containing the algorithm information
+     * @param element The XML Element containing the algorithm information.
      */
     private void readIndividualSamplingAlgorithm(Element element)
     {
@@ -107,8 +112,8 @@ public class IndividualSamplingAlgorithmGridReader extends ParametersReader
     }
     
     /**
-     * Gets the grid for a given algorithm
-     * @param algorithm The algorithm to search
+     * Gets the grid for a given algorithm.
+     * @param algorithm The algorithm to search.
      * @return The grid if exists, an empty grid if not.
      */
     public Parameters getParameters(String algorithm)

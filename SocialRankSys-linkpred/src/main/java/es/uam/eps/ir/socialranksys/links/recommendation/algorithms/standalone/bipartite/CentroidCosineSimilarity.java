@@ -24,7 +24,7 @@ import java.util.Optional;
  * Recommender. Builds a centroid for each user in the network, using the vectors of the 
  * followed users. The score is then computed as the cosine similarity of those centroids.
  *
- * @param <U> Type of the users
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

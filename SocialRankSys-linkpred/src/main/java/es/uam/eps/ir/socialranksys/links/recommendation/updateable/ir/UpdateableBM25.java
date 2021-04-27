@@ -21,19 +21,19 @@ import java.util.stream.Stream;
 /**
  * Updateable adaptation of the BM-25 Information Retrieval Algorithm for user recommendation. Uses a term-based implementation.
  * <p>
- * Sparck Jones, K., Walker, S., Roberton S.E. A Probabilistic Model of Information Retrieval: Development and Comparative Experiments. 
+ * <b>Reference: </b> K. Sparck Jones, S. Walker, S.E. Robertson. A Probabilistic Model of Information Retrieval: Development and Comparative Experiments.
  * Information Processing and Management 36. February 2000, pp. 779-808 (part 1), pp. 809-840 (part 2).
  * </p>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> type of the users
+ * @param <U> type of the users.
  */
 public class UpdateableBM25<U> extends UserFastRankingUpdateableRecommender<U>
 {
     /**
-     * Parameter that tunes the effect of the neighborhood size. Between 0 and 1
+     * Parameter that tunes the effect of the neighborhood size. Between 0 and 1.
      */
     private final double b;
     /**

@@ -9,9 +9,10 @@
 package es.uam.eps.ir.socialranksys.grid.links.recommendation.sampling;
 
 /**
- * Identifiers for the different contact recommendation algorithms available in 
- * the library
- * @author Javier Sanz-Cruzado Puig
+ * Identifiers for the different sampling approaches in the library.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class IndividualSamplingAlgorithmIdentifiers 
 {

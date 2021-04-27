@@ -1,18 +1,14 @@
-package es.uam.eps.socialranksys.links.recommendation.test;
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+package es.uam.eps.socialranksys.links.recommendation.test;
 
 import es.uam.eps.ir.ranksys.core.Recommendation;
-import es.uam.eps.ir.ranksys.fast.index.FastItemIndex;
-import es.uam.eps.ir.ranksys.fast.index.FastUserIndex;
-import es.uam.eps.ir.ranksys.fast.index.SimpleFastItemIndex;
-import es.uam.eps.ir.ranksys.fast.index.SimpleFastUserIndex;
 import es.uam.eps.ir.ranksys.rec.Recommender;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastDirectedUnweightedGraph;
@@ -28,16 +24,21 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Class that tests some recommenders.
- * @author Javier Sanz-Cruzado Puig
+ * Automated unit tests for checking some recommendation approaches.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class RecommenderTest 
 {
-    
-    FastUserIndex<Long> uIndex;
-    FastItemIndex<Long> iIndex;
-    FastGraph<Long> graph;
-    
+    /**
+     * Social network graph.
+     */
+    private final FastGraph<Long> graph;
+
+    /**
+     * Constructor.
+     */
     public RecommenderTest() 
     {
         List<Long> users = new ArrayList<>();
@@ -46,9 +47,6 @@ public class RecommenderTest
         users.add(2L);
         users.add(3L);
         users.add(4L);
-        
-        uIndex = SimpleFastUserIndex.load(users.stream());
-        iIndex = SimpleFastItemIndex.load(users.stream());
         
         graph = new FastDirectedUnweightedGraph<>();
         graph.addNode(0L);
@@ -166,7 +164,7 @@ public class RecommenderTest
         res.getItems().forEach(out -> {
             if(out.v1.equals(3L))
             {
-                assertEquals(0.5, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
+                assertEquals(1.0/3.0, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
             }
         });
         
@@ -175,7 +173,7 @@ public class RecommenderTest
         res.getItems().forEach(out -> {
             if(out.v1.equals(2L))
             {
-                assertEquals(0.5, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
+                assertEquals(1.0/3.0, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
             }
         });
     }
@@ -216,7 +214,7 @@ public class RecommenderTest
         res.getItems().forEach(out -> {
             if(out.v1.equals(3L))
             {
-                assertEquals(0.5, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
+                assertEquals(1.0/3.0, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
             }
         });
         
@@ -225,7 +223,7 @@ public class RecommenderTest
         res.getItems().forEach(out -> {
             if(out.v1.equals(2L))
             {
-                assertEquals(0.5, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
+                assertEquals(1.0/3.0, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
             }
         });
     }
@@ -241,7 +239,7 @@ public class RecommenderTest
         res.getItems().forEach(out -> {
             if(out.v1.equals(3L))
             {
-                assertEquals(0.5, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
+                assertEquals(1.0/3.0, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
             }
         });
         
@@ -250,7 +248,7 @@ public class RecommenderTest
         res.getItems().forEach(out -> {
             if(out.v1.equals(2L))
             {
-                assertEquals(0.5, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
+                assertEquals(1.0/3.0, out.v2, 0.0001); // 1.0 + in the denom. for preventing NaNs
             }
         });
     }

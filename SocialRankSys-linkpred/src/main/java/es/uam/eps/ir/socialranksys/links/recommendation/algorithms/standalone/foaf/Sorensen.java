@@ -1,5 +1,5 @@
 /* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,9 +18,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Recommender based on Sorensen similarity.
+ * Recommender based on Sorensen similarity. It divides the number of common neighbors by the sum of the
+ * degrees of the target and candidate users.
  * <p>
- * Lü, L., Zhou. T. Link Prediction in Complex Networks: A survey. Physica A: Statistical Mechanics and its Applications, 390(6), March 2011, pp. 1150-1170.
+ * <b>Reference: </b>L. Lü, T. Zhou. Link Prediction in Complex Networks: A survey. Physica A: Statistical Mechanics and its Applications, 390(6), 1150-1170 (2011)
  * </p>
  *
  * @param <U> type of the users

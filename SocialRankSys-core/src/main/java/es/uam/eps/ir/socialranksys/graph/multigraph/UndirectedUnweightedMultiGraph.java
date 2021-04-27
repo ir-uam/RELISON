@@ -75,15 +75,15 @@ public interface UndirectedUnweightedMultiGraph<V> extends UnweightedMultiGraph<
     default Stream<Weights<V, Double>> getNeighbourNodesWeightsLists(V node)
     {
         return this.getNeighbourNodes(node).map((inc) ->
-                                                {
-                                                    List<Double> weights = new ArrayList<>();
-                                                    int numEdges = this.getNumEdges(inc, node);
-                                                    for (int i = 0; i < numEdges; ++i)
-                                                    {
-                                                        weights.add(1.0);
-                                                    }
-                                                    return new Weights<>(inc, weights);
-                                                });
+        {
+            List<Double> weights = new ArrayList<>();
+            int numEdges = this.getNumEdges(inc, node);
+            for (int i = 0; i < numEdges; ++i)
+            {
+                weights.add(1.0);
+            }
+            return new Weights<>(inc, weights);
+        });
     }
 
     @Override

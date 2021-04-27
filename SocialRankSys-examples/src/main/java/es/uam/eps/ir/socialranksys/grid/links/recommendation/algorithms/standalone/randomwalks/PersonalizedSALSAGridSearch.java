@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -24,19 +24,24 @@ import java.util.function.Supplier;
 import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmIdentifiers.PERSSALSA;
 
 /**
- * Grid search generator for Personalized SALSA algorithm.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ * Grid search generator for personalized SALSA algorithm.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.randomwalk.PersonalizedSALSA
  */
 public class PersonalizedSALSAGridSearch<U> implements AlgorithmGridSearch<U>
 {   
     /**
-     * Identifier for the mode of the algorithm
+     * Identifier for the mode of the algorithm.
      */
     private final static String MODE = "mode";
     
     /**
-     * Teleport rate for the HITS algorithm
+     * Teleport rate for the personalized SALSA algorithm.
      */
     private final static String ALPHA = "alpha";
 

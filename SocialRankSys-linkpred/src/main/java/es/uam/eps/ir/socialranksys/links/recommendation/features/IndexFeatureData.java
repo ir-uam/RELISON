@@ -26,6 +26,9 @@ import java.util.stream.Stream;
  * Class for loading feature data from an index.
  *
  * @param <I> type of the items.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class IndexFeatureData<I> implements FeatureData<I,String,Double>
 {

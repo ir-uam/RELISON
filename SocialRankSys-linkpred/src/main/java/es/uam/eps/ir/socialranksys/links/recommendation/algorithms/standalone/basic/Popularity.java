@@ -18,7 +18,7 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 /**
  * Popularity recommender. Recommends users according to their degree.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
@@ -35,8 +35,8 @@ public class Popularity<U> extends UserFastRankingRecommender<U>
     /**
      * Constructor for recommendation mode.
      *
-     * @param graph Graph.
-     * @param vSel  Link orientation for selecting the neighbours of the candidate node.
+     * @param graph graph.
+     * @param vSel  link orientation for selecting the neighbours of the candidate node.
      */
     public Popularity(FastGraph<U> graph, EdgeOrientation vSel)
     {
@@ -47,7 +47,7 @@ public class Popularity<U> extends UserFastRankingRecommender<U>
     /**
      * Constructor for recommendation mode.
      *
-     * @param graph Graph.
+     * @param graph graph.
      */
     public Popularity(FastGraph<U> graph)
     {

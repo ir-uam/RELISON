@@ -15,7 +15,7 @@ import java.util.function.IntPredicate;
 import java.util.stream.IntStream;
 
 /**
- * Fast version of the filler class.
+ * Fast version of the filler interface.
  *
  * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

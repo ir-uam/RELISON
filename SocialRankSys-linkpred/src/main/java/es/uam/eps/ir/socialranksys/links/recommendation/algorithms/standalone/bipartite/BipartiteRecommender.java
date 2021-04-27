@@ -23,7 +23,7 @@ import java.util.Map;
  * Abstract class which represents a bipartite recommender. In those recommenders, there are two types 
  * of users: authorities and hubs. Hubs only have outgoing links, and authorities only have incoming links.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

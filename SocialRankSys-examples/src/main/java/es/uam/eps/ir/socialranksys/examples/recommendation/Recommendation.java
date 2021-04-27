@@ -173,7 +173,7 @@ public class Recommendation
         // Get the different recommenders to execute
         gridreader.getAlgorithms().forEach(algorithm ->
         {
-            AlgorithmGridSelector<Long> ags = new AlgorithmGridSelector<>();
+            AlgorithmGridSelector<Long> ags = new AlgorithmGridSelector<>(Parsers.lp);
             Map<String, RecommendationAlgorithmFunction<Long>> suppliers = ags.getRecommenders(algorithm, gridreader.getGrid(algorithm));
             if (suppliers == null)
             {

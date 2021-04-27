@@ -26,13 +26,13 @@ import es.uam.eps.ir.socialranksys.links.data.updateable.preference.fast.updatea
 import es.uam.eps.ir.socialranksys.links.recommendation.SocialFastFilters;
 import es.uam.eps.ir.socialranksys.links.recommendation.updateable.UpdateableRecommender;
 import es.uam.eps.ir.socialranksys.links.recommendation.updateable.ir.UpdateableBM25;
+import es.uam.eps.ir.socialranksys.links.recommendation.updateable.knn.sim.UpdateableGraphCosineSimilarity;
+import es.uam.eps.ir.socialranksys.links.recommendation.updateable.knn.sim.UpdateableGraphSimilarity;
+import es.uam.eps.ir.socialranksys.links.recommendation.updateable.knn.user.UpdateableUBkNN;
 import es.uam.eps.ir.socialranksys.links.recommendation.updateable.mf.MFGraphUpdateableRecommender;
 import es.uam.eps.ir.socialranksys.links.recommendation.updateable.mf.UpdateableFactorization;
 import es.uam.eps.ir.socialranksys.links.recommendation.updateable.mf.UpdateableFactorizer;
 import es.uam.eps.ir.socialranksys.links.recommendation.updateable.mf.als.HKVUpdateableFactorizer;
-import es.uam.eps.ir.socialranksys.links.recommendation.updateable.nn.sim.UpdateableGraphCosineSimilarity;
-import es.uam.eps.ir.socialranksys.links.recommendation.updateable.nn.sim.UpdateableGraphSimilarity;
-import es.uam.eps.ir.socialranksys.links.recommendation.updateable.nn.user.UpdateableUBkNN;
 import org.jooq.lambda.tuple.Tuple3;
 import org.ranksys.formats.parsing.Parsers;
 import org.ranksys.formats.preference.SimpleRatingPreferencesReader;

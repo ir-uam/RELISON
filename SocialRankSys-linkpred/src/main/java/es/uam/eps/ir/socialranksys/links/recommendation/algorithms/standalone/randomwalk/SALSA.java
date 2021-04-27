@@ -18,6 +18,8 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
  * Recommender system that uses SALSA Algorithm.
+ *
+ * <p><b>Reference: </b>R. Lempel, S. Moran. SALSA: The Stochastic Approach for Link-Structure Analysis. ACM TOIS 19(2), 131-160 (2001)</p>
  * 
  * @param <U> Type of the users
  *

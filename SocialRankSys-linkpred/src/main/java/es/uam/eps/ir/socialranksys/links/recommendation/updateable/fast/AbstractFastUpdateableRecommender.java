@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2015 Information Retrieval Group at Universidad Autónoma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -23,14 +23,14 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 
 /**
- * Abstract (fast) recommender. It implements the free and candidate-based recommendation methods as variants of the filter recommendation.
+ * Abstract (fast) updateable recommender. It implements the free and candidate-based recommendation methods as variants of the filter recommendation.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  * @author Saúl Vargas (saul.vargas@uam.es)
  *
- * @param <U> type of the users
- * @param <I> type of the items
+ * @param <U> type of the users.
+ * @param <I> type of the items.
  */
 public abstract class AbstractFastUpdateableRecommender<U, I> extends AbstractRecommender<U, I> implements FastUpdateableRecommender<U, I>
 {

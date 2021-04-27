@@ -35,6 +35,8 @@ import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.A
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.ir.VSM
  */
 public class VSMGridSearch<U> implements AlgorithmGridSearch<U>
 {
@@ -43,7 +45,7 @@ public class VSMGridSearch<U> implements AlgorithmGridSearch<U>
      */
     private static final String USEL = "uSel";
     /**
-     * Identifier for the orientation of the target user neighborhood
+     * Identifier for the orientation of the candidate user neighborhood
      */
     private static final String VSEL = "vSel";
     /**

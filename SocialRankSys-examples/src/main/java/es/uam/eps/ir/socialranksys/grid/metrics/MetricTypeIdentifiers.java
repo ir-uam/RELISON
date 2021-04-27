@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -8,44 +8,44 @@
  */
 package es.uam.eps.ir.socialranksys.grid.metrics;
 
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Metric identifiers
- * @author Javier Sanz-Cruzado Puig
+ * Identifiers for the different metric types.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class MetricTypeIdentifiers 
 {
-    
     // Identifiers for metric types
     /**
-     * Type for graph metrics
+     * Graph / network metrics.
      */
-    public final static String GRAPH_METRIC = "Graph";
+    public final static String GRAPH_METRIC = "graph";
     /**
-     * Type for vertex metrics
+     * Vertex / node metrics.
      */
-    public final static String VERTEX_METRIC = "Vertex";
+    public final static String VERTEX_METRIC = "vertex";
     /**
-     * Type for edge metrics
+     * Edge / link metrics.
      */
-    public final static String EDGE_METRIC = "Edge";
+    public final static String EDGE_METRIC = "edge";
     /**
-     * Type for pair metrics
+     * Pair metrics.
      */
-    public final static String PAIR_METRIC = "Pair";
+    public final static String PAIR_METRIC = "pair";
     /**
-     * Individual community metric
+     * Individual community metrics.
      */
-    public final static String INDIV_COMM_METRIC = "Indiv. Comm.";
+    public final static String INDIV_COMM_METRIC = "indiv. community";
     /**
-     * Community metric
+     * Community metrics.
      */
-    public final static String GLOBAL_COMM_METRIC = "Global Comm.";
+    public final static String GLOBAL_COMM_METRIC = "global community";
     
     /**
      * Obtains all the possible values for metric type identifiers.

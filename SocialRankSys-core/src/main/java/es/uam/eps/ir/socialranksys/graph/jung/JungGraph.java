@@ -177,6 +177,12 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
     }
 
     @Override
+    public Stream<Weight<U, Integer>> getMutualNodesTypes(U node)
+    {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
     public Stream<Weight<U, Integer>> getNeighbourhoodTypes(U node, EdgeOrientation direction)
     {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.

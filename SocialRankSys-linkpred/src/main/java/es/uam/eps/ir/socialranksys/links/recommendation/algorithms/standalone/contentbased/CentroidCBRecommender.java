@@ -29,9 +29,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Content-based recommendation algorithm, based on a TF-IDF scheme.
+ * Content-based recommendation algorithm, based on a tf-idf scheme. Each piece of content published by
+ * a single user is considered as taken as a single content. Then, using some of these contents, a
+ * centroid using the tf-idf weights is computed for each user.
  *
- * @param <U> Type of the users
+ * Finally, the recommendation score of a link is just the cosine similarity between the vectors of two
+ * separate users.
+ *
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -52,9 +57,60 @@ public class CentroidCBRecommender<U> extends UserFastRankingRecommender<U>
     private final Map<U, Double> modules;
 
     /**
-     * Constructor
+     * Constructor. This variant just takes the information pieces published by each user to generate his/her centroid.
+     *
      * @param graph The training graph.
      * @param index Content index that contains information about users.
+     */
+    public CentroidCBRecommender(FastGraph<U> graph, WrapperIndividualForwardContentIndex<?,U> index)
+    {
+        super(graph);
+        this.centroids = new ConcurrentHashMap<>();
+        this.invCentroids = new ConcurrentHashMap<>();
+        this.modules = new ConcurrentHashMap<>();
+
+        int numDocs = index.numDocs();
+        // Find the centroids for each user.
+        graph.getAllNodes().forEach(u ->
+        {
+            Object2DoubleOpenHashMap<String> centroid = new Object2DoubleOpenHashMap<>();
+            index.getContents(u).forEach(content ->
+            {
+                try
+                {
+                    FreqVector vector = index.getContentVector(content);
+                    for(TermFreq tf : vector)
+                    {
+                        String term = tf.getTerm();
+                        double freq = tf.getFreq();
+                        double df = index.getDocFreq(term);
+                        double tfidf = VSMSearchEngine.tfidf(freq, df, numDocs);
+                        centroid.addTo(term, tfidf);
+
+                        Map<U, Double> map = invCentroids.getOrDefault(term, new ConcurrentHashMap<>());
+                        map.put(u, map.getOrDefault(u, 0.0) + tfidf);
+                        invCentroids.put(term, map);
+                        this.centroids.put(u, centroid);
+                    }
+                }
+                catch(IOException ioe)
+                {
+
+                }
+            });
+        });
+        // Find the modules:
+        graph.getAllNodes().parallel().forEach(u -> modules.put(u, Math.sqrt(this.centroids.get(u).values().stream().mapToDouble(v -> v*v).sum())));
+    }
+
+
+
+    /**
+     * Constructor. This variant takes the contents published by the neighbors of a user to generate the centroids.
+     *
+     * @param graph  the training graph.
+     * @param index  content index that contains information about users.
+     * @param orient the orientation for selecting the neighbors.
      */
     public CentroidCBRecommender(FastGraph<U> graph, WrapperIndividualForwardContentIndex<?,U> index, EdgeOrientation orient)
     {
@@ -147,52 +203,7 @@ public class CentroidCBRecommender<U> extends UserFastRankingRecommender<U>
         }
     }
 
-    /**
-     * Constructor
-     * @param graph The training graph.
-     * @param index Content index that contains information about users.
-     */
-    public CentroidCBRecommender(FastGraph<U> graph, WrapperIndividualForwardContentIndex<?,U> index)
-    {
-        super(graph);
-        this.centroids = new ConcurrentHashMap<>();
-        this.invCentroids = new ConcurrentHashMap<>();
-        this.modules = new ConcurrentHashMap<>();
 
-
-        int numDocs = index.numDocs();
-        // Find the centroids for each user.
-        graph.getAllNodes().forEach(u ->
-        {
-            Object2DoubleOpenHashMap<String> centroid = new Object2DoubleOpenHashMap<>();
-            index.getContents(u).forEach(content ->
-            {
-                try
-                {
-                    FreqVector vector = index.getContentVector(content);
-                    for(TermFreq tf : vector)
-                    {
-                        String term = tf.getTerm();
-                        double freq = tf.getFreq();
-                        double df = index.getDocFreq(term);
-                        double tfidf = VSMSearchEngine.tfidf(freq, df, numDocs);
-                        centroid.addTo(term, tfidf);
-
-                        Map<U, Double> map = invCentroids.getOrDefault(term, new ConcurrentHashMap<>());
-                        map.put(u, map.getOrDefault(u, 0.0) + tfidf);
-                        invCentroids.put(term, map);
-                        this.centroids.put(u, centroid);
-                    }
-                }
-                catch(IOException ioe)
-                {
-
-                }
-            });
-        });
-        // Find the modules:
-        graph.getAllNodes().parallel().forEach(u -> modules.put(u, Math.sqrt(this.centroids.get(u).values().stream().mapToDouble(v -> v*v).sum())));
-    }
 
     @Override
     public Int2DoubleMap getScoresMap(int uIdx)

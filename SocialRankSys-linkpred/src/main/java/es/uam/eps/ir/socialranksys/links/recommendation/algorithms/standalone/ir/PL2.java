@@ -19,8 +19,8 @@ import java.util.Optional;
  * Class that applies the PL2 Divergence from Randomness model as a contact
  * recommendation algorithm.
  * <p>
- * Amati, G., Van Rijsbergen, C.J.: Probabilistic Models of Information Retrieval Based on Measuring the Divergence from Randomness.
- * ACM Transactions on Information Systems 20(4), 357–389 (2002)
+ * <b>Reference:</b> G. Amati, C.J. Van Rijsbergen. Probabilistic Models of Information Retrieval Based on Measuring the Divergence from Randomness.
+ * ACM Transactions on Information Systems 20(4), 357–389 (2002)</p>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)

@@ -1,5 +1,5 @@
 /* 
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -14,14 +14,16 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
- * Hiperlink-Induced Topic Search (HITS) Recommender
+ * Hiperlink-Induced Topic Search (HITS) recommender.
+ *
+ * <p><b>Reference: </b> J.M. Kleinberg. Authoritative Sources in a Hyperlinked Environment. Journal of the ACM 46(5), 604-642 (1999)</p>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the users
  */
-public class HITSRecommender<U> extends BipartiteRecommender<U>
+public class HITS<U> extends BipartiteRecommender<U>
 {
     /**
      * Scores for each user.
@@ -37,7 +39,7 @@ public class HITSRecommender<U> extends BipartiteRecommender<U>
      * @param graph the graph.
      * @param mode  true if we want to recommend authorities, false if we want to recommend hubs.
      */
-    public HITSRecommender(FastGraph<U> graph, boolean mode) {
+    public HITS(FastGraph<U> graph, boolean mode) {
         super(graph, mode);
         this.scores = this.computeHITS();
     }

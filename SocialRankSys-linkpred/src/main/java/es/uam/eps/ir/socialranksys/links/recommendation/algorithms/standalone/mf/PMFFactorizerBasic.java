@@ -21,6 +21,8 @@ import es.uam.eps.ir.socialranksys.utils.math.MathFunctions;
 /**
  * Factorizer for the probabilistic matrix factorization algorithm (PMF).
  *
+ * <p><b>Reference: </b> R. Salakhutdinov, A. Mnih. A Probabilistic Matrix Factorization. 21st Annual Conference on Neural Information Processing Systems (NIPS 2007), 1257-1264 (2007)</p>
+ *
  * @param <U> type of the users.
  * @param <I> type of the items.
  *

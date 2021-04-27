@@ -15,7 +15,17 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
- * Recommender that uses the hub promoted index of the neighbours.
+ * Recommender that uses the hub depressed index of the neighbors: given the number of common neighbors
+ * between two users, the recommendation score is divided by the size of either the target user or the candidate user:
+ * the user with a smaller number of them. This way, nodes with high degree are promoted.
+ *
+ * <p>
+ *  <b>References: </b>
+ *  <ol>
+ *      <li>E. Ravasz, A.L. Somera, D.A. Mongru, Z.N. Oltvai, A-L. Barabasi. Hierarchical Organization in Metabolic Networks, Science 297 (2002)</li>
+ *      <li>T. Zhou, L. Lü, Y. Zhang. Predicting missing links via local information. European Physical Journal B 71, 623-630 (2009)</li>
+ *  </ol>
+ * </p>
  *
  * @param <U> type of the users.
  *
@@ -79,7 +89,7 @@ public class HubPromotedIndex<U> extends UserFastRankingRecommender<U>
         
         for(int vidx : scoresMap.keySet())
         {
-            scoresMap.replace(vidx, scoresMap.get(vidx)/(Math.min(this.vSizes.get(vidx), this.uSizes.get(uidx))));
+            scoresMap.replace(vidx, scoresMap.get(vidx)/(Math.min(this.vSizes.get(vidx), this.uSizes.get(uidx))+1.0));
         }
         return scoresMap;
     }

@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * and scores recommended contacts by the maximum similarity over the authorities
  * that the target user is currently following.
  *
- * @param <U> Type of the users
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

@@ -19,7 +19,7 @@ import java.util.Map;
 /**
  * General personalized SALSA recommender.
  * <p>
- * Goel, A. et al. The who-to-follow system at Twitter: Strategy, algorithms and revenue impact. Interfaces 45(1), 2015, pp. 98-107
+ * <b>Reference: </b>A. Goel, P. Gupta, J. Sirois, D. Wang, A. Sharma, S. Gurumurthy. The who-to-follow system at Twitter: Strategy, algorithms and revenue impact. Interfaces 45(1), 98-107 (2015)
  * </p>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)

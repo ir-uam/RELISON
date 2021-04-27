@@ -21,7 +21,7 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
  * When the selected neighbourhood is formed by the incoming nodes, then this method is equal to the Popularity
  * recommender method.
  * <p>
- * Newman, M.E.J. Clustering and Preferential Attachment in Growing Networks. Physical Review Letters E, 64(025102), April 2001.
+ * <b>Reference: </b> Newman, M.E.J. Clustering and Preferential Attachment in Growing Networks. Physical Review Letters E, 64(025102), April 2001.
  * </p>
  *
  * @param <U> Type of the users.

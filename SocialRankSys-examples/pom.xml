@@ -77,5 +77,10 @@
             <artifactId>RankSys-rec</artifactId>
             <version>0.4.3</version>
         </dependency>
+        <dependency>
+            <groupId>com.esotericsoftware.yamlbeans</groupId>
+            <artifactId>yamlbeans</artifactId>
+            <version>1.06</version>
+        </dependency>
     </dependencies>
 </project>

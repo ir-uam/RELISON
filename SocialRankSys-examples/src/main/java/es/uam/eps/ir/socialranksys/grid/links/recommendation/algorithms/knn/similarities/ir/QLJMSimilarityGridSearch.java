@@ -1,12 +1,12 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
- *  de Madrid, http://ir.ii.uam.es
- * 
+ * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * de Madrid, http://ir.ii.uam.es and Terrier Team at University of Glasgow,
+ * http://terrierteam.dcs.gla.ac.uk/.
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-
 package es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.ir;
 
 import es.uam.eps.ir.ranksys.fast.preference.FastPreferenceData;
@@ -26,24 +26,32 @@ import java.util.function.Supplier;
 import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityIdentifiers.QLJM;
 
 /**
- * Grid search for the vector cosine similarity.
- * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
- * @param <U> Type of the users.
+ * Grid search generator for Query Likelihood similarity with Jelinek-Mercer smoothing.
+ *
+ * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
+ * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.ir.QLJMSimilarity
  */
 public class QLJMSimilarityGridSearch<U> implements SimilarityGridSearch<U>
 {
     /**
-     * Identifier for the selection of neighbors for the target user
+     * Identifier for the trade-off between the regularization term and the original term in
+     * the Query Likelihood Jelinek-Mercer formula.
      */
-    private final String USEL = "uSel";
+    private static final String LAMBDA = "lambda";
     /**
-     * Identifier for the selection of neighbors for the neighbor user.
+     * Identifier for the orientation of the target user neighborhood
      */
-    private final String VSEL = "vSel";
+    private static final String USEL = "uSel";
     /**
-     * Identifier for the selection of neighbors of the common neighbors between both users
+     * Identifier for the orientation of the neighbor user neighborhood
      */
-    private final String LAMBDA = "lambda";
+    private static final String VSEL = "vSel";
     
     @Override
     public Map<String, SimilarityFunction<U>> grid(Grid grid)

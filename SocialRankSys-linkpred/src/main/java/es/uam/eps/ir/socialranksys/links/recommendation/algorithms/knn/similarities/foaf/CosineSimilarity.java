@@ -32,7 +32,7 @@ import java.util.stream.Stream;
  *
  * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.foaf.Cosine
  */
-public class VectorCosineSimilarity extends GraphSimilarity
+public class CosineSimilarity extends GraphSimilarity
 {
     /**
      * Map containing the length of the target users.
@@ -57,7 +57,7 @@ public class VectorCosineSimilarity extends GraphSimilarity
      * @param uSel  neighborhood selection for the first user.
      * @param vSel  neighborhood selection for the second user.
      */
-    public VectorCosineSimilarity(FastGraph<?> graph, EdgeOrientation uSel, EdgeOrientation vSel)
+    public CosineSimilarity(FastGraph<?> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {
         super(graph);
         

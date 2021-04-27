@@ -36,15 +36,15 @@ public interface UnweightedMultiGraph<V> extends MultiGraph<V>, UnweightedGraph<
     default Stream<Weights<V, Double>> getIncidentNodesWeightsLists(V node)
     {
         return this.getIncidentNodes(node).map((inc) ->
-                                               {
-                                                   List<Double> weights = new ArrayList<>();
-                                                   int numEdges = this.getNumEdges(inc, node);
-                                                   for (int i = 0; i < numEdges; ++i)
-                                                   {
-                                                       weights.add(1.0);
-                                                   }
-                                                   return new Weights<>(inc, weights);
-                                               });
+        {
+            List<Double> weights = new ArrayList<>();
+            int numEdges = this.getNumEdges(inc, node);
+            for (int i = 0; i < numEdges; ++i)
+            {
+                weights.add(1.0);
+            }
+            return new Weights<>(inc, weights);
+        });
     }
 
     /**
@@ -58,15 +58,15 @@ public interface UnweightedMultiGraph<V> extends MultiGraph<V>, UnweightedGraph<
     default Stream<Weights<V, Double>> getAdjacentNodesWeightsLists(V node)
     {
         return this.getAdjacentNodes(node).map((adj) ->
-                                               {
-                                                   List<Double> weights = new ArrayList<>();
-                                                   int numEdges = this.getNumEdges(node, adj);
-                                                   for (int i = 0; i < numEdges; ++i)
-                                                   {
-                                                       weights.add(1.0);
-                                                   }
-                                                   return new Weights<>(adj, weights);
-                                               });
+        {
+            List<Double> weights = new ArrayList<>();
+            int numEdges = this.getNumEdges(node, adj);
+            for (int i = 0; i < numEdges; ++i)
+            {
+                weights.add(1.0);
+            }
+            return new Weights<>(adj, weights);
+        });
     }
 
     /**
@@ -80,15 +80,15 @@ public interface UnweightedMultiGraph<V> extends MultiGraph<V>, UnweightedGraph<
     default Stream<Weights<V, Double>> getNeighbourNodesWeightsLists(V node)
     {
         return this.getNeighbourNodes(node).map((inc) ->
-                                                {
-                                                    List<Double> weights = new ArrayList<>();
-                                                    int numEdges = this.getNumEdges(inc, node);
-                                                    for (int i = 0; i < numEdges; ++i)
-                                                    {
-                                                        weights.add(1.0);
-                                                    }
-                                                    return new Weights<>(inc, weights);
-                                                });
+        {
+            List<Double> weights = new ArrayList<>();
+            int numEdges = this.getNumEdges(inc, node);
+            for (int i = 0; i < numEdges; ++i)
+            {
+                weights.add(1.0);
+            }
+            return new Weights<>(inc, weights);
+        });
     }
 
 

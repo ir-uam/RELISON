@@ -20,7 +20,7 @@ import java.util.OptionalDouble;
 /**
  * Adaptation of the BM-25 Information Retrieval Algorithm for user recommendation. Uses a term-based implementation.
  * <p>
- * Sparck Jones, K., Walker, S., Roberton S.E. A Probabilistic Model of Information Retrieval: Development and Comparative Experiments.
+ *  <b>Reference: </b> K. Sparck Jones, S. Walker, S.E. Robertson. A Probabilistic Model of Information Retrieval: Development and Comparative Experiments.
  * Information Processing and Management 36. February 2000, pp. 779-808 (part 1), pp. 809-840 (part 2).
  * </p>
  *

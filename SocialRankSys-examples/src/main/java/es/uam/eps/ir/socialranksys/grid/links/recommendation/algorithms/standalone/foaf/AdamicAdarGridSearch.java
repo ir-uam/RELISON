@@ -29,25 +29,27 @@ import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.A
 /**
  * Grid search generator for Adamic-Adar algorithm.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.foaf.AdamicAdar
  */
 public class AdamicAdarGridSearch<U> implements AlgorithmGridSearch<U>
 {
     /**
-     * Identifier for the orientation of the target user neighborhood
+     * Identifier for the orientation of the target user neighborhood.
      */
     private static final String USEL = "uSel";
     /**
-     * Identifier for the orientation of the candidate user neighborhood
+     * Identifier for the orientation of the candidate user neighborhood.
      */
     private static final String VSEL = "vSel";
     /**
-     * Identifier for the orientation of the intersection user neighborhood
+     * Identifier for the orientation of the intersection user neighborhood.
      */
     private static final String WSEL = "wSel";
 

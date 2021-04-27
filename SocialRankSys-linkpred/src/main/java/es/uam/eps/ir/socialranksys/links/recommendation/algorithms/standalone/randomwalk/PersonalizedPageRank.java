@@ -19,6 +19,8 @@ import java.util.Map;
 /**
  * Recommends an user by her personalized PageRank score.
  *
+ * <p><b>Reference: </b> S. White, P. Smyth. Algorithms for Estimating Relative Importance in Networks. 9th Annual ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD 2003)</p>
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *

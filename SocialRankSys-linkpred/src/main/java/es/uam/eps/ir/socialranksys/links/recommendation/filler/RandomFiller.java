@@ -23,8 +23,8 @@ import java.util.stream.Stream;
  * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the items.
+ * @param <U> type of the users.
+ * @param <I> type of the items.
  */
 public class RandomFiller<U,I> extends AbstractFastFiller<U,I>
 {

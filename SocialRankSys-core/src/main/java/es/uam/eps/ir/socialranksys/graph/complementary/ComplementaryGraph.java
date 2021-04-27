@@ -259,6 +259,12 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     }
 
     @Override
+    public Stream<Weight<U, Integer>> getMutualNodesTypes(U node)
+    {
+        return this.getMutualNodes(node).map(vertex -> new Weight<>(vertex, EdgeType.getDefaultValue()));
+    }
+
+    @Override
     public Stream<Weight<U, Integer>> getAdjacentMutualNodesTypes(U node)
     {
         return this.getMutualNodes(node).map(vertex -> new Weight<>(vertex, EdgeType.getDefaultValue()));

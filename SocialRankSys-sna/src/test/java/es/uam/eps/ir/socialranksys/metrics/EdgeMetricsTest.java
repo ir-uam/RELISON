@@ -15,7 +15,7 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastUndirectedUnweightedGraph;
 import org.junit.*;
 
 /**
- * Tests for edge metrics.
+ * Automated unit tests for edge metrics.
  *
  * @author Javier Sanz-Cruzado Puig
  */

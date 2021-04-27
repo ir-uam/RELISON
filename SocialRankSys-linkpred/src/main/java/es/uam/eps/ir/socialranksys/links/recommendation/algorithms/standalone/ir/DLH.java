@@ -19,7 +19,7 @@ import java.util.Optional;
  * Class that applies the DLH Divergence from Randomness model as a contact
  * recommendation algorithm.
  * <p>
- * Amati, G., Ambrosi, E., Bianchi, M., Gaibisso, C., Gambosi, G.: FUB, IASI-CNRand University of Tor Vergata at TREC 2007 Blog Track. In: Proceedings of the16th Text REtrieval Conference (TREC 2007). NIST (2007
+ * <b>Reference:</b> G. Amati, E. Ambrosi, M. Bianchi, C. Gaibisso, G. Gambosi: FUB, IASI-CNRand University of Tor Vergata at TREC 2007 Blog Track. In: Proceedings of the16th Text REtrieval Conference (TREC 2007). NIST (2007)
  * </p>
  *
  * @param <U> type of the users.

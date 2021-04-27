@@ -30,7 +30,9 @@ import java.util.stream.IntStream;
 /**
  * Abstract version of the hitting time algorithm.
  *
- * @param <U> Type of the users
+ * @param <U> type of the users.
+ *
+ * <p><b>Reference: </b> D. Liben-Nowell, D., J. Kleinberg. The Link Prediction Problem for Social Networks. Journal of the American Society for Information Science and Technology 58(7) (2007)</p>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -40,7 +42,7 @@ public abstract class AbstractHittingTime<U> extends MatrixBasedRecommender<U>
     /**
      * Constructor.
      *
-     * @param graph A fast graph representing the social network.
+     * @param graph a fast graph representing the social network.
      */
     public AbstractHittingTime(FastGraph<U> graph)
     {
@@ -49,8 +51,8 @@ public abstract class AbstractHittingTime<U> extends MatrixBasedRecommender<U>
 
     /**
      * Constructor.
-     * @param graph a fast graph representing the social network.
-     * @param library the matrix library to use.
+     * @param graph     a fast graph representing the social network.
+     * @param library   the matrix library to use.
      */
     public AbstractHittingTime(FastGraph<U> graph, MatrixLibrary library)
     {

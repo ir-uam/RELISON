@@ -20,7 +20,9 @@ import java.util.OptionalDouble;
 /**
  * Adaptation of the pivoted normalization vector space model (VSM).
  *
- * @param <U> Type of the users.
+ * <p><b>Reference:</b> A. Singhal, J. Choi, D. Hindle, D.D. Lewis, F.C.N. Pereira: AT and T at TREC-7. 7th Text Retrieval Conference (TREC 1998), 186-198 (1998)</p>
+ *
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)

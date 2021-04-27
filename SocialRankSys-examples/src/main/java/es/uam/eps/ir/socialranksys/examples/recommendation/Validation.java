@@ -159,7 +159,7 @@ public class Validation
             long timeaa = System.currentTimeMillis();
             Grid grid = gridreader.getGrid(algorithm);
             Configurations confs = grid.getConfigurations();
-            AlgorithmGridSelector<Long> algorithmSelector = new AlgorithmGridSelector<>();
+            AlgorithmGridSelector<Long> algorithmSelector = new AlgorithmGridSelector<>(Parsers.lp);
 
             // Configure the recommender runner
             @SuppressWarnings("unchecked")

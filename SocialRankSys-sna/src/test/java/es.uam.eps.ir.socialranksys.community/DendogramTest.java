@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Information Retrieval Group at Universidad Autónoma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -20,19 +20,17 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 /**
- * Tests for the dendogram class.
+ * Automated unit tests for the dendogram class.
  *
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class DendogramTest
 {
-
+    /**
+     * The dendogram.
+     */
     Dendogram<Long> dendogram;
-
-    public DendogramTest()
-    {
-
-    }
 
     @BeforeClass
     public static void setUpClass()
@@ -267,6 +265,9 @@ public class DendogramTest
         Assert.assertNull(this.dendogram.getCommunitiesByNumber(-1));
     }
 
+    /**
+     * Test the sizes of the communities.
+     */
     @Test
     public void getCommunitiesBySizeTest()
     {

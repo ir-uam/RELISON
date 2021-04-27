@@ -127,7 +127,8 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
         {
             case IN -> this.getIncidentNodes(node);
             case OUT -> this.getAdjacentNodes(node);
-            default -> this.getNeighbourNodes(node);
+            case UND -> this.getNeighbourNodes(node);
+            case MUTUAL -> this.getMutualNodes(node);
         };
     }
 
@@ -156,7 +157,8 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
         {
             case IN -> this.getIncidentNodesCount(node);
             case OUT -> this.getAdjacentNodesCount(node);
-            default -> this.getNeighbourNodesCount(node);
+            case UND -> this.getNeighbourNodesCount(node);
+            case MUTUAL -> this.getMutualNodesCount(node);
         };
     }
 
@@ -226,7 +228,8 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
         {
             case IN -> this.getIncidentNodesWeights(node);
             case OUT -> this.getAdjacentNodesWeights(node);
-            default -> this.getNeighbourNodesWeights(node);
+            case UND -> this.getNeighbourNodesWeights(node);
+            case MUTUAL -> this.getMutualNodesWeights(node);
         };
     }
 
@@ -279,7 +282,8 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
         {
             case IN -> this.getIncidentNodesTypes(node);
             case OUT -> this.getAdjacentNodesTypes(node);
-            default -> this.getNeighbourNodesTypes(node);
+            case UND -> this.getNeighbourNodesTypes(node);
+            case MUTUAL -> this.getMutualNodesTypes(node);
         };
     }
 

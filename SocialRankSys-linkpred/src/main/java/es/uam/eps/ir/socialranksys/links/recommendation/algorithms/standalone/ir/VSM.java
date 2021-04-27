@@ -19,8 +19,11 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 /**
  * Adaptation of the TF-IDF method of Information Retrieval for user recommendation
  *
- * @param <U> Type of the users
+ * <p><b>Reference: </b> G. Salton, A. Wong, C.S. Yang. A vector space for automatic indexing. Communications of the ACM 18(11), 613-620 (1975)</p>
  *
+ * @param <U> type of the users
+ *
+
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)

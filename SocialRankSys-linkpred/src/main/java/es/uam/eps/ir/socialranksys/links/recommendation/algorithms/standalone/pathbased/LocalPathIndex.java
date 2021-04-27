@@ -21,9 +21,18 @@ import no.uib.cipr.matrix.sparse.LinkedSparseMatrix;
 import org.jblas.DoubleMatrix;
 
 /**
- * Local path index recommender.
+ * Local path index recommender. It takes all paths of distances between 2 and k between the target and candidate
+ * users, and weights them, so shortest paths are more important.
  *
- * @param <U> Type of the users
+ * <p>
+ *     <b>References:</b>
+ *      <ol>
+ *          <li>L. Lü, C. Jin, T. Zhou. Similarity Index Based on Local Paths for Link Prediction of Complex Networks. Physical Review E 80(4): 046122 (2009)</li>
+ *          <li>L. Lü, T. Zhou. Link Prediction in Complex Networks: A survey. Physica A 390(6), 1150-1170 (2011)</li>
+ *      </ol>
+ * </p>
+ *
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -38,9 +47,13 @@ public class LocalPathIndex<U> extends GlobalMatrixBasedRecommender<U>
      * The maximum distance between users.
      */
     private final double k;
+    /**
+     * The orientation for the adjacency matrix.
+     */
+    private final EdgeOrientation orient;
 
     /**
-     * Constructor.
+     * Constructor. Takes the outgoing orientation by default.
      *
      * @param graph a fast graph representing the social network.
      * @param beta  the dampening factor.
@@ -51,6 +64,24 @@ public class LocalPathIndex<U> extends GlobalMatrixBasedRecommender<U>
         super(graph);
         this.beta = beta;
         this.k = k;
+        this.orient = EdgeOrientation.OUT;
+        this.matrix = getMatrix();
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param graph     a fast graph representing the social network.
+     * @param beta      the dampening factor.
+     * @param k         the maximum distance between the target and candidate users (k >= 2)
+     * @param orient    the orientation for selecting the adjacency matrix.
+     */
+    public LocalPathIndex(FastGraph<U> graph, double beta, int k, EdgeOrientation orient)
+    {
+        super(graph);
+        this.beta = beta;
+        this.k = k;
+        this.orient = orient;
         this.matrix = getMatrix();
     }
 

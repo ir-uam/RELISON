@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,31 +15,32 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastUndirectedUnweightedGraph;
 import org.junit.*;
 
 /**
- * Tests for community metrics.
+ * Automated unit tests for community metrics.
  *
- * @author Javier
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class CommunityMetrics
 {
 
     /**
-     * Directed Strongly Connected Graph
+     * Directed strongly connected graph.
      */
     private DirectedGraph<Integer> directedStronglyConnected;
     /**
-     * Directed Weakly Connected Graph
+     * Directed weakly connected graph.
      */
     private DirectedGraph<Integer> directedWeaklyConnected;
     /**
-     * Directed Unconnected Graph (not even weakly)
+     * Directed disconnected graph (not even weakly)
      */
     private DirectedGraph<Integer> directedNonConnected;
     /**
-     * Undirected Connected Graph
+     * Undirected connected graph
      */
     private UndirectedGraph<Integer> undirectedConnected;
     /**
-     * Undirected Unconnected Graph
+     * Undirected disconnected graph
      */
     private UndirectedGraph<Integer> undirectedNonConnected;
     /**
@@ -58,10 +59,6 @@ public class CommunityMetrics
      * Undirected empty graph
      */
     private UndirectedGraph<Integer> undirectedEmpty;
-
-    public CommunityMetrics()
-    {
-    }
 
     @BeforeClass
     public static void setUpClass()

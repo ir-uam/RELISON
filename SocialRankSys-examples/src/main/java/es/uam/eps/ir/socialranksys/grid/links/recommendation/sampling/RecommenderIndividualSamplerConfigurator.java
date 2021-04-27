@@ -18,6 +18,8 @@ import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.Recommen
 import es.uam.eps.ir.socialranksys.links.data.letor.sampling.IndividualSampler;
 import es.uam.eps.ir.socialranksys.links.data.letor.sampling.RecommenderIndividualSampler;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import org.jooq.lambda.tuple.Tuple2;
+import org.ranksys.formats.parsing.Parser;
 
 import java.util.function.Supplier;
 
@@ -42,14 +44,14 @@ public class RecommenderIndividualSamplerConfigurator<U> implements IndividualSa
     
     private final AlgorithmGridSelector<U> gridSelector;
     
-    public RecommenderIndividualSamplerConfigurator()
+    public RecommenderIndividualSamplerConfigurator(Parser<U> uParser)
     {
-        this.gridSelector = new AlgorithmGridSelector<>();
+        this.gridSelector = new AlgorithmGridSelector<>(uParser);
     }
     
     
     @Override
-    public Tuple2oo<String, IndividualSampler<U>> grid(Parameters params, FastGraph<U> trainGraph, FastGraph<U> testGraph, FastPreferenceData<U,U> prefData)
+    public Tuple2<String, IndividualSampler<U>> grid(Parameters params, FastGraph<U> trainGraph, FastGraph<U> testGraph, FastPreferenceData<U,U> prefData)
     {
         Tuple2oo<String, Parameters> rec = params.getParametersValue(REC);
         Integer k = params.getIntegerValue(K);
@@ -61,11 +63,11 @@ public class RecommenderIndividualSamplerConfigurator<U> implements IndividualSa
         
         String name = IndividualSamplingAlgorithmIdentifiers.RECOMMENDER + "_" + recommender.v1() + "_k";
         IndividualSampler<U> sampler = new RecommenderIndividualSampler<>(trainGraph, recommender.v2().get(), k);
-        return new Tuple2oo<>(name, sampler);
+        return new Tuple2<>(name, sampler);
     }
 
     @Override
-    public Tuple2oo<String, IndividualSamplerFunction<U>> grid(Parameters params)
+    public Tuple2<String, IndividualSamplerFunction<U>> grid(Parameters params)
     {
         Tuple2oo<String, Parameters> rec = params.getParametersValue(REC);
         Integer k = params.getIntegerValue(K);
@@ -82,7 +84,7 @@ public class RecommenderIndividualSamplerConfigurator<U> implements IndividualSa
             return new RecommenderIndividualSampler<>(graph, alg, k);
         };
         
-        return new Tuple2oo<>(name, function); 
+        return new Tuple2<>(name, function);
         
     }
     

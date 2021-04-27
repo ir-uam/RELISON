@@ -16,10 +16,10 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.Configurations;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.Parameters;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.degree.AdamicSimilarityGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.degree.JaccardSimilarityGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.degree.MostCommonNeighborsSimilarityGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.degree.VectorCosineSimilarityGridSearch;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.foaf.AdamicSimilarityGridSearch;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.foaf.CosineSimilarityGridSearch;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.foaf.JaccardSimilarityGridSearch;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.foaf.MostCommonNeighborsSimilarityGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.ir.*;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
 
@@ -189,12 +189,12 @@ public class SimilarityGridSelector<U>
             case ADAMIC -> new AdamicSimilarityGridSearch<>();
             case MCN -> new MostCommonNeighborsSimilarityGridSearch<>();
             case JACCARD -> new JaccardSimilarityGridSearch<>();
-            case VECTORCOSINE -> new VectorCosineSimilarityGridSearch<>();
+            case VECTORCOSINE -> new CosineSimilarityGridSearch<>();
             // IR similarities
             case VSM -> new VSMSimilarityGridSearch<>();
             case BIR -> new BIRSimilarityGridSearch<>();
             case BM25 -> new BM25SimilarityGridSearch<>();
-            case EBM25 -> new ExtremeBM25SimilarityGridSearch<>();
+            case EBM25 -> new EBM25SimilarityGridSearch<>();
             case QLJM -> new QLJMSimilarityGridSearch<>();
             case QLD -> new QLDSimilarityGridSearch<>();
             case QLL -> new QLLSimilarityGridSearch<>();

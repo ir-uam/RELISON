@@ -27,18 +27,19 @@ import java.util.function.Supplier;
 /**
  * Grid search generator for the PL2 Divergence from Randomness method
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.ir.PL2
  */
 public class PL2GridSearch<U> implements AlgorithmGridSearch<U>
 {
     /**
-     * Identifier for the trade-off between the regularization term and the original term in
-     * the Query Likelihood Jelinek-Mercer formula.
+     * Identifier for the parameter for tuning the importance of the candidate user length.
      */
     private static final String C = "c";
     /**
@@ -46,7 +47,7 @@ public class PL2GridSearch<U> implements AlgorithmGridSearch<U>
      */
     private static final String USEL = "uSel";
     /**
-     * Identifier for the orientation of the target user neighborhood
+     * Identifier for the orientation of the candidate user neighborhood
      */
     private static final String VSEL = "vSel";
     /**

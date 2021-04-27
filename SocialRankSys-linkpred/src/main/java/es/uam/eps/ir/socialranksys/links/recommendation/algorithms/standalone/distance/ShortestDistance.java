@@ -27,7 +27,7 @@ import java.util.Random;
 /**
  * Recommends users by computing the distance between two of them.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

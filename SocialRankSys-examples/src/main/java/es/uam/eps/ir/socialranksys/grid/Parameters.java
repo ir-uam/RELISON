@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -17,8 +17,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Configuration parameters for an algorithm.
- * @author Javier Sanz-Cruzado Puig
+ * Class for storing the configuration parameters for an algorithm, metric, etc.
+ * Each parameter has a single associated value.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class Parameters 
 {
@@ -52,14 +55,14 @@ public class Parameters
     private final Map<String, Tuple2oo<String,Parameters>> paramValues;
 
     /**
-     * Constructor
-     * @param doubleValues Double values for the different parameters
-     * @param orientationValues Edge orientation values for the different parameters
-     * @param stringValues String values for the different parameters
-     * @param integerValues Integer values for the different parameters
-     * @param booleanValues Boolean values for the different parameters.
-     * @param longValues Long values for the parameters.
-     * @param paramValues Recursive values for the parameters.
+     * Constructor.
+     * @param doubleValues      double values for the different parameters
+     * @param orientationValues edge orientation values for the different parameters
+     * @param stringValues      string values for the different parameters
+     * @param integerValues     integer values for the different parameters
+     * @param booleanValues     boolean values for the different parameters.
+     * @param longValues        long values for the parameters.
+     * @param paramValues       recursive values for the parameters.
      */
     public Parameters(Map<String, Double> doubleValues, Map<String, EdgeOrientation> orientationValues, Map<String, String> stringValues, Map<String, Integer> integerValues, Map<String, Boolean> booleanValues, Map<String, Long> longValues, Map<String, Tuple2oo<String, Parameters>> paramValues)
     {

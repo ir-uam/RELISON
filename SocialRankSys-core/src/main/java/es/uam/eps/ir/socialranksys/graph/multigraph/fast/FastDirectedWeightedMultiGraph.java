@@ -15,6 +15,8 @@ import es.uam.eps.ir.socialranksys.graph.multigraph.DirectedWeightedMultiGraph;
 import es.uam.eps.ir.socialranksys.graph.multigraph.edges.fast.FastDirectedWeightedMultiEdges;
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -59,25 +61,27 @@ public class FastDirectedWeightedMultiGraph<U> extends AbstractFastMultiGraph<U>
     @Override
     public Stream<U> getMutualNodes(U node)
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return this.getAdjacentNodes(node).filter(u -> this.containsEdge(node, u));
     }
 
     @Override
     public int getMutualEdgesCount(U node)
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return this.getMutualNodes(node).mapToInt(u -> this.getNumEdges(node, u) + this.getNumEdges(u, node)).sum();
     }
 
     @Override
     public Stream<Weight<U, Double>> getAdjacentMutualNodesWeights(U node)
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        Set<U> mutuals = this.getMutualNodes(node).collect(Collectors.toSet());
+        return this.getAdjacentNodesWeights(node).filter(w -> mutuals.contains(w.getIdx()));
     }
 
     @Override
     public Stream<Weight<U, Double>> getIncidentMutualNodesWeights(U node)
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        Set<U> mutuals = this.getMutualNodes(node).collect(Collectors.toSet());
+        return this.getIncidentNodesWeights(node).filter(w -> mutuals.contains(w.getIdx()));
     }
 
     @Override
@@ -87,15 +91,23 @@ public class FastDirectedWeightedMultiGraph<U> extends AbstractFastMultiGraph<U>
     }
 
     @Override
-    public Stream<Weight<U, Integer>> getAdjacentMutualNodesTypes(U node)
+    public Stream<Weight<U, Integer>> getMutualNodesTypes(U node)
     {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
+    public Stream<Weight<U, Integer>> getAdjacentMutualNodesTypes(U node)
+    {
+        Set<U> mutuals = this.getMutualNodes(node).collect(Collectors.toSet());
+        return this.getAdjacentNodesTypes(node).filter(w -> mutuals.contains(w.getIdx()));
+    }
+
+    @Override
     public Stream<Weight<U, Integer>> getIncidentMutualNodesTypes(U node)
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        Set<U> mutuals = this.getMutualNodes(node).collect(Collectors.toSet());
+        return this.getIncidentNodesTypes(node).filter(w -> mutuals.contains(w.getIdx()));
     }
 
 }

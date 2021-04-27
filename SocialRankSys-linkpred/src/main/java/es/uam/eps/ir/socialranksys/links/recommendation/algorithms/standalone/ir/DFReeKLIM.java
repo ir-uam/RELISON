@@ -19,7 +19,7 @@ import java.util.Optional;
  * Class that applies the DFReeKLIM Divergence from Randomness model as a contact
  * recommendation algorithm.
  * <p>
- * Amati, G., Amodeo, G., Bianchi, M., Marcone, G., Bordoni, F.U., Gaibisso, C.,Gambosi, G., Celi, A., Nicola, C.D., Flammini, M.:
+ * <b>Reference: </b>G. Amati, G. Amodeo, M. Bianchi, G. Marcone, F.U. Bordoni, C. Gaibisso, G. Gambosi, A. Celi, C.D. Nicola, M. Flammini.
  * FUB, IASI-CNR, UNIVAQ at TREC 2011 Microblog Track. In: Proceedings of the 20th Text REtrieval Confer-ence (TREC 2011). NIST (2011)
  * </p>
  *

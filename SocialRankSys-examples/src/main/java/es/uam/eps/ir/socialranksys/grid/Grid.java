@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2017 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -18,15 +18,31 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Search grid for a single algorithm.
- * @author Javier Sanz-Cruzado Puig
+ * A grid containing all the possible values for the different parameters of
+ * an algorithm, metric, etc.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class Grid
 {
     /**
+     * Integer values for the different parameters
+     */
+    private final Map<String, List<Integer>> integerValues;
+    /**
+     * Long values for the parameters.
+     */
+    private final Map<String, List<Long>> longValues;
+    /**
      * Double values for the different parameters
      */
     private final Map<String, List<Double>> doubleValues;
+
+    /**
+     * Boolean values for the different parameters.
+     */
+    private final Map<String, List<Boolean>> booleanValues;
     /**
      * Edge orientation values for the different parameters
      */
@@ -35,32 +51,21 @@ public class Grid
      * String values for the different parameters
      */
     private final Map<String, List<String>> stringValues;
-    /**
-     * Integer values for the different parameters
-     */
-    private final Map<String, List<Integer>> integerValues;
-    /**
-     * Boolean values for the different parameters.
-     */
-    private final Map<String, List<Boolean>> booleanValues;
-    /**
-     * Long values for the parameters.
-     */
-    private final Map<String, List<Long>> longValues;
+
     /**
      * Grid values for the parameters.
      */
     private final Map<String, Map<String, Grid>> gridValues;
 
     /**
-     * Constructor
-     * @param doubleValues Double values for the different parameters
-     * @param orientationValues Edge orientation values for the different parameters
-     * @param stringValues String values for the different parameters
-     * @param integerValues Integer values for the different parameters
-     * @param booleanValues Boolean values for the different parameters.
-     * @param longValues Long values for the parameters.
-     * @param gridValues Grid values for the parameters.
+     * Constructor.
+     * @param doubleValues      double values for the different parameters.
+     * @param orientationValues edge orientation values for the different parameters.
+     * @param stringValues      string values for the different parameters.
+     * @param integerValues     integer values for the different parameters.
+     * @param booleanValues     boolean values for the different parameters.
+     * @param longValues        long values for the parameters.
+     * @param gridValues        grid values for the parameters.
      */
     public Grid(Map<String, List<Double>> doubleValues, Map<String, List<EdgeOrientation>> orientationValues, Map<String, List<String>> stringValues, Map<String, List<Integer>> integerValues, Map<String, List<Boolean>> booleanValues, Map<String, List<Long>> longValues, Map<String, Map<String, Grid>> gridValues)
     {
@@ -88,35 +93,8 @@ public class Grid
     }
 
     /**
-     * 
-     * @return Double values for the different parameters
-     */
-    public Map<String, List<Double>> getDoubleValues()
-    {
-        return doubleValues;
-    }
-
-    /**
-     * 
-     * @return Edge orientation values for the different parameters
-     */
-    public Map<String, List<EdgeOrientation>> getOrientationValues()
-    {
-        return orientationValues;
-    }
-
-    /**
-     * 
-     * @return String values for the different parameters
-     */
-    public Map<String, List<String>> getStringValues()
-    {
-        return stringValues;
-    }
-
-    /**
-     * 
-     * @return Integer values for the different parameters
+     * Obtains the integer values for the different parameters.
+     * @return a map, indexed by parameter name, containing the possible integer values for the parameter.
      */
     public Map<String, List<Integer>> getIntegerValues()
     {
@@ -124,72 +102,93 @@ public class Grid
     }
 
     /**
-     * 
-     * @return Boolean values for the different parameters.
-     */
-    public Map<String, List<Boolean>> getBooleanValues()
-    {
-        return booleanValues;
-    }
-    
-    /**
-     * 
-     * @return Long values for the different parameters.
+     * Obtains the long values for the different parameters.
+     * @return a map, indexed by parameter name, containing the possible long values for the parameter.
      */
     public Map<String, List<Long>> getLongValues()
     {
         return longValues;
     }
-    
+
+    /**
+     * Obtains the double values for the different parameters.
+     * @return a map, indexed by parameter name, containing the possible double values for the parameter.
+     */
+    public Map<String, List<Double>> getDoubleValues()
+    {
+        return doubleValues;
+    }
+
+    /**
+     * Obtains the boolean values for the different parameters.
+     * @return a map, indexed by parameter name, containing the possible boolean values for the parameter.
+     */
+    public Map<String, List<Boolean>> getBooleanValues()
+    {
+        return booleanValues;
+    }
+
+    /**
+     * Obtains the edge orientation values for the different parameters.
+     * @return a map, indexed by parameter name, containing the edge orientation values for the parameter.
+     */
+    public Map<String, List<EdgeOrientation>> getOrientationValues()
+    {
+        return orientationValues;
+    }
+
+    /**
+     * Obtains the string values for the different parameters.
+     * @return a map, indexed by parameter name, containing the string values for the parameter.
+     */
+    public Map<String, List<String>> getStringValues()
+    {
+        return stringValues;
+    }
+
+    /**
+     * Obtains the internal grids for the different parameters.
+     * @return a map, indexed by parameter name, containing the internal grids for the parameter.
+     */
     public Map<String, Map<String, Grid>> getGridValues()
     {
         return gridValues;
     }
-    
-    /**
-     * Gets a double values for a single parameter.
-     * @param paramName Parameter name
-     * @return the values for that parameter
-     */
-    public List<Double> getDoubleValues(String paramName)
-    {
-        return this.doubleValues.getOrDefault(paramName, new ArrayList<>());
-    }
-    
+
     /**
      * Gets the integer values for a single parameter.
-     * @param paramName Parameter name
-     * @return the values for that parameter
+     * @param paramName the name of the parameter.
+     * @return a list containing the values for that parameter.
      */
     public List<Integer> getIntegerValues(String paramName)
     {
         return this.integerValues.getOrDefault(paramName, new ArrayList<>());
     }
-    
-    /**
-     * Gets the string values for a single parameter.
-     * @param paramName Parameter name
-     * @return the values for that parameter
-     */
-    public List<String> getStringValues(String paramName)
-    {
-        return this.stringValues.getOrDefault(paramName, new ArrayList<>());
-    }
-    
+
     /**
      * Gets the long values for a single parameter.
-     * @param paramName Parameter name
-     * @return the values for that parameter
+     * @param paramName the name of the parameter.
+     * @return a list containing the values for that parameter.
      */
     public List<Long> getLongValues(String paramName)
     {
         return this.longValues.getOrDefault(paramName, new ArrayList<>());
     }
-    
+
+    /**
+     * Gets the double values for a single parameter.
+     * @param paramName the name of the parameter.
+     * @return a list containing the values for that parameter.
+     */
+    public List<Double> getDoubleValues(String paramName)
+    {
+        return this.doubleValues.getOrDefault(paramName, new ArrayList<>());
+    }
+
     /**
      * Gets the boolean values for a single parameter.
-     * @param paramName Parameter name
-     * @return the values for that parameter
+     * @param paramName the name of the parameter.
+     * @return a list containing the values for that parameter.
      */
     public List<Boolean> getBooleanValues(String paramName)
     {
@@ -198,18 +197,28 @@ public class Grid
 
     /**
      * Gets the edge orientation values for a single parameter.
-     * @param paramName Parameter name
-     * @return the values for that parameter
+     * @param paramName the name of the parameter.
+     * @return a list containing the values for that parameter.
      */
     public List<EdgeOrientation> getOrientationValues(String paramName)
     {
         return this.orientationValues.getOrDefault(paramName, new ArrayList<>());
     }
-    
+
     /**
-     * Gets the grid values for a single parameter.
-     * @param paramName Parameter name.
-     * @return the values for that parameter.
+     * Gets the string values for a single parameter.
+     * @param paramName the name of the parameter.
+     * @return a list containing the values for that parameter.
+     */
+    public List<String> getStringValues(String paramName)
+    {
+        return this.stringValues.getOrDefault(paramName, new ArrayList<>());
+    }
+
+    /**
+     * Gets the internal grids for a single parameter.
+     * @param paramName the name of the parameter.
+     * @return a list containing the values for that parameter.
      */
     public Map<String, Grid> getGridValues(String paramName)
     {
@@ -217,14 +226,16 @@ public class Grid
     }
 
     /**
-     * Given a grid, gets all the possible configurations of those parameters.
-     *
-     * @return the set of configurations
+     * Given the current grid, formulates the different individual configurations from
+     * those parameters:
+     * @return a set of configurations.
      */
     public Configurations getConfigurations()
     {
         return new Configurations(this.getListParameters());
     }
+
+
 
     private static <T> List<Map<String, T>> getMaps(Map<String, List<T>> allValues)
     {
@@ -299,6 +310,10 @@ public class Grid
         return mapList;
     }
 
+    /**
+     * Obtains a list of parameters
+     * @return the list of parameter configurations.
+     */
     private List<Parameters> getListParameters()
     {
         List<Map<String, Double>> doubleMapsList = getMaps(doubleValues);

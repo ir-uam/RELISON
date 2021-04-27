@@ -15,7 +15,8 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
- * Class for personalizing how lists are filled.
+ * Methods for classes that might be used to complete recommendation lists which
+ * do not fill themselves due to coverage problems of the algorithm.
  *
  * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

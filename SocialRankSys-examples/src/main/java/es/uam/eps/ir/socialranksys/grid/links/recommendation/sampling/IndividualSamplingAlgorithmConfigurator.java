@@ -12,30 +12,34 @@ import es.uam.eps.ir.ranksys.fast.preference.FastPreferenceData;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.links.data.letor.sampling.IndividualSampler;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import org.jooq.lambda.tuple.Tuple2;
 
 
 /**
- * Class for performing the grid search for a given partition algorithm.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Definition of the classes for obtaining the parameters for different sampling approaches.
+ * Such sampling approaches are applied to each different user in the network separately.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users
  */
 public interface IndividualSamplingAlgorithmConfigurator<U>
 {
     /**
      * Obtains an individual sampling algorithm.
-     * @param params The parameters of the sampling.
-     * @param trainGraph the original graph.
-     * @param testGraph a graph to take into account when sampling
-     * @param prefData preference data.
+     * @param params        the parameter selection for the approach.
+     * @param trainGraph    the original graph.
+     * @param testGraph     a test graph to consider when sampling.
+     * @param prefData      the training preference data.
      * @return a pair containing the name of the algorithm and the configured algorithm.
      */
-    Tuple2oo<String, IndividualSampler<U>> grid(Parameters params, FastGraph<U> trainGraph, FastGraph<U> testGraph, FastPreferenceData<U, U> prefData);
+    Tuple2<String, IndividualSampler<U>> grid(Parameters params, FastGraph<U> trainGraph, FastGraph<U> testGraph, FastPreferenceData<U, U> prefData);
     
     /**
      * Obtains a function for obtaining an individual sampling algorithm.
-     * @param params The parameters of sampling.
-     * @return a pair containing the name of the algorithm as well as the parameters of the algorithm.
+     * @param params the sampling parameters.
+     * @return a pair containing the name of the algorithm and a function for obtaining the configured algorithm.
      */
-    Tuple2oo<String, IndividualSamplerFunction<U>> grid(Parameters params);
+    Tuple2<String, IndividualSamplerFunction<U>> grid(Parameters params);
 }

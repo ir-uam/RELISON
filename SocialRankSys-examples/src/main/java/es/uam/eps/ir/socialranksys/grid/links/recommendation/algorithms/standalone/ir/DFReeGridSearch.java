@@ -29,12 +29,14 @@ import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.A
 /**
  * Grid search generator for the DFRee Divergence From Randomness method.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.ir.DFRee
  */
 public class DFReeGridSearch<U> implements AlgorithmGridSearch<U>
 {
@@ -43,7 +45,7 @@ public class DFReeGridSearch<U> implements AlgorithmGridSearch<U>
      */
     private static final String USEL = "uSel";
     /**
-     * Identifier for the orientation of the target user neighborhood
+     * Identifier for the orientation of the candidate user neighborhood
      */
     private static final String VSEL = "vSel";
     /**

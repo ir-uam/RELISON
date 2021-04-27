@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Information Retrieval Group at Universidad Autónoma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -22,8 +22,8 @@ import java.util.function.DoubleUnaryOperator;
 /**
  * Implicit matrix factorization of Hu, Koren and Volinsky.
  * <p>
- * Y. Hu, Y. Koren, C. Volinsky. Collaborative filtering for implicit feedback
- * datasets. ICDM 2008.
+ * <b>Reference: </b>Y. Hu, Y. Koren, C. Volinsky. Collaborative filtering for implicit feedback
+ * datasets. 8th Annual IEEE International Conference on Data Mining (ICDM 2008), 263-272 (2008).
  * </p>
  *
  * @author Saúl Vargas (saul.vargas@uam.es)

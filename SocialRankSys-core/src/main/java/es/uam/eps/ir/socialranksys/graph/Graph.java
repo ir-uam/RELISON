@@ -235,6 +235,15 @@ public interface Graph<V> extends Serializable
     int outDegree(V node);
 
     /**
+     * Calculates the "mutual" degree of a node, i.e. the number of edges between a node and other nodes such
+     * that the other nodes are also connected to the original.
+     * @param node the node.
+     * @return the mutual degree of the node if it is contained in the graph, -1 otherwise.
+     */
+    int mutualDegree(V node);
+
+
+    /**
      * Obtains the degree of a node, depending on the neighborhood selection.
      *
      * @param node        The node whose degree we want to find.
@@ -518,6 +527,13 @@ public interface Graph<V> extends Serializable
     Stream<Weight<V, Integer>> getNeighbourNodesTypes(V node);
 
     /**
+     * Given a node, find the types of edges from the nodes u such that the edge (node to u) and the edge (u to node) are in the graph.
+     * @param node the node.
+     * @return a stream containing all the nodes in the neighbourhood and types.
+     */
+    Stream<Weight<V, Integer>> getMutualNodesTypes(V node);
+
+    /**
      * Given a node, finds the types of the edges towards the nodes u such that the edge (node to u) and the edge (u to node) are in the graph.
      *
      * @param node The node.
@@ -686,4 +702,5 @@ public interface Graph<V> extends Serializable
      * @return the complementary graph.
      */
     Graph<V> complement();
+
 }

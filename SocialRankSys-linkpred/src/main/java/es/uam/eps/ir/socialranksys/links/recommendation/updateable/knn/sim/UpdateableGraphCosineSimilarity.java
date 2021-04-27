@@ -1,4 +1,12 @@
-package es.uam.eps.ir.socialranksys.links.recommendation.updateable.nn.sim;
+/*
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
+ *  de Madrid, http://ir.ii.uam.es
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+package es.uam.eps.ir.socialranksys.links.recommendation.updateable.knn.sim;
 
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
@@ -9,9 +17,17 @@ import java.util.function.IntToDoubleFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Updateable version of the cosine similarity.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ */
 public class UpdateableGraphCosineSimilarity extends UpdateableGraphSimilarity
 {
-    //private final Int2ObjectMap<Int2DoubleOpenHashMap> similarities;
+    /**
+     * A map for storing the norms.
+     */
     private final Int2DoubleOpenHashMap norm2map;
 
     /**
@@ -39,22 +55,6 @@ public class UpdateableGraphCosineSimilarity extends UpdateableGraphSimilarity
             {
                 int widx = uWeight.v1;
                 double uW = uWeight.v2;
-
-                graph.getNeighborhoodWeights(widx, EdgeOrientation.IN).forEach(vWeight ->
-                {
-                   int vidx = vWeight.v1;
-                   double vW = vWeight.v2;
-
-                   /*if(uMap.containsKey(vidx))
-                   {
-                       uMap.addTo(vidx, uW*vW);
-                   }
-                   else
-                   {
-                       uMap.put(vidx, uW*vW);
-                   }*/
-                });
-
                 return uW*uW;
             }).sum();
 
@@ -68,17 +68,6 @@ public class UpdateableGraphCosineSimilarity extends UpdateableGraphSimilarity
     {
         IntList list = new IntArrayList();
         this.norm2map.addTo(idx1, val*val);
-        //Int2DoubleOpenHashMap uMap = this.similarities.get(idx1);
-        /*this.graph.getNeighborhoodWeights(idx2, EdgeOrientation.IN).forEach(vWeight ->
-        {
-            int vidx = vWeight.v1();
-            double vW = vWeight.v2();
-
-           // uMap.addTo(vidx, val*vW);
-            //this.similarities.get(vidx).addTo(idx1, val*vW);
-            list.add(vidx);
-        });*/
-
         return list;
     }
 
@@ -94,7 +83,6 @@ public class UpdateableGraphCosineSimilarity extends UpdateableGraphSimilarity
         int uidx = norm2map.size();
         Int2DoubleOpenHashMap uMap = new Int2DoubleOpenHashMap();
         uMap.defaultReturnValue(0.0);
-        //similarities.put(uidx, uMap);
         norm2map.put(uidx, 0.0);
     }
 
@@ -123,28 +111,6 @@ public class UpdateableGraphCosineSimilarity extends UpdateableGraphSimilarity
             }
             return 0.0;
         };
-
-/*
-        if(this.similarities.containsKey(uidx))
-        {
-            Int2DoubleOpenHashMap uMap = this.similarities.get(uidx);
-            double normU = this.norm2map.get(uidx);
-
-            return (vidx) ->
-            {
-                double normV = this.norm2map.get(vidx);
-                double prod = normU*normV;
-                if(prod > 0.0)
-                {
-                    return uMap.get(vidx)/Math.sqrt(prod);
-                }
-                return 0.0;
-            };
-        }
-        else
-        {
-            return (vidx) -> 0.0;
-        }*/
     }
 
     @Override
@@ -166,7 +132,5 @@ public class UpdateableGraphCosineSimilarity extends UpdateableGraphSimilarity
             double normV = this.norm2map.get(entry.getIntKey());
             return new Tuple2id(entry.getIntKey(), entry.getDoubleValue()/Math.sqrt(normU*normV));
         });
-
-        //return this.similarities.get(i).int2DoubleEntrySet().stream().map(x -> new Tuple2id(x.getIntKey(), x.getDoubleValue()/Math.sqrt(normU*this.norm2map.get(x.getIntKey()))));
     }
 }

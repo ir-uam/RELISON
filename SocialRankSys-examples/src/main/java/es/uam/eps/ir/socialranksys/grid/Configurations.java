@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -12,19 +12,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Class for storing the different possible configurations for a set of algorithms.
- * @author Javier Sanz-Cruzado Puig
+ * Class for storing the different possible configurations for an algorithm, metric, etc.
+ * Differently from a grid, where we can mix any two values of a parameter, this class
+ * stores each possible parameter selection separately.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class Configurations 
 {
     /**
-     * A map containing the different configurations for the algorithms.
+     * A list of parameter configurations.
      */
     private final List<Parameters> configurations;
     
     /**
      * Constructor.
-     * @param configurations a map containing the different configurations for the algorithms 
+     * @param configurations a list containing the different configurations for the algorithms
      */
     public Configurations(List<Parameters> configurations)
     {
@@ -50,16 +54,20 @@ public class Configurations
     {
         return this.configurations;
     }
-    
+
+    /**
+     * Obtains the number of different configurations.
+     * @return the number of different configurations.
+     */
     public int numConfigs()
     {
         return this.configurations.size();
     }
     
     /**
-     * Obtains the configurations for a single algorithm.
+     * Obtains the parameters for a single configuration of the algorithm, metric, etc.
      * @param idx index of the configuration.
-     * @return the configurations if the algorithm exists, an empty list otherwise.
+     * @return the configurations if it exists, null otherwise.
      */
     public Parameters getConfiguration(int idx)
     {

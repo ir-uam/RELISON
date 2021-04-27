@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -15,14 +15,18 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.links.data.letor.sampling.DistanceTwoLinkPredictionIndividualSampler;
 import es.uam.eps.ir.socialranksys.links.data.letor.sampling.IndividualSampler;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import org.jooq.lambda.tuple.Tuple2;
 
 /**
- * Class for configuring distance two individual samplers.
+ * Class for selecting nodes at distance 2 from the target user, considering the usual approach in link prediction,
+ * i.e. we first take all the nodes at distance 2 from the target user in the training set. Then, we take all nodes in that
+ * set with whom the target user has created a link in the test set, and we randomly select the same number of negative
+ * examples.
  * 
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  * 
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  */
 public class DistanceTwoLinkPredictionIndividualSamplerConfigurator<U> implements IndividualSamplingAlgorithmConfigurator<U>
 {
@@ -36,7 +40,7 @@ public class DistanceTwoLinkPredictionIndividualSamplerConfigurator<U> implement
     private final static String VSEL = "vSel";
     
     @Override
-    public Tuple2oo<String, IndividualSampler<U>> grid(Parameters params, FastGraph<U> trainGraph, FastGraph<U> testGraph, FastPreferenceData<U,U> prefData)
+    public Tuple2<String, IndividualSampler<U>> grid(Parameters params, FastGraph<U> trainGraph, FastGraph<U> testGraph, FastPreferenceData<U,U> prefData)
     {
         EdgeOrientation uSel = params.getOrientationValue(USEL);
         EdgeOrientation vSel = params.getOrientationValue(VSEL);
@@ -44,11 +48,11 @@ public class DistanceTwoLinkPredictionIndividualSamplerConfigurator<U> implement
         if(uSel == null || vSel == null) return null;
         String name = IndividualSamplingAlgorithmIdentifiers.DISTANCETWOLP + "_" + uSel + "_" + vSel;
         IndividualSampler<U> sampler = new DistanceTwoLinkPredictionIndividualSampler<>(trainGraph, testGraph, uSel, vSel);
-        return new Tuple2oo<>(name, sampler);
+        return new Tuple2<>(name, sampler);
     }
 
     @Override
-    public Tuple2oo<String, IndividualSamplerFunction<U>> grid(Parameters params)
+    public Tuple2<String, IndividualSamplerFunction<U>> grid(Parameters params)
     {
         EdgeOrientation uSel = params.getOrientationValue(USEL);
         EdgeOrientation vSel = params.getOrientationValue(VSEL);
@@ -59,7 +63,7 @@ public class DistanceTwoLinkPredictionIndividualSamplerConfigurator<U> implement
         IndividualSamplerFunction<U> function = (FastGraph<U> graph, FastGraph<U> extraEdges, FastPreferenceData<U,U> prefData) ->
             new DistanceTwoLinkPredictionIndividualSampler<>(graph, extraEdges, uSel, vSel);
         
-        return new Tuple2oo<>(name, function);
+        return new Tuple2<>(name, function);
     }
     
     

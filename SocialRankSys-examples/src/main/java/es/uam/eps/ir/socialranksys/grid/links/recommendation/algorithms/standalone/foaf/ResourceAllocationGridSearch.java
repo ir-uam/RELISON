@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -24,22 +24,27 @@ import java.util.function.Supplier;
 import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmIdentifiers.RESALLOC;
 
 /**
- * Grid search generator for Resource Allocation algorithm (term-based version).
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ * Grid search generator for resource allocation algorithm.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ *
+ * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.foaf.ResourceAllocation
  */
 public class ResourceAllocationGridSearch<U> implements AlgorithmGridSearch<U>
 {
     /**
-     * Identifier for the orientation of the target user neighborhood
+     * Identifier for the orientation of the target user neighborhood.
      */
     private static final String USEL = "uSel";
     /**
-     * Identifier for the orientation of the candidate user neighborhood
+     * Identifier for the orientation of the candidate user neighborhood.
      */
     private static final String VSEL = "vSel";
     /**
-     * Identifier for the orientation of the intersection user neighborhood
+     * Identifier for the orientation of the intersection user neighborhood.
      */
     private static final String WSEL = "wSel";
 

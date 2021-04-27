@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -19,46 +19,47 @@ import org.junit.*;
 import static java.lang.Double.NaN;
 
 /**
- * Class that tests the full graph metrics
+ * Automated unit tests for metrics that affect the whole network.
  *
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class GraphMetricsTest
 {
     /**
-     * Directed Strongly Connected Graph
+     * Directed strongly connected graph.
      */
     private DirectedGraph<Integer> directedStronglyConnected;
     /**
-     * Directed Weakly Connected Graph
+     * Directed weakly connected graph.
      */
     private DirectedGraph<Integer> directedWeaklyConnected;
     /**
-     * Directed Unconnected Graph (not even weakly)
+     * Directed disconnected graph (not even weakly).
      */
     private DirectedGraph<Integer> directedNonConnected;
     /**
-     * Undirected Connected Graph
+     * Undirected connected graph.
      */
     private UndirectedGraph<Integer> undirectedConnected;
     /**
-     * Undirected Unconnected Graph
+     * Undirected disconnected graph.
      */
     private UndirectedGraph<Integer> undirectedNonConnected;
     /**
-     * Directed complete graph
+     * Directed complete graph.
      */
     private DirectedGraph<Integer> directedComplete;
     /**
-     * Directed empty graph (only nodes)
+     * Directed empty graph (only nodes).
      */
     private DirectedGraph<Integer> directedEmpty;
     /**
-     * Undirected complete graph
+     * Undirected complete graph.
      */
     private UndirectedGraph<Integer> undirectedComplete;
     /**
-     * Undirected empty graph
+     * Undirected empty graph.
      */
     private UndirectedGraph<Integer> undirectedEmpty;
 
@@ -235,12 +236,10 @@ public class GraphMetricsTest
         Assert.assertEquals(1.0, metric.compute(undirectedNonConnected), 0.001);
         Assert.assertEquals(0.0, metric.compute(new FastDirectedUnweightedGraph<>()), 0.001);
         Assert.assertEquals(0.0, metric.compute(new FastUndirectedUnweightedGraph<>()), 0.001);
-
-
     }
 
     /**
-     * Tests the values of the Gini Index of the degree
+     * Tests the values of the Gini index for the degree.
      */
     @Test
     public void degreeGini()

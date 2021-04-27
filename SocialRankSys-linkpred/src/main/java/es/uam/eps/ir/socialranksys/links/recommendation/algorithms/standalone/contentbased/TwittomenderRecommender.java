@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -20,9 +20,12 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * Content-based recommendation algorithm, based on a TF-IDF scheme.
+ * Content-based recommendation algorithm, based on a TF-IDF scheme. It takes all the contents associated to a
+ * user as a unique document (query).
  *
- * @param <U> Type of the users
+ * <p><b>Reference: </b> J. Hannon, M. Bennet, B. Smyth. Recommending Twitter Users to Follow Using Content and Collaborative Filtering Approaches. 4th Annual International ACM Conference on Recommender Systems (RecSys 2010), 199-206 (2010)</p>
+ *
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -30,25 +33,26 @@ import java.util.Map;
 public class TwittomenderRecommender<U> extends UserFastRankingRecommender<U>
 {
     /**
-     * A forward index.
+     * A forward index, representing each user as a single document.
      */
     private final ForwardIndex<U> index;
     /**
-     * A search engine for accelerating the search.
+     * A search engine for performing the search.
      */
     private final SearchEngine engine;
 
     /**
-     * Constructor
-     * @param graph The training graph.
-     * @param index Content index that contains information about users.
+     * Constructor.
+     *
+     * @param graph     the training graph.
+     * @param index     content index that contains information about users.
+     * @param engine    the search engine for performing the recommendation.
      */
     public TwittomenderRecommender(FastGraph<U> graph, ForwardIndex<U> index, SearchEngine engine)
     {
         super(graph);
         this.engine = engine;
         this.index = index;
-
     }
 
     @Override
@@ -60,14 +64,17 @@ public class TwittomenderRecommender<U> extends UserFastRankingRecommender<U>
 
         try
         {
+            // We obtain the corresponding user vector for the user.
             FreqVector uVector = index.getContentVector(uidxInIndex);
             if(uVector == null)
             {
                 return map;
             }
 
+            // We apply the corresponding search.
             Map<Integer, Double> searchRes = this.engine.search(uVector);
 
+            // For each value, we obtain the corresponding vertex, and store the scores.
             for(Map.Entry<Integer, Double> entry : searchRes.entrySet())
             {
                 U v = index.getContent(entry.getKey());

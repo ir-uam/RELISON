@@ -15,7 +15,10 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
 /**
- * Recommender that uses the local Leicht-Holme-Newman index.
+ * Recommender that uses the local Leicht-Holme-Newman index. It divides the number of common neighbors between
+ * two users by the product of the degrees of both target and candidate users.
+ *
+ * <p><b>Reference: </b> E.A. Leicht, P. Holme, M.E.J. Newman. Vertex Similarity in Networks. Physical Review E 73(2): 026120 (2006)</p>
  *
  * @param <U> type of the users.
  *
@@ -80,7 +83,7 @@ public class LocalLHNIndex<U> extends UserFastRankingRecommender<U>
         
         for(int vidx : scoresMap.keySet())
         {
-            scoresMap.replace(vidx, scoresMap.get(vidx)/(this.vSizes.get(vidx)*this.uSizes.get(uidx)));
+            scoresMap.replace(vidx, scoresMap.get(vidx)/(this.vSizes.get(vidx)*this.uSizes.get(uidx)+1.0));
         }
         return scoresMap;
     }

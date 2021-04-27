@@ -41,8 +41,14 @@ public class GlobalLHNIndex<U> extends GlobalMatrixBasedRecommender<U>
      * The decay factor of the similarity.
      */
     private final double phi;
+
     /**
-     * Constructor.
+     * The orientation selection for the adjacency matrix.
+     */
+    private final EdgeOrientation orient;
+
+    /**
+     * Constructor. By default, considers networks as undirected.
      *
      * @param graph A fast graph representing the social network.
      */
@@ -51,12 +57,26 @@ public class GlobalLHNIndex<U> extends GlobalMatrixBasedRecommender<U>
         super(graph);
         this.phi = phi;
         this.matrix = this.getMatrix();
+        this.orient = EdgeOrientation.UND;
+    }
+
+    /**
+     * Constructor. By default, considers networks as undirected.
+     *
+     * @param graph A fast graph representing the social network.
+     */
+    public GlobalLHNIndex(FastGraph<U> graph, double phi, EdgeOrientation orient)
+    {
+        super(graph);
+        this.phi = phi;
+        this.matrix = this.getMatrix();
+        this.orient = orient;
     }
 
     @Override
     protected double[][] getJBLASMatrix()
     {
-        double[][] adjAux = graph.getAdjacencyMatrix(EdgeOrientation.UND);
+        double[][] adjAux = graph.getAdjacencyMatrix(orient);
         DoubleMatrix adj = new DoubleMatrix(adjAux);
         double edgeCount = adj.sum();
         DoubleMatrix eigen = Eigen.symmetricEigenvalues(adj);
@@ -86,7 +106,7 @@ public class GlobalLHNIndex<U> extends GlobalMatrixBasedRecommender<U>
     @Override
     protected  double[][] getCOLTMatrix()
     {
-        double[][] adjAux = graph.getAdjacencyMatrix(EdgeOrientation.UND);
+        double[][] adjAux = graph.getAdjacencyMatrix(orient);
         DoubleMatrix2D adj = new SparseDoubleMatrix2D(adjAux);
         double edgeCount = adj.zSum();
 
@@ -133,8 +153,17 @@ public class GlobalLHNIndex<U> extends GlobalMatrixBasedRecommender<U>
     protected  double[][] getMTJMatrix()
     {
         double eigenvalue;
-        double[][] adjAux = graph.getAdjacencyMatrix(EdgeOrientation.UND);
+        double[][] adjAux = graph.getAdjacencyMatrix(orient);
         DenseMatrix matrix = new DenseMatrix(adjAux);
+
+        Matrix degree = new DenseMatrix(this.numUsers(), this.numUsers());
+        double edgeCount = 0;
+        for(int i = 0; i < this.numUsers(); ++i)
+        {
+            double deg = this.graph.degree(this.uidx2user(i), orient);
+            degree.set(i,i,1.0/deg);
+            edgeCount += deg;
+        }
 
         try
         {
@@ -155,6 +184,12 @@ public class GlobalLHNIndex<U> extends GlobalMatrixBasedRecommender<U>
 
             Matrix aux = Matrices.identity(this.numUsers());
             identity.solve(Matrices.identity(this.numUsers()), aux);
+            aux = aux.scale(edgeCount*eigenvalue);
+            
+            Matrix def = Matrices.identity(this.numUsers());
+            aux.mult(degree, def);
+            degree.mult(def, aux);
+
             double[][] defMatrix = new double[numUsers()][numUsers()];
             for (int i = 0; i < aux.numRows(); ++i)
                 for (int j = 0; j < aux.numColumns(); ++j)

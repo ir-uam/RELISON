@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Autónoma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -21,7 +21,9 @@ import java.util.stream.Collectors;
  * Closure recommender. Recommends reciprocal edges according to the number of common neighbors between
  * the already existing edge endpoints.
  *
- * @param <U> Type of the users
+ * <p><b>Reference: </b> P. Gupta, A. Goel, J. Lin, A. Sharma, D. Wang, R. Zadeh. WTF: The Who to Follow Service at Twitter. 22nd Annual International Conference on World Wide Web (WWW 2013), 505-514 (2013).</p>
+ *
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -32,7 +34,6 @@ public class Closure<U> extends UserFastRankingRecommender<U>
     /**
      * Constructor.
      * @param graph graph.
-
      */
     public Closure(FastGraph<U> graph)
     {

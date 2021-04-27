@@ -61,5 +61,10 @@ public interface UndirectedMultiGraph<V> extends MultiGraph<V>, UndirectedGraph<
         return this.getNeighbourNodesTypesLists(node);
     }
 
+    @Override
+    default int degree(V node)
+    {
+        return this.getNeighbourEdgesCount(node);
+    }
 
 }
