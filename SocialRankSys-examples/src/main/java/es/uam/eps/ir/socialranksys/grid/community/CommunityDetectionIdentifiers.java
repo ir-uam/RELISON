@@ -24,6 +24,7 @@ public class CommunityDetectionIdentifiers
     public final static String FASTGREEDY = "FastGreedy";
     public final static String LOUVAIN = "Louvain";
     public final static String INFOMAP = "Infomap";
+    public final static String LABELPROP = "Label propagation";
 
     // Community detection algorithms using edge metrics
     public final static String GIRVANNEWMAN = "Girvan Newman";
@@ -50,11 +51,13 @@ public class CommunityDetectionIdentifiers
         System.out.println("\t" + FASTGREEDY);
         System.out.println("\t" + LOUVAIN);
         System.out.println("\t" + INFOMAP);
+        System.out.println("\t" + LABELPROP);
         System.out.println();
 
         System.out.println("Edge metric-based algorithms:");
         System.out.println("\t" + GIRVANNEWMAN + " (or " + EDGEBETWENNESS + ")");
-        
+        System.out.println();
+
         System.out.println("Balanced community size algorithms based on modularity:");
         System.out.println("\t" + BALANCEDFASTGREEDY);
         System.out.println("\t" + SIZEWEIGHTEDFASTGREEDY);

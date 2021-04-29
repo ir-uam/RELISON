@@ -17,6 +17,7 @@ import es.uam.eps.ir.socialranksys.grid.community.connectedness.WeaklyConnectedC
 import es.uam.eps.ir.socialranksys.grid.community.edge.GirvanNewmanConfigurator;
 import es.uam.eps.ir.socialranksys.grid.community.modularity.FastGreedyConfigurator;
 import es.uam.eps.ir.socialranksys.grid.community.modularity.InfomapConfigurator;
+import es.uam.eps.ir.socialranksys.grid.community.modularity.LabelPropagationConfigurator;
 import es.uam.eps.ir.socialranksys.grid.community.modularity.LouvainConfigurator;
 import es.uam.eps.ir.socialranksys.grid.community.modularity.balanced.*;
 import org.jooq.lambda.tuple.Tuple2;
@@ -71,6 +72,7 @@ public class CommunityDetectionSelector<U extends Serializable>
             case FASTGREEDY -> new FastGreedyConfigurator<>();
             case INFOMAP -> new InfomapConfigurator<>(tempFolder);
             case LOUVAIN -> new LouvainConfigurator<>();
+            case LABELPROP -> new LabelPropagationConfigurator<>();
             // Edge metrics:
             case GIRVANNEWMAN, EDGEBETWENNESS -> new GirvanNewmanConfigurator<>();
             case BALANCEDFASTGREEDY -> new BalancedFastGreedyConfigurator<>();
