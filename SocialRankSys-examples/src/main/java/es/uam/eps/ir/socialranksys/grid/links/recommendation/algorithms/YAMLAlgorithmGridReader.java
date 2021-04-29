@@ -77,7 +77,7 @@ public class YAMLAlgorithmGridReader extends YAMLGridReader
     /**
      * Reads the grid for a single algorithm.
      *
-     * @param element The XML Element containing the algorithm information
+     * @param element The YAML Element containing the algorithm information
      */
     private void readAlgorithm(Map.Entry<String, Object> element)
     {
