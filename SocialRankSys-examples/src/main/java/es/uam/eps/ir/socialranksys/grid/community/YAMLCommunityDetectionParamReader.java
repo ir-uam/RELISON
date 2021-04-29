@@ -12,13 +12,14 @@ package es.uam.eps.ir.socialranksys.grid.community;
 import com.esotericsoftware.yamlbeans.YamlReader;
 import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.grid.YAMLParametersReader;
+
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Reads the parameter configuration for several community detection algorithms.
+ * Obtains, from a YAML file, the parameter configurations for community detection algorithms.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -49,7 +50,7 @@ public class YAMLCommunityDetectionParamReader extends YAMLParametersReader
     }
     
     /**
-     * Reads a XML document containing the parameters
+     * Reads a YAML document containing the parameters
      */
     public void readDocument()
     {

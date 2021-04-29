@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,15 +10,26 @@ package es.uam.eps.ir.socialranksys.grid.community.modularity.balanced;
 
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.socialranksys.community.detection.modularity.balanced.BalancedFastGreedy;
-import es.uam.eps.ir.socialranksys.grid.Parameters;
+import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionConfigurator;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+
+import static es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionIdentifiers.BALANCEDFASTGREEDY;
 
 /**
- * Configurator for the balanced version of the FastGreedy community detection algorithm
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Configurator for the balanced version of the FastGreedy community detection algorithm.
+ * It fixes the maximum community size.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users
+ *
  * @see es.uam.eps.ir.socialranksys.community.detection.modularity.balanced.BalancedFastGreedy
  */
 public class BalancedFastGreedyConfigurator<U extends Serializable> implements CommunityDetectionConfigurator<U>
@@ -27,13 +38,13 @@ public class BalancedFastGreedyConfigurator<U extends Serializable> implements C
      * Identifier for the maximum community size
      */
     private final static String COMMSIZE = "size";
-    
+
     @Override
-    public CommunityDetectionAlgorithm<U> configure(Parameters params)
+    public Map<String, Supplier<CommunityDetectionAlgorithm<U>>> configure(Grid grid)
     {
-        int commSize = params.getIntegerValue(COMMSIZE);
-        
-        return new BalancedFastGreedy<>(commSize);
+        Map<String, Supplier<CommunityDetectionAlgorithm<U>>> map = new HashMap<>();
+        List<Integer> commSizes = grid.getIntegerValues(COMMSIZE);
+        commSizes.forEach(size -> map.put(BALANCEDFASTGREEDY, () -> new BalancedFastGreedy<>(size)));
+        return map;
     }
-    
 }

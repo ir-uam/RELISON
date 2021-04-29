@@ -29,42 +29,58 @@ import java.util.OptionalDouble;
  */
 public class NodeBetweenness<U> implements VertexMetric<U>
 {
-
     /**
      * Distance calculator.
      */
     private final DistanceCalculator<U> dc;
 
     /**
-     * Constructor.
+     * Indicates whether we have to normalize the value of the metric or not.
      */
-    public NodeBetweenness()
+    private final boolean normalize;
+
+    /**
+     * Constructor.
+     *
+     * @param normalize true if we have to normalize the value of the metric, false otherwise.
+     */
+    public NodeBetweenness(boolean normalize)
     {
         this.dc = new CompleteDistanceCalculator<>();
+        this.normalize = normalize;
     }
 
     /**
      * Constructor.
      *
      * @param dc Distance calculator.
+     * @param normalize true if we have to normalize the value of the metric, false otherwise.
      */
-    public NodeBetweenness(DistanceCalculator<U> dc)
+    public NodeBetweenness(DistanceCalculator<U> dc, boolean normalize)
     {
         this.dc = dc;
+        this.normalize = normalize;
     }
 
     @Override
     public double compute(Graph<U> graph, U user)
     {
         this.dc.computeDistances(graph);
-        return this.dc.getNodeBetweenness(user);
+        double value = this.dc.getNodeBetweenness(user);
+
+        if(normalize) value *= (graph.isDirected() ? 1.0 : 2.0)/((graph.getVertexCount()-2.0)*(graph.getVertexCount()-1.0));
+        return value;
     }
 
     @Override
     public Map<U, Double> compute(Graph<U> graph)
     {
         this.dc.computeDistances(graph);
-        return this.dc.getNodeBetweenness();
+        Map<U, Double> values = this.dc.getNodeBetweenness();
+        double norm = (graph.isDirected() ? 1.0 : 2.0)/((graph.getVertexCount()-2.0)*(graph.getVertexCount()-1.0));
+
+        if(normalize) values.forEach((key, value) -> values.put(key, value*norm));
+        return values;
     }
 
     @Override

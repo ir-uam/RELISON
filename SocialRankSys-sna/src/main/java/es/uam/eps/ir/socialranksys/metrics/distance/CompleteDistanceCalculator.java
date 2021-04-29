@@ -108,7 +108,6 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
         distancesTo = new ConcurrentHashMap<>();
         geodesics = new ConcurrentHashMap<>();
 
-        long numNodes = graph.getVertexCount();
         boolean weighted = graph.isWeighted();
 
         // Configure an empty graph generator.
@@ -312,12 +311,6 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
         {
             return false;
         }
-        // Apply normalization
-        double val = (graph.isDirected() ? 1 : 0.5) * (numNodes - 2) * (numNodes - 1);
-        this.nodeBetweenness.keySet().forEach(u -> this.nodeBetweenness.put(u, this.nodeBetweenness.get(u) / val));
-
-        double val2 = (graph.isDirected() ? 1 : 0.5) * numNodes * (numNodes - 1);
-        this.edgeBetweenness.keySet().forEach(u -> this.edgeBetweenness.get(u).keySet().forEach(v -> this.edgeBetweenness.get(u).put(v, this.edgeBetweenness.get(u).get(v) / val2)));
 
         this.graph = graph;
         return true;

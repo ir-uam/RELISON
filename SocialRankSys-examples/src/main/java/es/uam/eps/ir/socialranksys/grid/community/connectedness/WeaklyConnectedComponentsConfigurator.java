@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -11,26 +11,33 @@ package es.uam.eps.ir.socialranksys.grid.community.connectedness;
 
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.socialranksys.community.detection.connectedness.WeaklyConnectedComponents;
-import es.uam.eps.ir.socialranksys.grid.Parameters;
+import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionConfigurator;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Supplier;
+
+import static es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionIdentifiers.WCC;
 
 /**
  * Configurator for an algorithm that computes the weakly connected components of a graph.
  * 
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  * 
- * @param <U> Type of the nodes of the network.
+ * @param <U> type of the users.
  * 
  * @see es.uam.eps.ir.socialranksys.community.detection.connectedness.WeaklyConnectedComponents
  */
 public class WeaklyConnectedComponentsConfigurator<U extends Serializable> implements CommunityDetectionConfigurator<U>
 {
     @Override
-    public CommunityDetectionAlgorithm<U> configure(Parameters params)
+    public Map<String, Supplier<CommunityDetectionAlgorithm<U>>> configure(Grid grid)
     {
-        return new WeaklyConnectedComponents<>();
+        Map<String, Supplier<CommunityDetectionAlgorithm<U>>> map = new HashMap<>();
+        map.put(WCC, WeaklyConnectedComponents::new);
+        return map;
     }
-    
 }

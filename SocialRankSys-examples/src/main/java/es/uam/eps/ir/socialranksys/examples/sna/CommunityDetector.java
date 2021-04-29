@@ -12,11 +12,14 @@ import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.socialranksys.community.io.TextCommunitiesWriter;
 import es.uam.eps.ir.socialranksys.graph.Graph;
-import es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionParamReader;
 import es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionSelector;
+import es.uam.eps.ir.socialranksys.grid.community.YAMLCommunityDetectionParamReader;
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.io.graph.TextMultiGraphReader;
+import org.jooq.lambda.tuple.Tuple2;
 import org.ranksys.formats.parsing.Parsers;
+
+import java.util.function.Supplier;
 
 import static es.uam.eps.ir.socialranksys.examples.AuxiliarVariables.FALSE;
 import static es.uam.eps.ir.socialranksys.examples.AuxiliarVariables.TRUE;
@@ -81,14 +84,14 @@ public class CommunityDetector
         Graph<Long> graph = greader.read(graphRoute, weighted, false);
 
         // Grid Reader
-        CommunityDetectionParamReader cdReader = new CommunityDetectionParamReader(grid);
+        YAMLCommunityDetectionParamReader cdReader = new YAMLCommunityDetectionParamReader(grid);
         cdReader.readDocument();
 
         // Execute the community detection algorithms.
         System.out.println("Starting community detection");
         long a = System.currentTimeMillis();
 
-        CommunityDetectionSelector<Long> selector = new CommunityDetectionSelector<>();
+        CommunityDetectionSelector<Long> selector = new CommunityDetectionSelector<>(outputRoute + "temp");
 
         cdReader.getAlgorithms().parallelStream().forEach(algorithm ->
         {
@@ -96,15 +99,23 @@ public class CommunityDetector
             long a1 = System.currentTimeMillis();
 
             // Detect the communities.
-            CommunityDetectionAlgorithm<Long> alg = selector.getCommunityDetectionAlgorithm(algorithm, cdReader.getParameters(algorithm)).v2();
-            Communities<Long> comm = alg.detectCommunities(graph);
+            Tuple2<String, Supplier<CommunityDetectionAlgorithm<Long>>> alg = selector.getCommunityDetectionAlgorithm(algorithm, cdReader.getParameters(algorithm));
+            if(alg == null)
+            {
+                System.err.println("ERROR: Could not configure algorithm " + algorithm);
+            }
+            else
+            {
+                String name = alg.v1;
+                CommunityDetectionAlgorithm<Long> detector = alg.v2.get();
+                Communities<Long> comm = detector.detectCommunities(graph);
 
-            // Write the communities into a file.
-            TextCommunitiesWriter<Long> cwriter = new TextCommunitiesWriter<>("\t");
-            cwriter.write(comm, outputRoute + algorithm + ".txt");
-
-            long b1 = System.currentTimeMillis();
-            System.out.println("Algorithm " + algorithm + " finished (" + (b1-a1) + " ms.)");
+                // Write the communities into a file.
+                TextCommunitiesWriter<Long> cwriter = new TextCommunitiesWriter<>("\t");
+                cwriter.write(comm, outputRoute + name + ".txt");
+                long b1 = System.currentTimeMillis();
+                System.out.println("Algorithm " + algorithm + " finished (" + (b1-a1) + " ms.)");
+            }
         });
 
         long b = System.currentTimeMillis();

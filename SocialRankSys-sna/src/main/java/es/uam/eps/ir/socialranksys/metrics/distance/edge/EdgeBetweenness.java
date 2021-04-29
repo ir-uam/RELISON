@@ -42,21 +42,28 @@ public class EdgeBetweenness<U> implements EdgeMetric<U>
     private final DistanceCalculator<U> dc;
 
     /**
+     * Indicates whether the betweenness has to be normalized or not.
+     */
+    private final boolean normalize;
+
+    /**
      * Constructor.
      *
      * @param dc distance calculator.
      */
-    public EdgeBetweenness(DistanceCalculator<U> dc)
+    public EdgeBetweenness(DistanceCalculator<U> dc, boolean normalize)
     {
         this.dc = dc;
+        this.normalize = normalize;
     }
 
     /**
      * Constructor.
      */
-    public EdgeBetweenness()
+    public EdgeBetweenness(boolean normalize)
     {
         this.dc = new CompleteDistanceCalculator<>();
+        this.normalize = normalize;
     }
 
 
@@ -66,7 +73,9 @@ public class EdgeBetweenness<U> implements EdgeMetric<U>
         this.dc.computeDistances(graph);
         if (graph.containsEdge(orig, dest))
         {
-            return this.dc.getEdgeBetweenness(orig, dest);
+            double betw = this.dc.getEdgeBetweenness(orig, dest);
+            if(normalize) betw *= (graph.isDirected() ? 1.0 : 2.0)/(graph.getVertexCount()*(graph.getVertexCount()-1.0));
+            return betw;
         }
 
         throw new InexistentEdgeException("The edge " + orig + " and " + dest + " does not exist");
@@ -82,7 +91,9 @@ public class EdgeBetweenness<U> implements EdgeMetric<U>
         {
             if (graph.containsEdge(edge.v1(), edge.v2()))
             {
-                values.put(edge, dc.getEdgeBetweenness(edge.v1(), edge.v2()));
+                double betw = this.dc.getEdgeBetweenness(edge.v1(), edge.v2());
+                if(normalize) betw *= (graph.isDirected() ? 1.0 : 2.0)/(graph.getVertexCount()*(graph.getVertexCount()-1.0));
+                values.put(edge, betw);
             }
             else
             {
@@ -97,9 +108,14 @@ public class EdgeBetweenness<U> implements EdgeMetric<U>
     {
         Map<Pair<U>, Double> values = new HashMap<>();
         this.dc.computeDistances(graph);
-        Map<U, Map<U, Double>> betw = this.dc.getEdgeBetweenness();
+        Map<U, Map<U, Double>> betwenness = this.dc.getEdgeBetweenness();
 
-        graph.getAllNodes().forEach(u -> graph.getAdjacentNodes(u).forEach(v -> values.put(new Pair<>(u, v), betw.get(u).get(v))));
+        graph.getAllNodes().forEach(u -> graph.getAdjacentNodes(u).forEach(v ->
+        {
+            double betw = betwenness.get(u).get(v);
+            if(normalize) betw *= (graph.isDirected() ? 1.0 : 2.0)/(graph.getVertexCount()*(graph.getVertexCount()-1.0));
+            values.put(new Pair<>(u, v), betw);
+        }));
 
         return values;
     }
@@ -121,7 +137,9 @@ public class EdgeBetweenness<U> implements EdgeMetric<U>
             {
                 if (graph.containsEdge(edge.v1(), edge.v2()))
                 {
-                    return dc.getEdgeBetweenness(edge.v1(), edge.v2());
+                    double betw = this.dc.getEdgeBetweenness(edge.v1(), edge.v2());
+                    if(normalize) betw *= (graph.isDirected() ? 1.0 : 2.0)/(graph.getVertexCount()*(graph.getVertexCount()-1.0));
+                    return betw;
                 }
                 return 0.0;
             }).sum();

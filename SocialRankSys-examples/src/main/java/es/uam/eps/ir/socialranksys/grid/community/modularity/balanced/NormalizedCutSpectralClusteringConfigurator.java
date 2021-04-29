@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,16 +10,26 @@ package es.uam.eps.ir.socialranksys.grid.community.modularity.balanced;
 
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.socialranksys.community.detection.modularity.balanced.NormalizedCutSpectralClustering;
-import es.uam.eps.ir.socialranksys.grid.Parameters;
+import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionConfigurator;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+
+import static es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionIdentifiers.NORMALIZEDCUTSPECTRAL;
 
 /**
  * Configurator for the Spectral Clustering community detection based on minimizing
  * the normalized cut.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users
+ *
  * @see es.uam.eps.ir.socialranksys.community.detection.modularity.balanced.NormalizedCutSpectralClustering
  */
 public class NormalizedCutSpectralClusteringConfigurator<U extends Serializable> implements CommunityDetectionConfigurator<U>
@@ -28,13 +38,15 @@ public class NormalizedCutSpectralClusteringConfigurator<U extends Serializable>
      * Identifier for the desired number of communities
      */
     private final static String K = "k";
-    
+
     @Override
-    public CommunityDetectionAlgorithm<U> configure(Parameters params)
+    public Map<String, Supplier<CommunityDetectionAlgorithm<U>>> configure(Grid grid)
     {
-        int k = params.getIntegerValue(K);
-        
-        return new NormalizedCutSpectralClustering<>(k);
+        Map<String, Supplier<CommunityDetectionAlgorithm<U>>> conf = new HashMap<>();
+        List<Integer> ks = grid.getIntegerValues(K);
+
+        ks.forEach(k -> conf.put(NORMALIZEDCUTSPECTRAL + "_" + k, () -> new NormalizedCutSpectralClustering<>(k)));
+        return conf;
     }
     
 }

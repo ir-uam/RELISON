@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -8,26 +8,29 @@
  */
 package es.uam.eps.ir.socialranksys.grid.community;
 
-
-
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
-import es.uam.eps.ir.socialranksys.grid.Parameters;
+import es.uam.eps.ir.socialranksys.grid.Grid;
 
 import java.io.Serializable;
+import java.util.Map;
+import java.util.function.Supplier;
 
 /**
- * Configures a community detection algorithm.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ * Interface for configuring community detection algorithms.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ *
  * @see es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm
-
  */
 public interface CommunityDetectionConfigurator<U extends Serializable> 
 {
     /**
      * Configures a community detection algorithm.
-     * @param params the parameters of the algorithm.
-     * @return the algorithm.
+     * @param grid the parameters of the algorithm.
+     * @return a pair containing the name of the
      */
-    CommunityDetectionAlgorithm<U> configure(Parameters params);
+    Map<String, Supplier<CommunityDetectionAlgorithm<U>>> configure(Grid grid);
 }

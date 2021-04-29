@@ -17,7 +17,6 @@ import org.jooq.lambda.tuple.Tuple3;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 /**
  * Fast Greedy algorithm for optimizing modularity.
@@ -26,7 +25,7 @@ import java.util.Random;
  * <b>Reference:</b> M.E.J. Newman. Fast Algorithm for detecting community structure in networks. Physical Review E 69(6): 066133 (2004)
  * </p>
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -36,10 +35,10 @@ public class FastGreedy<U> extends AbstractFastGreedy<U>
     /**
      * Finds the optimal pair of communities to merge. It just optimizes the modularity of the network.
      *
-     * @param graph The original graph.
-     * @param comm  The communities.
+     * @param graph the original graph.
+     * @param comm  the communities.
      *
-     * @return A triple containing: a) the first comm. to merge, b) the second one, c) the mod. increment.
+     * @return a triple containing: a) the first comm. to merge, b) the second one, c) the mod. increment.
      */
     @Override
     protected Tuple3<Integer, Integer, Double> findOptimalJoint(Graph<U> graph, Communities<U> comm)
@@ -89,12 +88,11 @@ public class FastGreedy<U> extends AbstractFastGreedy<U>
         // If all increments are equal to -Inf, choose a pair at random.
         if (maxPair == null)
         {
-            Random rnd = new Random();
-            int first = rnd.nextInt(numComm);
+            int first = rng.nextInt(numComm);
             int second = first;
             while (second == first)
             {
-                second = rnd.nextInt(numComm);
+                second = rng.nextInt(numComm);
             }
             maxPair = new Pair<>(first, second);
         }

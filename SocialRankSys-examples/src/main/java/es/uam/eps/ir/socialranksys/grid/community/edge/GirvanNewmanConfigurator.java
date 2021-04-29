@@ -6,11 +6,10 @@
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package es.uam.eps.ir.socialranksys.grid.community.modularity;
-
+package es.uam.eps.ir.socialranksys.grid.community.edge;
 
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
-import es.uam.eps.ir.socialranksys.community.detection.modularity.FastGreedy;
+import es.uam.eps.ir.socialranksys.community.detection.edge.GirvanNewman;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionConfigurator;
 
@@ -19,25 +18,26 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionIdentifiers.FASTGREEDY;
+import static es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionIdentifiers.GIRVANNEWMAN;
 
 /**
- * Configures the FastGreedy community detection algorithm.
- *
+ * Configurator for the Girvan-Newman community detection algorithm, which divides the network in communities
+ * by removing the edge with the highest betweenness.
+ * 
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- *
- * @param <U> type of the users
- *
- * @see es.uam.eps.ir.socialranksys.community.detection.modularity.FastGreedy
+ * 
+ * @param <U> type of the users.
+ * 
+ * @see es.uam.eps.ir.socialranksys.community.detection.edge.GirvanNewman
  */
-public class FastGreedyConfigurator<U extends Serializable> implements CommunityDetectionConfigurator<U>
+public class GirvanNewmanConfigurator<U extends Serializable> implements CommunityDetectionConfigurator<U>
 {
     @Override
     public Map<String, Supplier<CommunityDetectionAlgorithm<U>>> configure(Grid grid)
     {
         Map<String, Supplier<CommunityDetectionAlgorithm<U>>> map = new HashMap<>();
-        map.put(FASTGREEDY, FastGreedy::new);
+        map.put(GIRVANNEWMAN, GirvanNewman::new);
         return map;
     }
 }

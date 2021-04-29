@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <b>References: </b> M.E.J. Newman. Networks: an introduction (2010)
  * </p>
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -53,9 +53,13 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
      * Strongly connected components of the network.
      */
     private Communities<U> scc;
-
+    /**
+     * The average shortest path length.
+     */
     private double asl;
-
+    /**
+     * The number of pairs of users at infinite distance from each other.
+     */
     private double infiniteDist;
 
     /**
@@ -90,7 +94,6 @@ public class FastDistanceCalculator<U> implements DistanceCalculator<U>
         distancesFrom = new ConcurrentHashMap<>();
         distancesTo = new ConcurrentHashMap<>();
 
-        long numNodes = graph.getVertexCount();
         boolean weighted = graph.isWeighted();
 
         // Configure an empty graph generator.

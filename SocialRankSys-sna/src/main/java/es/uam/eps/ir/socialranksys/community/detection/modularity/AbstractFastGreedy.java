@@ -16,10 +16,7 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 import org.jooq.lambda.tuple.Tuple3;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -40,10 +37,31 @@ public abstract class AbstractFastGreedy<U> implements CommunityDetectionAlgorit
      * The optimal number of communities.
      */
     private int optimalNumComms;
+    /**
+     * Random number generator.
+     */
+    protected Random rng;
+    /**
+     * Random number seed.
+     */
+    private final int rngSeed;
+
+    public AbstractFastGreedy()
+    {
+        rngSeed = 0;
+        rng = new Random(rngSeed);
+    }
+
+    public AbstractFastGreedy(int rngSeed)
+    {
+        this.rngSeed = rngSeed;
+        rng = new Random(rngSeed);
+    }
 
     @Override
     public Communities<U> detectCommunities(Graph<U> graph)
     {
+        this.rng = new Random(rngSeed);
         Dendogram<U> dendogram = this.detectCommunityDendogram(graph);
         return dendogram.getCommunitiesByNumber(this.optimalNumComms);
     }
@@ -51,6 +69,8 @@ public abstract class AbstractFastGreedy<U> implements CommunityDetectionAlgorit
     @Override
     public Dendogram<U> detectCommunityDendogram(Graph<U> graph)
     {
+        this.rng = new Random(rngSeed);
+
         double currentQ = 0;
         double maxQ = 0;
 

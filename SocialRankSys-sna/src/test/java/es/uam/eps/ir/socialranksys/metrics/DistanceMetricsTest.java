@@ -298,31 +298,31 @@ public class DistanceMetricsTest
     @Test
     public void nodeBetweenness()
     {
-        VertexMetric<Integer> betw = new NodeBetweenness<>(deCalculator);
+        VertexMetric<Integer> betw = new NodeBetweenness<>(deCalculator, true);
         Assert.assertEquals(0.0, betw.averageValue(this.directedEmpty), 0.0001);
 
-        betw = new NodeBetweenness<>(ueCalculator);
+        betw = new NodeBetweenness<>(ueCalculator, true);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedEmpty), 0.0001);
 
-        betw = new NodeBetweenness<>(ucCalculator);
+        betw = new NodeBetweenness<>(ucCalculator, true);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedComplete), 0.0001);
 
-        betw = new NodeBetweenness<>(dcCalculator);
+        betw = new NodeBetweenness<>(dcCalculator, true);
         Assert.assertEquals(0.0, betw.averageValue(this.directedComplete), 0.0001);
 
-        betw = new NodeBetweenness<>(dwcCalculator);
+        betw = new NodeBetweenness<>(dwcCalculator, true);
         Assert.assertEquals(0.04285714, betw.averageValue(this.directedWeaklyConnected), 0.0001);
 
-        betw = new NodeBetweenness<>(dscCalculator);
+        betw = new NodeBetweenness<>(dscCalculator, true);
         Assert.assertEquals(0.2857143, betw.averageValue(this.directedStronglyConnected), 0.0001);
 
-        betw = new NodeBetweenness<>(dncCalculator);
+        betw = new NodeBetweenness<>(dncCalculator, true);
         Assert.assertEquals(0.025, betw.averageValue(this.directedNonConnected), 0.0001);
 
-        betw = new NodeBetweenness<>(uscCalculator);
+        betw = new NodeBetweenness<>(uscCalculator, true);
         Assert.assertEquals(0.2666666667, betw.averageValue(this.undirectedConnected), 0.0001);
 
-        betw = new NodeBetweenness<>(uncCalculator);
+        betw = new NodeBetweenness<>(uncCalculator, true);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedNonConnected), 0.0001);
 
     }
@@ -333,31 +333,31 @@ public class DistanceMetricsTest
     @Test
     public void edgeBetweenness()
     {
-        EdgeMetric<Integer> betw = new EdgeBetweenness<>(deCalculator);
+        EdgeMetric<Integer> betw = new EdgeBetweenness<>(deCalculator, true);
         Assert.assertEquals(0.0, betw.averageValue(this.directedEmpty), 0.0001);
 
-        betw = new EdgeBetweenness<>(ueCalculator);
+        betw = new EdgeBetweenness<>(ueCalculator, true);
         Assert.assertEquals(0.0, betw.averageValue(this.undirectedEmpty), 0.0001);
 
-        betw = new EdgeBetweenness<>(ucCalculator);
+        betw = new EdgeBetweenness<>(ucCalculator, true);
         Assert.assertEquals(1.0 / 6.0, betw.averageValue(this.undirectedComplete), 0.0001);
 
-        betw = new EdgeBetweenness<>(dcCalculator);
+        betw = new EdgeBetweenness<>(dcCalculator, true);
         Assert.assertEquals(1.0 / 12.0, betw.averageValue(this.directedComplete), 0.0001);
 
-        betw = new EdgeBetweenness<>(dwcCalculator);
+        betw = new EdgeBetweenness<>(dwcCalculator, true);
         Assert.assertEquals(3.0 / 42.0, betw.averageValue(this.directedWeaklyConnected), 0.0001);
 
-        betw = new EdgeBetweenness<>(dscCalculator);
+        betw = new EdgeBetweenness<>(dscCalculator, true);
         Assert.assertEquals(9.272727272 / 42.0, betw.averageValue(this.directedStronglyConnected), 0.0001);
 
-        betw = new EdgeBetweenness<>(dncCalculator);
+        betw = new EdgeBetweenness<>(dncCalculator, true);
         Assert.assertEquals(2.0 / 30.0, betw.averageValue(this.directedNonConnected), 0.0001);
 
-        betw = new EdgeBetweenness<>(uscCalculator);
+        betw = new EdgeBetweenness<>(uscCalculator, true);
         Assert.assertEquals(2.875 / 15.0, betw.averageValue(this.undirectedConnected), 0.0001);
 
-        betw = new EdgeBetweenness<>(uncCalculator);
+        betw = new EdgeBetweenness<>(uncCalculator, true);
         Assert.assertEquals(1.0 / 15.0, betw.averageValue(this.undirectedNonConnected), 0.0001);
 
     }

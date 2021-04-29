@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,16 +10,26 @@ package es.uam.eps.ir.socialranksys.grid.community.modularity;
 
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.socialranksys.community.detection.modularity.Louvain;
-import es.uam.eps.ir.socialranksys.grid.Parameters;
+import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionConfigurator;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+
+import static es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionIdentifiers.LOUVAIN;
 
 /**
  * Configurator for the Louvain community detection algorithm.
+ *
  * @author Javier Sanz-Cruzado Puig (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> Type of the users.
+ *
+ * @param <U> type of the users.
+ *
+ * @see es.uam.eps.ir.socialranksys.community.detection.modularity.Louvain
  */
 public class LouvainConfigurator<U extends Serializable> implements CommunityDetectionConfigurator<U>
 {
@@ -29,10 +39,11 @@ public class LouvainConfigurator<U extends Serializable> implements CommunityDet
     private final static String THRESHOLD = "threshold";
 
     @Override
-    public CommunityDetectionAlgorithm<U> configure(Parameters params)
+    public Map<String, Supplier<CommunityDetectionAlgorithm<U>>> configure(Grid grid)
     {
-        double threshold = params.getDoubleValue(THRESHOLD);
-        return new Louvain<>(threshold);
+        Map<String, Supplier<CommunityDetectionAlgorithm<U>>> map = new HashMap<>();
+        List<Double> thresholds = grid.getDoubleValues(THRESHOLD);
+        thresholds.forEach(threshold -> map.put(LOUVAIN + "_" + threshold, () -> new Louvain<>(threshold)));
+        return map;
     }
-    
 }

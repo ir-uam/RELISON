@@ -51,7 +51,8 @@ import static es.uam.eps.ir.socialranksys.AuxiliarMethods.computeAndEvaluate;
 import static org.ranksys.formats.parsing.Parsers.lp;
 
 /**
- * Class for reproducing the experiments for the EWC1 axiom.
+ * Class for applying recommendation experiments over a training graph, and evaluating them
+ * over a series of metrics.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
@@ -113,7 +114,16 @@ public class Recommendation
         if (printRecommenders)
         {
             File directory = new File(outputPath + "recs" + File.separator);
-            directory.mkdirs();
+            if(!directory.exists())
+            {
+                boolean create = directory.mkdirs();
+                if(!create)
+                {
+                    System.err.println("ERROR: Program could not create the recommendation folder");
+                    return;
+                }
+            }
+
         }
 
         // Read the test graph

@@ -58,7 +58,7 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
     /**
      * Executable path.
      */
-    private final String exec;
+    private String exec;
     /**
      * Temporary path where we want to store the auxiliar networks.
      */
@@ -118,20 +118,96 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
         this(exec, temp, NUMTRIALS, RANDOMSEED);
     }
 
+    /**
+     * Constructor. Sets the number of trials and the random seed at a prefixed value.
+     * It copies the executable from the resources folder into the temporary files
+     * folder.
+     *
+     * @param temp temporary path where we want to store all the auxiliar networks.
+     */
+    public Infomap(String temp)
+    {
+        this(null, temp, NUMTRIALS, RANDOMSEED);
+    }
+
+    /**
+     * Constructor. Sets the number of trials and the random seed at a prefixed value.
+     * It copies the executable from the resources folder into the temporary files
+     * folder.
+     *
+     * @param temp      temporary path where we want to store all the auxiliar networks.
+     * @param numTrials number of trials before obtaining the communities.
+     */
+    public Infomap(String temp, int numTrials)
+    {
+        this(null, temp, numTrials, RANDOMSEED);
+    }
+
+    /**
+     * Constructor. Sets the number of trials and the random seed at a prefixed value.
+     * It copies the executable from the resources folder into the temporary files
+     * folder.
+     *
+     * @param temp      temporary path where we want to store all the auxiliar networks.
+     * @param numTrials number of trials before obtaining the communities.
+     * @param seed      the random seed.
+     */
+    public Infomap(String temp, int numTrials, int seed)
+    {
+        this(null, temp, numTrials, seed);
+    }
+
     @Override
     public Communities<U> detectCommunities(Graph<U> graph)
     {
+        boolean modexec = false;
+
+
+
         // First, we configure an auxiliar path for storing the Pajek graph.
         String network = "tmpNet", path = temp;
         new File(path).mkdir();
+
+        // If exec does not exist, then, we copy it from the resources file:
+        if(exec == null)
+        {
+            try
+            {
+                InputStream stream = getClass().getClassLoader().getResourceAsStream("Infomap");
+                assert stream != null;
+                stream = new BufferedInputStream(stream);
+
+                OutputStream out = new BufferedOutputStream(new FileOutputStream(temp + "Infomap"));
+
+                byte[] buffer = new byte[1024];
+                int lengthRead;
+                while((lengthRead = stream.read(buffer)) > 0)
+                {
+                    out.write(buffer, 0, lengthRead);
+                    out.flush();
+                }
+                this.exec = temp + "Infomap";
+                modexec = true;
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
 
         // Write the Pajek graph.
         GraphWriter<U> graphWriter = new PajekGraphWriter<>();
         graphWriter.write(graph, path + "/" + network + ".net");
 
         System.out.println("File written");
+
+        Communities<U> communities = this.detectCommunities(graph, network, path);
         // Detect communities
-        return this.detectCommunities(graph, network, path);
+        if(modexec)
+        {
+            exec = null;
+        }
+        return communities;
     }
 
     /**
