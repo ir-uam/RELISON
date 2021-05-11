@@ -24,9 +24,9 @@ import java.util.OptionalDouble;
  *
  * @param <U> type of the user.
  * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <F> type of the features.
  */
-public class UserSpeed<U extends Serializable,I extends Serializable,P> extends AbstractIndividualSimulationMetric<U,I,P>
+public class UserSpeed<U extends Serializable,I extends Serializable, F> extends AbstractIndividualSimulationMetric<U,I, F>
 {
     /**
      * Name fixed value.
@@ -62,7 +62,7 @@ public class UserSpeed<U extends Serializable,I extends Serializable,P> extends 
     }
 
     @Override
-    public void update(Iteration<U, I, P> iteration)
+    public void update(Iteration<U, I, F> iteration)
     {
         iteration.getReceivingUsers().forEach(u -> this.speed.put(u, this.speed.get(u) + iteration.getNumUniqueSeen(u)));
     }

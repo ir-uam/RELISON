@@ -20,8 +20,8 @@ public interface UpdateMechanism
 {
     /**
      * Updates a piece of information which has been newly seen.
-     * @param oldInfo Piece of information with old info.
-     * @param newInfo Piece of information with new info.
+     * @param oldInfo piece of information with old info.
+     * @param newInfo piece of information with new info.
      * @return the updated piece of information.
      */
     PropagatedInformation updateSeen(PropagatedInformation oldInfo, PropagatedInformation newInfo);
@@ -30,8 +30,8 @@ public interface UpdateMechanism
     /**
      * Updates a piece of information which was previously discarded.
      * 
-     * @param oldInfo Piece of information with the discarded info.
-     * @param newInfo Piece of information with the new info.
+     * @param oldInfo piece of information with the discarded info.
+     * @param newInfo piece of information with the new info.
      * @return the updated piece of information.
      */
     PropagatedInformation updateDiscarded(PropagatedInformation oldInfo, PropagatedInformation newInfo);

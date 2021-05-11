@@ -10,27 +10,31 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.stop;
 
 import es.uam.eps.ir.socialranksys.diffusion.stop.StopCondition;
 import es.uam.eps.ir.socialranksys.diffusion.stop.TotalPropagatedStopCondition;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 
 import java.io.Serializable;
 
 /**
- * Configures a stop condition based on the number of iterations of the simulation.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
- * @param <I> Type of the items
- * @param <P> Type of the parameters
+ * Configures an stop condition that finishes after a given amount of information pieces have been propagated.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class TotalPropagatedStopConditionConfigurator<U extends Serializable,I extends Serializable,P> implements StopConditionConfigurator<U,I,P>
+public class TotalPropagatedStopConditionConfigurator<U extends Serializable,I extends Serializable, F> implements StopConditionConfigurator<U,I, F>
 {
     /**
-     * Identifier for the number of iterations
+     * Identifier for the number of information pieces to propagate before stopping.
      */
     private final static String PROPAGATED = "propagated";
     
     @Override
-    public StopCondition<U,I,P> getStopCondition(StopConditionParamReader scgr)
+    public StopCondition<U,I, F> getStopCondition(Parameters scgr)
     {
-        long totalPieces = scgr.getParams().getLongValue(PROPAGATED);
+        long totalPieces = scgr.getLongValue(PROPAGATED);
         return new TotalPropagatedStopCondition<>(totalPieces);
     }
 }

@@ -19,7 +19,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Computes the number of pieces of information propagated and seen in all the iterations.
+ * Computes the complement of the Gini coefficient over the different features. For each feature value, it counts the
+ * number of (different) users who have received the feature.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -43,12 +44,12 @@ public class FeatureGlobalUserGini<U extends Serializable,I extends Serializable
       
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
+     * @param userFeat  true if we are using a user feature, false if we are using an information piece feature.
+     * @param feature   the name of the feature.
      */
-    public FeatureGlobalUserGini(String parameter, boolean userparam) 
+    public FeatureGlobalUserGini(String feature, boolean userFeat)
     {
-        super(GLOBALGINI + "-" + (userparam ? "user" : "info") + "-" + parameter, userparam, parameter);
+        super(GLOBALGINI + "-" + (userFeat ? "user" : "info") + "-" + feature, userFeat, feature);
     }
 
     @Override
@@ -68,17 +69,17 @@ public class FeatureGlobalUserGini<U extends Serializable,I extends Serializable
     }
     
     @Override
-    protected void updateUserParam(Iteration<U,I,P> iteration)
+    protected void updateUserFeature(Iteration<U,I,P> iteration)
     {
         if(iteration == null) return;
      
-        Index<P> pIndex = data.getFeatureIndex(this.getParameter());
+        Index<P> pIndex = data.getFeatureIndex(this.getFeature());
         iteration.getReceivingUsers().forEach(u ->
             iteration.getSeenInformation(u).forEach(i -> 
             {
                 int uidx = data.getUserIndex().object2idx(u);
                 data.getCreators(i.v1()).forEach(creator ->
-                    data.getUserFeatures(creator, this.getParameter()).forEach(p -> {
+                    data.getUserFeatures(creator, this.getFeature()).forEach(p -> {
                         int pidx = pIndex.object2idx(p.v1);
                         this.relation.get(pidx).add(uidx);
                     })
@@ -88,17 +89,17 @@ public class FeatureGlobalUserGini<U extends Serializable,I extends Serializable
     }
     
     @Override
-    protected void updateInfoParam(Iteration<U,I,P> iteration)
+    protected void updateInfoFeature(Iteration<U,I,P> iteration)
     {
         if(iteration == null) return;
      
-        Index<P> pIndex = data.getFeatureIndex(this.getParameter());
+        Index<P> pIndex = data.getFeatureIndex(this.getFeature());
         iteration.getReceivingUsers().forEach(u ->
             iteration.getSeenInformation(u).forEach(i -> 
             {
                 int uidx = data.getUserIndex().object2idx(u);
 
-                data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p ->
+                data.getInfoPiecesFeatures(i.v1(), this.getFeature()).forEach(p ->
                 {
                     int pidx = pIndex.object2idx(p.v1);
                     this.relation.get(pidx).add(uidx);
@@ -121,7 +122,7 @@ public class FeatureGlobalUserGini<U extends Serializable,I extends Serializable
         if(!this.isInitialized())
         {
             this.relation = new HashMap<>();
-            IntStream.range(0, data.numFeatureValues(this.getParameter())).forEach(pidx -> relation.put(pidx, new HashSet<>()));
+            IntStream.range(0, data.numFeatureValues(this.getFeature())).forEach(pidx -> relation.put(pidx, new HashSet<>()));
             this.initialized = true;
         }
     }

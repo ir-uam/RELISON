@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,17 +10,24 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.selection;
 
 import es.uam.eps.ir.socialranksys.diffusion.selections.IndependentCascadeModelSelectionMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.selections.SelectionMechanism;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 
 import java.io.Serializable;
 
 /**
- * Configures a Independent Cascade Model selection mechanism.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Configures a selection mechanism that propagates a fixed number of own information pieces, and repropagates
+ * pieces with a probability that only depends on the users receiving and propagating the information.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
+ *
+ * @see IndependentCascadeModelSelectionMechanism
  */
-public class IndependentCascadeModelSelectionConfigurator<U extends Serializable,I extends Serializable,P> implements SelectionConfigurator<U,I,P>
+public class IndependentCascadeModelSelectionConfigurator<U extends Serializable,I extends Serializable, F> implements SelectionConfigurator<U,I, F>
 {
     /**
      * Identifier for the number of own pieces of information to propagate.
@@ -36,14 +43,14 @@ public class IndependentCascadeModelSelectionConfigurator<U extends Serializable
     private final static String NUMREPR = "numRepr";
     
     @Override
-    public SelectionMechanism<U,I,P> configure(SelectionParamReader params)
+    public SelectionMechanism<U,I, F> configure(Parameters params)
     {
-        int numOwn = params.getParams().getIntegerValue(NUMOWN);
-        double prob = params.getParams().getDoubleValue(PROB);
-        
-        if(params.getParams().getIntegerValues().containsKey(NUMREPR))
+        int numOwn = params.getIntegerValue(NUMOWN);
+        double prob = params.getDoubleValue(PROB);
+
+        if(params.getIntegerValues().containsKey(NUMREPR))
         {
-            int numRepr = params.getParams().getIntegerValue(NUMREPR);
+            int numRepr = params.getIntegerValue(NUMREPR);
             return new IndependentCascadeModelSelectionMechanism<>(prob, numOwn, numRepr);
         }
         return new IndependentCascadeModelSelectionMechanism<>(prob, numOwn);

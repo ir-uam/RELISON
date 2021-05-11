@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.OptionalDouble;
 
 /**
- * It computes the Gini complement of the distribution of times that the different values
+ * It computes the entropy of the distribution of times that the different values
  * of a user or information piece feature has reached the different users in the network
  * during a simulation.
  * 
@@ -47,7 +47,7 @@ public class FeatureEntropy<U extends Serializable,I extends Serializable,P> ext
        
     /**
      * For each user, this map register the total number of times each user it has received 
-     * a parameter value. Ex: f there are four possible parameter values, A, B, C and D, and,
+     * a feature value. Ex: if there are four possible feature values, A, B, C and D, and,
      * for user u, value A has been received thrice (1 in iteration 1, 2 in iteration 3) , value
      * B has been received once (in iteration 2), value C has not been received, and value
      * D has been received five times (3 in iteration 2 and 2 in iteration 4), the value of this
@@ -56,20 +56,15 @@ public class FeatureEntropy<U extends Serializable,I extends Serializable,P> ext
     private final Map<U, Double> sum;
     
     /**
-     * For each user, registers the number of times each parameter value has been received. Ex: 
-     * If there are four possible parameter values, A, B, C and D, and,
+     * For each user, registers the number of times each feature value has been received. Ex:
+     * If there are four possible feature values, A, B, C and D, and,
      * for user u, value A has been received thrice (1 in iteration 1, 2 in iteration 3) , value
      * B has been received once (in iteration 2), value C has not been received, and value
      * D has been received five times (3 in iteration 2 and 2 in iteration 4), the map for user u
      * will contain pairs (A,3),(B,1),(C,0),(D,5).
      */
-    private final Map<U, Map<P, Double>> indivParamCounter;
-    
-    /**
-     * The number of different values for the feature.
-     */
-    private int count;
-    
+    private final Map<U, Map<P, Double>> indivFeatCounter;
+
     /**
      * Indicates if a piece of information is considered once (or each time it appears if false).
      */
@@ -77,15 +72,15 @@ public class FeatureEntropy<U extends Serializable,I extends Serializable,P> ext
     
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
-     * @param unique true if a piece of information is considered once, false if it is considered each time it appears.
+     * @param userFeat  true if we are using a user feature, false if we are using an information piece feature.
+     * @param feature   the name of the feature.
+     * @param unique    true if a piece of information is considered once, false if it is considered each time it appears.
      */
-    public FeatureEntropy(String parameter,boolean userparam, boolean unique) 
+    public FeatureEntropy(String feature,boolean userFeat, boolean unique)
     {
-        super(ENTROPY + "-" + (userparam ? "user" : "info") + "-" + parameter + "-" + (unique ? "unique" : "repetitions"), userparam, parameter);
+        super(ENTROPY + "-" + (userFeat ? "user" : "info") + "-" + feature + "-" + (unique ? "unique" : "repetitions"), userFeat, feature);
         this.sum = new HashMap<>();
-        this.indivParamCounter = new HashMap<>();
+        this.indivFeatCounter = new HashMap<>();
         this.unique = unique;
     }
 
@@ -98,7 +93,7 @@ public class FeatureEntropy<U extends Serializable,I extends Serializable,P> ext
     }
 
     @Override
-    protected void updateUserParam(Iteration<U, I, P> iteration)
+    protected void updateUserFeatures(Iteration<U, I, P> iteration)
     {
         iteration.getReceivingUsers().forEach(u -> 
         {
@@ -138,7 +133,7 @@ public class FeatureEntropy<U extends Serializable,I extends Serializable,P> ext
     }
     
     @Override
-    protected void updateInfoParam(Iteration<U, I, P> iteration) 
+    protected void updateInfoFeatures(Iteration<U, I, P> iteration)
     {
         iteration.getReceivingUsers().forEach(u -> 
         {
@@ -170,11 +165,11 @@ public class FeatureEntropy<U extends Serializable,I extends Serializable,P> ext
     /**
      * Internal function for updating the individual and counter maps.
      * @param u the user.
-     * @param aux an auxiliary map containing the new increments of several parameters for user u.
+     * @param aux an auxiliary map containing the new increments of several features for user u.
      */
     private void updateMap(U u, Map<P, Double> aux)
     {
-        Map<P,Double> indiv = this.indivParamCounter.get(u);
+        Map<P,Double> indiv = this.indivFeatCounter.get(u);
         aux.keySet().forEach(p -> 
         {
             double oldValue = indiv.getOrDefault(p, 0.0);
@@ -191,7 +186,7 @@ public class FeatureEntropy<U extends Serializable,I extends Serializable,P> ext
         if(this.isInitialized() && this.data.containsUser(user))
         {
             Entropy entropy = new Entropy();
-            return entropy.compute(this.indivParamCounter.get(user).values().stream(), this.sum.get(user));
+            return entropy.compute(this.indivFeatCounter.get(user).values().stream(), this.sum.get(user));
         }
         
         return Double.NaN;
@@ -200,9 +195,8 @@ public class FeatureEntropy<U extends Serializable,I extends Serializable,P> ext
     @Override
     public void clear() 
     {
-        this.indivParamCounter.clear();
+        this.indivFeatCounter.clear();
         this.sum.clear();
-        this.count = 0;
         this.initialized = false;
     }
     
@@ -211,13 +205,12 @@ public class FeatureEntropy<U extends Serializable,I extends Serializable,P> ext
     {
         if(!this.isInitialized() && data.doesFeatureExist(this.getParameter()))
         {
-            this.count = data.numFeatureValues(this.getParameter());
-            data.getAllUsers().forEach(u -> 
+            data.getAllUsers().forEach(u ->
             {
                 // Initialize the individual map:
                 Map<P, Double> indiv = new HashMap<>();
                 data.getAllFeatureValues(this.getParameter()).forEach(p -> indiv.put(p, 0.0));
-                this.indivParamCounter.put(u, indiv);
+                this.indivFeatCounter.put(u, indiv);
                 
                 this.sum.put(u, 0.0);
             });

@@ -9,7 +9,8 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.metrics.distributions;
 
 import es.uam.eps.ir.socialranksys.diffusion.metrics.distributions.Distribution;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
+import org.jooq.lambda.tuple.Tuple3;
 
 import java.io.Serializable;
 import java.util.List;
@@ -17,43 +18,46 @@ import java.util.List;
 import static es.uam.eps.ir.socialranksys.grid.diffusion.metrics.distributions.DistributionIdentifiers.*;
 
 /**
- * Class that selects an individual distribution.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
- * @see es.uam.eps.ir.socialranksys.diffusion.metrics.distributions
+ * Class for selecting a distribution.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> Type of the user / information pieces features.
  */
-public class DistributionSelector<U extends Serializable,I extends Serializable,P> 
+public class DistributionSelector<U extends Serializable,I extends Serializable, F>
 {
     /**
      * Selects and configures a distribution.
-     * @param ppr Parameters for the distribution.
-     * @return A pair containing the name and the selected distribution.
+     * @param name      the name of the distribution.
+     * @param params    the parameters for the distribution.
+     * @param times     a list of the times when the distribution has to be executed.
+     * @return A triplet containing the name, the distribution and the times.
      */
-    public Tuple2oo<String, Tuple2oo<Distribution<U,I,P>, List<Integer>>> select(DistributionParamReader ppr)
+    public Tuple3<String, Distribution<U,I, F>, List<Integer>> select(String name, Parameters params, List<Integer> times)
     {
-        String name = ppr.getName();
-        DistributionConfigurator<U,I,P> conf;
+        DistributionConfigurator<U,I, F> conf;
         switch(name)
         {
-            case INFOPARAM:
-                conf = new InfoParamDistributionConfigurator<>();
+            case INFOFEATS:
+                conf = new InfoFeatureDistributionConfigurator<>();
                 break;
-            case USERPARAM:
-                conf = new UserParamDistributionConfigurator<>();
+            case USERFEATS:
+                conf = new UserFeatDistributionConfigurator<>();
                 break;
             case INFORMATION:
                 conf = new InfoPiecesDistributionConfigurator<>();
                 break;
-            case MIXEDPARAM:
+            case MIXEDFEATS:
                 conf = new MixedParamDistributionConfigurator<>();
                 break;
             default:
                 return null;
         }
         
-        Distribution<U,I,P> propagation = conf.configure(ppr);
-        return new Tuple2oo<>(propagation.getName(), new Tuple2oo<>(propagation, ppr.getTimes()));
+        Distribution<U,I, F> propagation = conf.configure(params);
+        return new Tuple3<>(propagation.getName(), propagation, times);
     }
 }

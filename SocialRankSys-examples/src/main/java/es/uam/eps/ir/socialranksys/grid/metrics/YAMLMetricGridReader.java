@@ -8,20 +8,30 @@
  */
 package es.uam.eps.ir.socialranksys.grid.metrics;
 
-import com.esotericsoftware.yamlbeans.YamlReader;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.YAMLGridReader;
 
-import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Reads the different graph metrics from a YAML file.
+ * Class for reading social network analysis metrics.
+ * For each metric, a grid of parameters is read.
+ *
+ * <br/>
+ *
+ * File format:<br/>
+ * metrics:<br/>
+ *     metric_name:<br />
+ *     type: value<br />
+ *     params:<br />
+ *         param1: ...<br/>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see es.uam.eps.ir.socialranksys.grid.YAMLGridReader
  */
 public class YAMLMetricGridReader extends YAMLGridReader
 {
@@ -42,18 +52,12 @@ public class YAMLMetricGridReader extends YAMLGridReader
      * metric.
      */
     private final Map<String, Map<String, Grid>> metricsGrid;
-    /**
-     * The route of the YAML file containing the grid data.
-     */
-    private final String file;
 
     /**
      * Constructor.
-     * @param file the route of the YAML file containing the grid data.
      */
-    public YAMLMetricGridReader(String file)
+    public YAMLMetricGridReader()
     {
-        this.file = file;
         this.metricsGrid = new HashMap<>();
         MetricTypeIdentifiers.values().forEach(type -> this.metricsGrid.put(type, new HashMap<>()));
     }
@@ -61,26 +65,14 @@ public class YAMLMetricGridReader extends YAMLGridReader
     /**
      * It reads the YAML document containing the data.
      */
-    public void readDocument()
+    public void read(Map<String, Object> map)
     {
-        try
-        {
-            // First of all, obtain the XML Document
-            File inputFile = new File(file);
-            Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(inputFile)));
-            YamlReader yaml = new YamlReader(reader);
+        MetricTypeIdentifiers.values().forEach(type -> this.metricsGrid.get(type).clear());
+        Map<String, Object> algs = (Map<String, Object>) map.get(METRICS);
 
-            Map<String, Object> map = (Map<String, Object>) yaml.read();
-            Map<String, Object> algs = (Map<String, Object>) map.get(METRICS);
-
-            for(Map.Entry<String, Object> entry : algs.entrySet())
-            {
-                this.readMetric(entry);
-            }
-        }
-        catch (IOException ex)
+        for(Map.Entry<String, Object> entry : algs.entrySet())
         {
-            ex.printStackTrace();
+            this.readMetric(entry);
         }
     }
 
@@ -96,13 +88,13 @@ public class YAMLMetricGridReader extends YAMLGridReader
         String metricType = metricObject.get(TYPE).toString();
         if(metricsGrid.containsKey(metricType))
         {
-            Object params = metricObject.get(PARAMS);
-            if(params.getClass() == String.class) // In this case, there are no parameters
+            if(metricObject.containsKey(PARAMS) && metricObject.get(PARAMS).getClass() == String.class) // In this case, there are no parameters
             {
                 metricsGrid.get(metricType).put(metricName, new Grid());
             }
             else
             {
+                Object params = metricObject.get(PARAMS);
                 Map<String, Object> parameters = (Map<String, Object>) params;
                 Grid g = this.readParameterGrid(parameters);
                 this.metricsGrid.get(metricType).put(metricName, g);

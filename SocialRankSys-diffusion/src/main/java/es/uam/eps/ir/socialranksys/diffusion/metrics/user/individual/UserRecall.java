@@ -15,18 +15,19 @@ import java.io.Serializable;
 import java.util.*;
 
 /**
- * For each user in the network, the user-recall metric the proportion of users
- * in the network which have published at least an information piece that has 
- * been read by a user (all these users have to be different from the receiver).
+ * For each user in the network, this metric computes the proportion of users in the network who have created
+ * an information piece that has been received by the user (i.e. supposing that all the received pieces indicated
+ * the original creator, this metric indicates the fraction of the people in the network that each user has
+ * discovered).
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
- * @param <P> type of the parameters.
+ * @param <F> type of the features.
  */
-public class UserRecall<U extends Serializable,I extends Serializable,P> extends AbstractIndividualSimulationMetric<U,I,P>
+public class UserRecall<U extends Serializable,I extends Serializable, F> extends AbstractIndividualSimulationMetric<U,I, F>
 {
     /**
      * Name fixed value.
@@ -65,7 +66,7 @@ public class UserRecall<U extends Serializable,I extends Serializable,P> extends
     }
 
     @Override
-    public void update(Iteration<U, I, P> iteration)
+    public void update(Iteration<U, I, F> iteration)
     {
         iteration.getReceivingUsers().forEach(u ->
             iteration.getSeenInformation(u).forEach(i ->

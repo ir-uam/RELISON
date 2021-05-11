@@ -11,8 +11,9 @@ package es.uam.eps.ir.socialranksys.diffusion.protocols;
 import es.uam.eps.ir.socialranksys.diffusion.expiration.AllNotPropagatedExpirationMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.propagation.PullStrategyPropagationMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.selections.CountSelectionMechanism;
-import es.uam.eps.ir.socialranksys.diffusion.sight.AllSightMechanism;
-import es.uam.eps.ir.socialranksys.diffusion.update.IndependentCascadeModelUpdateMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.sight.AllNotPropagatedSightMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.update.NewestUpdateMechanism;
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 
 import java.io.Serializable;
 
@@ -25,27 +26,27 @@ import java.io.Serializable;
  *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
- * @param <P> type of the parameters.
+ * @param <F> type of the user and information pieces features.
  *
  * <p>
  * <b>Reference:</b> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987)
  * </p>
  */
-public class PullModelProtocol<U extends Serializable,I extends Serializable,P> extends Protocol<U,I,P>
+public class PullModelProtocol<U extends Serializable,I extends Serializable, F> extends Protocol<U,I, F>
 {
     /**
      * Constructor.
-     * @param numOwn Number of own information to propagate.
-     * @param numRec Number of received information to propagate.
-     * @param numWait Number of steps before selecting an already visited user.
+     * @param numOwn    number of own information to propagate.
+     * @param numRec    number of received information to propagate.
+     * @param numWait   number of steps before selecting an already visited user.
      */
     public PullModelProtocol(int numOwn, int numRec, int numWait)
     {
         super(  new CountSelectionMechanism<>(numOwn, numRec),
                 new AllNotPropagatedExpirationMechanism<>(),
-                new IndependentCascadeModelUpdateMechanism(),
-                new PullStrategyPropagationMechanism<>(numWait),
-                new AllSightMechanism<>());
+                new NewestUpdateMechanism(),
+                new PullStrategyPropagationMechanism<>(numWait, EdgeOrientation.OUT),
+                new AllNotPropagatedSightMechanism<>());
     }
     
 }

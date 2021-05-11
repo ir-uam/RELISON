@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -8,30 +8,42 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.filter;
 
-
 import es.uam.eps.ir.socialranksys.diffusion.data.filter.DataFilter;
 import es.uam.eps.ir.socialranksys.diffusion.data.filter.EmptyFeatureFilter;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 
 import java.io.Serializable;
 
 /**
- * Class for configuring a Basic filter.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
- * @param <I> Type of the items
- * @param <P> Type of the parameters
+ * Class for configuring a filter that adds, for each information piece without any feature, an empty feature.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users
+ * @param <I> type of the information pieces.
+ * @param <F> type of the features of the users / information pieces.
+ *
+ * @see EmptyFeatureFilter
  */
-public class EmptyFeatureFilterConfigurator<U extends Serializable,I extends Serializable,P> implements FilterConfigurator<U,I,P>
+public class EmptyFeatureFilterConfigurator<U extends Serializable,I extends Serializable, F> implements FilterConfigurator<U,I, F>
 {
-    
-    private final P defaultValue;
-    
-    public EmptyFeatureFilterConfigurator(P defaultValue)
+    /**
+     * The default value of the features.
+     */
+    private final F defaultValue;
+
+    /**
+     * Constructor.
+     * @param defaultValue the default value for the features.
+     */
+    public EmptyFeatureFilterConfigurator(F defaultValue)
     {
         this.defaultValue = defaultValue;
     }
+
     @Override
-    public DataFilter<U,I,P> getFilter(FilterParamReader fgs)
+    public DataFilter<U,I, F> getFilter(Parameters fgs)
     {
         return new EmptyFeatureFilter<>(defaultValue);
     }

@@ -11,8 +11,8 @@ package es.uam.eps.ir.socialranksys.diffusion.selections;
 import java.io.Serializable;
 
 /**
- * Selection for the pure Push-Pull Model selection mechanism: every item which has been received or
- * propagated is repropagated in the next iteration.
+ * Selection mechanism following the original one proposed by the push, pull and push-pull models: all the known information
+ * (i.e. all the received and already propagated pieces) is shared with the receivers.
  *
  * <p>
  * <b>Reference:</b> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987)
@@ -30,7 +30,7 @@ public class PullPushSelectionMechanism<U extends Serializable,I extends Seriali
 {
     /**
      * Constructor.
-     * @param numOwn Number of own pieces of information to propagate.
+     * @param numOwn number of own pieces of information to propagate.
      */
     public PullPushSelectionMechanism(int numOwn)
     {

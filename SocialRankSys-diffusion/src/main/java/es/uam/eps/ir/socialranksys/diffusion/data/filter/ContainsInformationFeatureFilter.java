@@ -26,9 +26,9 @@ import java.util.Set;
  *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
- * @param <P> type of the parameters.
+ * @param <F> type of the user and information pieces features.
  */
-public class ContainsInformationFeatureFilter<U extends Serializable, I extends Serializable, P> extends AbstractDataFilter<U,I,P> 
+public class ContainsInformationFeatureFilter<U extends Serializable, I extends Serializable, F> extends AbstractDataFilter<U,I, F>
 {
     /**
      * Name of the field.
@@ -45,7 +45,7 @@ public class ContainsInformationFeatureFilter<U extends Serializable, I extends 
     }
     
     @Override
-    protected Index<U> filterUsers(Data<U, I, P> data)
+    protected Index<U> filterUsers(Data<U, I, F> data)
     {
         Index<U> uIndex = new FastIndex<>();
         data.getAllUsers().sorted().forEach(uIndex::addObject);
@@ -53,7 +53,7 @@ public class ContainsInformationFeatureFilter<U extends Serializable, I extends 
     }
 
     @Override
-    protected Index<I> filterInfoPieces(Data<U, I, P> data) 
+    protected Index<I> filterInfoPieces(Data<U, I, F> data)
     {
         Index<I> iIndex = new FastIndex<>();
         Set<I> informationPieces = new HashSet<>();
@@ -69,18 +69,18 @@ public class ContainsInformationFeatureFilter<U extends Serializable, I extends 
     }
 
     @Override
-    protected Index<P> filterParameters(Data<U, I, P> data, String name, Index<I> iIndex) 
+    protected Index<F> filterParameters(Data<U, I, F> data, String name, Index<I> iIndex)
     {
         if(name == null ? this.featureName != null : !name.equals(this.featureName))
         {
-            Index<P> pIndex = new FastIndex<>();
+            Index<F> pIndex = new FastIndex<>();
             data.getAllFeatureValues(name).sorted().forEach(pIndex::addObject);
             return pIndex;
         }
         else
         {
-            Index<P> pIndex = new FastIndex<>();
-            Set<P> parameters = new HashSet<>();
+            Index<F> pIndex = new FastIndex<>();
+            Set<F> parameters = new HashSet<>();
             data.getAllInformationPieces().forEach(i -> data.getInfoPiecesFeatures(i, name).forEach(p -> parameters.add(p.v1)));
             parameters.stream().sorted().forEach(pIndex::addObject);
             return pIndex;

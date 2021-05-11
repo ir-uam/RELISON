@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,67 +9,77 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.selection;
 
 import es.uam.eps.ir.socialranksys.diffusion.selections.SelectionMechanism;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
+import org.jooq.lambda.tuple.Tuple2;
 
 import java.io.Serializable;
 
 import static es.uam.eps.ir.socialranksys.grid.diffusion.selection.SelectionMechanismIdentifiers.*;
 
 /**
- * Class that selects an individual selection mechanism.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Class that selects an individual selection mechanism given its parameters.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class SelectionSelector<U extends Serializable,I extends Serializable,P> 
+public class SelectionSelector<U extends Serializable,I extends Serializable, F>
 {
     /**
      * Selects and configures a selection mechanism.
-     * @param spr Parameters for the selection mechanism.
+     * @param name      the name of the selection mechanism.
+     * @param params    the parameters of the selection mechanism.
      * @return A pair containing the name and the selected selection mechanism.
      */
-    public Tuple2oo<String, SelectionMechanism<U,I,P>> select(SelectionParamReader spr)
+    public Tuple2<String, SelectionMechanism<U,I, F>> select(String name, Parameters params)
     {
-        String name = spr.getName();
-        SelectionConfigurator<U,I,P> conf;
+        SelectionConfigurator<U,I, F> conf;
         switch(name)
         {
-            case COUNT:
-                conf = new CountSelectionConfigurator<>();
-                break;
-            case ICM:
-                conf = new IndependentCascadeModelSelectionConfigurator<>();
-                break;
-            case PUSHPULL:
-                conf = new PullPushSelectionConfigurator<>();
-                break;
-            case REC:
-                conf = new RecommenderSelectionConfigurator<>();
-                break;
-            case PUREREC:
-                conf = new PureRecommenderSelectionConfigurator<>();
-                break;
-            case PURERECBATCH:
-                conf = new PureRecommenderBatchSelectionConfigurator<>();
-                break;
-            case THRESHOLD:
-                conf = new ThresholdSelectionConfigurator<>();
-                break;
-            case COUNTTHRESHOLD:
-                conf = new CountThresholdSelectionConfigurator<>();
-                break;
             case ALLREALPROP:
                 conf = new AllRealPropagatedSelectionConfigurator<>();
+                break;
+            case PURERECBATCH:
+                conf = new BatchRecommenderSelectionConfigurator<>();
                 break;
             case COUNTREALPROP:
                 conf = new CountRealPropagatedSelectionConfigurator<>();
                 break;
-            case PURETIMESTAMP:
-                conf = new PureTimestampBasedSelectionConfigurator<>();
+            case COUNT:
+                conf = new CountSelectionConfigurator<>();
+                break;
+            case COUNTTHRESHOLD:
+                conf = new CountThresholdSelectionConfigurator<>();
+                break;
+            case ICM:
+                conf = new IndependentCascadeModelSelectionConfigurator<>();
+                break;
+            case LIMITEDCOUNTTHRESHOLD:
+                conf = new LimitedCountThresholdSelectionConfigurator<>();
+                break;
+            case LIMITEDPROPTHRESHOLD:
+                conf = new LimitedProportionThresholdSelectionConfigurator<>();
                 break;
             case LOOSETIMESTAMP:
                 conf = new LooseTimestampBasedSelectionConfigurator<>();
+                break;
+            case ONLYOWN:
+                conf = new OnlyOwnSelectionConfigurator<>();
+                break;
+            case PROPORTIONTHRESHOLD:
+                conf = new ProportionThresholdSelectionConfigurator<>();
+                break;
+            case PUSHPULL:
+                conf = new PullPushSelectionConfigurator<>();
+                break;
+            case PUREREC:
+                conf = new PureRecommenderSelectionConfigurator<>();
+                break;
+            case REC:
+                conf = new RecommenderSelectionConfigurator<>();
                 break;
             case TIMESTAMPORDERED:
                 conf = new TimestampOrderedSelectionConfigurator<>();
@@ -78,7 +88,7 @@ public class SelectionSelector<U extends Serializable,I extends Serializable,P>
                 return null;
         }
         
-        SelectionMechanism<U,I,P> selection = conf.configure(spr);
-        return new Tuple2oo<>(name, selection);
+        SelectionMechanism<U,I, F> selection = conf.configure(params);
+        return new Tuple2<>(name, selection);
     }
 }

@@ -22,12 +22,12 @@ import java.io.Serializable;
  *
  * @param <U> type of the users.
  * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <F> type of the parameters.
  */
-public class BasicFilter<U extends Serializable, I extends Serializable, P> extends AbstractDataFilter<U,I,P> {
+public class BasicFilter<U extends Serializable, I extends Serializable, F> extends AbstractDataFilter<U,I, F> {
 
     @Override
-    protected Index<U> filterUsers(Data<U, I, P> data)
+    protected Index<U> filterUsers(Data<U, I, F> data)
     {
         Index<U> uIndex = new FastIndex<>();
         data.getAllUsers().sorted().forEach(uIndex::addObject);
@@ -35,7 +35,7 @@ public class BasicFilter<U extends Serializable, I extends Serializable, P> exte
     }
 
     @Override
-    protected Index<I> filterInfoPieces(Data<U, I, P> data) 
+    protected Index<I> filterInfoPieces(Data<U, I, F> data)
     {
         Index<I> iIndex = new FastIndex<>();
         data.getAllInformationPieces().sorted().forEach(iIndex::addObject);
@@ -43,8 +43,8 @@ public class BasicFilter<U extends Serializable, I extends Serializable, P> exte
     }
 
     @Override
-    protected Index<P> filterParameters(Data<U, I, P> data, String name, Index<I> iIndex) {
-        Index<P> pIndex = new FastIndex<>();
+    protected Index<F> filterParameters(Data<U, I, F> data, String name, Index<I> iIndex) {
+        Index<F> pIndex = new FastIndex<>();
         data.getAllFeatureValues(name).sorted().forEach(pIndex::addObject);
         return pIndex;    
     }

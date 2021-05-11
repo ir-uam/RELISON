@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -8,19 +8,24 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.update;
 
-
+import es.uam.eps.ir.socialranksys.diffusion.update.NewestUpdateMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.update.OlderUpdateMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.update.UpdateMechanism;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 
 /**
- * Configures a Independent Cascade Model update mechanism.
- * @author Javier Sanz-Cruzado Puig
+ * Configures an update mechanism that updates the information in the newest piece with the older ones.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see NewestUpdateMechanism
  */
 public class OlderUpdateConfigurator implements UpdateConfigurator
 {
     
     @Override
-    public UpdateMechanism configure(UpdateParamReader params)
+    public UpdateMechanism configure(Parameters params)
     {
         return new OlderUpdateMechanism();
     }

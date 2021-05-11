@@ -8,6 +8,7 @@
  */
 package es.uam.eps.ir.socialranksys.examples.sna;
 
+import es.uam.eps.ir.socialranksys.AuxiliarMethods;
 import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.socialranksys.community.detection.connectedness.StronglyConnectedComponents;
@@ -66,7 +67,7 @@ public class GraphAnalyzer
      *                  </li>
      *             </ol>
      */
-    public static void main(String[] args)
+    public static void main(String[] args) throws IOException
     {
         if(args.length < 7) // parameter checking
         {
@@ -159,8 +160,9 @@ public class GraphAnalyzer
 
         // Now, we read the set of metrics we do have to execute:
         a = System.currentTimeMillis();
-        YAMLMetricGridReader gridReader = new YAMLMetricGridReader(metricGrid);
-        gridReader.readDocument();
+        YAMLMetricGridReader gridReader = new YAMLMetricGridReader();
+        Map<String, Object> map = AuxiliarMethods.readYAML(metricGrid);
+        gridReader.read(map);
         b = System.currentTimeMillis();
         System.out.println("Grid read (" + (b-a) + " ms.)");
 

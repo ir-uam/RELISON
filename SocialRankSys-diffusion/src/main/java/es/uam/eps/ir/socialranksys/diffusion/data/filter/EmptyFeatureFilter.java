@@ -27,28 +27,28 @@ import java.util.stream.IntStream;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> type of the users
- * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class EmptyFeatureFilter<U extends Serializable, I extends Serializable, P> extends AbstractDataFilter<U,I,P> 
+public class EmptyFeatureFilter<U extends Serializable, I extends Serializable, F> extends AbstractDataFilter<U,I, F>
 {
     /**
      * Value for the empty feature.
      */
-    private final P emptyValue;
+    private final F emptyValue;
     
     /**
      * Constructor.
      * @param emptyValue the empty value.
      */
-    public EmptyFeatureFilter(P emptyValue)
+    public EmptyFeatureFilter(F emptyValue)
     {
         this.emptyValue = emptyValue;
     }
       
     @Override
-    protected Index<U> filterUsers(Data<U, I, P> data)
+    protected Index<U> filterUsers(Data<U, I, F> data)
     {
         Index<U> uIndex = new FastIndex<>();
         data.getAllUsers().sorted().forEach(uIndex::addObject);
@@ -56,7 +56,7 @@ public class EmptyFeatureFilter<U extends Serializable, I extends Serializable, 
     }
 
     @Override
-    protected Index<I> filterInfoPieces(Data<U, I, P> data) 
+    protected Index<I> filterInfoPieces(Data<U, I, F> data)
     {
         Index<I> iIndex = new FastIndex<>();
         data.getAllInformationPieces().sorted().forEach(iIndex::addObject);
@@ -64,8 +64,8 @@ public class EmptyFeatureFilter<U extends Serializable, I extends Serializable, 
     }
 
     @Override
-    protected Index<P> filterParameters(Data<U, I, P> data, String name, Index<I> iIndex) {
-        Index<P> pIndex = new FastIndex<>();
+    protected Index<F> filterParameters(Data<U, I, F> data, String name, Index<I> iIndex) {
+        Index<F> pIndex = new FastIndex<>();
         
         if(data.isUserFeature(name))
         {
@@ -74,7 +74,7 @@ public class EmptyFeatureFilter<U extends Serializable, I extends Serializable, 
         }
         else // Item feature
         {
-            List<P> par = data.getAllFeatureValues(name).collect(Collectors.toCollection(ArrayList::new));
+            List<F> par = data.getAllFeatureValues(name).collect(Collectors.toCollection(ArrayList::new));
             par.add(this.emptyValue);
             par.stream().sorted().forEach(pIndex::addObject);
             return pIndex;
@@ -82,7 +82,7 @@ public class EmptyFeatureFilter<U extends Serializable, I extends Serializable, 
     }
     
     @Override
-    protected Relation<Double> filterInfoParameterRelation(Data<U,I,P> fullData, String name, Index<I> iIndex, Index<P> pIndex)
+    protected Relation<Double> filterInfoParameterRelation(Data<U,I, F> fullData, String name, Index<I> iIndex, Index<F> pIndex)
     {
         Relation<Double> relation = new FastWeightedPairwiseRelation<>();
 
@@ -92,7 +92,7 @@ public class EmptyFeatureFilter<U extends Serializable, I extends Serializable, 
         iIndex.getAllObjects().forEach(i ->
         {
             int iidx = iIndex.object2idx(i);
-            List<Tuple2od<P>> params = fullData.getInfoPiecesFeatures(i, name).collect(Collectors.toCollection(ArrayList::new));
+            List<Tuple2od<F>> params = fullData.getInfoPiecesFeatures(i, name).collect(Collectors.toCollection(ArrayList::new));
             if(params.isEmpty())
             {
                 int pidx = pIndex.object2idx(this.emptyValue);

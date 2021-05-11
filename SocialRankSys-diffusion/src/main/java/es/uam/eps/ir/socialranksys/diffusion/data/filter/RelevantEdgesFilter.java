@@ -26,11 +26,11 @@ import java.io.Serializable;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the user identifiers.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class RelevantEdgesFilter<U extends Serializable,I extends Serializable, P> extends AbstractDataFilter<U,I,P>
+public class RelevantEdgesFilter<U extends Serializable,I extends Serializable, F> extends AbstractDataFilter<U,I, F>
 {
     /**
      * The definitive of tags to filter.
@@ -47,7 +47,7 @@ public class RelevantEdgesFilter<U extends Serializable,I extends Serializable, 
     }
     
     @Override
-    protected Graph<U> filterGraph(Data<U,I,P> data, Index<U> index)
+    protected Graph<U> filterGraph(Data<U,I, F> data, Index<U> index)
     {
         try 
         {
@@ -93,7 +93,7 @@ public class RelevantEdgesFilter<U extends Serializable,I extends Serializable, 
     
     
     @Override
-    protected Index<U> filterUsers(Data<U, I, P> data) 
+    protected Index<U> filterUsers(Data<U, I, F> data)
     {
         Index<U> uIndex = new FastIndex<>();
         data.getAllUsers().sorted().forEach(uIndex::addObject);
@@ -101,7 +101,7 @@ public class RelevantEdgesFilter<U extends Serializable,I extends Serializable, 
     }
 
     @Override
-    protected Index<I> filterInfoPieces(Data<U, I, P> data) 
+    protected Index<I> filterInfoPieces(Data<U, I, F> data)
     {
         Index<I> iIndex = new FastIndex<>();
         data.getAllInformationPieces().sorted().forEach(iIndex::addObject);
@@ -109,9 +109,9 @@ public class RelevantEdgesFilter<U extends Serializable,I extends Serializable, 
     }
 
     @Override
-    protected Index<P> filterParameters(Data<U, I, P> data, String name, Index<I> iIndex) 
+    protected Index<F> filterParameters(Data<U, I, F> data, String name, Index<I> iIndex)
     {
-        Index<P> pIndex = new FastIndex<>();
+        Index<F> pIndex = new FastIndex<>();
         
         if(data.doesFeatureExist(name))
         {

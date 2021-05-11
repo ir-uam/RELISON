@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,7 +10,8 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.stop;
 
 
 import es.uam.eps.ir.socialranksys.diffusion.stop.StopCondition;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
+import org.jooq.lambda.tuple.Tuple2;
 
 import java.io.Serializable;
 
@@ -18,23 +19,26 @@ import static es.uam.eps.ir.socialranksys.grid.diffusion.stop.StopConditionIdent
 
 
 /**
- * Class that selects an individual filter from a grid.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
- * @param <I> Type of the information pieces
- * @param <P> Type of the parameters
+ * Class for selecting an individual stop condition from a grid.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class StopConditionSelector<U extends Serializable,I extends Serializable,P> 
+public class StopConditionSelector<U extends Serializable,I extends Serializable, F>
 {
     /**
-     * Selects a filter.
-     * @param fgr Grid containing the parameters of the filter.
-     * @return A pair containing the name and the selected filter, null if something failed.
+     * Selects an stop condition.
+     * @param name      the name for the stop condition.
+     * @param params    the parameters of the stop condition.
+     * @return a pair containing the name and the stop condition if everything went OK, null otherwise.
      */
-    public Tuple2oo<String, StopCondition<U,I,P>> select(StopConditionParamReader fgr)
+    public Tuple2<String, StopCondition<U,I, F>> select(String name, Parameters params)
     {
-        String name = fgr.getName();
-        StopConditionConfigurator<U,I,P> fgs;
+        StopConditionConfigurator<U,I, F> fgs;
         switch(name)
         {
             case NOMORENEW:
@@ -62,7 +66,7 @@ public class StopConditionSelector<U extends Serializable,I extends Serializable
                 return null;
         }
         
-        StopCondition<U,I,P> stop = fgs.getStopCondition(fgr);
-        return new Tuple2oo<>(name, stop);
+        StopCondition<U,I, F> stop = fgs.getStopCondition(params);
+        return new Tuple2<>(name, stop);
     }
 }

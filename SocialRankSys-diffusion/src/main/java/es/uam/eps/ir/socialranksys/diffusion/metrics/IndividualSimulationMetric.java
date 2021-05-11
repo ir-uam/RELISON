@@ -22,11 +22,11 @@ import java.util.Map;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the features.
  */
-public interface IndividualSimulationMetric<U extends Serializable,I extends Serializable,P> extends SimulationMetric<U,I,P> 
+public interface IndividualSimulationMetric<U extends Serializable,I extends Serializable, F> extends SimulationMetric<U,I, F>
 {
     /**
      * Calculates the metric for each individual in the network.
@@ -39,7 +39,7 @@ public interface IndividualSimulationMetric<U extends Serializable,I extends Ser
      * @param simulation the whole simulation.
      * @return the value of the metric for each iteration.
      */
-    default List<Map<U,Double>> calculateIndividuals(Simulation<U, I, P> simulation)
+    default List<Map<U,Double>> calculateIndividuals(Simulation<U, I, F> simulation)
     {
         if(simulation == null || !this.isInitialized())
             return new ArrayList<>();
@@ -68,7 +68,7 @@ public interface IndividualSimulationMetric<U extends Serializable,I extends Ser
      * @param simulation the whole simulation
      * @return the value of the metric for that user in each iteration.
      */
-    default List<Double> calculate(U user, Simulation<U, I, P> simulation)
+    default List<Double> calculate(U user, Simulation<U, I, F> simulation)
     {
         if(simulation == null || user == null  || !this.isInitialized())
             return new ArrayList<>();

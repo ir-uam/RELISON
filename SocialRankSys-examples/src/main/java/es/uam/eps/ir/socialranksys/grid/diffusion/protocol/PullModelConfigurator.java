@@ -14,13 +14,18 @@ import es.uam.eps.ir.socialranksys.diffusion.protocols.PullModelProtocol;
 import java.io.Serializable;
 
 /**
- * Configures a Pull protocol
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Configures the pull model protocol.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
+ *
+ * @see PullModelProtocol
  */
-public class PullModelConfigurator<U extends Serializable,I extends Serializable,P> implements ProtocolConfigurator<U,I,P>
+public class PullModelConfigurator<U extends Serializable,I extends Serializable, F> implements ProtocolConfigurator<U,I, F>
 {
     /**
      * Identifier for the number of received information pieces to propagate each iteration.
@@ -36,7 +41,7 @@ public class PullModelConfigurator<U extends Serializable,I extends Serializable
     private final static String WAITTIME = "waitTime";
    
     @Override
-    public Protocol<U, I, P> configure(ProtocolParamReader params)
+    public Protocol<U, I, F> configure(YAMLProtocolParameterReader params)
     {
         int numRec = params.getParams().getIntegerValue(NUMREC);
         int numOwn = params.getParams().getIntegerValue(NUMOWN);

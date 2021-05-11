@@ -25,9 +25,9 @@ import es.uam.eps.ir.socialranksys.AuxiliarMethods;
 import es.uam.eps.ir.socialranksys.graph.Adapters;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridReader;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSelector;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.YAMLAlgorithmGridReader;
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.links.data.FastGraphIndex;
 import es.uam.eps.ir.socialranksys.links.data.GraphIndex;
@@ -77,7 +77,7 @@ public class Recommendation
      *               <li><b>All users: </b> true if we want to generate recommendations for all users in the training set, false if only for those who have test links</li>
      *             </ol>
      */
-    public static void main(String[] args)
+    public static void main(String[] args) throws IOException
     {
         if (args.length < 7)
         {
@@ -176,8 +176,9 @@ public class Recommendation
         GraphIndex<Long> index = new FastGraphIndex<>(weightedGraph);
 
         // Read the XML containing the parameter grid for each algorithm
-        AlgorithmGridReader gridreader = new AlgorithmGridReader(algorithmsPath);
-        gridreader.readDocument();
+        YAMLAlgorithmGridReader gridreader = new YAMLAlgorithmGridReader();
+        Map<String, Object> yaml = AuxiliarMethods.readYAML(algorithmsPath);
+        gridreader.read(yaml);
 
         Map<String, RecommendationAlgorithmFunction<Long>> recMap = new HashMap<>();
         // Get the different recommenders to execute

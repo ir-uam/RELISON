@@ -17,20 +17,20 @@ import java.util.Objects;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <P> parameter for the information.
+ * @param <F> parameter for the information.
  */
-public class Feature<P> implements Cloneable
+public class Feature<F> implements Cloneable
 {
     /**
      * Value of the parameter.
      */
-    private final P value;
+    private final F value;
     
     /**
      * Constructor.
      * @param value Value of the parameter.
      */
-    public Feature(P value)
+    public Feature(F value)
     {
         this.value = value;
     }
@@ -41,7 +41,7 @@ public class Feature<P> implements Cloneable
     {
         if(obj.getClass().equals(this.getClass()))
         {
-            Feature<P> instance = (Feature<P>) obj;
+            Feature<F> instance = (Feature<F>) obj;
             return instance.value.equals(this.value);
         }
         return false;
@@ -57,16 +57,16 @@ public class Feature<P> implements Cloneable
     
     @SuppressWarnings("unchecked")
     @Override
-    public Feature<P> clone() throws CloneNotSupportedException
+    public Feature<F> clone() throws CloneNotSupportedException
     {
-        return (Feature<P>) super.clone();
+        return (Feature<F>) super.clone();
     }
     
     /**
      * Obtains the value of the parameter.
      * @return the value.
      */
-    public P getValue()
+    public F getValue()
     {
         return value;
     }

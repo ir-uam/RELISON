@@ -18,27 +18,26 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Counts the number of different pairs (user, feature) that have appeared during the simulation.
+ * Metric that computes the number of different (user, feature) pairs which have appeared during the simulation.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> type of the user.
- * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user / information pieces features.
  */
-public class UserFeatureCount<U extends Serializable,I extends Serializable,P> extends AbstractFeatureGlobalSimulationMetric<U,I,P>
+public class UserFeatureCount<U extends Serializable,I extends Serializable, F> extends AbstractFeatureGlobalSimulationMetric<U,I, F>
 {
-
     /**
      * Name fixed value.
      */
     private final static String RECALL = "global-count";
 
     /**
-     * Stores (if it is necessary), a relation between users and parameters.
+     * Stores (if it is necessary), a relation between users and features.
      */
-    private final Map<U, Set<P>> recParams;
+    private final Map<U, Set<F>> receivedFeatures;
 
     /**
      * The total number of external parameters that have reached the different users.
@@ -47,20 +46,20 @@ public class UserFeatureCount<U extends Serializable,I extends Serializable,P> e
     
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
+     * @param userFeats true if we are using a user feature, false if we are using an information piece feature.
+     * @param feature   the name of the feature.
      */
-    public UserFeatureCount(String parameter, boolean userparam) 
+    public UserFeatureCount(String feature, boolean userFeats)
     {
-        super(RECALL + "-" + (userparam ? "user" : "info") + "-" + parameter, userparam, parameter);
-        this.recParams = new HashMap<>();
+        super(RECALL + "-" + (userFeats ? "user" : "info") + "-" + feature, userFeats, feature);
+        this.receivedFeatures = new HashMap<>();
     }
 
     @Override
     public void clear() 
     {
         this.total = 0.0;
-        this.recParams.clear();
+        this.receivedFeatures.clear();
         this.initialized = false;
     }
 
@@ -71,22 +70,22 @@ public class UserFeatureCount<U extends Serializable,I extends Serializable,P> e
     }
 
     /**
-     * Updates the necessary values for computing the metric (when using user parameters).
+     * Updates the necessary values for computing the metric (when using user features).
      * @param iteration the iteration data.
      */
     @Override
-    protected void updateUserParam(Iteration<U,I,P> iteration)
+    protected void updateUserFeature(Iteration<U,I, F> iteration)
     {
         if(iteration == null) return;
         
         iteration.getReceivingUsers().forEach(u ->
             iteration.getSeenInformation(u).forEach(i ->
                 data.getCreators(i.v1()).forEach(creator ->
-                    data.getUserFeatures(creator, this.getParameter()).forEach(p -> 
+                    data.getUserFeatures(creator, this.getFeature()).forEach(p ->
                     {
-                        if(!this.recParams.get(u).contains(p.v1()))
+                        if(!this.receivedFeatures.get(u).contains(p.v1()))
                         {
-                            this.recParams.get(u).add(p.v1());
+                            this.receivedFeatures.get(u).add(p.v1());
                             ++total;
                         }
                     })
@@ -96,21 +95,21 @@ public class UserFeatureCount<U extends Serializable,I extends Serializable,P> e
     }
     
     /**
-     * Updates the necessary values for computing the metric (when using user parameters).
+     * Updates the necessary values for computing the metric (when using information pieces features).
      * @param iteration the iteration data.
      */
     @Override
-    protected void updateInfoParam(Iteration<U,I,P> iteration)
+    protected void updateInfoFeature(Iteration<U,I, F> iteration)
     {
         if(iteration == null) return;
         
         iteration.getReceivingUsers().forEach(u ->
             iteration.getSeenInformation(u).forEach(i ->
-                data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p ->
+                data.getInfoPiecesFeatures(i.v1(), this.getFeature()).forEach(p ->
                 {
-                    if(!this.recParams.get(u).contains(p.v1()))
+                    if(!this.receivedFeatures.get(u).contains(p.v1()))
                     {
-                        this.recParams.get(u).add(p.v1());
+                        this.receivedFeatures.get(u).add(p.v1());
                         ++total;
                     }
                 })
@@ -121,10 +120,10 @@ public class UserFeatureCount<U extends Serializable,I extends Serializable,P> e
     @Override
     protected void initialize() 
     {
-        if(!this.isInitialized() && this.data != null && data.doesFeatureExist(this.getParameter()))
+        if(!this.isInitialized() && this.data != null && data.doesFeatureExist(this.getFeature()))
         {
-            this.recParams.clear();
-            data.getAllUsers().forEach(u -> this.recParams.put(u, new HashSet<>()));
+            this.receivedFeatures.clear();
+            data.getAllUsers().forEach(u -> this.receivedFeatures.put(u, new HashSet<>()));
             this.total = 0.0;
             this.initialized = true;
         }

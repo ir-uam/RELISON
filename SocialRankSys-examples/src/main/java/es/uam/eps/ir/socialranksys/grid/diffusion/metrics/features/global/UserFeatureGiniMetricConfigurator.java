@@ -10,19 +10,22 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.metrics.features.global;
 
 import es.uam.eps.ir.socialranksys.diffusion.metrics.SimulationMetric;
 import es.uam.eps.ir.socialranksys.diffusion.metrics.features.global.UserFeatureGini;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricConfigurator;
-import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricParamReader;
 
 import java.io.Serializable;
 
 /**
- * Configurator for the User-Feature Gini metric.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the features.
+ * Interface for the complement of the Gini coefficient over the distribution of (user, feature) pairs.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the features of the user / information pieces.
  */
-public class UserFeatureGiniMetricConfigurator<U extends Serializable,I extends Serializable,P> implements MetricConfigurator<U,I,P>
+public class UserFeatureGiniMetricConfigurator<U extends Serializable,I extends Serializable, F> implements MetricConfigurator<U,I, F>
 {
     /**
      * Identifier for the parameter that indicates if a feature refers to a user or to an information piece.
@@ -38,11 +41,11 @@ public class UserFeatureGiniMetricConfigurator<U extends Serializable,I extends 
     private final static String UNIQUE = "unique";
     
     @Override
-    public SimulationMetric<U, I, P> configure(MetricParamReader params)
+    public SimulationMetric<U, I, F> configure(Parameters params)
     {
-        Boolean userParam = params.getParams().getBooleanValue(USERFEAT);
-        String param = params.getParams().getStringValue(PARAM);
-        Boolean unique = params.getParams().getBooleanValue(UNIQUE);
+        Boolean userParam = params.getBooleanValue(USERFEAT);
+        String param = params.getStringValue(PARAM);
+        Boolean unique = params.getBooleanValue(UNIQUE);
         
         if(userParam == null || param == null || unique == null)
         {

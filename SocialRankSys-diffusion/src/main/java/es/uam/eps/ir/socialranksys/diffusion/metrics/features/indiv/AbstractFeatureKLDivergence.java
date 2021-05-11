@@ -27,7 +27,7 @@ import java.util.OptionalDouble;
  *  <li><b>User parameters:</b>
  *      <ul>
  *          <li><i>Priori distribution:</i> The priori value for an individual user parameter
- *          is computed as the sum over the set of users of the product of the number of pieces published
+ *          is computed as the sum over the set of users as the product of the number of pieces published
  *          by the user and the value of the user parameter for the user.
  *          For example, let's suppose we have four different users, with two different communites:<br>
  * 
@@ -120,7 +120,7 @@ public abstract class AbstractFeatureKLDivergence<U extends Serializable,I exten
     }
     
     @Override
-    protected void updateUserParam(Iteration<U,I,P> iteration)
+    protected void updateUserFeatures(Iteration<U,I,P> iteration)
     {
         if(iteration == null) return;
      
@@ -159,7 +159,7 @@ public abstract class AbstractFeatureKLDivergence<U extends Serializable,I exten
     }
     
     @Override
-    protected void updateInfoParam(Iteration<U,I,P> iteration)
+    protected void updateInfoFeatures(Iteration<U,I,P> iteration)
     {
         if(iteration == null) return;
      

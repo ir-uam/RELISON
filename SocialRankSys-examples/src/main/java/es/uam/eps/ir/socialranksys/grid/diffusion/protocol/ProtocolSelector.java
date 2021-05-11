@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,7 +10,7 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.protocol;
 
 
 import es.uam.eps.ir.socialranksys.diffusion.protocols.Protocol;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import org.jooq.lambda.tuple.Tuple2;
 
 import java.io.Serializable;
 
@@ -18,23 +18,26 @@ import static es.uam.eps.ir.socialranksys.grid.diffusion.protocol.ProtocolIdenti
 
 
 /**
- * Class that selects an individual filter from a grid.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
- * @param <I> Type of the information pieces
- * @param <P> Type of the parameters
+ * Class for selecting a suitable information diffusion protocol from its configuration.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class ProtocolSelector<U extends Serializable,I extends Serializable,P> 
+public class ProtocolSelector<U extends Serializable,I extends Serializable, F>
 {
     /**
      * Selects a protocol.
-     * @param ppr Parameters for the protocol.
-     * @return A pair containing the name and the selected protocol.
+     * @param ppr the configuration parameters of the protocol.
+     * @return a pair containing the name and the selected protocol.
      */
-    public Tuple2oo<String, Protocol<U,I,P>> select(ProtocolParamReader ppr)
+    public Tuple2<String, Protocol<U,I, F>> select(YAMLProtocolParameterReader ppr)
     {
         String name = ppr.getName();
-        ProtocolConfigurator<U,I,P> conf;
+        ProtocolConfigurator<U,I, F> conf;
         if(!ppr.isPreconfigured()) // Custom protocol
         {
             conf = new CustomProtocolConfigurator<>();
@@ -75,7 +78,7 @@ public class ProtocolSelector<U extends Serializable,I extends Serializable,P>
             }
         }
         
-        Protocol<U,I,P> protocol = conf.configure(ppr);
-        return new Tuple2oo<>(name, protocol);
+        Protocol<U,I, F> protocol = conf.configure(ppr);
+        return new Tuple2<>(name, protocol);
     }
 }

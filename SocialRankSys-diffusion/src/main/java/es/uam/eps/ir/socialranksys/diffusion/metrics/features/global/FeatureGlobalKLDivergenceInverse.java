@@ -36,13 +36,13 @@ public class FeatureGlobalKLDivergenceInverse<U extends Serializable,I extends S
 
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
+     * @param userFeat true if we are using a user feature, false if we are using an information piece feature.
+     * @param feature the name of the feature.
      * @param unique true if a piece of information is considered once, false if it is considered each time it appears.
      */
-    public FeatureGlobalKLDivergenceInverse(String parameter, boolean userparam, boolean unique) 
+    public FeatureGlobalKLDivergenceInverse(String feature, boolean userFeat, boolean unique)
     {
-        super(ENTROPY + "-" + (userparam ? "user" : "info") + "-" + parameter, parameter, userparam, unique);
+        super(ENTROPY + "-" + (userFeat ? "user" : "info") + "-" + feature, feature, userFeat, unique);
     }
 
     @Override
@@ -52,8 +52,8 @@ public class FeatureGlobalKLDivergenceInverse<U extends Serializable,I extends S
             return Double.NaN;
         
         KLDivergence kldiv = new KLDivergence();
-        Stream<Double> pdistr = this.data.getAllFeatureValues(this.getParameter()).map(this.pvalues::get);
-        Stream<Double> qdistr = this.data.getAllFeatureValues(this.getParameter()).map(this.qvalues::get);
+        Stream<Double> pdistr = this.data.getAllFeatureValues(this.getFeature()).map(this.pvalues::get);
+        Stream<Double> qdistr = this.data.getAllFeatureValues(this.getFeature()).map(this.qvalues::get);
         
         return kldiv.compute(qdistr, pdistr, this.sumQ, this.sumP);
     }

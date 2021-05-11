@@ -18,16 +18,19 @@ import java.util.Map;
 import java.util.OptionalDouble;
 
 /**
- * Computes the number of pieces of information propagated and seen in all the iterations.
+ * For each user in the network, this metric computes the entropy over
+ * the users in the network who have created an information piece that has been received by the user. If the user
+ * has not received any information piece from a creator, such creator is given the value zero. Otherwise, it takes
+ * the number of times he has received information from that user.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> type of the user.
- * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the features.
  */
-public class UserEntropy<U extends Serializable,I extends Serializable,P> extends AbstractIndividualSimulationMetric<U,I,P>
+public class UserEntropy<U extends Serializable,I extends Serializable, F> extends AbstractIndividualSimulationMetric<U,I, F>
 {
 
     /**
@@ -71,7 +74,7 @@ public class UserEntropy<U extends Serializable,I extends Serializable,P> extend
     }
 
     @Override
-    public void update(Iteration<U, I, P> iteration)
+    public void update(Iteration<U, I, F> iteration)
     {
         if(this.isInitialized())
         {

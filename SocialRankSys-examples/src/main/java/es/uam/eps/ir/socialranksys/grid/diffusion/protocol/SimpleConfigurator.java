@@ -15,13 +15,18 @@ import es.uam.eps.ir.socialranksys.diffusion.protocols.SimpleProtocol;
 import java.io.Serializable;
 
 /**
- * Configures a Simple protocol
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Configures simple diffusion protocol.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
+ *
+ * @see SimpleProtocol
  */
-public class SimpleConfigurator<U extends Serializable,I extends Serializable,P> implements ProtocolConfigurator<U,I,P>
+public class SimpleConfigurator<U extends Serializable,I extends Serializable, F> implements ProtocolConfigurator<U,I, F>
 {
     /**
      * Identifier for the number of received pieces to propagate each iteration.
@@ -33,7 +38,7 @@ public class SimpleConfigurator<U extends Serializable,I extends Serializable,P>
     private final static String NUMOWN = "numOwn";
 
     @Override
-    public Protocol<U,I,P> configure(ProtocolParamReader params)
+    public Protocol<U,I, F> configure(YAMLProtocolParameterReader params)
     {
         int numRec = params.getParams().getIntegerValue(NUMREC);
         int numOwn = params.getParams().getIntegerValue(NUMOWN);

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,7 +10,8 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.filter;
 
 import es.uam.eps.ir.socialranksys.diffusion.data.filter.DataFilter;
 import es.uam.eps.ir.socialranksys.graph.Graph;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
+import org.jooq.lambda.tuple.Tuple2;
 import org.ranksys.formats.parsing.Parser;
 
 import java.io.Serializable;
@@ -18,22 +19,26 @@ import java.io.Serializable;
 import static es.uam.eps.ir.socialranksys.grid.diffusion.filter.FilterIdentifiers.*;
 
 /**
- * Class that selects an individual filter from a grid.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
- * @param <I> Type of the items
- * @param <P> Type of the parameters
+ * Class for selecting and configuring a filter for the information diffusion
+ * process from a set of parameters.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users
+ * @param <I> type of the information pieces.
+ * @param <F> Type of the features of the users / information pieces.
  */
-public class FilterSelector<U extends Serializable,I extends Serializable,P> 
+public class FilterSelector<U extends Serializable,I extends Serializable, F>
 {
     /**
      * Feature parser
      */
-    private final Parser<P> parser;
+    private final Parser<F> parser;
     /**
      * Default value for the feature.
      */
-    private final P defaultValue;
+    private final F defaultValue;
     /**
      * The test graph.
      */
@@ -41,10 +46,10 @@ public class FilterSelector<U extends Serializable,I extends Serializable,P>
     
     /**
      * Constructor.
-     * @param parser a parser for the features.
-     * @param defaultValue the default value for the feature.
+     * @param parser        a parser for the features.
+     * @param defaultValue  the default value for the feature.
      */
-    public FilterSelector(Parser<P> parser, P defaultValue)
+    public FilterSelector(Parser<F> parser, F defaultValue)
     {
         this.parser = parser;
         this.defaultValue = defaultValue;
@@ -53,60 +58,50 @@ public class FilterSelector<U extends Serializable,I extends Serializable,P>
     
     /**
      * Constructor.
-     * @param parser a parser for the features.
-     * @param defaultValue the default value for the feature.
-     * @param testGraph the test graph.
+     * @param parser        a parser for the features.
+     * @param defaultValue  the default value for the feature.
+     * @param testGraph     the test graph.
      */
-    public FilterSelector(Parser<P> parser, P defaultValue, Graph<U> testGraph)
+    public FilterSelector(Parser<F> parser, F defaultValue, Graph<U> testGraph)
     {
         this.parser = parser;
         this.defaultValue = defaultValue;
         this.testGraph = testGraph;
     }
+
+    /**
+     * Selects a filter.
+     * @param name          the name of the filter.
+     * @param parameters    the parameter configuration of the filter.
+     * @return the configurator of the filter.
+     */
+    public Tuple2<String, DataFilter<U,I,F>> select(String name, Parameters parameters)
+    {
+        FilterConfigurator<U,I,F> fgs = this.selectConfig(name);
+        DataFilter<U,I,F> filter = fgs.getFilter(parameters);
+
+        return new Tuple2<>(name, filter);
+    }
     
     /**
      * Selects a filter.
-     * @param fgr Grid containing the parameters of the filter.
-     * @return A pair containing the name and the selected filter.
+     * @param name the name of the filter.
+     * @return the configurator of the filter.
      */
-    public Tuple2oo<String, DataFilter<U,I,P>> select(FilterParamReader fgr)
+    public FilterConfigurator<U, I, F> selectConfig(String name)
     {
-        String name = fgr.getName();
-        FilterConfigurator<U,I,P> fgs;
-        switch(name)
+        return switch (name)
         {
-            case BASIC:
-                fgs = new BasicFilterConfigurator<>();
-                break;
-            case TAG:
-                fgs = new ContainsInformationFeatureFilterConfigurator<>();
-                break;
-            case TAGSEL:
-                fgs = new InformationFeatureSelectionFilterConfigurator<>(parser);
-                break;
-            case NUMTWEETS:
-                fgs = new NumInformationPiecesFilterConfigurator<>();
-                break;
-            case EMPTYTAG:
-                fgs = new EmptyFeatureFilterConfigurator<>(this.defaultValue);
-                break;
-            case CREATOR:
-                fgs = new WithCreatorFilterConfigurator<>();
-                break;
-            case RELEVANTEDGES:
-                fgs = new RelevantEdgesFilterConfigurator<>(this.testGraph);
-                break;
-            case MINIMUMPIECES:
-                fgs = new MinimumFrequencyInformationFeatureFilterConfigurator<>();
-                break;
-            case ONLYREPR:
-                fgs = new OnlyRepropagatedPiecesFilterConfigurator<>();
-                break;
-            default:
-                return null;
-        }
-        
-        DataFilter<U,I,P> filter = fgs.getFilter(fgr);
-        return new Tuple2oo<>(name, filter);
+            case BASIC -> new BasicFilterConfigurator<>();
+            case TAG -> new ContainsInformationFeatureFilterConfigurator<>();
+            case TAGSEL -> new InformationFeatureSelectionFilterConfigurator<>(parser);
+            case NUMTWEETS -> new NumInformationPiecesFilterConfigurator<>();
+            case EMPTYTAG -> new EmptyFeatureFilterConfigurator<>(this.defaultValue);
+            case CREATOR -> new WithCreatorFilterConfigurator<>();
+            case RELEVANTEDGES -> new RelevantEdgesFilterConfigurator<>(this.testGraph);
+            case MINIMUMPIECES -> new MinimumFrequencyInformationFeatureFilterConfigurator<>();
+            case ONLYREPR -> new OnlyRepropagatedPiecesFilterConfigurator<>();
+            default -> null;
+        };
     }
 }

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -13,18 +13,21 @@ import es.uam.eps.ir.socialranksys.diffusion.protocols.Protocol;
 import java.io.Serializable;
 
 /**
- * Configures a protocol
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Interface for configuring protocols for information diffusion, given their properties.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public interface ProtocolConfigurator<U extends Serializable,I extends Serializable,P>
+public interface ProtocolConfigurator<U extends Serializable,I extends Serializable,F>
 {
     /**
      * Configures a protocol.
-     * @param params Parameters of the protocol.
+     * @param params the parameters for configuring the protocol.
      * @return the protocol.
      */
-    Protocol<U,I,P> configure(ProtocolParamReader params);
+    Protocol<U,I,F> configure(YAMLProtocolParameterReader params);
 }

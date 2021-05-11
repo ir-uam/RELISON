@@ -42,341 +42,284 @@ import static org.ranksys.formats.parsing.Parsers.lp;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class DataReader<U extends Serializable,I extends Serializable,P> 
+public class DataReader<U extends Serializable,I extends Serializable, F>
 {
-
     /**
-     * Read the data from files.
-     * @param multigraph true if the graph is a multigraph.
-     * @param directed true if the graph is directed.
-     * @param weighted true if the graph is weighted
-     * @param readtypes true if we must read the types.
-     * @param uIndex file containing the user index.
-     * @param iIndex file containing the information pieces index index.
-     * @param graphFile file containing the graph.
-     * @param infoFile file containing the additional information about the information pieces (creator and timestamps)
-     * @param uParser parser for the user identifiers.
-     * @param iParser parser for the information piece identifiers.
+     * Read the data from files. Only the basic information is available.
+     * @param graphFile     route of a file containing the network graph.
+     * @param multigraph    true if the graph is a multigraph, false otherwise.
+     * @param directed      true if the graph is directed, false otherwise.
+     * @param weighted      true if the graph is weighted, false otherwise.
+     * @param selfloops     true if the graph allows self loops, false otherwise.
+     * @param readtypes     true if we must read the types of the edges, false otherwise.
+     * @param uIndex        route to a file containing a list of user identifiers.
+     * @param iIndex        route to a file containing a list of user identifiers.
+     * @param infoFile      file containing information about the information pieces (creator and timestamps).
+     * @param uParser       parser for the user identifiers.
+     * @param iParser       parser for the information piece identifiers.
      * @return the data object.
      * @throws IOException if something fails while reading.
      */
-    public Data<U,I,P> readData(boolean multigraph, boolean directed, boolean weighted, boolean readtypes, String uIndex, String iIndex, String graphFile, String infoFile, Parser<U> uParser, Parser<I> iParser) throws IOException
+    public Data<U,I, F> readData(String graphFile, boolean multigraph, boolean directed, boolean weighted, boolean selfloops, boolean readtypes, String uIndex, String iIndex, String infoFile, Parser<U> uParser, Parser<I> iParser) throws IOException
     {
-        Index<U> userIndex = this.readIndex(uIndex, uParser);
-        Index<I> itemIndex = this.readIndex(iIndex, iParser);
-
-        GraphReader<U> greader = multigraph ? new TextMultiGraphReader<>(directed, weighted, false, "\t", uParser) : new TextGraphReader<>(directed, weighted, false, "\t", uParser);
-        Graph<U> graph = greader.read(graphFile, weighted, readtypes);
-        
-        Tuple2oo<Map<Integer, Information<I>>, Relation<Integer>> information = this.readUserInformation(infoFile, userIndex, itemIndex, uParser, iParser);
-        
-        Map<Integer, Information<I>> infoMap = information.v1();
-        Relation<Integer> userInfo = information.v2();
-        
-        return new Data<>(graph, userIndex, itemIndex, infoMap, userInfo);
+        return this.readData(graphFile, multigraph, directed, weighted, selfloops, readtypes, uIndex, iIndex, infoFile, null, null, null, null, Integer.MAX_VALUE, uParser, iParser, null);
     }
-    
+
     /**
-     * Read the data from files.
-     * @param multigraph true if the graph is a multigraph.
-     * @param directed true if the graph is directed.
-     * @param weighted true if the graph is weighted
-     * @param uIndex file containing the user index.
-     * @param iIndex file containing the information pieces index index.
-     * @param graphFile file containing the graph.
-     * @param recFile recommendation file.
-     * @param topN maximum cutoff of the recommendation.
-     * @param infoFile file containing the additional information about the information pieces (creator and timestamps)
-     * @param uParser parser for the user identifiers.
-     * @param iParser parser for the information piece identifiers.
+     * Read the data from files. We have information about the features of users or items.
+     * @param graphFile         route of a file containing the network graph.
+     * @param multigraph        true if the graph is a multigraph, false otherwise.
+     * @param directed          true if the graph is directed, false otherwise.
+     * @param weighted          true if the graph is weighted, false otherwise.
+     * @param selfloops         true if the graph allows self loops, false otherwise.
+     * @param readtypes         true if we have to read the types of the edges, false otherwise.
+     * @param uIndex            route to a file containing a list of user identifiers.
+     * @param iIndex            route to a file containing a list of user identifiers.
+     * @param infoFile          file containing information about the information pieces (creator and timestamps).
+     * @param userFeatureFiles  an array containing the routes of files user features (might be null).
+     * @param infoFeatureFiles  an array containing the routes of files with information pieces features (might be null).
+     * @param uParser           parser for the user identifiers.
+     * @param iParser           parser for the information piece identifiers.
+     * @param pParser           parser for the features.
      * @return the data object.
      * @throws IOException if something fails while reading.
      */
-    public Data<U,I,P> readData(boolean multigraph, boolean directed, boolean weighted, String uIndex, String iIndex, String graphFile, String recFile, int topN, String infoFile, Parser<U> uParser, Parser<I> iParser) throws IOException
+    public Data<U,I, F> readData(String graphFile, boolean multigraph, boolean directed, boolean weighted, boolean selfloops, boolean readtypes, String uIndex, String iIndex, String infoFile, String[] userFeatureFiles, String[] infoFeatureFiles, Parser<U> uParser, Parser<I> iParser, Parser<F> pParser) throws IOException
     {
-        Index<U> userIndex = this.readIndex(uIndex, uParser);
-        Index<I> itemIndex = this.readIndex(iIndex, iParser);
-
-        GraphReader<U> greader = multigraph ? new TextMultiGraphReader<>(directed, weighted, false, "\t", uParser) : new TextGraphReader<>(directed, weighted, false, "\t", uParser);
-        Graph<U> graph = greader.read(graphFile, weighted, false);
-       
-        RecommendationFormat<U,U> format = new SimpleRecommendationFormat<>(uParser, uParser);
-        
-        format.getReader(recFile).readAll().forEach(rec -> 
-        {
-           U u = rec.getUser();
-           rec.getItems().stream().limit(topN).forEach(r -> graph.addEdge(u, r.v1, 1.0, SimulationEdgeTypes.RECOMMEND));
-        });
-        
-        Tuple2oo<Map<Integer, Information<I>>, Relation<Integer>> information = this.readUserInformation(infoFile, userIndex, itemIndex, uParser, iParser);
-        
-        Map<Integer, Information<I>> infoMap = information.v1();
-        Relation<Integer> userInfo = information.v2();
-        
-        return new Data<>(graph, userIndex, itemIndex, infoMap, userInfo);
+        return this.readData(graphFile, multigraph, directed, weighted, selfloops, readtypes, uIndex, iIndex, infoFile, userFeatureFiles, infoFeatureFiles, null, null, Integer.MAX_VALUE, uParser, iParser, pParser);
     }
-    
+
+    /**
+     * Read the data from files. We have information about which users propagated which information (and when)
+     * @param graphFile             route of a file containing the network graph.
+     * @param multigraph            true if the graph is a multigraph, false otherwise.
+     * @param directed              true if the graph is directed, false otherwise.
+     * @param weighted              true if the graph is weighted, false otherwise.
+     * @param selfloops             true if the graph allows self loops, false otherwise.
+     * @param readtypes             true if the graph has types that we should read. NOTE: if we use recommendations, this parameter will be considered as false.
+     * @param uIndex                route to a file containing a list of user identifiers.
+     * @param iIndex                route to a file containing a list of user identifiers.
+     * @param infoFile              file containing information about the information pieces (creator and timestamps).
+     * @param realPropagatedFile    route to a file containing information about which information pieces were repropagated by each user in the real diffusion (might be null).
+     * @param uParser               parser for the user identifiers.
+     * @param iParser               parser for the information piece identifiers.
+     * @return a data object to use in a diffusion simulation procedure.
+     * @throws IOException if something fails while reading.
+     */
+    public Data<U,I, F> readData(String graphFile, boolean multigraph, boolean directed, boolean weighted, boolean selfloops, boolean readtypes, String uIndex, String iIndex, String infoFile, String realPropagatedFile, Parser<U> uParser, Parser<I> iParser) throws IOException
+    {
+        return this.readData(graphFile, multigraph, directed, weighted, selfloops, readtypes, uIndex, iIndex, infoFile, null, null, realPropagatedFile, null, Integer.MAX_VALUE, uParser, iParser, null);
+    }
+
+    /**
+     * Read the data from files. We have information about which users propagated which information (and when) as well as information about the features of users or items.
+     * @param graphFile             route of a file containing the network graph.
+     * @param multigraph            true if the graph is a multigraph, false otherwise.
+     * @param directed              true if the graph is directed, false otherwise.
+     * @param weighted              true if the graph is weighted, false otherwise.
+     * @param selfloops             true if the graph allows self loops, false otherwise.
+     * @param readtypes             true if the graph has types that we should read. NOTE: if we use recommendations, this parameter will be considered as false.
+     * @param uIndex                route to a file containing a list of user identifiers.
+     * @param iIndex                route to a file containing a list of user identifiers.
+     * @param userFeatureFiles      an array containing the routes of files user features (might be null).
+     * @param infoFeatureFiles      an array containing the routes of files with information pieces features (might be null).
+     * @param infoFile              file containing information about the information pieces (creator and timestamps).
+     * @param realPropagatedFile    route to a file containing information about which information pieces were repropagated by each user in the real diffusion (might be null).
+     * @param uParser               parser for the user identifiers.
+     * @param iParser               parser for the information piece identifiers.
+     * @param pParser               parser for the features.
+     * @return a data object to use in a diffusion simulation procedure.
+     * @throws IOException if something fails while reading.
+     */
+    public Data<U,I, F> readData(String graphFile, boolean multigraph, boolean directed, boolean weighted, boolean selfloops, boolean readtypes, String uIndex, String iIndex, String infoFile, String[] userFeatureFiles, String[] infoFeatureFiles, String realPropagatedFile, Parser<U> uParser, Parser<I> iParser, Parser<F> pParser) throws IOException
+    {
+        return this.readData(graphFile, multigraph, directed, weighted, selfloops, readtypes, uIndex, iIndex, infoFile, userFeatureFiles, infoFeatureFiles, realPropagatedFile, null, Integer.MAX_VALUE, uParser, iParser, pParser);
+    }
+
+    /**
+     * Read the data from files. Only the basic information is available, in addition to a contact recommendation.
+     * @param graphFile     route of a file containing the network graph.
+     * @param multigraph    true if the graph is a multigraph, false otherwise.
+     * @param directed      true if the graph is directed, false otherwise.
+     * @param weighted      true if the graph is weighted, false otherwise.
+     * @param selfloops     true if the graph allows self loops, false otherwise.
+     * @param uIndex        route to a file containing a list of user identifiers.
+     * @param iIndex        route to a file containing a list of user identifiers.
+     * @param infoFile      file containing information about the information pieces (creator and timestamps).
+     * @param recFile       file containing the results of applying a contact recommendation algorithm over the network (might be null).
+     * @param topN          number of links (per user) to add from the recommendations.
+     * @param uParser       parser for the user identifiers.
+     * @param iParser       parser for the information piece identifiers.
+     * @return the data object.
+     * @throws IOException if something fails while reading.
+     */
+    public Data<U,I, F> readData(String graphFile, boolean multigraph, boolean directed, boolean weighted, boolean selfloops, String uIndex, String iIndex, String infoFile, String recFile, int topN, Parser<U> uParser, Parser<I> iParser) throws IOException
+    {
+        return this.readData(graphFile, multigraph, directed, weighted, selfloops, false, uIndex, iIndex, infoFile, null, null, null, recFile, topN, uParser, iParser, null);
+    }
+
+    /**
+     * Read the data from files. We have information about the features of users or items, in addition to a contact recommendation.
+     * @param graphFile         route of a file containing the network graph.
+     * @param multigraph        true if the graph is a multigraph, false otherwise.
+     * @param directed          true if the graph is directed, false otherwise.
+     * @param weighted          true if the graph is weighted, false otherwise.
+     * @param selfloops         true if the graph allows self loops, false otherwise.
+     * @param uIndex            route to a file containing a list of user identifiers.
+     * @param iIndex            route to a file containing a list of user identifiers.
+     * @param infoFile          file containing information about the information pieces (creator and timestamps).
+     * @param userFeatureFiles  an array containing the routes of files user features (might be null).
+     * @param infoFeatureFiles  an array containing the routes of files with information pieces features (might be null).
+     * @param recFile           file containing the results of applying a contact recommendation algorithm over the network (might be null).
+     * @param topN              number of links (per user) to add from the recommendations.
+     * @param uParser           parser for the user identifiers.
+     * @param iParser           parser for the information piece identifiers.
+     * @param pParser           parser for the features.
+     * @return the data object.
+     * @throws IOException if something fails while reading.
+     */
+    public Data<U,I, F> readData(String graphFile, boolean multigraph, boolean directed, boolean weighted, boolean selfloops, String uIndex, String iIndex, String infoFile, String[] userFeatureFiles, String[] infoFeatureFiles, String recFile, int topN, Parser<U> uParser, Parser<I> iParser, Parser<F> pParser) throws IOException
+    {
+        return this.readData(graphFile, multigraph, directed, weighted, selfloops, false, uIndex, iIndex, infoFile, userFeatureFiles, infoFeatureFiles, null, recFile, topN, uParser, iParser, pParser);
+    }
+
+    /**
+     * Read the data from files. We have information about which users propagated which information (and when), in addition to a contact recommendation.
+     * @param graphFile             route of a file containing the network graph.
+     * @param multigraph            true if the graph is a multigraph, false otherwise.
+     * @param directed              true if the graph is directed, false otherwise.
+     * @param weighted              true if the graph is weighted, false otherwise.
+     * @param selfloops             true if the graph allows self loops, false otherwise.
+     * @param uIndex                route to a file containing a list of user identifiers.
+     * @param iIndex                route to a file containing a list of user identifiers.
+     * @param infoFile              file containing information about the information pieces (creator and timestamps).
+     * @param realPropagatedFile    route to a file containing information about which information pieces were repropagated by each user in the real diffusion (might be null).
+     * @param recFile               file containing the results of applying a contact recommendation algorithm over the network (might be null).
+     * @param topN                  number of links (per user) to add from the recommendations.
+     * @param uParser               parser for the user identifiers.
+     * @param iParser               parser for the information piece identifiers.
+     * @return a data object to use in a diffusion simulation procedure.
+     * @throws IOException if something fails while reading.
+     */
+    public Data<U,I, F> readData(String graphFile, boolean multigraph, boolean directed, boolean weighted, boolean selfloops, String uIndex, String iIndex, String infoFile, String realPropagatedFile, String recFile, int topN, Parser<U> uParser, Parser<I> iParser) throws IOException
+    {
+        return this.readData(graphFile, multigraph, directed, weighted, selfloops, false, uIndex, iIndex, infoFile, null, null, realPropagatedFile, recFile, topN, uParser, iParser, null);
+    }
+
+    /**
+     * Read the data from files. We have information about which users propagated which information (and when) as well as information about the features of users or items,
+     * as well as a contact recommendation.
+     * @param graphFile             route of a file containing the network graph.
+     * @param multigraph            true if the graph is a multigraph, false otherwise.
+     * @param directed              true if the graph is directed, false otherwise.
+     * @param weighted              true if the graph is weighted, false otherwise.
+     * @param selfloops             true if the graph allows self loops, false otherwise.
+     * @param uIndex                route to a file containing a list of user identifiers.
+     * @param iIndex                route to a file containing a list of user identifiers.
+     * @param userFeatureFiles  an array containing the routes of files user features (might be null).
+     * @param infoFeatureFiles  an array containing the routes of files with information pieces features (might be null).
+     * @param infoFile              file containing information about the information pieces (creator and timestamps).
+     * @param realPropagatedFile    route to a file containing information about which information pieces were repropagated by each user in the real diffusion (might be null).
+     * @param recFile               file containing the results of applying a contact recommendation algorithm over the network (might be null).
+     * @param topN                  number of links (per user) to add from the recommendations.
+     * @param uParser               parser for the user identifiers.
+     * @param iParser               parser for the information piece identifiers.
+     * @param pParser           parser for the features.
+     * @return a data object to use in a diffusion simulation procedure.
+     * @throws IOException if something fails while reading.
+     */
+    public Data<U,I, F> readData(String graphFile, boolean multigraph, boolean directed, boolean weighted, boolean selfloops, String uIndex, String iIndex, String infoFile, String[] userFeatureFiles, String[] infoFeatureFiles, String realPropagatedFile, String recFile, int topN, Parser<U> uParser, Parser<I> iParser, Parser<F> pParser) throws IOException
+    {
+        return this.readData(graphFile, multigraph, directed, weighted, selfloops, false, uIndex, iIndex, infoFile, userFeatureFiles, infoFeatureFiles, realPropagatedFile, null, Integer.MAX_VALUE, uParser, iParser, pParser);
+    }
+
     /**
      * Read the data from files.
-     * @param multigraph true if the graph is a multigraph.
-     * @param directed true if the graph is directed.
-     * @param weighted true if the graph is weighted
-     * @param readtypes true if we must read the types.
-     * @param uIndex file containing the user index.
-     * @param iIndex file containing the information pieces index index.
-     * @param graphFile file containing the graph.
-     * @param infoFile file containing the additional information about the information pieces (creator and timestamps)
-     * @param userFeatureFiles List of files containing user features.
-     * @param infoFeatureFiles List of files containing information pieces features.
-     * @param uParser parser for the user identifiers.
-     * @param iParser parser for the information piece identifiers.
-     * @param pParser parser for the parameter values.
-     * @return the data object
+     * @param graphFile             route of a file containing the network graph.
+     * @param multigraph            true if the graph is a multigraph, false otherwise.
+     * @param directed              true if the graph is directed, false otherwise.
+     * @param weighted              true if the graph is weighted, false otherwise.
+     * @param selfloops             true if the graph allows self loops, false otherwise.
+     * @param readtypes             true if the graph has types that we should read. NOTE: if we use recommendations, this parameter will be considered as false.
+     * @param uIndex                route to a file containing a list of user identifiers.
+     * @param iIndex                route to a file containing a list of user identifiers.
+     * @param infoFile              file containing information about the information pieces (creator and timestamps).
+     * @param userFeatureFiles      an array containing the routes of files user features (might be null).
+     * @param infoFeatureFiles      an array containing the routes of files with information pieces features (might be null).
+     * @param realPropagatedFile    route to a file containing information about which information pieces were repropagated by each user in the real diffusion (might be null).
+     * @param recFile               file containing the results of applying a contact recommendation algorithm over the network (might be null).
+     * @param topN                  number of links (per user) to add from the recommendations.
+     * @param uParser               parser for the user identifiers.
+     * @param iParser               parser for the information piece identifiers.
+     * @param pParser               parser for the feature values.
+     * @return a data object to use in a diffusion simulation procedure.
      * @throws IOException if something fails while reading.
      */
-    public Data<U,I,P> readData(boolean multigraph, boolean directed, boolean weighted, boolean readtypes, String uIndex, String iIndex, String graphFile, String infoFile, String[] userFeatureFiles, String[] infoFeatureFiles, Parser<U> uParser, Parser<I> iParser, Parser<P> pParser) throws IOException
+    protected Data<U,I, F> readData(String graphFile, boolean multigraph, boolean directed, boolean weighted, boolean selfloops, boolean readtypes, String uIndex, String iIndex, String infoFile, String[] userFeatureFiles, String[] infoFeatureFiles, String realPropagatedFile, String recFile, int topN, Parser<U> uParser, Parser<I> iParser, Parser<F> pParser) throws IOException
     {
+        // We first read the user and information pieces index.
         Index<U> userIndex = this.readIndex(uIndex, uParser);
-        Index<I> itemIndex = this.readIndex(iIndex, iParser);
+        Index<I> infoIndex = this.readIndex(iIndex, iParser);
 
-        GraphReader<U> greader = multigraph ? new TextMultiGraphReader<>(directed, weighted, false, "\t", uParser) : new TextGraphReader<>(directed, weighted, false, "\t", uParser);
-        Graph<U> graph = greader.read(graphFile, weighted, readtypes);
- 
-        Tuple2oo<Map<Integer, Information<I>>, Relation<Integer>> information = this.readUserInformation(infoFile, userIndex, itemIndex, uParser, iParser);
-        
+        // Then, we read the graph:
+        GraphReader<U> greader = multigraph ? new TextMultiGraphReader<>(directed, weighted, selfloops, "\t", uParser) : new TextGraphReader<>(directed, weighted, selfloops, "\t", uParser);
+        Graph<U> graph = greader.read(graphFile, weighted, recFile == null && readtypes);
+
+        // We add to the graph all the recommendation edges.
+        if(recFile != null)
+        {
+            RecommendationFormat<U, U> format = new SimpleRecommendationFormat<>(uParser, uParser);
+            format.getReader(recFile).readAll().forEach(rec ->
+            {
+                U u = rec.getUser();
+                rec.getItems().stream().limit(topN).forEach(r -> graph.addEdge(u, r.v1, 1.0, SimulationEdgeTypes.RECOMMEND));
+            });
+        }
+
+            // We read the data about the information (i.e. the creators and timestamps of the information pieces)
+        Tuple2oo<Map<Integer, Information<I>>, Relation<Integer>> information = this.readUserInformation(infoFile, userIndex, infoIndex, uParser, iParser);
+
         Map<Integer, Information<I>> infoMap = information.v1();
         Relation<Integer> userInfo = information.v2();
-        
-        Map<String, Index<P>> parameters = new HashMap<>();
+
+        // Now, we read the user and item features:
+        Map<String, Index<F>> parameters = new HashMap<>();
         List<String> userParametersNames = new ArrayList<>();
         Map<String, Relation<Double>> userParameters = new HashMap<>();
-        for(String userParamFile : userFeatureFiles)
+
+        if(userFeatureFiles != null)
         {
-            Triplet<String, Index<P>, Relation<Double>> triplet = readFeaturesFile(userParamFile, userIndex, uParser, pParser);
-            String pName = triplet.v1();
-            parameters.put(pName, triplet.v2());
-            userParametersNames.add(pName);
-            userParameters.put(pName, triplet.v3());
+            for (String userParamFile : userFeatureFiles)
+            {
+                Triplet<String, Index<F>, Relation<Double>> triplet = readFeaturesFile(userParamFile, userIndex, uParser, pParser);
+                String pName = triplet.v1();
+                parameters.put(pName, triplet.v2());
+                userParametersNames.add(pName);
+                userParameters.put(pName, triplet.v3());
+            }
         }
         
         List<String> infoParametersNames = new ArrayList<>();
         Map<String, Relation<Double>> infoParameters = new HashMap<>();
-        for(String infoParamFile : infoFeatureFiles)
-        {
-            Triplet<String, Index<P>, Relation<Double>> triplet = readFeaturesFile(infoParamFile, itemIndex, iParser, pParser);
-            String pName = triplet.v1();
-            parameters.put(pName, triplet.v2());
-            infoParametersNames.add(pName);
-            infoParameters.put(pName, triplet.v3());
-        }
-        
-        return new Data<>(graph, userIndex, itemIndex, infoMap, userInfo, parameters, userParametersNames, userParameters, infoParametersNames, infoParameters);
-    }
-    
-        /**
-     * Read the data from files.
-     * @param multigraph true if the graph is a multigraph.
-     * @param directed true if the graph is directed.
-     * @param weighted true if the graph is weighted
-     * @param readtypes true if we must read the types.
-     * @param uIndex file containing the user index.
-     * @param iIndex file containing the information pieces index index.
-     * @param graphFile file containing the graph.
-     * @param infoFile file containing the additional information about the information pieces (creator and timestamps)
-     * @param userFeatureFiles List of files containing user features.
-     * @param infoFeatureFiles List of files containing information pieces features.
-     * @param realPropagatedFile file containing information about really propagated information pieces.
-     * @param uParser parser for the user identifiers.
-     * @param iParser parser for the information piece identifiers.
-     * @param pParser parser for the parameter values.
-     * @return the data object
-     * @throws IOException if something fails while reading.
-     */
-    public Data<U,I,P> readData(boolean multigraph, boolean directed, boolean weighted, boolean readtypes, String uIndex, String iIndex, String graphFile, String infoFile, String[] userFeatureFiles, String[] infoFeatureFiles, String realPropagatedFile, Parser<U> uParser, Parser<I> iParser, Parser<P> pParser) throws IOException
-    {
-        Index<U> userIndex = this.readIndex(uIndex, uParser);
-        Index<I> itemIndex = this.readIndex(iIndex, iParser);
 
-        GraphReader<U> greader = multigraph ? new TextMultiGraphReader<>(directed, weighted, false, "\t", uParser) : new TextGraphReader<>(directed, weighted, false, "\t", uParser);
-        Graph<U> graph = greader.read(graphFile, weighted, readtypes);
- 
-        
-        RecommendationFormat<U,U> format = new SimpleRecommendationFormat<>(uParser, uParser);
-                
-        Tuple2oo<Map<Integer, Information<I>>, Relation<Integer>> information = this.readUserInformation(infoFile, userIndex, itemIndex, uParser, iParser);
-        
-        Map<Integer, Information<I>> infoMap = information.v1();
-        Relation<Integer> userInfo = information.v2();
-        
-        Map<String, Index<P>> parameters = new HashMap<>();
-        List<String> userParametersNames = new ArrayList<>();
-        Map<String, Relation<Double>> userParameters = new HashMap<>();
-        for(String userParamFile : userFeatureFiles)
+        if(infoFeatureFiles != null)
         {
-            Triplet<String, Index<P>, Relation<Double>> triplet = readFeaturesFile(userParamFile, userIndex, uParser, pParser);
-            String pName = triplet.v1();
-            parameters.put(pName, triplet.v2());
-            userParametersNames.add(pName);
-            userParameters.put(pName, triplet.v3());
+            for (String infoParamFile : infoFeatureFiles)
+            {
+                Triplet<String, Index<F>, Relation<Double>> triplet = readFeaturesFile(infoParamFile, infoIndex, iParser, pParser);
+                String pName = triplet.v1();
+                parameters.put(pName, triplet.v2());
+                infoParametersNames.add(pName);
+                infoParameters.put(pName, triplet.v3());
+            }
         }
-        
-        List<String> infoParametersNames = new ArrayList<>();
-        Map<String, Relation<Double>> infoParameters = new HashMap<>();
-        for(String infoParamFile : infoFeatureFiles)
-        {
-            Triplet<String, Index<P>, Relation<Double>> triplet = readFeaturesFile(infoParamFile, itemIndex, iParser, pParser);
-            String pName = triplet.v1();
-            parameters.put(pName, triplet.v2());
-            infoParametersNames.add(pName);
-            infoParameters.put(pName, triplet.v3());
-        }
-        
-        Relation<Long> realPropagated = this.readRealPropagatedFile(realPropagatedFile, userIndex, itemIndex, uParser, iParser);
-        
-        return new Data<>(graph, userIndex, itemIndex, infoMap, userInfo, parameters, userParametersNames, userParameters, infoParametersNames, infoParameters, realPropagated);
-    }
-    
-    /**
-     * Read the data from files.
-     * @param multigraph true if the graph is a multigraph.
-     * @param directed true if the graph is directed.
-     * @param weighted true if the graph is weighted
-     * @param readtypes true if we must read the types.
-     * @param uIndex file containing the user index.
-     * @param iIndex file containing the information pieces index index.
-     * @param graphFile file containing the graph.
-     * @param recFile recommendation file
-     * @param topN maximum cutoff of the recommendation.
-     * @param infoFile file containing the additional information about the information pieces (creator and timestamps)
-     * @param userFeatureFiles List of files containing user features.
-     * @param infoFeatureFiles List of files containing information pieces features.
-     * @param uParser parser for the user identifiers.
-     * @param iParser parser for the information piece identifiers.
-     * @param pParser parser for the parameter values.
-     * @return the data object
-     * @throws IOException if something fails while reading.
-     */
-    public Data<U,I,P> readData(boolean multigraph, boolean directed, boolean weighted, boolean readtypes, String uIndex, String iIndex, String graphFile, String recFile, int topN, String infoFile, String[] userFeatureFiles, String[] infoFeatureFiles, Parser<U> uParser, Parser<I> iParser, Parser<P> pParser) throws IOException
-    {
-        Index<U> userIndex = this.readIndex(uIndex, uParser);
-        Index<I> itemIndex = this.readIndex(iIndex, iParser);
 
-        GraphReader<U> greader = multigraph ? new TextMultiGraphReader<>(directed, weighted, false, "\t", uParser) : new TextGraphReader<>(directed, weighted, false, "\t", uParser);
-        Graph<U> graph = greader.read(graphFile, weighted, readtypes);
- 
-        
-        RecommendationFormat<U,U> format = new SimpleRecommendationFormat<>(uParser, uParser);
-        
-        format.getReader(recFile).readAll().forEach(rec -> 
-        {
-           U u = rec.getUser();
-           rec.getItems().stream().limit(topN).forEach(r -> graph.addEdge(u, r.v1, 1.0, SimulationEdgeTypes.RECOMMEND));
-        });
-        
-        Tuple2oo<Map<Integer, Information<I>>, Relation<Integer>> information = this.readUserInformation(infoFile, userIndex, itemIndex, uParser, iParser);
-        
-        Map<Integer, Information<I>> infoMap = information.v1();
-        Relation<Integer> userInfo = information.v2();
-        
-        Map<String, Index<P>> parameters = new HashMap<>();
-        List<String> userParametersNames = new ArrayList<>();
-        Map<String, Relation<Double>> userParameters = new HashMap<>();
-        for(String userParamFile : userFeatureFiles)
-        {
-            Triplet<String, Index<P>, Relation<Double>> triplet = readFeaturesFile(userParamFile, userIndex, uParser, pParser);
-            String pName = triplet.v1();
-            parameters.put(pName, triplet.v2());
-            userParametersNames.add(pName);
-            userParameters.put(pName, triplet.v3());
-        }
-        
-        List<String> infoParametersNames = new ArrayList<>();
-        Map<String, Relation<Double>> infoParameters = new HashMap<>();
-        for(String infoParamFile : infoFeatureFiles)
-        {
-            Triplet<String, Index<P>, Relation<Double>> triplet = readFeaturesFile(infoParamFile, itemIndex, iParser, pParser);
-            String pName = triplet.v1();
-            parameters.put(pName, triplet.v2());
-            infoParametersNames.add(pName);
-            infoParameters.put(pName, triplet.v3());
-        }
-        
-        return new Data<>(graph, userIndex, itemIndex, infoMap, userInfo, parameters, userParametersNames, userParameters, infoParametersNames, infoParameters);
-    }
-    
-    /**
-     * Read the data from files.
-     * @param multigraph true if the graph is a multigraph.
-     * @param directed true if the graph is directed.
-     * @param weighted true if the graph is weighted
-     * @param readtypes true if we must read the types.
-     * @param uIndex file containing the user index.
-     * @param iIndex file containing the information pieces index index.
-     * @param graphFile file containing the graph.
-     * @param recFile recommendation file
-     * @param topN maximum cutoff of the recommendation.
-     * @param infoFile file containing the additional information about the information pieces (creator and timestamps)
-     * @param userFeatureFiles List of files containing user features.
-     * @param infoFeatureFiles List of files containing information pieces features.
-     * @param realPropagatedFile file containing information about really propagated information pieces.
-     * @param uParser parser for the user identifiers.
-     * @param iParser parser for the information piece identifiers.
-     * @param pParser parser for the parameter values.
-     * @return the data object
-     * @throws IOException if something fails while reading.
-     */
-    public Data<U,I,P> readData(boolean multigraph, boolean directed, boolean weighted, boolean readtypes, String uIndex, String iIndex, String graphFile, String recFile, int topN, String infoFile, String[] userFeatureFiles, String[] infoFeatureFiles, String realPropagatedFile, Parser<U> uParser, Parser<I> iParser, Parser<P> pParser) throws IOException
-    {
-        Index<U> userIndex = this.readIndex(uIndex, uParser);
-        Index<I> itemIndex = this.readIndex(iIndex, iParser);
-
-        GraphReader<U> greader = multigraph ? new TextMultiGraphReader<>(directed, weighted, false, "\t", uParser) : new TextGraphReader<>(directed, weighted, false, "\t", uParser);
-        Graph<U> graph = greader.read(graphFile, weighted, readtypes);
- 
-        
-        RecommendationFormat<U,U> format = new SimpleRecommendationFormat<>(uParser, uParser);
-
-        format.getReader(recFile).readAll().forEach(rec ->
-        {
-           U u = rec.getUser();
-           rec.getItems().stream().limit(topN).forEach(r -> graph.addEdge(u, r.v1, 1.0, SimulationEdgeTypes.RECOMMEND));
-        });
-        
-        Tuple2oo<Map<Integer, Information<I>>, Relation<Integer>> information = this.readUserInformation(infoFile, userIndex, itemIndex, uParser, iParser);
-        
-        Map<Integer, Information<I>> infoMap = information.v1();
-        Relation<Integer> userInfo = information.v2();
-        
-        Map<String, Index<P>> parameters = new HashMap<>();
-        List<String> userParametersNames = new ArrayList<>();
-        Map<String, Relation<Double>> userParameters = new HashMap<>();
-        for(String userParamFile : userFeatureFiles)
-        {
-            Triplet<String, Index<P>, Relation<Double>> triplet = readFeaturesFile(userParamFile, userIndex, uParser, pParser);
-            String pName = triplet.v1();
-            parameters.put(pName, triplet.v2());
-            userParametersNames.add(pName);
-            userParameters.put(pName, triplet.v3());
-        }
-        
-        List<String> infoParametersNames = new ArrayList<>();
-        Map<String, Relation<Double>> infoParameters = new HashMap<>();
-        for(String infoParamFile : infoFeatureFiles)
-        {
-            Triplet<String, Index<P>, Relation<Double>> triplet = readFeaturesFile(infoParamFile, itemIndex, iParser, pParser);
-            String pName = triplet.v1();
-            parameters.put(pName, triplet.v2());
-            infoParametersNames.add(pName);
-            infoParameters.put(pName, triplet.v3());
-        }
-        
-        Relation<Long> realPropagated = this.readRealPropagatedFile(realPropagatedFile, userIndex, itemIndex, uParser, iParser);
-        
-        return new Data<>(graph, userIndex, itemIndex, infoMap, userInfo, parameters, userParametersNames, userParameters, infoParametersNames, infoParameters, realPropagated);
+        Relation<Long> realPropagated = realPropagatedFile != null ? this.readRealPropagatedFile(realPropagatedFile, userIndex, infoIndex, uParser, iParser) : new FastWeightedPairwiseRelation<>();
+        return new Data<>(graph, userIndex, infoIndex, infoMap, userInfo, parameters, userParametersNames, userParameters, infoParametersNames, infoParameters, realPropagated);
     }
     
     /**
@@ -455,10 +398,10 @@ public class DataReader<U extends Serializable,I extends Serializable,P>
      * @return a triplet containing the name of the feature, the feature index and the relation between T objects and features.
      * @throws IOException if something fails while reading the feature file.
      */
-    private <T> Triplet<String, Index<P>, Relation<Double>> readFeaturesFile(String paramFile, Index<T> index, Parser<T> parser, Parser<P> pParser) throws IOException
+    private <T> Triplet<String, Index<F>, Relation<Double>> readFeaturesFile(String paramFile, Index<T> index, Parser<T> parser, Parser<F> pParser) throws IOException
     {
         String pname;
-        Index<P> pIndex = new FastIndex<>();
+        Index<F> pIndex = new FastIndex<>();
         Relation<Double> relation = new FastWeightedPairwiseRelation<>();
         
         IntStream.range(0, index.numObjects()).forEach(relation::addFirstItem);
@@ -479,7 +422,7 @@ public class DataReader<U extends Serializable,I extends Serializable,P>
 
                 if(tidx != -1)
                 {
-                    P p = pParser.parse(tokens[1]);
+                    F p = pParser.parse(tokens[1]);
                     pIndex.addObject(p);
                     int pidx = pIndex.object2idx(p);
 

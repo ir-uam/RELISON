@@ -19,9 +19,9 @@ import java.io.Serializable;
  *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <F> Type of the features.
  */
-public interface GlobalSimulationMetric<U extends Serializable,I extends Serializable,P> extends SimulationMetric<U,I,P> 
+public interface GlobalSimulationMetric<U extends Serializable,I extends Serializable, F> extends SimulationMetric<U,I, F>
 {
     
 }

@@ -14,18 +14,19 @@ import java.io.Serializable;
 
 
 /**
- * Computes the number of pieces of information propagated and seen in all the iterations.
+ * Metric that computes the rate of features received by the different users which were unknown by the receiver
+ * (we understand as external features those information features which are not present in the information pieces
+ * created by the users, or those user features different from the receiver's ones).
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> type of the user.
- * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user / information pieces features.
  */
-public class GlobalExternalFeatureRate<U extends Serializable,I extends Serializable,P> extends AbstractExternalFeatureGlobalSimulationMetric<U,I,P>
+public class GlobalExternalFeatureRate<U extends Serializable,I extends Serializable, F> extends AbstractExternalFeatureGlobalSimulationMetric<U,I, F>
 {
-
     /**
      * Name fixed value.
      */
@@ -63,7 +64,7 @@ public class GlobalExternalFeatureRate<U extends Serializable,I extends Serializ
     {
         this.externalParams = 0.0;
         this.totalParams = 0.0;
-        this.clearOwnParams();
+        this.clearOwnFeatures();
         this.initialized = false;
     }
 
@@ -90,7 +91,7 @@ public class GlobalExternalFeatureRate<U extends Serializable,I extends Serializ
      * @param iteration the iteration data.
      */
     @Override
-    protected void updateUserParam(Iteration<U,I,P> iteration)
+    protected void updateUserFeature(Iteration<U,I, F> iteration)
     {
         if(iteration == null) return;
         
@@ -105,10 +106,10 @@ public class GlobalExternalFeatureRate<U extends Serializable,I extends Serializ
                 data.getCreators(i.v1()).forEach(creator -> 
                 {
                     // Identify the parameters of the creators.
-                    data.getUserFeatures(creator, this.getParameter()).forEach(p -> 
+                    data.getUserFeatures(creator, this.getFeature()).forEach(p ->
                     {
                         // For each one of them, update the external and total params.
-                        if(!this.getOwnParams(u).contains(p.v1))
+                        if(!this.getOwnFeatures(u).contains(p.v1))
                         {
                             this.externalParams += p.v2*val;
                         }
@@ -129,10 +130,10 @@ public class GlobalExternalFeatureRate<U extends Serializable,I extends Serializ
                 data.getCreators(i.v1()).forEach(creator -> 
                 {
                     // Identify the parameters of the creators.
-                    data.getUserFeatures(creator, this.getParameter()).forEach(p -> 
+                    data.getUserFeatures(creator, this.getFeature()).forEach(p ->
                     {
                         // For each one of them, update the external and total params.
-                        if(!this.getOwnParams(u).contains(p.v1))
+                        if(!this.getOwnFeatures(u).contains(p.v1))
                         {
                             this.externalParams += p.v2*val;
                         }
@@ -148,7 +149,7 @@ public class GlobalExternalFeatureRate<U extends Serializable,I extends Serializ
      * @param iteration the iteration data.
      */
     @Override
-    protected void updateInfoParam(Iteration<U,I,P> iteration)
+    protected void updateInfoFeature(Iteration<U,I, F> iteration)
     {
         if(iteration == null) return;
         
@@ -160,10 +161,10 @@ public class GlobalExternalFeatureRate<U extends Serializable,I extends Serializ
             {
                 double val = (unique ? 1.0 : i.v2().size());
                 // Identify its parameters.
-                data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p -> 
+                data.getInfoPiecesFeatures(i.v1(), this.getFeature()).forEach(p ->
                 {
                     // For each one of them, update the external and total params.
-                    if(!this.getOwnParams(u).contains(p.v1))
+                    if(!this.getOwnFeatures(u).contains(p.v1))
                     {
                         this.externalParams += p.v2;
                     }
@@ -180,10 +181,10 @@ public class GlobalExternalFeatureRate<U extends Serializable,I extends Serializ
             {
                 double val = (unique ? 1.0 : i.v2().size());
                 // Identify its parameters.
-                data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p -> 
+                data.getInfoPiecesFeatures(i.v1(), this.getFeature()).forEach(p ->
                 {
                     // For each one of them, update the external and total params.
-                    if(!this.getOwnParams(u).contains(p.v1))
+                    if(!this.getOwnFeatures(u).contains(p.v1))
                     {
                         this.externalParams += p.v2;
                     }
@@ -196,10 +197,10 @@ public class GlobalExternalFeatureRate<U extends Serializable,I extends Serializ
     @Override
     protected void initialize() 
     {
-        if(!this.isInitialized() && this.data != null && this.data.doesFeatureExist(this.getParameter())) {
+        if(!this.isInitialized() && this.data != null && this.data.doesFeatureExist(this.getFeature())) {
             this.externalParams = 0.0;
             this.totalParams = 0.0;
-            this.computeOwnParams();
+            this.computeOwnFeatures();
             this.initialized = true;
         }
     }

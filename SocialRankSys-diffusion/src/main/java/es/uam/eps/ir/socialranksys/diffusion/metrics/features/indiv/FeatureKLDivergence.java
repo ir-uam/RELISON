@@ -18,8 +18,8 @@ import java.util.stream.Stream;
 
 /**
  * This individual metric computes the number of bytes of information we expect to lose
- * if we approximate the real distribution of parameters (the total frequency of appearance
- * of the parameters over the information pieces) with the estimated distribution
+ * if we approximate the real distribution of features of the users (the total frequency of appearance
+ * of the features over the information pieces) with the estimated distribution
  * obtained from simulating. It uses KL Divergence for that.
  * 
  * We apply a Laplace smoothing to prevent divisions by zero in both distributions.
@@ -29,9 +29,9 @@ import java.util.stream.Stream;
  *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
- * @param <P> type of the parameters.
+ * @param <F> type of the features.
  */
-public class FeatureKLDivergence<U extends Serializable,I extends Serializable,P> extends AbstractFeatureKLDivergence<U,I,P> 
+public class FeatureKLDivergence<U extends Serializable,I extends Serializable, F> extends AbstractFeatureKLDivergence<U,I, F>
 {
     /**
      * Name fixed value.
@@ -40,13 +40,13 @@ public class FeatureKLDivergence<U extends Serializable,I extends Serializable,P
 
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
-     * @param unique true if a piece of information is considered once, false if it is considered each time it appears.
+     * @param userFeat  true if we are using a user feature, false if we are using an information piece feature.
+     * @param feature   the name of the feature.
+     * @param unique    true if a piece of information is considered once, false if it is considered each time it appears.
      */
-    public FeatureKLDivergence(String parameter, boolean userparam, boolean unique) 
+    public FeatureKLDivergence(String feature, boolean userFeat, boolean unique)
     {
-        super(ENTROPY + "-" + (userparam ? "user" : "info") + "-" + parameter, parameter, userparam, unique);
+        super(ENTROPY + "-" + (userFeat ? "user" : "info") + "-" + feature, feature, userFeat, unique);
     }
        
     @Override
@@ -56,7 +56,7 @@ public class FeatureKLDivergence<U extends Serializable,I extends Serializable,P
             return Double.NaN;
         
         KLDivergence kldiv = new KLDivergence();
-        List<P> features = this.data.getAllFeatureValues(this.getParameter()).collect(Collectors.toCollection(ArrayList::new));
+        List<F> features = this.data.getAllFeatureValues(this.getParameter()).collect(Collectors.toCollection(ArrayList::new));
         
         Stream<Double> pdistr = features.stream().map(this.pvalues::get);
         Stream<Double> qdistr = features.stream().map(p -> this.qvalues.get(p).get(user));

@@ -18,21 +18,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Selection mechanism that takes the real timestamps of the users into account.
+ * Selection mechanism that takes into account the real timestamp of the information pieces to propagate the information owned
+ * by the user. Instead of randomly selecting a fixed number of information pieces, this mechanism selects the oldest
+ * available information.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> The type of the users.
- * @param <I> The type of the information pieces.
- * @param <P> The type of the features.
+ * @param <U> the type of the users.
+ * @param <I> the type of the information pieces.
+ * @param <P> the type of the features.
  */
 public class TimestampOrderedSelectionMechanism<U extends Serializable, I extends Serializable, P> extends CountSelectionMechanism<U,I,P>  
 {
     /**
      * Constructor.
-     * @param numOwn Number of own information pieces to propagate.
-     * @param numPropagate Number of received information pieces to propagate.
+     * @param numOwn        number of own information pieces to propagate.
+     * @param numPropagate  number of received information pieces to propagate.
      */
     public TimestampOrderedSelectionMechanism(int numOwn, int numPropagate) 
     {
@@ -41,9 +43,9 @@ public class TimestampOrderedSelectionMechanism<U extends Serializable, I extend
 
     /**
      * Constructor.
-     * @param numOwn Number of own information pieces to propagate.
-     * @param numPropagate Number of received information pieces to propagate.
-     * @param numRepropagate Number of propagated information pieces to repropagate.
+     * @param numOwn            number of own information pieces to propagate.
+     * @param numPropagate      number of received information pieces to propagate.
+     * @param numRepropagate    number of propagated information pieces to repropagate.
      */
     public TimestampOrderedSelectionMechanism(int numOwn, int numPropagate, int numRepropagate) 
     {

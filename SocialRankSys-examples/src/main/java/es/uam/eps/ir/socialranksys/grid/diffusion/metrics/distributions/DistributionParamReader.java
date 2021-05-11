@@ -9,7 +9,6 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.metrics.distributions;
 
 
-import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.grid.ParametersReader;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -20,7 +19,6 @@ import java.util.List;
 /**
  * Reads the parameters for a metric
  * @author Javier Sanz-Cruzado Puig
- * @see es.uam.eps.socialranksys.diffusion.metrics.distributions
  */
 public class DistributionParamReader extends ParametersReader
 {
@@ -47,7 +45,7 @@ public class DistributionParamReader extends ParametersReader
     /**
      * Parameter values for the distribution.
      */
-    private Parameters values;
+    private es.uam.eps.ir.socialranksys.grid.Parameters values;
     /**
      * Times in which to store the times
      */
@@ -65,7 +63,7 @@ public class DistributionParamReader extends ParametersReader
         NodeList params = node.getElementsByTagName(PARAM);
         if(params == null || params.getLength() == 0)
         {
-            this.values = new Parameters();
+            this.values = new es.uam.eps.ir.socialranksys.grid.Parameters();
         }
         else
         {
@@ -97,7 +95,7 @@ public class DistributionParamReader extends ParametersReader
      * Obtains the values of the parameters of the selection mechanism.
      * @return the values of the parameters
      */
-    public Parameters getParams() 
+    public es.uam.eps.ir.socialranksys.grid.Parameters getParams()
     {
         return values;
     }

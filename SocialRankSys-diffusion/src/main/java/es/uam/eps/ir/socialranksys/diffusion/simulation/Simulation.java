@@ -206,10 +206,10 @@ public class Simulation<U extends Serializable,I extends Serializable,P>
 
     /**
      * Updates the values for propagated pieces of information.
-     * @param iteration the current iteration.
-     * @param propagated the set of propagated pieces.
-     * @param discarded the set of discarded pieces.
-     * @param received the set of received pieces.
+     * @param iteration     the current iteration.
+     * @param propagated    the set of propagated pieces.
+     * @param discarded     the set of discarded pieces.
+     * @param received      the set of received pieces.
      */
     private void updatePropagated(Iteration<U, I, P> iteration, Map<U, Map<I, Long>> propagated, Map<U, Map<I, Tuple2oo<Set<U>, Long>>> discarded, Map<U, Map<I, Tuple2oo<Set<U>, Long>>> received) 
     {
@@ -236,10 +236,10 @@ public class Simulation<U extends Serializable,I extends Serializable,P>
     
     /**
      * Updates the values for discarded pieces of information.
-     * @param iteration the current iteration.
-     * @param propagated the set of propagated pieces.
-     * @param discarded the set of discarded pieces.
-     * @param received the set of received pieces.
+     * @param iteration     the current iteration.
+     * @param propagated    the set of propagated pieces.
+     * @param discarded     the set of discarded pieces.
+     * @param received      the set of received pieces.
      */
     private void updateDiscarded(Iteration<U, I, P> iteration, Map<U, Map<I, Long>> propagated, Map<U, Map<I, Tuple2oo<Set<U>, Long>>> discarded, Map<U, Map<I, Tuple2oo<Set<U>, Long>>> received) 
     {
@@ -266,11 +266,11 @@ public class Simulation<U extends Serializable,I extends Serializable,P>
 
     /**
      * Updates the values for received pieces of information.
-     * @param iteration the current iteration.
-     * @param propagated the set of propagated pieces.
-     * @param discarded the set of discarded pieces.
-     * @param received the set of received pieces.
-     * @param upd the update mechanism.
+     * @param iteration     the current iteration.
+     * @param propagated    the set of propagated pieces.
+     * @param discarded     the set of discarded pieces.
+     * @param received      the set of received pieces.
+     * @param upd           the update mechanism.
      */
     private void updateReceived(Iteration<U, I, P> iteration, Map<U, Map<I, Long>> propagated, Map<U, Map<I, Tuple2oo<Set<U>, Long>>> discarded, Map<U, Map<I, Tuple2oo<Set<U>, Long>>> received, UpdateMechanism upd) 
     {

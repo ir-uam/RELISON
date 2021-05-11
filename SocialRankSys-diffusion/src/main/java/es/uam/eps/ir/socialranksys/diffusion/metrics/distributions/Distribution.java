@@ -21,21 +21,21 @@ import java.io.Serializable;
  *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <F> Type of the features.
  */
-public interface Distribution<U extends Serializable,I extends Serializable,P> 
+public interface Distribution<U extends Serializable,I extends Serializable, F>
 {    
     /**
      * Initializes the necessary parameters for the distribution.
      * @param data the data.
      */
-    void initialize(Data<U, I, P> data);
+    void initialize(Data<U, I, F> data);
 
     /**
      * Updates the different values of the distribution.
      * @param iteration The current iteration.
      */
-    void update(Iteration<U, I, P> iteration);
+    void update(Iteration<U, I, F> iteration);
     
     /**
      * Prints the distribution into a file.

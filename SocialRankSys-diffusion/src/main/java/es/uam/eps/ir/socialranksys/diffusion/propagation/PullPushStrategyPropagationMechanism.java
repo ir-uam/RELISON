@@ -19,10 +19,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Also known as the rumour spreading propagation mechanism, this is the 
- * propagation mechanism for the pull strategy propagation mechanism.
- * Each iteration, each user selects another one which has not visited in a certain time.
- * The users share all the information between them.
+ * Propagation mechanism for the so-called rumour spreading propagation mechanism. Following this strategy, each user
+ * selects a user each iteration: he catches the information from such user, and shares with him the information he has.
+ * It is a combination of the pull and push propagation mechanisms. A certain amount of time has to pass before a
+ * neighbor is selected again.
+ *
+ * <p>
+ *      <b>Reference:</b> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987)
+ * </p>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -31,9 +35,6 @@ import java.util.stream.Stream;
  * @param <I> type of the information pieces.
  * @param <P> type of the parameters.
  *
- * <p>
- * <b>Reference:</b> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987)
- * </p>
  */
 public class PullPushStrategyPropagationMechanism<U extends Serializable,I extends Serializable,P> implements PropagationMechanism<U,I,P>
 {
@@ -48,7 +49,7 @@ public class PullPushStrategyPropagationMechanism<U extends Serializable,I exten
     /**
      * For each user, the list of users that user will propagate the information to.
      */
-    private Map<U, List<U>> propagationList;
+    private final Map<U, List<U>> propagationList;
     /**
      * The list of users in the last iterations.
      */
@@ -56,7 +57,7 @@ public class PullPushStrategyPropagationMechanism<U extends Serializable,I exten
     
      /**
      * Constructor.
-     * @param waitTime Number of iterations to wait until a profile can be revisited.
+     * @param waitTime number of iterations to wait until a profile can be revisited.
      */
     public PullPushStrategyPropagationMechanism(int waitTime)
     {
@@ -65,14 +66,15 @@ public class PullPushStrategyPropagationMechanism<U extends Serializable,I exten
     
     /**
      * Constructor.
-     * @param waitTime Number of iterations to wait until a profile can be revisited.
-     * @param orientation Selection of the visits available for contact.
+     * @param waitTime      number of iterations to wait until a profile can be revisited.
+     * @param orientation   orientation for selecting the neighbors of the users.
      */
     public PullPushStrategyPropagationMechanism(int waitTime, EdgeOrientation orientation)
     {
         this.waitTime = waitTime;
         this.orientation = orientation;
         this.lastIterations = new HashMap<>();
+        this.propagationList = new HashMap<>();
     }
 
     @Override
@@ -87,16 +89,25 @@ public class PullPushStrategyPropagationMechanism<U extends Serializable,I exten
     public void resetSelections(Data<U,I,P> data)
     {
         Random rng = new Random();
-        propagationList = new HashMap<>();
+        propagationList.clear();
+
         data.getAllUsers().forEach((u)-> 
         {
+            // We first obtain the set of neighbors of a given user:
             List<U> neighbours = data.getGraph().getNeighbourhood(u, orientation).collect(Collectors.toCollection(ArrayList::new));
-            if(!this.lastIterations.containsKey(u)) this.lastIterations.put(u, new ArrayList<>());
+
+            // Then, the users that were visited in previous iterations:
+            if(!this.lastIterations.containsKey(u))
+            {
+                this.lastIterations.put(u, new ArrayList<>());
+            }
+
             List<U> alreadyVisited = this.lastIterations.get(u);
             U neigh;
             
             neighbours.removeAll(alreadyVisited);
-            
+
+            // if we can choose a neighbor...
             if(neighbours.size() > 0)
             {
                 int index = rng.nextInt(neighbours.size());
@@ -106,27 +117,33 @@ public class PullPushStrategyPropagationMechanism<U extends Serializable,I exten
             {
                 neigh = null;
             }
-            
+
+            // Now, we update the propagation lists:
             if(neigh != null)
             {
+                // We add u to the list of the neighbor
                 if(!propagationList.containsKey(neigh))
                     propagationList.put(neigh, new ArrayList<>());
                 if(!propagationList.get(neigh).contains(u))
                     propagationList.get(neigh).add(u);
 
+                // We add the neighbor to the list of u.
                 if(!propagationList.containsKey(u))
                     propagationList.put(u, new ArrayList<>());
                 if(!propagationList.get(u).contains(neigh))
                     propagationList.get(u).add(neigh);
 
-                alreadyVisited.add(0, neigh);
+                alreadyVisited.add(neigh);
+            }
+            else
+            {
+                alreadyVisited.add(null);
             }
             
             // Prune the list
-            int maxSize = Math.min(this.waitTime, neighbours.size());
-            if(alreadyVisited.size() > maxSize)
+            if(alreadyVisited.size() > waitTime)
             {
-                alreadyVisited.subList(maxSize, alreadyVisited.size()).clear();
+                alreadyVisited.remove(0);
             }
         });
         

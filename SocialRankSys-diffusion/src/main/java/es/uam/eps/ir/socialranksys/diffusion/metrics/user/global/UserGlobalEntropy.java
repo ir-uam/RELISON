@@ -17,16 +17,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Computes the number of pieces of information propagated and seen in all the iterations.
+ * Computes the entropy over the set of users in the network. For each user, the value is the number
+ * of information pieces they have received.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the user.
  * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <F> type of the features.
  */
-public class UserGlobalEntropy<U extends Serializable,I extends Serializable,P> extends AbstractGlobalSimulationMetric<U,I,P>
+public class UserGlobalEntropy<U extends Serializable,I extends Serializable, F> extends AbstractGlobalSimulationMetric<U,I, F>
 {
 
     /**
@@ -78,7 +79,7 @@ public class UserGlobalEntropy<U extends Serializable,I extends Serializable,P> 
     }
 
     @Override
-    public void update(Iteration<U, I, P> iteration)
+    public void update(Iteration<U, I, F> iteration)
     {
         if(this.isInitialized())
         {

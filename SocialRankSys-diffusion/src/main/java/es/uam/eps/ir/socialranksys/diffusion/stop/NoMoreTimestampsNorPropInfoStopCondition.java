@@ -18,14 +18,14 @@ import java.io.Serializable;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class NoMoreTimestampsNorPropInfoStopCondition<U extends Serializable,I extends Serializable,P> implements StopCondition<U,I,P>
+public class NoMoreTimestampsNorPropInfoStopCondition<U extends Serializable,I extends Serializable, F> implements StopCondition<U,I, F>
 {
     @Override
-    public boolean stop(int numIter, int numPropagated, int propagatingUsers, long newlyPropagated, long totalPropagated, Data<U, I, P> data, Long timestamp)
+    public boolean stop(int numIter, int numPropagated, int propagatingUsers, long newlyPropagated, long totalPropagated, Data<U, I, F> data, Long timestamp)
     {
         return (timestamp == null && numPropagated == 0);
     }

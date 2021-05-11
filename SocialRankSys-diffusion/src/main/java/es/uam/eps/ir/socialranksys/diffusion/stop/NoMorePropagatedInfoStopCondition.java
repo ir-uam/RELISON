@@ -18,16 +18,16 @@ import java.io.Serializable;
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * 
+ *
  * @param <U> type of the users.
- * @param <I> type of the items.
- * @param <P> type of the parameters.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class NoMorePropagatedInfoStopCondition<U extends Serializable,I extends Serializable,P> implements StopCondition<U,I,P>
+public class NoMorePropagatedInfoStopCondition<U extends Serializable,I extends Serializable, F> implements StopCondition<U,I, F>
 {
 
     @Override
-    public boolean stop(int numIter, int numPropagated, int propagatingUsers, long newlyPropagated, long totalPropagated, Data<U, I,P> data, Long timestamp)
+    public boolean stop(int numIter, int numPropagated, int propagatingUsers, long newlyPropagated, long totalPropagated, Data<U, I, F> data, Long timestamp)
     {
         return (numPropagated == 0);
     }

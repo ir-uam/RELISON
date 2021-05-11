@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,35 +9,39 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.metrics;
 
 import es.uam.eps.ir.socialranksys.diffusion.metrics.SimulationMetric;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.features.global.*;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.features.indiv.*;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.informationpieces.*;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.users.UserGlobalEntropyMetricConfigurator;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.users.UserGlobalGiniMetricConfigurator;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.users.UserRecallMetricConfigurator;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import org.jooq.lambda.tuple.Tuple2;
 
 import java.io.Serializable;
 
 import static es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricIdentifiers.*;
 
 /**
- * Class that selects an individual metric.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Class for selecting an individual diffusion metric.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <P> type of the parameters.
  */
 public class MetricSelector<U extends Serializable,I extends Serializable,P> 
 {
     /**
      * Selects and configures a metric.
-     * @param ppr Parameters for the metric.
-     * @return A pair containing the name and the selected metric.
+     * @param name  the name of the metric.
+     * @param params the set of parameters for the metric.
+     * @return a pair containing the name and the selected metric.
      */
-    public Tuple2oo<String, SimulationMetric<U,I,P>> select(MetricParamReader ppr)
+    public Tuple2<String, SimulationMetric<U,I,P>> select(String name, Parameters params)
     {
-        String name = ppr.getName();
         MetricConfigurator<U,I,P> conf;
         switch(name)
         {
@@ -53,9 +57,7 @@ public class MetricSelector<U extends Serializable,I extends Serializable,P>
             case RECALL:
                 conf = new FeatureRecallMetricConfigurator<>();
                 break;
-            case NRECALL:
-                conf = new FeatureNormalizedRecallMetricConfigurator<>();
-                break;
+
             case EXTRATE:
                 conf = new ExternalFeatureRateMetricConfigurator<>();
                 break;
@@ -101,17 +103,7 @@ public class MetricSelector<U extends Serializable,I extends Serializable,P>
             case USERFEATUREGINI:
                 conf = new UserFeatureGiniMetricConfigurator<>();
                 break;
-                
-            case MONTECARLOGLOBALGINI:
-                conf = new MonteCarloFeatureGlobalGiniMetricConfigurator<>();
-                break;
-            case MONTECARLOGLOBALUSERGINI:
-                conf = new MonteCarloFeatureGlobalUserGiniMetricConfigurator<>();
-                break;
-            case MONTECARLOUSERFEATUREGINI:
-                conf = new MonteCarloUserFeatureGiniMetricConfigurator<>();
-                break;
-                
+
             case USERSPEED:
                 conf = new UserSpeedMetricConfigurator<>();
                 break;
@@ -142,7 +134,7 @@ public class MetricSelector<U extends Serializable,I extends Serializable,P>
                 return null;
         }
         
-        SimulationMetric<U,I,P> propagation = conf.configure(ppr);
-        return new Tuple2oo<>(name, propagation);
+        SimulationMetric<U,I,P> propagation = conf.configure(params);
+        return new Tuple2<>(propagation.getName(), propagation);
     }
 }

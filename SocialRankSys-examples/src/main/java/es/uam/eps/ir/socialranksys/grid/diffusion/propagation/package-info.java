@@ -10,6 +10,6 @@
 /**
  * Classes and interfaces for configuration files for propagation mechanisms for information
  * propagation simulations.
- * @see es.uam.eps.socialranksys.diffusion.propagation
+ * @see es.uam.eps.ir.socialranksys.diffusion.propagation
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.propagation;

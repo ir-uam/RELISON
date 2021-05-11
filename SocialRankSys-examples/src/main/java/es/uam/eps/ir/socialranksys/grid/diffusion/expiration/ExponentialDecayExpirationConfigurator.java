@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -11,27 +11,33 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.expiration;
 
 import es.uam.eps.ir.socialranksys.diffusion.expiration.ExpirationMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.expiration.ExponentialDecayExpirationMechanism;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 
 import java.io.Serializable;
 
 /**
- * Configures an Exponential Decay expiration mechanism.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Configures an expiration mechanism that increases the probability of discarding a piece over time.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
+ *
+ * @see ExponentialDecayExpirationMechanism
  */
-public class ExponentialDecayExpirationConfigurator<U extends Serializable,I extends Serializable,P> implements ExpirationConfigurator<U,I,P> 
+public class ExponentialDecayExpirationConfigurator<U extends Serializable,I extends Serializable,F> implements ExpirationConfigurator<U,I,F>
 {
     /**
-     * Identifier for the maximum time before expiration of an information piece.
+     * Identifier for the half life of the expiration of an information piece.
      */
     private final static String HALFLIFE = "halfLife";
 
     @Override
-    public ExpirationMechanism<U, I, P> configure(ExpirationParamReader params)
+    public ExpirationMechanism<U, I, F> configure(Parameters params)
     {
-        double halfLife = params.getParams().getDoubleValue(HALFLIFE);
+        double halfLife = params.getDoubleValue(HALFLIFE);
         return new ExponentialDecayExpirationMechanism<>(halfLife);
     }
     

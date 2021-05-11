@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,19 +10,24 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.metrics.features.global;
 
 import es.uam.eps.ir.socialranksys.diffusion.metrics.SimulationMetric;
 import es.uam.eps.ir.socialranksys.diffusion.metrics.features.global.UserFeatureCount;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricConfigurator;
-import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricParamReader;
 
 import java.io.Serializable;
 
 /**
- * Configurator for the User-Feature Count metric.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the features.
+ * Configures a metric that measures the number of different (user, feature) pairs.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user / information features.
+ *
+ * @see UserFeatureCount
  */
-public class UserFeatureCountMetricConfigurator<U extends Serializable,I extends Serializable,P> implements MetricConfigurator<U,I,P>
+public class UserFeatureCountMetricConfigurator<U extends Serializable,I extends Serializable, F> implements MetricConfigurator<U,I, F>
 {
     /**
      * Identifier for the parameter that indicates if a feature refers to a user or to an information piece.
@@ -31,20 +36,20 @@ public class UserFeatureCountMetricConfigurator<U extends Serializable,I extends
     /**
      * Identifier for the name of the feature.
      */
-    private final static String PARAM = "parameter";
+    private final static String FEATURE = "feature";
     
     @Override
-    public SimulationMetric<U, I, P> configure(MetricParamReader params)
+    public SimulationMetric<U, I, F> configure(Parameters params)
     {
-        Boolean userParam = params.getParams().getBooleanValue(USERFEAT);
-        String param = params.getParams().getStringValue(PARAM);
+        Boolean userFEat = params.getBooleanValue(USERFEAT);
+        String feature = params.getStringValue(FEATURE);
         
-        if(userParam == null || param == null)
+        if(userFEat == null || feature == null)
         {
             return null;
         }
         
-        return new UserFeatureCount<>(param, userParam);
+        return new UserFeatureCount<>(feature, userFEat);
     } 
     
 }

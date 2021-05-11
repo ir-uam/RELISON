@@ -16,7 +16,8 @@ import java.io.Serializable;
 import java.util.stream.Stream;
 
 /**
- * Given a list of tweets and a list of possible retweets, select which one we want to propagate.
+ * Interface for selecting, each iteration of a diffusion process, the set of users that might propagate
+ * some information and the information pieces each one of them might propagate.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -28,23 +29,23 @@ import java.util.stream.Stream;
 public interface SelectionMechanism<U extends Serializable,I extends Serializable,P>
 {
     /**
-     * Selects the information pieces to be propagated.
-     * @param user The user to analyze.
-     * @param data Full data.
-     * @param state Current simulation state.
-     * @param numIter Number of the iteration.
+     * Given a user, selects the information pieces that he/she propagates during this iteration.
+     * @param user      the user to analyze.
+     * @param data      the complete data.
+     * @param state     the current state of the simulation.
+     * @param numIter   the iteration number.
      * @param timestamp the current timestamp.
-     * @return A selection of tweets to be propagated.
+     * @return a selection of information pieces to be propagated.
      */
     Selection select(UserState<U> user, Data<U, I, P> data, SimulationState<U, I, P> state, int numIter, Long timestamp);
 
     /**
      * Selects the users which can propagate information during the iteration.
-     * @param data the data.
-     * @param state the state of the simulation.
-     * @param numIter iteration number.
+     * @param data      the complete data.
+     * @param state     the current state of the simulation.
+     * @param numIter   iteration number.
      * @param timestamp the current timestamp.
-     * @return a stream containing those users.
+     * @return a stream containing the users who can propagate information.
      */
     Stream<U> getSelectableUsers(Data<U, I, P> data, SimulationState<U, I, P> state, int numIter, Long timestamp);
 }

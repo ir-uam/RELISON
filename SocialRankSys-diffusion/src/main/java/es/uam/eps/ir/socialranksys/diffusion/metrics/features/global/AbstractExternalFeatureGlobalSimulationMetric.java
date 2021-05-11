@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  *
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -17,13 +17,16 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Abstract class representing individual feature-based metrics which do not take into account features that the user already knows
- * (with already knows meaning that the user has the feature, in case of user features, or the user has an information piece containing
- * the feature, in case of information features).
+ * Abstract class for representing global feature-based metrics which consider those features that the user already knows.
+ * Depending on the nature of the feature, we consider that a user already knows a feature when:
+ * <ul>
+ *     <li>The user has the feature, in the case of user features.</li>
+ *     <li>The user has created an information piece containing the feature, in the case of information pieces features.</li>
+ * </ul>
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <P> type of the user / information pieces features.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -31,114 +34,117 @@ import java.util.Set;
 public abstract class AbstractExternalFeatureGlobalSimulationMetric<U extends Serializable,I extends Serializable,P> extends AbstractFeatureGlobalSimulationMetric<U,I,P>
 {
     /**
-     * The set of own parameters for each user.
+     * The set of own features for each user.
      */
-    private final Map<U, Set<P>> ownParams;
+    private final Map<U, Set<P>> ownFeatures;
 
     /**
      * Constructor.
-     * @param name Name of the metric.
-     * @param parameter Name of the metric parameter.
-     * @param userparam True if the parameter is a user parameter, false if it is not.
+     * @param name      the name of the metric.
+     * @param feature   the name of the feature field to consider.
+     * @param userFeat true if the feature is a user feature, false otherwise.
      */
-    public AbstractExternalFeatureGlobalSimulationMetric(String name, String parameter, boolean userparam)
+    public AbstractExternalFeatureGlobalSimulationMetric(String name, String feature, boolean userFeat)
     {
-        super(name, userparam, parameter);
-        this.ownParams = new HashMap<>();
+        super(name, userFeat, feature);
+        this.ownFeatures = new HashMap<>();
     }
 
     /**
      * Obtains the map identifying the parameters of all users.
      * @return the parameters of all users.
      */
-    protected Map<U, Set<P>> getOwnParams()
+    protected Map<U, Set<P>> getOwnFeatures()
     {
-        return this.ownParams;
+        return this.ownFeatures;
     }
 
     /**
-     * Obtains the parameters that an individual user already knows.
+     * Obtains the features that an individual user already knows.
      * @param u the user.
-     * @return the set of parameters the user already knows. If the user does not exist, an empty set is returned.
+     * @return the set of features the user already knows. If the user does not exist, an empty set is returned.
      */
-    protected Set<P> getOwnParams(U u)
+    protected Set<P> getOwnFeatures(U u)
     {
-        return this.ownParams.getOrDefault(u, new HashSet<>());
+        return this.ownFeatures.getOrDefault(u, new HashSet<>());
     }
 
     /**
-     * Computes and stores the own params for every user in the network.
+     * Computes and stores the own features for every user in the network.
      */
-    protected void computeOwnParams()
+    protected void computeOwnFeatures()
     {
         this.data.getAllUsers().forEach(u ->
         {
-            Set<P> userParams = this.computeOwnParams(u);
-            this.ownParams.put(u, userParams);
+            Set<P> userParams = this.computeOwnFeatures(u);
+            this.ownFeatures.put(u, userParams);
         });
     }
 
     /**
-     * Computes the parameters for a user
+     * Computes the features for a user
      * @param u the user.
-     * @return the parameter set for the user
+     * @return the feature set for the user
      */
-    protected Set<P> computeOwnParams(U u)
+    protected Set<P> computeOwnFeatures(U u)
     {
-        if(this.usesUserParam())
+        if(this.usesUserFeatures())
         {
-            return this.computeOwnUserParams(u);
+            return this.computeOwnUserFeatures(u);
         }
         else
         {
-            return this.computeOwnInfoParams(u);
+            return this.computeOwnInfoFeatures(u);
         }
     }
 
     /**
-     * Computes the user parameters for an individual user.
+     * Computes the user features for an individual user.
      * @param u the user.
-     * @return the parameter set.
+     * @return the feature set.
      */
-    protected Set<P> computeOwnUserParams(U u)
+    protected Set<P> computeOwnUserFeatures(U u)
     {
-        Set<P> parameters = new HashSet<>();
+        Set<P> features = new HashSet<>();
 
-        data.getUserFeatures(u, this.getParameter()).forEach(p -> parameters.add(p.v1));
+        data.getUserFeatures(u, this.getFeature()).forEach(p -> features.add(p.v1));
 
-        return parameters;
+        return features;
     }
 
     /**
-     * Computes information piece parameters for an individual user.
+     * Computes information piece features for an individual user.
      * @param u the user.
-     * @return the parameter set.
+     * @return the feature set.
      */
-    protected Set<P> computeOwnInfoParams(U u)
+    protected Set<P> computeOwnInfoFeatures(U u)
     {
-        Set<P> parameters = new HashSet<>();
+        Set<P> features = new HashSet<>();
 
         data.getPieces(u).forEach(i ->
-            data.getInfoPiecesFeatures(i, this.getParameter()).forEach(p ->
-                parameters.add(p.v1)
+            data.getInfoPiecesFeatures(i, this.getFeature()).forEach(p ->
+                features.add(p.v1)
             )
         );
 
-        return parameters;
+        return features;
     }
 
-    protected void clearOwnParams()
+    /**
+     * Clears the set of features of all users.
+     */
+    protected void clearOwnFeatures()
     {
-        this.ownParams.clear();
+        this.ownFeatures.clear();
     }
 
     /**
      * Adds params for an individual user.
-     * @param u the user.
-     * @param params the parameters.
+     * @param u         the user.
+     * @param features  the features.
      */
-    protected void setOwnParams(U u, Set<P> params)
+    protected void setOwnFeatures(U u, Set<P> features)
     {
-        this.ownParams.put(u, params);
+        this.ownFeatures.put(u, features);
     }
 }

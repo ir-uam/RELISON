@@ -15,23 +15,20 @@ import es.uam.eps.ir.socialranksys.diffusion.simulation.UserState;
 import java.io.Serializable;
 
 /**
- * Sees the pieces of information that come from all users, but have not been discarded before.
+ * This mechanism sees all the pieces of information who have not been previously discarded nor propagated.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <P> type of the parameters.
  */
-public class AllNotDiscardedSightMechanism<U extends Serializable,I extends Serializable,P> implements SightMechanism<U,I,P> 
+public class AllNotDiscardedSightMechanism<U extends Serializable,I extends Serializable,P> extends IndividualSightMechanism<U,I,P>
 {
-
     @Override
     public boolean seesInformation(UserState<U> user, Data<U,I,P> data, PropagatedInformation prop)
     {
-        return !user.containsDiscardedInformation(prop.getInfoId()) && !user.containsPropagatedInformation(prop.getInfoId());
+        return !user.containsDiscardedInformation(prop.getInfoId());
     }
-
-    
 }

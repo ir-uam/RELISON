@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,18 +9,20 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.sight;
 
 /**
- * Identifiers for the different sight mechanisms for information propagation protocols available in 
- * the library
- * @author Javier Sanz-Cruzado Puig
+ * List of identifiers of the different sight mechanisms available in the framework.
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class SightMechanismIdentifiers 
 {
     // Non stop simulators (until there is no more propagation)
-    public final static String ALLRECOMMENDED = "All Recommended";
-    public final static String ALLSIGHT = "All Sight";
-    public final static String ALLTRAIN = "All Train";
+    public final static String ALLRECOMMENDED = "All recommended";
+    public final static String ALLSIGHT = "All sight";
+    public final static String ALLTRAIN = "All train";
     public final static String COUNT = "Count";
-    public final static String ALLNOTDISCARDED = "All Not Discarded";
+    public final static String ALLNOTDISCARDED = "All not discarded";
+    public final static String ALLNOTPROPAGATED = "All not propagated";
+    public final static String ALLNOTDISCARDEDNOTPROPAGATED = "All not discarded nor propagated";
     public final static String RECOMMENDED = "Recommended";
    
     
@@ -35,6 +37,8 @@ public class SightMechanismIdentifiers
         System.out.println("\t" + ALLTRAIN);
         System.out.println("\t" + COUNT);
         System.out.println("\t" + ALLNOTDISCARDED);
+        System.out.println("\t" + ALLNOTPROPAGATED);
+        System.out.println("\t" + ALLNOTDISCARDEDNOTPROPAGATED);
         System.out.println("\t" + RECOMMENDED);
         
     }

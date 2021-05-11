@@ -24,9 +24,9 @@ import java.util.List;
  *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <F> Type of the features.
  */
-public interface SimulationMetric<U extends Serializable,I extends Serializable,P> 
+public interface SimulationMetric<U extends Serializable,I extends Serializable, F>
 {    
     /**
      * Obtains the name of the metric.
@@ -52,7 +52,7 @@ public interface SimulationMetric<U extends Serializable,I extends Serializable,
      * @param simulation the whole simulation.
      * @return the value of the metric for each iteration.
      */
-    default List<Double> calculate(Data<U, I, P> data, Simulation<U, I, P> simulation)
+    default List<Double> calculate(Data<U, I, F> data, Simulation<U, I, F> simulation)
     {
         if(simulation == null || data == null)
             return new ArrayList<>();
@@ -74,7 +74,7 @@ public interface SimulationMetric<U extends Serializable,I extends Serializable,
      * the information received by users in an iteration of the simulation.
      * @param iteration the new iteration.
      */
-    void update(Iteration<U, I, P> iteration);
+    void update(Iteration<U, I, F> iteration);
 
     /**
      * Resets the metric.
@@ -85,14 +85,14 @@ public interface SimulationMetric<U extends Serializable,I extends Serializable,
      * Initializes the metric.
      * @param data the data.
      */
-    void initialize(Data<U, I, P> data);
+    void initialize(Data<U, I, F> data);
 
     /**
      * Initializes and establishes a given state to the metric from a simulation backup.
      * @param data the data.
      * @param backupSim the simulation backup.
      */
-    default void initialize(Data<U, I, P> data, Simulation<U, I, P> backupSim)
+    default void initialize(Data<U, I, F> data, Simulation<U, I, F> backupSim)
     {
         this.initialize(data);
         for(int i = 0; i < backupSim.getNumIterations(); ++i)

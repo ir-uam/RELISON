@@ -17,16 +17,16 @@ import java.util.Map;
 import java.util.OptionalDouble;
 
 /**
- * Computes the number of pieces of information propagated and seen in all the iterations.
+ * Computes the fraction of pieces which were repropagated in the real setting which have been received by each user.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the user.
  * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <F> type of the features.
  */
-public class RealPropagatedRecall<U extends Serializable,I extends Serializable,P> extends AbstractIndividualSimulationMetric<U,I,P>
+public class RealPropagatedRecall<U extends Serializable,I extends Serializable, F> extends AbstractIndividualSimulationMetric<U,I, F>
 {
 
     /**
@@ -70,7 +70,7 @@ public class RealPropagatedRecall<U extends Serializable,I extends Serializable,
     }
 
     @Override
-    public void update(Iteration<U, I, P> iteration)
+    public void update(Iteration<U, I, F> iteration)
     {
         if(this.isInitialized())
         {

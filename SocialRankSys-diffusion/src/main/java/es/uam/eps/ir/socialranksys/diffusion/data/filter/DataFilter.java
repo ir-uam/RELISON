@@ -19,17 +19,17 @@ import java.io.Serializable;
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the users.
- * @param <I> type of the items.
- * @param <P> type of hte parameters.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public interface DataFilter<U extends Serializable,I extends Serializable,P>
+public interface DataFilter<U extends Serializable,I extends Serializable, F>
 {
     /**
      * Filters the data.
      * @param fullData Data to be filtered.
      * @return The filtered data.
      */
-    Data<U,I,P> filter(Data<U, I, P> fullData);
+    Data<U,I, F> filter(Data<U, I, F> fullData);
     
     
 }

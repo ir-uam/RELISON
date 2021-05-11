@@ -24,16 +24,16 @@ import java.util.Set;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the user identifiers.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class MinimumFrequencyInformationFeatureFilter<U extends Serializable,I extends Serializable, P> extends AbstractDataFilter<U,I,P>
+public class MinimumFrequencyInformationFeatureFilter<U extends Serializable,I extends Serializable, F> extends AbstractDataFilter<U,I, F>
 {
     /**
      * The definitive of tags to filter.
      */
-    private final Set<P> tags;
+    private final Set<F> tags;
     /**
      * The minimum number of tags.
      */
@@ -57,7 +57,7 @@ public class MinimumFrequencyInformationFeatureFilter<U extends Serializable,I e
     }
     
     @Override
-    protected Index<U> filterUsers(Data<U, I, P> data)
+    protected Index<U> filterUsers(Data<U, I, F> data)
     {
         Index<U> uIndex = new FastIndex<>();
         data.getAllUsers().sorted().forEach(uIndex::addObject);
@@ -65,7 +65,7 @@ public class MinimumFrequencyInformationFeatureFilter<U extends Serializable,I e
     }
 
     @Override
-    protected Index<I> filterInfoPieces(Data<U, I, P> data) 
+    protected Index<I> filterInfoPieces(Data<U, I, F> data)
     {
         // First, we determine which tags are valid. Then, we select the corresponding tweets.
         this.selectTags(data);
@@ -74,7 +74,7 @@ public class MinimumFrequencyInformationFeatureFilter<U extends Serializable,I e
         Set<I> informationPieces = new HashSet<>();
         data.getAllInformationPieces().forEach(i -> 
         {
-            Set<P> features = new HashSet<>();
+            Set<F> features = new HashSet<>();
             data.getInfoPiecesFeatures(i, featureName).forEach(p -> 
             {
                 if(this.tags.contains(p.v1))
@@ -96,9 +96,9 @@ public class MinimumFrequencyInformationFeatureFilter<U extends Serializable,I e
     }
 
     @Override
-    protected Index<P> filterParameters(Data<U, I, P> data, String name, Index<I> iIndex) 
+    protected Index<F> filterParameters(Data<U, I, F> data, String name, Index<I> iIndex)
     {
-        Index<P> pIndex = new FastIndex<>();
+        Index<F> pIndex = new FastIndex<>();
         
         if(data.isUserFeature(name))
         {
@@ -107,7 +107,7 @@ public class MinimumFrequencyInformationFeatureFilter<U extends Serializable,I e
         }
         else if(name != null && !this.featureName.equals(name))// Item feature
         {
-            Set<P> par = new HashSet<>();
+            Set<F> par = new HashSet<>();
             iIndex.getAllObjects().forEach(i -> data.getInfoPiecesFeatures(i, name).forEach(p -> par.add(p.v1)));
             par.stream().sorted().forEach(pIndex::addObject);
             return pIndex;
@@ -124,15 +124,15 @@ public class MinimumFrequencyInformationFeatureFilter<U extends Serializable,I e
      * information pieces.
      * @param data the original data.
      */
-    private void selectTags(Data<U,I,P> data) 
+    private void selectTags(Data<U,I, F> data)
     {
         this.tags.clear();
-        data.getAllFeatureValues(featureName).forEach(p -> 
+        data.getAllFeatureValues(featureName).forEach(f ->
         {
-            long count = data.getInformationPiecesWithFeature(featureName, p).count();
+            long count = data.getInformationPiecesWithFeature(featureName, f).count();
             if(count >= this.minimumPieces)
             {
-                this.tags.add(p);
+                this.tags.add(f);
             }
         });
     }

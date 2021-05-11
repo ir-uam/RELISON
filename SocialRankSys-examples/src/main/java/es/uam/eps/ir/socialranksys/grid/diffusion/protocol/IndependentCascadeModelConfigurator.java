@@ -14,26 +14,31 @@ import es.uam.eps.ir.socialranksys.diffusion.protocols.Protocol;
 import java.io.Serializable;
 
 /**
- * Configures an Independent Cascade Model protocol
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Configures the independent cascade model protocol, where the repropagation of information depends only
+ * on the users who receive and propagate such information.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
+ *
+ * @see IndependentCascadeModelProtocol
  */
-public class IndependentCascadeModelConfigurator<U extends Serializable,I extends Serializable,P> implements ProtocolConfigurator<U,I,P>
+public class IndependentCascadeModelConfigurator<U extends Serializable,I extends Serializable, F> implements ProtocolConfigurator<U,I, F>
 {
     /**
-     * Identifier for the probability
+     * Identifier for the probability of propagating.
      */
     private final static String PROB = "prob";
     /**
      * Identifier for the number of own information pieces to propagate.
      */
     private final static String NUMOWN = "numOwn";
-    
 
     @Override
-    public Protocol<U,I,P> configure(ProtocolParamReader params)
+    public Protocol<U,I, F> configure(YAMLProtocolParameterReader params)
     {
         double prob = params.getParams().getDoubleValue(PROB);
         int numOwn = params.getParams().getIntegerValue(NUMOWN);

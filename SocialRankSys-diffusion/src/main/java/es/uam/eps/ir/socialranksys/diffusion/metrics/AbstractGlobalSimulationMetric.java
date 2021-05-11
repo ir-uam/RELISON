@@ -18,11 +18,11 @@ import java.io.Serializable;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the parameters.
  */
-public abstract class AbstractGlobalSimulationMetric<U extends Serializable,I extends Serializable,P> implements GlobalSimulationMetric<U,I,P> 
+public abstract class AbstractGlobalSimulationMetric<U extends Serializable,I extends Serializable, F> implements GlobalSimulationMetric<U,I, F>
 {
     /**
      * The name of the metric.
@@ -35,7 +35,7 @@ public abstract class AbstractGlobalSimulationMetric<U extends Serializable,I ex
     /**
      * The data.
      */
-    protected Data<U,I,P> data;
+    protected Data<U,I, F> data;
     
     /**
      * Constructor.
@@ -61,7 +61,7 @@ public abstract class AbstractGlobalSimulationMetric<U extends Serializable,I ex
     }
     
     @Override
-    public void initialize(Data<U,I,P> data)
+    public void initialize(Data<U,I, F> data)
     {
         this.data = data;
         this.initialize();

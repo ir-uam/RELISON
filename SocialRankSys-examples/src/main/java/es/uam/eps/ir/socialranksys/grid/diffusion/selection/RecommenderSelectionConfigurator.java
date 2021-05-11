@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,17 +10,26 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.selection;
 
 import es.uam.eps.ir.socialranksys.diffusion.selections.RecommenderSelectionMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.selections.SelectionMechanism;
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 
 import java.io.Serializable;
 
 /**
- * Configures a Recommender selection mechanism.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Configures a selection mechanism that propagates a fixed number of own information pieces, and repropagates
+ * pieces which have been received through recommended links with a certain probability, and through not recommended
+ * links with other. The probability is taken before selecting each piece.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
+ *
+ * @see RecommenderSelectionMechanism
  */
-public class RecommenderSelectionConfigurator<U extends Serializable,I extends Serializable,P> implements SelectionConfigurator<U,I,P>
+public class RecommenderSelectionConfigurator<U extends Serializable,I extends Serializable, F> implements SelectionConfigurator<U,I, F>
 {
     /**
      * Identifier for the number of own pieces of information to propagate.
@@ -34,15 +43,21 @@ public class RecommenderSelectionConfigurator<U extends Serializable,I extends S
      * Identifier for the probability of selecting a piece received by a recommended user.
      */
     private final static String PROB = "prob";
+    /**
+     * Identifier for the direction propagated information pieces come from.
+     */
+    private final static String ORIENTATION = "orientation";
     
     @Override
-    public SelectionMechanism<U,I,P> configure(SelectionParamReader params)
+    public SelectionMechanism<U,I, F> configure(Parameters params)
     {
-        int numOwn = params.getParams().getIntegerValue(NUMOWN);
-        int numRec = params.getParams().getIntegerValue(NUMREC);
-        double prob = params.getParams().getDoubleValue(PROB);
+        int numOwn = params.getIntegerValue(NUMOWN);
+        int numRec = params.getIntegerValue(NUMREC);
+        double prob = params.getDoubleValue(PROB);
+        EdgeOrientation orient = params.getOrientationValue(ORIENTATION);
+
         
-        return new RecommenderSelectionMechanism<>(numOwn, numRec, prob);
+        return new RecommenderSelectionMechanism<>(numOwn, numRec, prob, orient);
     }
     
 }

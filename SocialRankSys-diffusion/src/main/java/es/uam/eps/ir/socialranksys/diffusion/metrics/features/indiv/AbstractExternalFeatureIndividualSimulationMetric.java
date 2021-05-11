@@ -21,9 +21,9 @@ import java.util.Set;
  * (with already knows meaning that the user has the feature, in case of user features, or the user has an information piece containing
  * the feature, in case of information features).
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <P> type of the user / information pieces features.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -33,7 +33,7 @@ public abstract class AbstractExternalFeatureIndividualSimulationMetric<U extend
     /**
      * The set of own parameters for each user.
      */
-    private final Map<U, Set<P>> ownParams;
+    private final Map<U, Set<P>> ownFeats;
 
     /**
      * Constructor.
@@ -44,63 +44,63 @@ public abstract class AbstractExternalFeatureIndividualSimulationMetric<U extend
     public AbstractExternalFeatureIndividualSimulationMetric(String name, String parameter, boolean userparam)
     {
         super(name, userparam, parameter);
-        this.ownParams = new HashMap<>();
+        this.ownFeats = new HashMap<>();
     }
 
     /**
-     * Obtains the map identifying the parameters of all users.
-     * @return the parameters of all users.
+     * Obtains the map identifying the features of all users.
+     * @return the features of all users.
      */
-    protected Map<U, Set<P>> getOwnParams()
+    protected Map<U, Set<P>> getOwnFeats()
     {
-        return this.ownParams;
+        return this.ownFeats;
     }
 
     /**
-     * Obtains the parameters that an individual user already knows.
+     * Obtains the features that an individual user already knows.
      * @param u the user.
-     * @return the set of parameters the user already knows. If the user does not exist, an empty set is returned.
+     * @return the set of features the user already knows. If the user does not exist, an empty set is returned.
      */
-    protected Set<P> getOwnParams(U u)
+    protected Set<P> getOwnFeats(U u)
     {
-        return this.ownParams.getOrDefault(u, new HashSet<>());
+        return this.ownFeats.getOrDefault(u, new HashSet<>());
     }
 
     /**
-     * Computes and stores the own params for every user in the network.
+     * Computes and stores the own features for every user in the network.
      */
-    protected void computeOwnParams()
+    protected void computeOwnFeatures()
     {
         this.data.getAllUsers().forEach(u ->
         {
-            Set<P> userParams = this.computeOwnParams(u);
-            this.ownParams.put(u, userParams);
+            Set<P> userParams = this.computeOwnFeatures(u);
+            this.ownFeats.put(u, userParams);
         });
     }
 
     /**
-     * Computes the parameters for a user
+     * Computes the features for a user
      * @param u the user.
-     * @return the parameter set for the user
+     * @return the feature set for the user
      */
-    protected Set<P> computeOwnParams(U u)
+    protected Set<P> computeOwnFeatures(U u)
     {
         if(this.usesUserParam())
         {
-            return this.computeOwnUserParams(u);
+            return this.computeOwnUserFeatures(u);
         }
         else
         {
-            return this.computeOwnInfoParams(u);
+            return this.computeOwnInfoFeatures(u);
         }
     }
 
     /**
-     * Computes the user parameters for an individual user.
+     * Computes the user features for an individual user.
      * @param u the user.
-     * @return the parameter set.
+     * @return the feature set.
      */
-    protected Set<P> computeOwnUserParams(U u)
+    protected Set<P> computeOwnUserFeatures(U u)
     {
         Set<P> parameters = new HashSet<>();
 
@@ -110,11 +110,11 @@ public abstract class AbstractExternalFeatureIndividualSimulationMetric<U extend
     }
 
     /**
-     * Computes information piece parameters for an individual user.
+     * Computes information piece features for an individual user.
      * @param u the user.
-     * @return the parameter set.
+     * @return the feature set.
      */
-    protected Set<P> computeOwnInfoParams(U u)
+    protected Set<P> computeOwnInfoFeatures(U u)
     {
         Set<P> parameters = new HashSet<>();
 
@@ -127,18 +127,18 @@ public abstract class AbstractExternalFeatureIndividualSimulationMetric<U extend
         return parameters;
     }
 
-    protected void clearOwnParams()
+    protected void clearOwnFeatures()
     {
-        this.ownParams.clear();
+        this.ownFeats.clear();
     }
 
     /**
-     * Adds params for an individual user.
-     * @param u the user.
-     * @param params the parameters.
+     * Adds features for an individual user.
+     * @param u         the user.
+     * @param features  the features.
      */
-    protected void setOwnParams(U u, Set<P> params)
+    protected void setOwnFeatures(U u, Set<P> features)
     {
-        this.ownParams.put(u, params);
+        this.ownFeats.put(u, features);
     }
 }

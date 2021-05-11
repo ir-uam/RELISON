@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,8 +9,10 @@
 package es.uam.eps.ir.socialranksys.grid;
 
 /**
- * Basic type identifiers for grids.
- * @author Javier Sanz-Cruzado Puig
+ * Basic type identifiers for reading parameters from configuration files.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class BasicTypeIdentifiers 
 {
@@ -41,9 +43,5 @@ public class BasicTypeIdentifiers
     /**
      * Type identifier for grids
      */
-    public final static String GRID_TYPE = "Grid";
-    /**
-     * Type for recursive definitions
-     */
-    public final static String RECURSIVE_TYPE = "Recursive";
+    public final static String OBJECT_TYPE = "Object";
 }

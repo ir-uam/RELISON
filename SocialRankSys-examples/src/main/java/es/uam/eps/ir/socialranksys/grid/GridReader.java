@@ -124,7 +124,7 @@ public abstract class GridReader
                     longValues.put(parameterName, grid);
                     break;
                 }
-                case GRID_TYPE:
+                case OBJECT_TYPE:
                 {
                     Map<String, Grid> grid = readGridGrid((Element) element.getElementsByTagName(GRIDS).item(0));
                     gridValues.put(parameterName, grid);

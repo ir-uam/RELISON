@@ -13,21 +13,20 @@ import es.uam.eps.ir.socialranksys.utils.indexes.KLDivergence;
 import java.io.Serializable;
 import java.util.stream.Stream;
 
+
 /**
  * This global metric computes the number of bytes of information we expect to lose
- * if we approximate the real distribution of parameters with the estimated distribution
+ * if we approximate the real distribution of features with the estimated distribution
  * obtained from simulating. It uses KL Divergence for that.
- * 
- * We apply a Laplace smoothing to prevent divisions by zero in both distributions.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
- * @param <P> type of the parameters.
+ * @param <F> type of the user / information pieces features.
  */
-public class FeatureGlobalKLDivergence<U extends Serializable,I extends Serializable,P> extends AbstractFeatureGlobalKLDivergence<U,I,P> 
+public class FeatureGlobalKLDivergence<U extends Serializable,I extends Serializable, F> extends AbstractFeatureGlobalKLDivergence<U,I, F>
 {
     /**
      * Name fixed value.
@@ -36,13 +35,13 @@ public class FeatureGlobalKLDivergence<U extends Serializable,I extends Serializ
     
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
+     * @param userFeat true if we are using a user feature, false if we are using an information piece feature.
+     * @param feature the name of the feature.
      * @param unique true if a piece of information is considered once, false if it is considered each time it appears.
      */
-    public FeatureGlobalKLDivergence(String parameter, boolean userparam, boolean unique) 
+    public FeatureGlobalKLDivergence(String feature, boolean userFeat, boolean unique)
     {
-        super(ENTROPY + "-" + (userparam ? "user" : "info") + "-" + parameter, parameter, userparam, unique);
+        super(ENTROPY + "-" + (userFeat ? "user" : "info") + "-" + feature, feature, userFeat, unique);
     }
 
     @Override
@@ -52,8 +51,8 @@ public class FeatureGlobalKLDivergence<U extends Serializable,I extends Serializ
             return Double.NaN;
         
         KLDivergence kldiv = new KLDivergence();
-        Stream<Double> pdistr = this.data.getAllFeatureValues(this.getParameter()).map(this.pvalues::get);
-        Stream<Double> qdistr = this.data.getAllFeatureValues(this.getParameter()).map(this.qvalues::get);
+        Stream<Double> pdistr = this.data.getAllFeatureValues(this.getFeature()).map(this.pvalues::get);
+        Stream<Double> qdistr = this.data.getAllFeatureValues(this.getFeature()).map(this.qvalues::get);
         
         return kldiv.compute(pdistr, qdistr, this.sumP, this.sumQ);
     }

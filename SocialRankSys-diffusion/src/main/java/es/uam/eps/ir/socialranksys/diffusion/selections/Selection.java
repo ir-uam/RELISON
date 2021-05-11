@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 
 /**
  * Selection of information pieces to propagate.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */
@@ -37,8 +38,8 @@ public class Selection
     
     /**
      * Constructor.
-     * @param ownSelection Selection of own information pieces to propagate.
-     * @param propagateSelection Selection of received information pieces to propagate.
+     * @param ownSelection          selection of own information pieces to propagate.
+     * @param propagateSelection    selection of received information pieces to propagate.
      */
     public Selection(List<PropagatedInformation> ownSelection, List<PropagatedInformation> propagateSelection)
     {
@@ -47,9 +48,9 @@ public class Selection
     
     /**
      * Constructor.
-     * @param ownSelection Selection of own information pieces to propagate.
-     * @param propagateSelection Selection of received information pieces to propagate.
-     * @param repropagateSelection Selection of already propagated pieces to repropagate.
+     * @param ownSelection          selection of own information pieces to propagate.
+     * @param propagateSelection    selection of received information pieces to propagate.
+     * @param repropagateSelection  selection of already propagated pieces to repropagate.
      */
     public Selection(List<PropagatedInformation> ownSelection, List<PropagatedInformation> propagateSelection, List<PropagatedInformation> repropagateSelection)
     {
@@ -61,7 +62,7 @@ public class Selection
 
     /**
      * Obtains the list of selected information pieces created by the user
-     * @return The list of selected information pieces created by the user.
+     * @return the list of selected information pieces created by the user.
      */
     public Stream<PropagatedInformation> getOwnSelection()
     {
@@ -70,7 +71,7 @@ public class Selection
 
     /**
      * Obtains the list of selected information pieces received by the user
-     * @return The list of selected information pieces received by the user.
+     * @return the list of selected information pieces received by the user.
      */
     public Stream<PropagatedInformation> getPropagateSelection()
     {
@@ -79,7 +80,7 @@ public class Selection
     
     /**
      * Obtains the list of selected information pieces to repropagate.
-     * @return The list of selected information pieces to repropagate.
+     * @return the list of selected information pieces to repropagate.
      */
     public Stream<PropagatedInformation> getRepropagateSelection()
     {

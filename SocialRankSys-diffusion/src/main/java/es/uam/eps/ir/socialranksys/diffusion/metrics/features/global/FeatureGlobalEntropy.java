@@ -17,17 +17,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * This global metric computes the entropy of 
- * Computes the Gini index over the global distribution of parameters.
+ * Metric that computes the entropy over the number of times each feature has been received.
+ * If we use information pieces features (i.e. hashtags) the (user, feature) value counts the number of times
+ * that the user has received information pieces using that feature. In case we use user features, it is just
+ * how many times the user has received information from users with that feature.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
- * @param <P> type of the parameters.
+ * @param <F> type of the user / information pieces features.
  */
-public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable,P> extends AbstractFeatureGlobalSimulationMetric<U,I,P>
+public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable, F> extends AbstractFeatureGlobalSimulationMetric<U,I, F>
 {
 
     /**
@@ -38,10 +40,10 @@ public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable,
     /**
      * Times each parameter has been received.
      */
-    private final Map<P,Double> values;
+    private final Map<F,Double> values;
     
     /**
-     * The total number of external parameters that have reached the different users.
+     * The total number of features that have reached the different users.
      */
     private double sum;
     
@@ -52,13 +54,13 @@ public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable,
     
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
-     * @param unique true if a piece of information is considered once, false if it is considered each time it appears.
+     * @param userFeat  true if we are using a user feature, false if we are using an information piece feature.
+     * @param feature   the name of the feature.
+     * @param unique    true if a piece of information is considered once, false if it is considered each time it appears.
      */
-    public FeatureGlobalEntropy(String parameter,boolean userparam, boolean unique) 
+    public FeatureGlobalEntropy(String feature,boolean userFeat, boolean unique)
     {
-        super(ENTROPY + "-" + (userparam ? "user" : "info") + "-" + parameter + "-" + (unique ? "unique" : "repetitions"), userparam, parameter);
+        super(ENTROPY + "-" + (userFeat ? "user" : "info") + "-" + feature + "-" + (unique ? "unique" : "repetitions"), userFeat, feature);
         this.values = new HashMap<>();
         this.unique = unique;
     }
@@ -74,7 +76,7 @@ public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable,
     }
     
     @Override
-    protected void updateUserParam(Iteration<U,I,P> iteration)
+    protected void updateUserFeature(Iteration<U,I,F> iteration)
     {
         if(iteration == null) return;
      
@@ -84,7 +86,7 @@ public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable,
             {
                 double val = (unique ? 1.0 : i.v2().size());
                 data.getCreators(i.v1()).forEach(creator ->
-                    data.getUserFeatures(creator, this.getParameter()).forEach(p ->
+                    data.getUserFeatures(creator, this.getFeature()).forEach(p ->
                     {
                         this.values.put(p.v1, this.values.get(p.v1) + p.v2*val);
                         this.sum += p.v2*val;
@@ -98,7 +100,7 @@ public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable,
                 {
                     double val = i.v2().size();
                     data.getCreators(i.v1()).forEach(creator ->
-                        data.getUserFeatures(creator, this.getParameter()).forEach(p ->
+                        data.getUserFeatures(creator, this.getFeature()).forEach(p ->
                         {
                             this.values.put(p.v1, this.values.get(p.v1) + p.v2*val);
                             this.sum += p.v2*val;
@@ -110,7 +112,7 @@ public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable,
     }
     
     @Override
-    protected void updateInfoParam(Iteration<U,I,P> iteration)
+    protected void updateInfoFeature(Iteration<U,I,F> iteration)
     {
         if(iteration == null) return;
      
@@ -118,7 +120,7 @@ public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable,
             iteration.getSeenInformation(u).forEach(i -> 
             {
                 double val = (unique ? 1.0 : i.v2().size());
-                data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p ->
+                data.getInfoPiecesFeatures(i.v1(), this.getFeature()).forEach(p ->
                 {
                     this.values.put(p.v1, this.values.get(p.v1) + p.v2*val);
                     this.sum += p.v2*val;
@@ -133,7 +135,7 @@ public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable,
                 iteration.getReReceivedInformation(u).forEach(i -> 
                 {
                     double val = i.v2().size();
-                    data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p ->
+                    data.getInfoPiecesFeatures(i.v1(), this.getFeature()).forEach(p ->
                     {
                         this.values.put(p.v1, this.values.get(p.v1) + p.v2*val);
                         this.sum += p.v2*val;
@@ -157,7 +159,7 @@ public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable,
     {
         if(!this.isInitialized())
         {
-            data.getAllFeatureValues(this.getParameter()).forEach(p -> this.values.put(p, 0.0));
+            data.getAllFeatureValues(this.getFeature()).forEach(p -> this.values.put(p, 0.0));
             this.sum = 0.0;
             this.initialized = true;
         }

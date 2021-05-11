@@ -14,7 +14,7 @@ import es.uam.eps.ir.socialranksys.diffusion.simulation.Iteration;
 import java.io.Serializable;
 
 /**
- * Computes the number of pieces of information propagated and seen in all the iterations.
+ * Computes the fraction of pieces which were repropagated in the real setting which have been received by the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

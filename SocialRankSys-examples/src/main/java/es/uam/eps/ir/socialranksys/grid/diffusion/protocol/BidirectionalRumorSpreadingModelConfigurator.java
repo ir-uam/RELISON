@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -14,13 +14,18 @@ import es.uam.eps.ir.socialranksys.diffusion.protocols.Protocol;
 import java.io.Serializable;
 
 /**
- * Configures a Rumor Spreading model protocol
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
- * @param <I> Type of the information pieces
- * @param <P> Type of the parameters
+ * Configures a bidirectional rumor spreading diffusion protocol.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> Type of the user and information pieces features.
+ *
+ * @see BidirectionalRumorSpreadingModelProtocol
  */
-public class BidirectionalRumorSpreadingModelConfigurator<U extends Serializable,I extends Serializable,P> implements ProtocolConfigurator<U,I,P>
+public class BidirectionalRumorSpreadingModelConfigurator<U extends Serializable,I extends Serializable, F> implements ProtocolConfigurator<U,I, F>
 {
     /**
      * Identifier for the number of received information pieces to propagate each iteration.
@@ -36,7 +41,7 @@ public class BidirectionalRumorSpreadingModelConfigurator<U extends Serializable
     private final static String WAITTIME = "waitTime";
    
     @Override
-    public Protocol<U, I, P> configure(ProtocolParamReader params)
+    public Protocol<U, I, F> configure(YAMLProtocolParameterReader params)
     {
         int numRec = params.getParams().getIntegerValue(NUMREC);
         int numOwn = params.getParams().getIntegerValue(NUMOWN);

@@ -17,16 +17,19 @@ import java.util.Map;
 import java.util.TreeSet;
 
 /**
- * Computes the Gini coefficient complement over the set of pairs (user, hashtag).
+ * Metric that computes the complement of the Gini coefficient over the (user, feature) pairs.
+ * If we use information pieces features (i.e. hashtags) the (user, feature) value counts the number of times
+ * that the user has received information pieces using that feature. In case we use user features, it is just
+ * how many times the user has received information from users with that feature.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user / information pieces features.
  */
-public class UserFeatureGini<U extends Serializable,I extends Serializable,P> extends AbstractFeatureGlobalSimulationMetric<U,I,P>
+public class UserFeatureGini<U extends Serializable,I extends Serializable, F> extends AbstractFeatureGlobalSimulationMetric<U,I, F>
 {
     /**
     * Metric name.
@@ -49,7 +52,7 @@ public class UserFeatureGini<U extends Serializable,I extends Serializable,P> ex
     /**
      * Map for storing the frequency of the user/feature pairs.
      */
-    private final Map<U, Map<P, Double>> frequencies;
+    private final Map<U, Map<F, Double>> frequencies;
     /**
      * Auxiliar map for computing Gini coefficient (contains the minimum position for each frequency).
      */
@@ -62,7 +65,6 @@ public class UserFeatureGini<U extends Serializable,I extends Serializable,P> ex
      * Auxiliar set containing the possible values
      */
     private final TreeSet<Double> values;
-    
     /**
      * Indicates if a piece of information is considered once (or each time it appears if false).
      */
@@ -70,13 +72,13 @@ public class UserFeatureGini<U extends Serializable,I extends Serializable,P> ex
     
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
-     * @param unique true if a piece of information is considered once, false if it is considered each time it appears.
+     * @param userFeat  true if we are using a user feature, false if we are using an information piece feature.
+     * @param feature   the name of the feature.
+     * @param unique    true if a piece of information is considered once, false if it is considered each time it appears.
      */
-    public UserFeatureGini(String parameter,boolean userparam, boolean unique) 
+    public UserFeatureGini(String feature,boolean userFeat, boolean unique)
     {
-        super(GINI + "-" + (userparam ? "user" : "info") + "-" + parameter + "-" + (unique ? "unique" : "repetitions"), userparam, parameter);
+        super(GINI + "-" + (userFeat ? "user" : "info") + "-" + feature + "-" + (unique ? "unique" : "repetitions"), userFeat, feature);
         
         this.frequencies = new HashMap<>();
         this.minimumPos = new HashMap<>();
@@ -86,7 +88,7 @@ public class UserFeatureGini<U extends Serializable,I extends Serializable,P> ex
     }
 
     @Override
-    protected void updateUserParam(Iteration<U, I, P> iteration)
+    protected void updateUserFeature(Iteration<U, I, F> iteration)
     {
         if(iteration == null) return;
         
@@ -96,7 +98,7 @@ public class UserFeatureGini<U extends Serializable,I extends Serializable,P> ex
             {
                 double val = (unique ? 1.0 : i.v2().size());
                 data.getCreators(i.v1()).forEach(creator ->
-                    data.getUserFeatures(creator, this.getParameter()).forEach(p -> 
+                    data.getUserFeatures(creator, this.getFeature()).forEach(p ->
                     {
                         double oldfreq = frequencies.get(u).get(p.v1);
                         double newfreq = oldfreq + p.v2*val;
@@ -130,7 +132,7 @@ public class UserFeatureGini<U extends Serializable,I extends Serializable,P> ex
                 {
                     double val = i.v2().size();
                     data.getCreators(i.v1()).forEach(creator ->
-                        data.getUserFeatures(creator, this.getParameter()).forEach(p -> 
+                        data.getUserFeatures(creator, this.getFeature()).forEach(p ->
                         {
                             double oldfreq = frequencies.get(u).get(p.v1);
                             double newfreq = oldfreq + p.v2*val;
@@ -162,7 +164,7 @@ public class UserFeatureGini<U extends Serializable,I extends Serializable,P> ex
     }
 
     @Override
-    protected void updateInfoParam(Iteration<U, I, P> iteration) 
+    protected void updateInfoFeature(Iteration<U, I, F> iteration)
     {
         if(iteration == null) return;
         
@@ -171,7 +173,7 @@ public class UserFeatureGini<U extends Serializable,I extends Serializable,P> ex
             iteration.getSeenInformation(u).forEach(i -> 
             {
                 double val = (unique ? 1.0 : i.v2().size());
-                data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p -> 
+                data.getInfoPiecesFeatures(i.v1(), this.getFeature()).forEach(p ->
                 {
                     double oldfreq = frequencies.get(u).get(p.v1);
                     double newfreq = oldfreq + p.v2*val;
@@ -205,7 +207,7 @@ public class UserFeatureGini<U extends Serializable,I extends Serializable,P> ex
                 iteration.getReReceivedInformation(u).forEach(i -> 
                 {
                     double val = i.v2().size();
-                    data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p -> 
+                    data.getInfoPiecesFeatures(i.v1(), this.getFeature()).forEach(p ->
                     {
                         double oldfreq = frequencies.get(u).get(p.v1);
                         double newfreq = oldfreq + p.v2*val;
@@ -240,20 +242,20 @@ public class UserFeatureGini<U extends Serializable,I extends Serializable,P> ex
     @Override
     protected void initialize() 
     {
-        if(!this.initialized && this.data.doesFeatureExist(this.getParameter()) && this.data.isUserFeature(this.getParameter()) == this.usesUserParam())
+        if(!this.initialized && this.data.doesFeatureExist(this.getFeature()) && this.data.isUserFeature(this.getFeature()) == this.usesUserFeatures())
         {
             this.frequencies.clear();
             this.minimumPos.clear();
             this.maximumPos.clear();
             this.values.clear();
             
-            this.size = this.data.getAllUsers().count()*this.data.getAllFeatureValues(this.getParameter()).count();
+            this.size = this.data.getAllUsers().count()*this.data.getAllFeatureValues(this.getFeature()).count();
 
             // Initializing the map for storing the frequencies for pairs (u,h).
             this.data.getAllUsers().forEach(u -> 
             {
-                Map<P, Double> feats = new HashMap<>();
-                this.data.getAllFeatureValues(this.getParameter()).forEach(feat -> feats.put(feat, 0.0));
+                Map<F, Double> feats = new HashMap<>();
+                this.data.getAllFeatureValues(this.getFeature()).forEach(feat -> feats.put(feat, 0.0));
                 this.frequencies.put(u, feats);
                 this.freqsum = 0.0;
                 this.mainsum = 0.0;

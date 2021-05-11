@@ -111,7 +111,7 @@ public abstract class ParametersReader
                         longValues.put(parameterName, value);
                         break;
                     }
-                    case GRID_TYPE:
+                    case OBJECT_TYPE:
                     {
                         Tuple2oo<String,Parameters> params = readParametersGrid((Element) element.getElementsByTagName(VALUE).item(0));
                         recursiveValues.put(parameterName, params);

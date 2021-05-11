@@ -20,14 +20,14 @@ import java.io.Serializable;
  *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <F> Type of the features.
  */
-public abstract class AbstractDistribution<U extends Serializable, I extends Serializable, P> implements Distribution<U,I,P> 
+public abstract class AbstractDistribution<U extends Serializable, I extends Serializable, F> implements Distribution<U,I, F>
 {
     /**
      * The complete data.
      */
-    protected Data<U,I,P> data;
+    protected Data<U,I, F> data;
     /**
      * Indicates if it has been initialized.
      */
@@ -48,7 +48,7 @@ public abstract class AbstractDistribution<U extends Serializable, I extends Ser
     }
     
     @Override
-    public void initialize(Data<U, I, P> data) 
+    public void initialize(Data<U, I, F> data)
     {
         this.data = data;
         this.initialize();

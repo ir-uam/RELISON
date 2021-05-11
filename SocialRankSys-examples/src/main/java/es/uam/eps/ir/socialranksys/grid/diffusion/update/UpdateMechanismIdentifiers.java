@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,14 +9,15 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.update;
 
 /**
- * Identifiers for the different update mechanisms for information propagation protocols available in 
- * the library
- * @author Javier Sanz-Cruzado Puig
+ * Identifiers for the update mechanisms for the information diffusion available in the framework.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  */
 public class UpdateMechanismIdentifiers 
 {
-    
-    public final static String ICM = "Independent Cascade Model";
+    public final static String NEWEST = "Newest";
     public final static String OLDER = "Older";
     
     /**
@@ -26,7 +27,7 @@ public class UpdateMechanismIdentifiers
     {
         System.out.println("Update Mechanisms:");
         
-        System.out.println("\t" + ICM);
+        System.out.println("\t" + NEWEST);
         System.out.println("\t" + OLDER);
         
         System.out.println();

@@ -19,7 +19,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * It finds the distribution of the times each information piece is received and seen
+ * It finds the complement of the Gini coefficient of the distribution of the times each information piece is received and seen
  * during the simulation.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
@@ -31,7 +31,6 @@ import java.util.stream.Stream;
  */
 public class InformationPieceGiniComplement<U extends Serializable,I extends Serializable,P> extends AbstractGlobalSimulationMetric<U,I,P>
 {
-    
     /**
      * Relation between users and received pieces of information.
      */

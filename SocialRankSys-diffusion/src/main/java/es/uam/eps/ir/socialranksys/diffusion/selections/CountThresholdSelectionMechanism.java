@@ -18,27 +18,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Selection mechanism that only propagates those received pieces which have been sent
- * by a minimum number of users.
+ * Selection mechanism that only propagates those received pieces which have been received (at least) a fixed
+ * number of times. It propagates any information piece that the user has received at least such amount of times.
+ *
+ * <p>
+ *      <b>Reference:</b>  D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the spread of influence through a social network, KDD 2003, pp. 137–146 (2003).
+ * </p>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <P> type of the parameters.
  */
 public class CountThresholdSelectionMechanism<U extends Serializable,I extends Serializable, P> extends CountSelectionMechanism<U,I,P> 
 {
     /**
-     * Number of users that transmit an information piece before it is released.
+     * Number of users that transmit an information piece before a user chooses to share it.
      */
     private final int threshold;
     
     /**
      * Constructor.
-     * @param numOwn Number of own pieces to propagate.
-     * @param threshold Number of users that transmit an information piece before it is released.
+     * @param numOwn    number of own pieces to propagate.
+     * @param threshold number of users that transmit an information piece before a user chooses to share it.
      */
     public CountThresholdSelectionMechanism(int numOwn, int threshold)
     {
@@ -48,9 +52,9 @@ public class CountThresholdSelectionMechanism<U extends Serializable,I extends S
     
     /**
      * Constructor.
-     * @param numOwn Number of own pieces to propagate.
-     * @param threshold Number of users that transmit an information piece before it is released.
-     * @param numRepr Number of propagated pieces to repropagate.
+     * @param numOwn    number of own pieces to propagate.
+     * @param threshold number of users that transmit an information piece before a user chooses to share it.
+     * @param numRepr   number of already propagated pieces to repropagate.
      */
     public CountThresholdSelectionMechanism(int numOwn, int threshold, int numRepr)
     {
@@ -64,9 +68,6 @@ public class CountThresholdSelectionMechanism<U extends Serializable,I extends S
         int userId = data.getUserIndex().object2idx(user.getUserId());
         List<PropagatedInformation> receivedToPropagate = new ArrayList<>();
 
-        // Minimum number of users that have sent the same information piece before it is repropagated.
-        // int numThreshold = Math.min(data.getGraph().getNeighbourhoodSize(user.getUserId(), orientation), this.threshold);
-         
         // Select the pieces to propagate.
         user.getReceivedInformation().forEach(info -> 
         {

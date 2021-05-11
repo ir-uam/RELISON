@@ -9,11 +9,13 @@
  */
 package es.uam.eps.ir.socialranksys.examples.recommendation;
 
+import es.uam.eps.ir.socialranksys.AuxiliarMethods;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSelector;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.YAMLAlgorithmGridReader;
 import org.ranksys.formats.parsing.Parsers;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,7 +45,7 @@ public class TestRecommendationGridReader
      *               <li><b>All users: </b> true if we want to generate recommendations for all users in the training set, false if only for those who have test links</li>
      *             </ol>
      */
-    public static void main(String[] args)
+    public static void main(String[] args) throws IOException
     {
         if (args.length < 1)
         {
@@ -57,8 +59,9 @@ public class TestRecommendationGridReader
         String algorithmsPath = args[0];
 
         // Read the XML containing the parameter grid for each algorithm
-        YAMLAlgorithmGridReader gridreader = new YAMLAlgorithmGridReader(algorithmsPath);
-        gridreader.readDocument();
+        YAMLAlgorithmGridReader gridreader = new YAMLAlgorithmGridReader();
+        Map<String, Object> map = AuxiliarMethods.readYAML(algorithmsPath);
+        gridreader.read(map);
 
         Map<String, RecommendationAlgorithmFunction<Long>> recMap = new HashMap<>();
         // Get the different recommenders to execute

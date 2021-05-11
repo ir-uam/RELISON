@@ -1,7 +1,7 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
- * 
+ *
  *  This Source Code Form is subject to the terms of the Mozilla Public
  *  License, v. 2.0. If a copy of the MPL was not distributed with this
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,30 +10,42 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.propagation;
 
 import es.uam.eps.ir.socialranksys.diffusion.propagation.PropagationMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.propagation.PushStrategyPropagationMechanism;
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 
 import java.io.Serializable;
 
 /**
- * Configures a Push propagation mechanism.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Configures a push propagation mechanism.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
+ *
  * @see PushStrategyPropagationMechanism
  */
-public class PushPropagationConfigurator<U extends Serializable,I extends Serializable,P> implements PropagationConfigurator<U,I,P> 
+
+public class PushPropagationConfigurator<U extends Serializable,I extends Serializable, F> implements PropagationConfigurator<U,I, F>
 {
     /**
      * Identifier for the time before selecting a given user.
      */
     private final static String WAITTIME = "waitTime";
-    
+    /**
+     * Identifier for the neighbors towards whom we want to propagate the information.
+     */
+    private static String ORIENTATION = "orientation";
+
     @Override
-    public PropagationMechanism<U, I, P> configure(PropagationParamReader params)
+    public PropagationMechanism<U, I, F> configure(Parameters params)
     {
-        int waitTime = params.getParams().getIntegerValue(WAITTIME);
-        
-        return new PushStrategyPropagationMechanism<>(waitTime);
+        int waitTime = params.getIntegerValue(WAITTIME);
+        EdgeOrientation orient = params.getOrientationValue(ORIENTATION);
+
+        return new PushStrategyPropagationMechanism<>(waitTime, orient);
     }
-    
+
 }

@@ -18,70 +18,70 @@ import java.io.Serializable;
  * We differ two types of features:
  * 
  * <ul>
- *  <li><b>User parameters:</b> (Ex.: Communities) In this case, we take the values of the parameter
+ *  <li><b>User features:</b> (Ex.: Communities) In this case, we take the values of the feature
  *  for the creators of the received information pieces. </li>
- *  <li><b>Information parameters:</b> (Ex: hashtags) In this case, we take the values of the parameters
+ *  <li><b>Information features:</b> (Ex: hashtags) In this case, we take the values of the features
  *  for the different information pieces which are received and observed by each individual user.</li>
  * </ul>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user / information pieces features.
  */
-public abstract class AbstractFeatureGlobalSimulationMetric<U extends Serializable, I extends Serializable, P> extends AbstractGlobalSimulationMetric<U,I,P>
+public abstract class AbstractFeatureGlobalSimulationMetric<U extends Serializable, I extends Serializable, F> extends AbstractGlobalSimulationMetric<U,I, F>
 {
     /**
-     * Indicates if the parameter we are analyzing depends on the user (true) or the information piece (false).
+     * Indicates if the feature we are analyzing depends on the user (true) or the information piece (false).
      */
-    private final boolean userParam;
+    private final boolean userFeats;
     /**
-     * Parameter name.
+     * Feature name.
      */
-    private final String parameter;
+    private final String feature;
     
     /**
      * Constructor.
-     * @param name the name of the metric.
-     * @param userParam true if it uses the parameters of the users, false if it uses the parameters of the information pieces.
-     * @param parameter the name of the parameter.
+     * @param name      the name of the metric.
+     * @param userFeats true if it uses the features of the users, false if it uses the features of the information pieces.
+     * @param feature   the name of the feature.
      */
-    public AbstractFeatureGlobalSimulationMetric(String name, boolean userParam, String parameter) 
+    public AbstractFeatureGlobalSimulationMetric(String name, boolean userFeats, String feature)
     {
         super(name);
-        this.userParam = userParam;
-        this.parameter = parameter;
+        this.userFeats = userFeats;
+        this.feature = feature;
     }
 
     /**
-     * Indicates if we are using a user parameter (true) or an information piece parameter (false).
-     * @return true if we use a user parameter, false if we use an information piece parameter.
+     * Indicates if we are using a user feature (true) or an information piece feature (false).
+     * @return true if we use a user feature, false if we use an information piece feature.
      */
-    protected boolean usesUserParam() 
+    protected boolean usesUserFeatures()
     {
-        return userParam;
+        return userFeats;
     }
 
     /**
-     * Obtains the name of the parameter we are using.
-     * @return the name of the parameter.
+     * Obtains the name of the feature we are using.
+     * @return the name of the feature.
      */
-    protected String getParameter() 
+    protected String getFeature()
     {
-        return parameter;
+        return feature;
     }
     
     @Override
-    public void update(Iteration<U,I,P> iteration)
+    public void update(Iteration<U,I, F> iteration)
     {
         if(this.isInitialized())
         {
-            if(this.usesUserParam())
-                this.updateUserParam(iteration);
+            if(this.usesUserFeatures())
+                this.updateUserFeature(iteration);
             else
-                this.updateInfoParam(iteration);
+                this.updateInfoFeature(iteration);
         }
     }
 
@@ -91,7 +91,7 @@ public abstract class AbstractFeatureGlobalSimulationMetric<U extends Serializab
      * by the users in the network.
      * @param iteration the new iteration.
      */
-    protected abstract void updateUserParam(Iteration<U, I, P> iteration);
+    protected abstract void updateUserFeature(Iteration<U, I, F> iteration);
 
     /**
      * Updates the necessary variables to compute a metric, in case the feature 
@@ -99,10 +99,5 @@ public abstract class AbstractFeatureGlobalSimulationMetric<U extends Serializab
      * the network.
      * @param iteration the new iteration. 
      */
-    protected abstract void updateInfoParam(Iteration<U, I, P> iteration);
-    
-    
-    
-    
-    
+    protected abstract void updateInfoFeature(Iteration<U, I, F> iteration);
 }

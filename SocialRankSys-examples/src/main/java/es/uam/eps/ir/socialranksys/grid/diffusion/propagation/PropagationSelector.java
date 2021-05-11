@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,37 +9,45 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.propagation;
 
 import es.uam.eps.ir.socialranksys.diffusion.propagation.PropagationMechanism;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
+import org.jooq.lambda.tuple.Tuple2;
 
 import java.io.Serializable;
 
 import static es.uam.eps.ir.socialranksys.grid.diffusion.propagation.PropagationMechanismIdentifiers.*;
 
 /**
- * Class that selects an individual propagation mechanism.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Class for selecting a propagation mechanism from its configuration.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class PropagationSelector<U extends Serializable,I extends Serializable,P> 
+
+public class PropagationSelector<U extends Serializable,I extends Serializable, F>
 {
     /**
      * Selects and configures a propagation mechanism.
-     * @param ppr Parameters for the propagation mechanism.
-     * @return A pair containing the name and the selected propagation mechanism.
+     * @param name      the name of the propagation mechanism.
+     * @param params    the parameters of the propagation mechanism.
+     * @return a pair containing the name and the selected propagation mechanism.
      */
-    public Tuple2oo<String, PropagationMechanism<U,I,P>> select(PropagationParamReader ppr)
+    public Tuple2<String, PropagationMechanism<U,I, F>> select(String name, Parameters params)
     {
-        String name = ppr.getName();
-        PropagationConfigurator<U,I,P> conf;
+        PropagationConfigurator<U,I, F> conf;
         switch(name)
         {
-            case ALLFOLLOWERS:
-                conf = new AllFollowersPropagationConfigurator<>();
+            case ALLNEIGHS:
+                conf = new AllNeighborsPropagationConfigurator<>();
+                break;
+            case ALLRECNEIGHS:
+                conf = new AllRecommendedNeighborsPropagationConfigurator<>();
                 break;
             case PUSHPULL:
-                conf = new PushPullPropagationConfigurator<>();
+                conf = new PullPushPropagationConfigurator<>();
                 break;
             case PUSH:
                 conf = new PushPropagationConfigurator<>();
@@ -48,16 +56,16 @@ public class PropagationSelector<U extends Serializable,I extends Serializable,P
                 conf = new PullPropagationConfigurator<>();
                 break;
             case PUSHPULLPUREREC:
-                conf = new PushPullPureRecommenderPropagationConfigurator<>();
+                conf = new PullPushPureRecommenderPropagationConfigurator<>();
                 break;
             case PUSHPULLREC:
-                conf = new PushPullRecommenderPropagationConfigurator<>();
+                conf = new PullPushRecommenderPropagationConfigurator<>();
                 break;
             default:
                 return null;
         }
         
-        PropagationMechanism<U,I,P> propagation = conf.configure(ppr);
-        return new Tuple2oo<>(name, propagation);
+        PropagationMechanism<U,I, F> propagation = conf.configure(params);
+        return new Tuple2<>(name, propagation);
     }
 }

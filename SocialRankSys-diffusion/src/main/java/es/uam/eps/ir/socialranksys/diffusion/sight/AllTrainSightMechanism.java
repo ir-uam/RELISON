@@ -13,6 +13,7 @@ import es.uam.eps.ir.socialranksys.diffusion.data.PropagatedInformation;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.SimulationEdgeTypes;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.UserState;
 import es.uam.eps.ir.socialranksys.graph.Graph;
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -21,16 +22,16 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Sees the pieces of information that come from training users.
+ * Sees the pieces of information that come from training users and the user has not previously propagated.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users
- * @param <I> Type of the information pieces
- * @param <P> Type of the parameters
+ * @param <U> type of the users
+ * @param <I> type of the information pieces
+ * @param <P> type of the parameters
  */
-public class AllTrainSightMechanism<U extends Serializable,I extends Serializable,P> implements SightMechanism<U,I,P>
+public class AllTrainSightMechanism<U extends Serializable,I extends Serializable,P> extends IndividualSightMechanism<U,I,P>
 {
     /**
      * For each user, the set of users they are allowed to see information from
@@ -40,13 +41,19 @@ public class AllTrainSightMechanism<U extends Serializable,I extends Serializabl
      * Indicates if the selections have been initialized or not.
      */
     private boolean initialized = false;
-    
     /**
-     * Constructor. 
+     * Orientation for indicating whih neighbors of the user propagate the information.
      */
-    public AllTrainSightMechanism()
+    private final EdgeOrientation orientation;
+
+    /**
+     * Constructor.
+     * @param orient    orientation for indicating which neighbors of the user propagate the information.
+     */
+    public AllTrainSightMechanism(EdgeOrientation orient)
     {
         this.allowed = new HashMap<>();
+        this.orientation = orient;
     }
 
     @Override
@@ -56,13 +63,20 @@ public class AllTrainSightMechanism<U extends Serializable,I extends Serializabl
         if(!this.initialized)
         {
             Graph<U> graph = data.getGraph();
-            graph.getAllNodes().forEach(u -> {
-                this.allowed.put(u, new HashSet<>());
-                graph.getAdjacentNodes(u).forEach(v -> {
-                    int edgeType = graph.getEdgeType(u, v);
-                    if(edgeType == SimulationEdgeTypes.TRAINING)
-                        this.allowed.get(u).add(v);
-                });
+            graph.getAllNodes().forEach(u ->
+            {
+                Set<U> set = new HashSet<>();
+                graph.getNeighbourhood(u, orientation).filter(v ->
+                {
+                    if(orientation == EdgeOrientation.IN)
+                        return graph.getEdgeType(v, u) == SimulationEdgeTypes.TRAINING;
+                    else if(orientation == EdgeOrientation.OUT)
+                        return graph.getEdgeType(u, v) == SimulationEdgeTypes.TRAINING;
+                    else
+                        return (graph.containsEdge(u,v) && graph.getEdgeType(u,v) == SimulationEdgeTypes.TRAINING) ||
+                               (graph.containsEdge(v,u) && graph.getEdgeType(v,u) == SimulationEdgeTypes.TRAINING);
+                }).forEach(set::add);
+                this.allowed.put(u, set);
             });
             this.initialized = true;
         }

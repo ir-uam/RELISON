@@ -27,10 +27,10 @@ import java.util.stream.Stream;
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the users.
- * @param <I> type of the information.
- * @param <P> type of the features.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class Data<U extends Serializable,I extends Serializable,P> 
+public class Data<U extends Serializable,I extends Serializable, F>
 {
     /**
      * User index.
@@ -48,7 +48,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
     /**
      * Feature indexes (stored by the name of the parameter).
      */
-    private final Map<String, Index<P>> features;
+    private final Map<String, Index<F>> features;
     
     /**
      * Relation between users and the propagated information (allows identifying both the
@@ -140,7 +140,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
      * @param featureRel relation between users/pieces and their features.
      * @param userfeatures true if features are related to users, false if they are related to information pieces.
      */
-    public Data(Graph<U> graph, Index<U> users, Index<I> informationPieces, Map<Integer, Information<I>> informationData,  Relation<Integer> userInformation, Map<String, Index<P>> features, List<String> featureNames, Map<String, Relation<Double>> featureRel, boolean userfeatures)
+    public Data(Graph<U> graph, Index<U> users, Index<I> informationPieces, Map<Integer, Information<I>> informationData, Relation<Integer> userInformation, Map<String, Index<F>> features, List<String> featureNames, Map<String, Relation<Double>> featureRel, boolean userfeatures)
     {
         this.users = users;
         this.informationPieces = informationPieces;
@@ -220,7 +220,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
      * @param infoPiecesFeatureNames the name for information pieces features.
      * @param infoPiecesFeatures relation between information pieces and their features.
      */
-    public Data(Graph<U> graph, Index<U> users, Index<I> informationPieces, Map<Integer, Information<I>> informationData, Relation<Integer> userInformation, Map<String, Index<P>> features, List<String> userFeatureNames, Map<String, Relation<Double>> userFeatures, List<String> infoPiecesFeatureNames, Map<String, Relation<Double>> infoPiecesFeatures)
+    public Data(Graph<U> graph, Index<U> users, Index<I> informationPieces, Map<Integer, Information<I>> informationData, Relation<Integer> userInformation, Map<String, Index<F>> features, List<String> userFeatureNames, Map<String, Relation<Double>> userFeatures, List<String> infoPiecesFeatureNames, Map<String, Relation<Double>> infoPiecesFeatures)
     {
         this(graph,users,informationPieces,informationData,userInformation,features,userFeatureNames,userFeatures,infoPiecesFeatureNames,infoPiecesFeatures, null);
     }
@@ -239,7 +239,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
      * @param infoPiecesFeatures relation between information pieces and their features.
      * @param realPropagated relation indicating which information pieces were repropagated in real scenario.
      */
-    public Data(Graph<U> graph, Index<U> users, Index<I> informationPieces, Map<Integer, Information<I>> informationData, Relation<Integer> userInformation, Map<String, Index<P>> features, List<String> userFeatureNames, Map<String, Relation<Double>> userFeatures, List<String> infoPiecesFeatureNames, Map<String, Relation<Double>> infoPiecesFeatures, Relation<Long> realPropagated)
+    public Data(Graph<U> graph, Index<U> users, Index<I> informationPieces, Map<Integer, Information<I>> informationData, Relation<Integer> userInformation, Map<String, Index<F>> features, List<String> userFeatureNames, Map<String, Relation<Double>> userFeatures, List<String> infoPiecesFeatureNames, Map<String, Relation<Double>> infoPiecesFeatures, Relation<Long> realPropagated)
     {
         this.users = users;
         this.informationPieces = informationPieces;
@@ -415,7 +415,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
      * @param param the parameter.
      * @return a stream of pairs (parameter,value), empty if there are none.
      */
-    public Stream<Tuple2od<P>> getUserFeatures(U user, String param)
+    public Stream<Tuple2od<F>> getUserFeatures(U user, String param)
     {
         int uidx = this.users.object2idx(user);
         if(this.userFeatures.containsKey(param) && uidx != -1)
@@ -431,7 +431,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
      * @param param the parameter.
      * @return a stream of pairs (parameter,value), empty if there are none.
      */
-    public Stream<Tuple2od<P>> getInfoPiecesFeatures(I info, String param)
+    public Stream<Tuple2od<F>> getInfoPiecesFeatures(I info, String param)
     {
         int iidx = this.informationPieces.object2idx(info);
         if(this.infoPiecesFeatures.containsKey(param) && iidx != -1)
@@ -447,7 +447,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
      * @return a stream containing all the possible values if the parameter exists,
      * an empty stream if it does not.
      */
-    public Stream<P> getAllFeatureValues(String parameter) 
+    public Stream<F> getAllFeatureValues(String parameter)
     {
         if(this.doesFeatureExist(parameter))
         {
@@ -477,7 +477,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
      * @param param the parameter name.
      * @return the index if it exists, null if it does not.
      */
-    public Index<P> getFeatureIndex(String param)
+    public Index<F> getFeatureIndex(String param)
     {
         if(this.features.containsKey(param))
             return this.features.get(param);
@@ -558,7 +558,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
      * @param value the feature value we want to check.
      * @return true if the value exists, false otherwise.
      */
-    public boolean containsFeatureValue(String feature, P value)
+    public boolean containsFeatureValue(String feature, F value)
     {
         if(this.doesFeatureExist(feature))
         {
@@ -574,7 +574,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
      * @return a stream containing the different pairs (user, value) that are represented
      * by the value parameter.
      */
-    public Stream<Tuple2od<U>> getUsersWithFeature(String feature, P value)
+    public Stream<Tuple2od<U>> getUsersWithFeature(String feature, F value)
     {
         if(this.containsFeatureValue(feature, value))
         {
@@ -598,7 +598,7 @@ public class Data<U extends Serializable,I extends Serializable,P>
      * @return a stream containing the different pairs (infopiece, value) that are represented
      * by the value parameter.
      */
-    public Stream<Tuple2od<I>> getInformationPiecesWithFeature(String feature, P value)
+    public Stream<Tuple2od<I>> getInformationPiecesWithFeature(String feature, F value)
     {
         if(this.containsFeatureValue(feature, value))
         {

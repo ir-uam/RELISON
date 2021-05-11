@@ -79,9 +79,9 @@ public abstract class AbstractFeatureIndividualSimulationMetric<U extends Serial
         if(this.isInitialized())
         {
             if(this.usesUserParam())
-                this.updateUserParam(iteration);
+                this.updateUserFeatures(iteration);
             else
-                this.updateInfoParam(iteration);
+                this.updateInfoFeatures(iteration);
         }
     }
 
@@ -91,7 +91,7 @@ public abstract class AbstractFeatureIndividualSimulationMetric<U extends Serial
      * by the users in the network.
      * @param iteration the new iteration.
      */
-    protected abstract void updateUserParam(Iteration<U, I, P> iteration);
+    protected abstract void updateUserFeatures(Iteration<U, I, P> iteration);
 
     /**
      * Updates the necessary variables to compute a metric, in case the feature 
@@ -99,7 +99,7 @@ public abstract class AbstractFeatureIndividualSimulationMetric<U extends Serial
      * the network.
      * @param iteration the new iteration. 
      */
-    protected abstract void updateInfoParam(Iteration<U, I, P> iteration);
+    protected abstract void updateInfoFeatures(Iteration<U, I, P> iteration);
     
     
     

@@ -20,7 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Selection for Independent Cascade Model selection mechanism.
+ * Selects the information pieces to propagate according to the independent cascade protocol, i.e. given an information
+ * piece received by a user, it propagates it with a probability that only depends on the endpoints of the link.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -51,8 +52,8 @@ public class IndependentCascadeModelSelectionMechanism<U extends Serializable,I 
     
     /**
      * Constructor.
-     * @param prob probability that each information piece is selected.
-     * @param numOwn Number of own pieces of information to propagate.
+     * @param prob      probability that each information piece is selected.
+     * @param numOwn    number of own pieces of information to propagate.
      */
     public IndependentCascadeModelSelectionMechanism(double prob, int numOwn)
     {
@@ -64,9 +65,9 @@ public class IndependentCascadeModelSelectionMechanism<U extends Serializable,I 
     
     /**
      * Constructor.
-     * @param prob probability that each information piece is selected.
-     * @param numOwn Number of own pieces of information to propagate.
-     * @param numRepr Number of propagated pieces to repropagate.
+     * @param prob      probability that each information piece is selected.
+     * @param numOwn    number of own pieces of information to propagate.
+     * @param numRepr   number of propagated pieces to repropagate.
      */
     public IndependentCascadeModelSelectionMechanism(double prob, int numOwn, int numRepr)
     {
@@ -78,10 +79,9 @@ public class IndependentCascadeModelSelectionMechanism<U extends Serializable,I 
     
     /**
      * Constructor.
-     * @param graph A weighted graph containing the probabilities of spreading information
-     * between users in a graph.
-     * @param numOwn Number of own pieces of information to propagate.
-     * @param orient Neighborhood where the information pieces come from.
+     * @param graph     a weighted graph containing the probabilities of spreading information between users in the network.
+     * @param numOwn    number of own pieces of information to propagate.
+     * @param orient    neighborhood where the information pieces come from.
      */
     public IndependentCascadeModelSelectionMechanism(Graph<U> graph, int numOwn, EdgeOrientation orient)
     {
@@ -93,11 +93,10 @@ public class IndependentCascadeModelSelectionMechanism<U extends Serializable,I 
     
     /**
      * Constructor.
-     * @param graph A weighted graph containing the probabilities of spreading information
-     * between users in a graph.
-     * @param numOwn Number of own pieces of information to propagate.
-     * @param numRepr Number of propagated pieces to repropagate.
-     * @param orient Neighborhood where the information pieces come from.
+     * @param graph     a weighted graph containing the probabilities of spreading information between users in a graph.
+     * @param numOwn    number of own pieces of information to propagate.
+     * @param numRepr   number of propagated pieces to repropagate.
+     * @param orient    neighborhood where the information pieces come from.
      */
     public IndependentCascadeModelSelectionMechanism(Graph<U> graph, int numOwn, int numRepr, EdgeOrientation orient)
     {
@@ -112,10 +111,12 @@ public class IndependentCascadeModelSelectionMechanism<U extends Serializable,I 
     {
         if(graph == null && (prob >= 0.0 && prob <= 1.0))
         {
+            // Case 1: the probability for propagating a piece is fixed (and independent from the users).
             return this.getReceivedInformationProb(user, data, state, numIter);
         }
         else if(graph != null)
         {
+            // Case 2: the probability for propagating a piece is fixed for each pair of users connected in the network.
             return this.getReceivedInformationGraph(user, data, state, numIter);
         }
         
@@ -123,13 +124,15 @@ public class IndependentCascadeModelSelectionMechanism<U extends Serializable,I 
     }
     
     /**
-     * Obtains the list of received information pieces to repropagate, using the graph as a criteria for the 
-     * probability of propagation.
-     * @param user the user to analyze
-     * @param data the full data
-     * @param state current simulation state
-     * @param numIter number of the iteration
-     * @return a selection of the own tweets to be propagated
+     * Using a weighted graph (where the weights represent diffusion probabilities), it obtains the list of received
+     * information pieces that we want to propagate.
+     *
+     * @param user      the user propagating the information.
+     * @param data      the data for the simulation.
+     * @param state     the current state of the simulation.
+     * @param numIter   the number of the current iteration.
+     *
+     * @return a selection of information pieces to be propagated
      */
     protected List<PropagatedInformation> getReceivedInformationGraph(UserState<U> user, Data<U,I,P> data, SimulationState<U,I,P> state, int numIter)
     {
@@ -137,14 +140,17 @@ public class IndependentCascadeModelSelectionMechanism<U extends Serializable,I 
         int userId = data.getUserIndex().object2idx(user.getUserId());
 
         U u = user.getUserId();
+
+        // We check each received information piece
         user.getReceivedInformation().forEach(info -> 
         {
+            // We get each of the creators:
             for(int creator : info.getCreators())
             {
                 double r = rng.nextDouble();
                 double edgeweight;
                 U v = data.getUserIndex().idx2object(creator);
-                if(this.orient.equals(EdgeOrientation.IN)) // Tweets come from your followers
+                if(this.orient.equals(EdgeOrientation.IN)) // Information piece comes from your followers
                 {
                     assert this.graph != null;
                     edgeweight = this.graph.getEdgeWeight(v, u);
@@ -155,7 +161,7 @@ public class IndependentCascadeModelSelectionMechanism<U extends Serializable,I 
                     }
                         
                 }
-                else if(this.orient.equals(EdgeOrientation.OUT)) // Typical. Tweets come from your followees
+                else if(this.orient.equals(EdgeOrientation.OUT)) // Information piece comes from your followee
                 {
                     assert this.graph != null;
                     edgeweight = this.graph.getEdgeWeight(u, v);
@@ -165,7 +171,7 @@ public class IndependentCascadeModelSelectionMechanism<U extends Serializable,I 
                         break;
                     }
                 }
-                else
+                else // information piece might come from either of them.
                 {
                     assert this.graph != null;
                     if(this.graph.containsEdge(u, v))
@@ -176,7 +182,7 @@ public class IndependentCascadeModelSelectionMechanism<U extends Serializable,I 
                             toPropagate.add(new PropagatedInformation(info.getInfoId(), numIter, userId));
                             break;
                         }
-                        else
+                        else // we independently treat each of the possible edges.
                         {
                             r = rng.nextDouble();
                         }
@@ -200,13 +206,12 @@ public class IndependentCascadeModelSelectionMechanism<U extends Serializable,I 
     }
     
     /**
-     * Obtains the list of received information pieces to repropagate, using the graph as a criteria for the 
-     * probability of propagation.
-     * @param user the user to analyze
-     * @param data the full data
-     * @param state current simulation state
-     * @param numIter number of the iteration
-     * @return a selection of the own tweets to be propagated
+     * Given a fixed value for the probability, it obtains the list of pieces to repropagate.
+     * @param user      the user to analyze
+     * @param data      the full data
+     * @param state     current simulation state
+     * @param numIter   number of the iteration
+     * @return a selection of the received tweets to be propagated
      */
     protected List<PropagatedInformation> getReceivedInformationProb(UserState<U> user, Data<U,I,P> data, SimulationState<U,I,P> state, int numIter)
     {

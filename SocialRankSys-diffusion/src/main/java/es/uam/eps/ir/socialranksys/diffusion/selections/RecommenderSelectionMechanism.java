@@ -13,6 +13,7 @@ import es.uam.eps.ir.socialranksys.diffusion.data.PropagatedInformation;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.SimulationEdgeTypes;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.SimulationState;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.UserState;
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 
 import java.io.Serializable;
 import java.util.*;
@@ -48,18 +49,25 @@ public class RecommenderSelectionMechanism<U extends Serializable,I extends Seri
      * users, and with probability (1-p) the piece will come from an edge in the training graph.
      */
     private final double prob;
+
+    /**
+     * It indicates the neighborhood that sends the information pieces.
+     */
+    private final EdgeOrientation orientation;
     
     /**
      * Constructor.
-     * @param numOwn Number of own information pieces to propagate for each user and iteration.
-     * @param numPropagate Number of received information to propagate for each user and iteration.
-     * @param prob Probability of chosing information to propagate that comes from recommended users.
+     * @param numOwn       number of own information pieces to propagate for each user and iteration.
+     * @param numPropagate number of received information to propagate for each user and iteration.
+     * @param prob         probability of chosing information to propagate that comes from recommended users.
+     * @param orientation  it indicates the neighborhood that sends the information pieces.
      */
-    public RecommenderSelectionMechanism(int numOwn, int numPropagate, double prob)
+    public RecommenderSelectionMechanism(int numOwn, int numPropagate, double prob, EdgeOrientation orientation)
     {
         this.numOwn = numOwn;
         this.numPropagate = numPropagate;
         this.prob = prob;
+        this.orientation = orientation;
     }
 
     @Override
@@ -105,7 +113,6 @@ public class RecommenderSelectionMechanism<U extends Serializable,I extends Seri
 
             setInfo = new HashSet<>();
             
-            
             user.getReceivedInformation().forEach(info -> 
             {
                 List<Integer> creators = new ArrayList<>(info.getCreators());
@@ -120,12 +127,37 @@ public class RecommenderSelectionMechanism<U extends Serializable,I extends Seri
                     else
                     {
                         U creatorUser = data.getUserIndex().idx2object(creator);
-                        if(data.getGraph().getEdgeType(user.getUserId(), creatorUser) == SimulationEdgeTypes.RECOMMEND)
-                            fromRec.add(info.getInfoId());
+                        U u = user.getUserId();
+                        if(orientation.equals(EdgeOrientation.OUT))
+                        {
+                            if(data.getGraph().getEdgeType(u, creatorUser) == SimulationEdgeTypes.RECOMMEND)
+                                fromRec.add(info.getInfoId());
+                            else
+                                fromNeigh.add(info.getInfoId());
+                        }
+                        else if(orientation.equals(EdgeOrientation.IN))
+                        {
+                            if(data.getGraph().getEdgeType(creatorUser,u) == SimulationEdgeTypes.RECOMMEND)
+                                fromRec.add(info.getInfoId());
+                            else
+                                fromNeigh.add(info.getInfoId());
+                        }
                         else
-                            fromNeigh.add(info.getInfoId());   
+                        {
+                            if(data.getGraph().containsEdge(u, creatorUser) && data.getGraph().getEdgeType(u, creatorUser) == SimulationEdgeTypes.RECOMMEND)
+                            {
+                                fromRec.add(info.getInfoId());
+                            }
+                            else if (data.getGraph().containsEdge(creatorUser, u) && data.getGraph().getEdgeType(creatorUser, u) == SimulationEdgeTypes.RECOMMEND)
+                            {
+                                fromRec.add(info.getInfoId());
+                            }
+                            else
+                            {
+                                fromNeigh.add(info.getInfoId());
+                            }
+                        }
                     }
-
                 }
 
                 // Remove the corresponding null sources
@@ -157,7 +189,8 @@ public class RecommenderSelectionMechanism<U extends Serializable,I extends Seri
     }
 
     @Override
-    public Stream<U> getSelectableUsers(Data<U, I, P> data, SimulationState<U, I, P> state, int numIter, Long timestamp) {
+    public Stream<U> getSelectableUsers(Data<U, I, P> data, SimulationState<U, I, P> state, int numIter, Long timestamp)
+    {
         return data.getAllUsers();
     }
 }

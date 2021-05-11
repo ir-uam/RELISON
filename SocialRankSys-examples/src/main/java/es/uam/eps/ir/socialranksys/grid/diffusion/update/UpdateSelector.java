@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,30 +9,32 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.update;
 
 import es.uam.eps.ir.socialranksys.diffusion.update.UpdateMechanism;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
+import org.jooq.lambda.tuple.Tuple2;
 
-import static es.uam.eps.ir.socialranksys.grid.diffusion.update.UpdateMechanismIdentifiers.ICM;
+import static es.uam.eps.ir.socialranksys.grid.diffusion.update.UpdateMechanismIdentifiers.NEWEST;
 import static es.uam.eps.ir.socialranksys.grid.diffusion.update.UpdateMechanismIdentifiers.OLDER;
 
 /**
  * Class that selects an individual update mechanism.
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class UpdateSelector
 {
     /**
      * Selects and configures a update mechanism.
-     * @param upr Parameters for the update mechanism.
+     * @param name      the name of the update mechanism.
+     * @param params    the parameters of the update mechanism.
      * @return A pair containing the name and the selected update mechanism.
      */
-    public Tuple2oo<String, UpdateMechanism> select(UpdateParamReader upr)
+    public Tuple2<String, UpdateMechanism> select(String name, Parameters params)
     {
-        String name = upr.getName();
         UpdateConfigurator conf;
         switch(name)
         {
-            case ICM:
-                conf = new IndependentCascadeModelUpdateConfigurator();
+            case NEWEST:
+                conf = new NewestUpdateConfigurator();
                 break;
             case OLDER:
                 conf = new OlderUpdateConfigurator();
@@ -41,7 +43,7 @@ public class UpdateSelector
                 return null;
         }
         
-        UpdateMechanism propagation = conf.configure(upr);
-        return new Tuple2oo<>(name, propagation);
+        UpdateMechanism propagation = conf.configure(params);
+        return new Tuple2<>(name, propagation);
     }
 }

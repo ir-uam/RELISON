@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -8,12 +8,14 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.update;
 
-
 import es.uam.eps.ir.socialranksys.diffusion.update.UpdateMechanism;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 
 /**
- * Configures a update mechanism.
- * @author Javier Sanz-Cruzado Puig
+ * Interface for configuring an update mechanism.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public interface UpdateConfigurator 
 {
@@ -22,5 +24,5 @@ public interface UpdateConfigurator
      * @param params the parameters of the mechanism.
      * @return the update mechanism.
      */
-    UpdateMechanism configure(UpdateParamReader params);
+    UpdateMechanism configure(Parameters params);
 }

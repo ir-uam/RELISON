@@ -18,22 +18,24 @@ import java.io.Serializable;
 
 /**
  * Information propagation protocol.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- * @param <U> Type of the users.
- * @param <I> Type of the items.
- * @param <P> Type of the parameters.
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public abstract class Protocol<U extends Serializable,I extends Serializable,P> 
+public abstract class Protocol<U extends Serializable,I extends Serializable, F>
 {
     /**
      * Mechanism for selecting the information the user propagates.
      */
-    private final SelectionMechanism<U,I,P> selection;
+    private final SelectionMechanism<U,I, F> selection;
     /**
      * Mechanism for discarding information pieces over time.
      */
-    private final ExpirationMechanism<U,I,P> expiration;
+    private final ExpirationMechanism<U,I, F> expiration;
     /**
      * Mechanism for updating the list of information to propagate.
      */
@@ -41,21 +43,21 @@ public abstract class Protocol<U extends Serializable,I extends Serializable,P>
     /**
      * Mechanism for selecting the users we want to propagate the information.
      */
-    private final PropagationMechanism<U,I,P> prop;
+    private final PropagationMechanism<U,I, F> prop;
     /**
      * Mechanism for selecting which information users actually see
      */
-    private final SightMechanism<U,I,P> sight;
+    private final SightMechanism<U,I, F> sight;
 
     /**
      * Constructor.
-     * @param selection Mechanism for selecting the information the user propagates.
-     * @param expiration Mechanism for discarding information pieces over time.
-     * @param update Mechanism for updating the list of information to propagate.
-     * @param prop Propagation mechanism
-     * @param sight sight mechanism
+     * @param selection     mechanism for selecting the information the user propagates.
+     * @param expiration    mechanism for discarding information pieces over time.
+     * @param update        mechanism for updating the list of information to propagate.
+     * @param prop          mechanism for selecting the users towards whom propagate the information.
+     * @param sight         mechanism for selecting the information pieces that a user sees.
      */
-    public Protocol(SelectionMechanism<U, I, P> selection, ExpirationMechanism<U, I, P> expiration, UpdateMechanism update, PropagationMechanism<U, I, P> prop, SightMechanism<U, I, P> sight) {
+    public Protocol(SelectionMechanism<U, I, F> selection, ExpirationMechanism<U, I, F> expiration, UpdateMechanism update, PropagationMechanism<U, I, F> prop, SightMechanism<U, I, F> sight) {
         this.selection = selection;
         this.expiration = expiration;
         this.update = update;
@@ -67,7 +69,7 @@ public abstract class Protocol<U extends Serializable,I extends Serializable,P>
      * Obtains the selection mechanism.
      * @return the selection mechanism.
      */
-    public SelectionMechanism<U, I, P> getSelection() 
+    public SelectionMechanism<U, I, F> getSelection()
     {
         return selection;
     }
@@ -76,7 +78,7 @@ public abstract class Protocol<U extends Serializable,I extends Serializable,P>
      * Obtains the expiration mechanism.
      * @return the expiration mechanism.
      */
-    public ExpirationMechanism<U, I, P> getExpiration() 
+    public ExpirationMechanism<U, I, F> getExpiration()
     {
         return expiration;
     }
@@ -94,7 +96,7 @@ public abstract class Protocol<U extends Serializable,I extends Serializable,P>
      * Obtains the propagation mechanism.
      * @return the propagation mechanism.
      */
-    public PropagationMechanism<U, I, P> getProp() 
+    public PropagationMechanism<U, I, F> getProp()
     {
         return prop;
     }
@@ -103,7 +105,7 @@ public abstract class Protocol<U extends Serializable,I extends Serializable,P>
      * Obtains the sight mechanism.
      * @return the sight mechanism.
      */
-    public SightMechanism<U, I, P> getSight() 
+    public SightMechanism<U, I, F> getSight()
     {
         return sight;
     }

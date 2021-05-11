@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,30 +10,36 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.metrics.users;
 
 import es.uam.eps.ir.socialranksys.diffusion.metrics.SimulationMetric;
 import es.uam.eps.ir.socialranksys.diffusion.metrics.user.global.UserGlobalGini;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricConfigurator;
-import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricParamReader;
 
 import java.io.Serializable;
 
 /**
- * Configures a User Global Gini metric.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Configures a metric that measures the complement of the Gini coefficient over the set of creators whose information has been received by each user
+ * in the network.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user / information features.
+ *
+ * @see UserGlobalGini
  */
-public class UserGlobalGiniMetricConfigurator<U extends Serializable,I extends Serializable,P> implements MetricConfigurator<U,I,P>
+public class UserGlobalGiniMetricConfigurator<U extends Serializable,I extends Serializable, F> implements MetricConfigurator<U,I, F>
 {
     
     /**
-     * Identifier for considering unique user-item pairs or not.
+     * Identifier for considering unique user-information piece pairs or not.
      */
     private final static String UNIQUE = "unique";
     
     @Override
-    public SimulationMetric<U, I, P> configure(MetricParamReader params)
+    public SimulationMetric<U, I, F> configure(Parameters params)
     {
-        Boolean unique = params.getParams().getBooleanValue(UNIQUE);
+        Boolean unique = params.getBooleanValue(UNIQUE);
         
         if(unique == null)
         {

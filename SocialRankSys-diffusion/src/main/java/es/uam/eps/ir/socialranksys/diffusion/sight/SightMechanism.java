@@ -13,31 +13,35 @@ import es.uam.eps.ir.socialranksys.diffusion.data.PropagatedInformation;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.UserState;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
- * Mechanism for deciding which information pieces are selected by the different users.
+ * Mechanism that decides which of the information pieces that a user has received are actually seen (payed attention to)
+ * by each of the users in the network.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <P> type of the parameters.
  */
 public interface SightMechanism<U extends Serializable,I extends Serializable,P>
 {
     /**
-     * Resets the selections made.
-     * @param data The data.
+     * For each user, this method preconfigures the sight mechanism (for example, selecting a fixed set of users whom each
+     * user pays attention to).
+     *
+     * @param data the simulation data.
      */
-    default void resetSelections(Data<U, I, P> data){}
+    void resetSelections(Data<U, I, P> data);
 
     /**
-     * Checks if a user sees or not a piece of information.
-     * @param user the user.
-     * @param data the full data.
-     * @param prop the information piece received by a user.
-     * @return true if the user sees the piece, false if it does not.
+     * Given a list of propagated information, it identifies which pieces the user has seen.
+     * @param user  the current state of the user.
+     * @param data  the simulation data.
+     * @param prop  the list of propagated information.
+     * @return a list containing all the information that the user pays attention to from the list of received pieces.
      */
-    boolean seesInformation(UserState<U> user, Data<U, I, P> data, PropagatedInformation prop);
+    List<PropagatedInformation> seesInformation(UserState<U> user, Data<U,I,P> data, List<PropagatedInformation> prop);
 }

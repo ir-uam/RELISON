@@ -15,16 +15,17 @@ import java.io.Serializable;
 import java.util.*;
 
 /**
- * Computes the number of pieces of information propagated and seen in all the iterations.
+ * Computes the fraction of all the features that each user has received during the diffusion process.
+ * The final result averages over the set of users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the user.
  * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <F> type of the user / information pieces features.
  */
-public class FeatureRecall<U extends Serializable,I extends Serializable,P> extends AbstractFeatureIndividualSimulationMetric<U,I,P>
+public class FeatureRecall<U extends Serializable,I extends Serializable, F> extends AbstractFeatureIndividualSimulationMetric<U,I, F>
 {
     /**
      * Name fixed value.
@@ -32,31 +33,31 @@ public class FeatureRecall<U extends Serializable,I extends Serializable,P> exte
     private final static String RECALL = "feat-recall";
 
     /**
-     * Stores (if it is necessary), a relation between users and parameters.
+     * Stores (if it is necessary), a relation between users and the received features.
      */
-    private final Map<U, Set<P>> recParams;
+    private final Map<U, Set<F>> receivedFeats;
 
     /**
-     * The total number of external parameters that have reached the different users.
+     * The different values of the feature.
      */
     private double total;    
     
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
+     * @param userFeats true if we are using a user features, false if we are using an information piece features.
+     * @param features  the name of the feature.
      */
-    public FeatureRecall(String parameter, boolean userparam) 
+    public FeatureRecall(String features, boolean userFeats)
     {
-        super(RECALL + "-" + (userparam ? "user" : "info") + "-" + parameter, userparam, parameter);
-        this.recParams = new HashMap<>();
+        super(RECALL + "-" + (userFeats ? "user" : "info") + "-" + features, userFeats, features);
+        this.receivedFeats = new HashMap<>();
     }
 
     @Override
     public void clear() 
     {
         this.total = 0.0;
-        this.recParams.clear();
+        this.receivedFeats.clear();
         this.initialized = false;
     }
 
@@ -72,7 +73,7 @@ public class FeatureRecall<U extends Serializable,I extends Serializable,P> exte
      * @param iteration the iteration data.
      */
     @Override
-    protected void updateUserParam(Iteration<U,I,P> iteration)
+    protected void updateUserFeatures(Iteration<U,I, F> iteration)
     {
         if(iteration == null) return;
         
@@ -83,7 +84,7 @@ public class FeatureRecall<U extends Serializable,I extends Serializable,P> exte
                 // and its creators.
                 data.getCreators(i.v1()).forEach(creator ->
                     // Identify the parameters of the creators.
-                    data.getUserFeatures(creator, this.getParameter()).forEach(p -> this.recParams.get(u).add(p.v1))
+                    data.getUserFeatures(creator, this.getParameter()).forEach(p -> this.receivedFeats.get(u).add(p.v1))
                 )
             )
         );
@@ -94,7 +95,7 @@ public class FeatureRecall<U extends Serializable,I extends Serializable,P> exte
      * @param iteration the iteration data.
      */
     @Override
-    protected void updateInfoParam(Iteration<U,I,P> iteration)
+    protected void updateInfoFeatures(Iteration<U,I, F> iteration)
     {
         if(iteration == null) return;
         
@@ -103,7 +104,7 @@ public class FeatureRecall<U extends Serializable,I extends Serializable,P> exte
             // Get all his received pieces
             iteration.getSeenInformation(u).forEach(i ->
                 // Identify its parameters.
-                data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p -> this.recParams.get(u).add(p.v1))
+                data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p -> this.receivedFeats.get(u).add(p.v1))
             )
         );
     }
@@ -113,8 +114,8 @@ public class FeatureRecall<U extends Serializable,I extends Serializable,P> exte
     {
         if(!this.isInitialized())
         {
-            this.recParams.clear();
-            data.getAllUsers().forEach(u -> this.recParams.put(u, new HashSet<>()));
+            this.receivedFeats.clear();
+            data.getAllUsers().forEach(u -> this.receivedFeats.put(u, new HashSet<>()));
             this.total = data.numFeatureValues(this.getParameter());
             this.initialized = data.doesFeatureExist(this.getParameter());
         }
@@ -130,7 +131,7 @@ public class FeatureRecall<U extends Serializable,I extends Serializable,P> exte
         if(!this.data.containsUser(user)) return Double.NaN;
         
         if(this.total > 0.0)
-            return this.recParams.get(user).size() / (total);
+            return this.receivedFeats.get(user).size() / (total);
         else
             return 0.0;
     }

@@ -22,9 +22,9 @@ import java.util.Map;
  *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <F> Type of the features.
  */
-public abstract class AbstractIndividualSimulationMetric<U extends Serializable,I extends Serializable,P> implements IndividualSimulationMetric<U,I,P> 
+public abstract class AbstractIndividualSimulationMetric<U extends Serializable,I extends Serializable, F> implements IndividualSimulationMetric<U,I, F>
 {
     /**
      * The name of the metric.
@@ -37,7 +37,7 @@ public abstract class AbstractIndividualSimulationMetric<U extends Serializable,
     /**
      * The data.
      */
-    protected Data<U,I,P> data;
+    protected Data<U,I, F> data;
     
     /**
      * Constructor.
@@ -72,7 +72,7 @@ public abstract class AbstractIndividualSimulationMetric<U extends Serializable,
     
     
     @Override
-    public void initialize(Data<U,I,P> data)
+    public void initialize(Data<U,I, F> data)
     {
         this.data = data;
         this.initialize();

@@ -18,11 +18,11 @@ import java.io.Serializable;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the features.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class MaxTimestampStopCondition<U extends Serializable,I extends Serializable,P> implements StopCondition<U,I,P> 
+public class MaxTimestampStopCondition<U extends Serializable,I extends Serializable, F> implements StopCondition<U,I, F>
 {
     /**
      * Maximum possible timestamp.
@@ -31,7 +31,7 @@ public class MaxTimestampStopCondition<U extends Serializable,I extends Serializ
     
     /**
      * Constructor.
-     * @param maxTimestamp Maximum timestamp. The iteration will stop after this value is passed.
+     * @param maxTimestamp maximum timestamp. The iteration will stop after this value is passed.
      */
     public MaxTimestampStopCondition(long maxTimestamp)
     {
@@ -39,7 +39,7 @@ public class MaxTimestampStopCondition<U extends Serializable,I extends Serializ
     }
     
     @Override
-    public boolean stop(int numIter, int numPropagated, int propagatingUsers, long newlyPropagated, long totalPropagated, Data<U, I, P> data, Long timestamp)
+    public boolean stop(int numIter, int numPropagated, int propagatingUsers, long newlyPropagated, long totalPropagated, Data<U, I, F> data, Long timestamp)
     {
         return timestamp == null || timestamp > maxTimestamp;
     }

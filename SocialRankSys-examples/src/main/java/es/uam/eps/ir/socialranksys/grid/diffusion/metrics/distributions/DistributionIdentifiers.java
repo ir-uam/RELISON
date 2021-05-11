@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,17 +9,16 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.metrics.distributions;
 
 /**
- * Identifiers for the different distributions available in 
- * the library
- * @author Javier Sanz-Cruzado Puig
- * @see es.uam.eps.socialranksys.diffusion.metrics.distributions
+ * The list of identifiers of the distributions.
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class DistributionIdentifiers 
 {
-    public final static String INFOPARAM = "Information Param.";
-    public final static String USERPARAM = "User Param.";
+    public final static String INFOFEATS = "Information features";
+    public final static String USERFEATS = "User features";
     public final static String INFORMATION = "Information";
-    public final static String MIXEDPARAM = "Mixed Param.";
+    public final static String MIXEDFEATS = "Mixed features";
     
     /**
      * Prints the list of available distributions
@@ -27,10 +26,10 @@ public class DistributionIdentifiers
     public static void printDistributionList()
     {
         System.out.println("Metrics:");
-        System.out.println("\t" + INFOPARAM + "\n");
-        System.out.println("\t" + USERPARAM + "\n");
+        System.out.println("\t" + INFOFEATS + "\n");
+        System.out.println("\t" + USERFEATS + "\n");
         System.out.println("\t" + INFORMATION + "\n");
-        System.out.println("\t" + MIXEDPARAM + "\n");
+        System.out.println("\t" + MIXEDFEATS + "\n");
         System.out.println();
     }
 }

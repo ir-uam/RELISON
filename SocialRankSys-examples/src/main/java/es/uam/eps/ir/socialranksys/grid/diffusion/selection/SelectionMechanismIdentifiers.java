@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,48 +9,28 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.selection;
 
 /**
- * Identifiers for the different selection mechanisms for information propagation
- * available in the library
- * @author Javier Sanz-Cruzado Puig
+ * List of identifiers of the selection mechanisms which are available in the framework.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class SelectionMechanismIdentifiers 
 {
     // Non stop simulators (until there is no more propagation)
+    public final static String ALLREALPROP = "All real propagated";
+    public final static String PURERECBATCH = "Batch recommender";
+    public final static String COUNTREALPROP = "Count real propagated";
     public final static String COUNT = "Count";
-    public final static String ICM = "Independent Cascade Model";
-    public final static String PUSHPULL = "Push Pull";
+    public final static String COUNTTHRESHOLD = "Count threshold";
+    public final static String ICM = "Independent cascade model";
+    public final static String LIMITEDCOUNTTHRESHOLD = "Limited count threshold";
+    public final static String LIMITEDPROPTHRESHOLD = "Limited proportion threshold";
+    public final static String LOOSETIMESTAMP = "Loose timestamp-based";
+    public final static String ONLYOWN = "Only own";
+    public final static String PROPORTIONTHRESHOLD = "Proportion threshold";
+    public final static String PUSHPULL = "Push-pull";
+    public final static String PUREREC = "Pure recommender";
+    public final static String PURETIMESTAMP = "Pure timestamp-based";
     public final static String REC = "Recommender";
-    public final static String PUREREC = "Pure Recommender";
-    public final static String PURERECBATCH = "Pure Recommender Batch";
-    public final static String THRESHOLD = "Threshold";
-    public final static String COUNTTHRESHOLD = "Count Threshold";
-    public final static String ALLREALPROP = "All Real Propagated";
-    public final static String COUNTREALPROP = "Count Real Propagated";
-    public final static String ONLYOWN = "Only Own";
-    public final static String PURETIMESTAMP = "Pure Timestamp-Based";
-    public final static String LOOSETIMESTAMP = "Loose Timestamp-Based";
-    public final static String TIMESTAMPORDERED = "Timestamp-Ordered";
-   
-    
-    /**
-     * Prints the list of available selection mechanisms
-     */
-    public static void printSelectionMechanismList()
-    {
-        System.out.println("Selection Mechanism:");
-        System.out.println("\t" + COUNT);
-        System.out.println("\t" + ICM);
-        System.out.println("\t" + PUSHPULL);
-        System.out.println("\t" + REC);
-        System.out.println("\t" + PUREREC);
-        System.out.println("\t" + PURERECBATCH);
-        System.out.println("\t" + THRESHOLD);
-        System.out.println("\t" + COUNTTHRESHOLD);
-        System.out.println("\t" + ALLREALPROP);
-        System.out.println("\t" + COUNTREALPROP);
-        System.out.println("\t" + ONLYOWN);
-        System.out.println("\t" + PURETIMESTAMP);
-        System.out.println("\t" + LOOSETIMESTAMP);
-        System.out.println("\t" + TIMESTAMPORDERED);       
-    }
+    public final static String TIMESTAMPORDERED = "Timestamp-ordered";
 }

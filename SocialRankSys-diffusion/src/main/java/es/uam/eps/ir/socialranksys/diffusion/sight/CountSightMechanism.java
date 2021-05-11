@@ -13,18 +13,19 @@ import es.uam.eps.ir.socialranksys.diffusion.data.PropagatedInformation;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.UserState;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
- * The user only sees a fixed number of the received objects.
+ * The user sees (at most) a fixed number of (different) information pieces each iteration. The pieces are chosen
+ * randomly among all the received ones. If two instances of the same piece are received and one of them is seen,
+ * we assume that both have been.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <P> type of the parameters.
  */
 public class CountSightMechanism<U extends Serializable,I extends Serializable,P> implements SightMechanism<U,I,P>
 {
@@ -32,38 +33,51 @@ public class CountSightMechanism<U extends Serializable,I extends Serializable,P
      * Number of pieces of information that a user sees in a single iteration.
      */
     private final int numSight;
-    
-    private final Map<U, Integer> map;
+
     /**
      * Constructor.
-     * @param numSight Number of pieces of information that a user sees in a single iteration. 
+     * @param numSight number of pieces of information that a user sees (at most) in a single iteration.
      */
     public CountSightMechanism(int numSight)
     {
         this.numSight = numSight;
-        map = new HashMap<>();
+    }
+
+
+    @Override
+    public List<PropagatedInformation> seesInformation(UserState<U> user, Data<U, I, P> data, List<PropagatedInformation> prop)
+    {
+        Map<Integer, List<PropagatedInformation>> info = new HashMap<>();
+        List<Integer> pieces = new ArrayList<>();
+
+        prop.forEach(piece ->
+        {
+            int id = piece.getInfoId();
+            if(!info.containsKey(id))
+            {
+                info.put(id, new ArrayList<>());
+                pieces.add(id);
+            }
+            info.get(id).add(piece);
+        });
+
+        List<PropagatedInformation> defList = new ArrayList<>();
+        if(pieces.size() <= this.numSight)
+        {
+            defList.addAll(prop);
+        }
+        else
+        {
+            Collections.shuffle(pieces);
+            pieces.subList(0, this.numSight).forEach(id -> defList.addAll(info.get(id)));
+        }
+
+        return defList;
     }
 
     @Override
-    public boolean seesInformation(UserState<U> user, Data<U,I,P> data, PropagatedInformation prop)
-    {
-        U u = user.getUserId();
-        if(this.map.get(u) < this.numSight)
-        {
-            this.map.put(u, this.map.get(u)+1);
-            return !user.containsPropagatedInformation(prop.getInfoId());
-        }
-        
-        return false;
-    }
-    
-    @Override
     public void resetSelections(Data<U,I,P> data)
     {
-        map.clear();
     }
-    
-    
-    
     
 }

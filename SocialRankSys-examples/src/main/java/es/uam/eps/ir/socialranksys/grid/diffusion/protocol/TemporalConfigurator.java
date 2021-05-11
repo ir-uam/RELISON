@@ -14,15 +14,18 @@ import es.uam.eps.ir.socialranksys.diffusion.protocols.TemporalProtocol;
 import java.io.Serializable;
 
 /**
- * Configurator for a Temporal protocol.
- * @author Javier Sanz-Cruzado Puig
- * 
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the features.
+ * Configures a temporal protocol, which replicates an old diffusion process.
  *
- * */
-public class TemporalConfigurator<U extends Serializable,I extends Serializable,P> implements ProtocolConfigurator<U,I,P> 
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
+ *
+ * @see TemporalProtocol
+ */
+public class TemporalConfigurator<U extends Serializable,I extends Serializable, F> implements ProtocolConfigurator<U,I, F>
 {
     /**
      * Identifier for the parameter that indicates if received pieces can be propagated after the true timestamp moment (false) or not (true).
@@ -30,7 +33,7 @@ public class TemporalConfigurator<U extends Serializable,I extends Serializable,
     private final static String PURE = "pure";
 
     @Override
-    public Protocol<U, I, P> configure(ProtocolParamReader params)
+    public Protocol<U, I, F> configure(YAMLProtocolParameterReader params)
     {
         boolean param = params.getParams().getBooleanValue(PURE);
         return new TemporalProtocol<>(param);

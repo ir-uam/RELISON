@@ -11,9 +11,9 @@ package es.uam.eps.ir.socialranksys.diffusion.selections;
 import java.io.Serializable;
 
 /**
- * Selects the propagated pieces. This algorithm propagates a certain number of information pieces each
- * iteration, chosen randomly from the own pieces of information. Then, it repropagates every piece
- * of information that the user has repropagated in real life.
+ * Algorithm that chooses randomly some pieces from the own set of information pieces, and it only propagates
+ * those received information pieces from other users that the user has propagated during the actual diffusion
+ * procedure.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -26,7 +26,7 @@ public class AllRealPropagatedSelectionMechanism<U extends Serializable,I extend
 {
     /**
      * Constructor.
-     * @param numOwn Number of own information pieces to propagate for each user and iteration.
+     * @param numOwn number of own information pieces to propagate for each user and iteration.
      */
     public AllRealPropagatedSelectionMechanism(int numOwn)
     {
@@ -35,8 +35,8 @@ public class AllRealPropagatedSelectionMechanism<U extends Serializable,I extend
     
     /**
      * Constructor.
-     * @param numOwn Number of own information pieces to propagate for each user and iteration.
-     * @param numRepr Number of propagated information pieces to repropagate for each user and iteration.
+     * @param numOwn    number of own information pieces to propagate for each user and iteration.
+     * @param numRepr   number of propagated information pieces to repropagate for each user and iteration.
      */
     public AllRealPropagatedSelectionMechanism(int numOwn, int numRepr)
     {

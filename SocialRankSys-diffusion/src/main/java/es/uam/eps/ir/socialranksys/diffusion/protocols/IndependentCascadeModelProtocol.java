@@ -9,10 +9,10 @@
 package es.uam.eps.ir.socialranksys.diffusion.protocols;
 
 import es.uam.eps.ir.socialranksys.diffusion.expiration.AllNotPropagatedExpirationMechanism;
-import es.uam.eps.ir.socialranksys.diffusion.propagation.AllFollowersPropagationMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.propagation.AllNeighborsPropagationMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.selections.IndependentCascadeModelSelectionMechanism;
-import es.uam.eps.ir.socialranksys.diffusion.sight.AllSightMechanism;
-import es.uam.eps.ir.socialranksys.diffusion.update.IndependentCascadeModelUpdateMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.sight.AllNotPropagatedSightMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.update.NewestUpdateMechanism;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 
@@ -41,37 +41,37 @@ import java.io.Serializable;
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the users.
- * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class IndependentCascadeModelProtocol<U extends Serializable,I extends Serializable,P> extends Protocol<U,I,P>
+public class IndependentCascadeModelProtocol<U extends Serializable,I extends Serializable, F> extends Protocol<U,I, F>
 {
     /**
      * Constructor for the Independent Cascade Model simulator.
-     * @param prob Probability of propagating an information piece.
-     * @param numOwn Number of own tweets to propagate randomly each iteration.
+     * @param prob      probability of propagating an information piece.
+     * @param numOwn    number of own tweets to propagate randomly each iteration.
      */
     public IndependentCascadeModelProtocol(double prob, int numOwn)
     {
         super(  new IndependentCascadeModelSelectionMechanism<>(prob, numOwn),
                 new AllNotPropagatedExpirationMechanism<>(),
-                new IndependentCascadeModelUpdateMechanism(),
-                new AllFollowersPropagationMechanism<>(),
-                new AllSightMechanism<>());
+                new NewestUpdateMechanism(),
+                new AllNeighborsPropagationMechanism<>(EdgeOrientation.IN),
+                new AllNotPropagatedSightMechanism<>());
     }
     
     /**
      * Constructor for the Independent Cascade Model simulator.
-     * @param graph Graph that contains the probability of propagating an information piece across an edge.
-     * @param numOwn Number of own tweets to propagate randomly each iteration.
+     * @param graph     graph that contains the probability of propagating an information piece across an edge.
+     * @param numOwn    number of own tweets to propagate randomly each iteration.
      */
     public IndependentCascadeModelProtocol(Graph<U> graph, int numOwn)
     {
         super(  new IndependentCascadeModelSelectionMechanism<>(graph, numOwn, EdgeOrientation.OUT),
                 new AllNotPropagatedExpirationMechanism<>(),
-                new IndependentCascadeModelUpdateMechanism(),
-                new AllFollowersPropagationMechanism<>(),
-                new AllSightMechanism<>());
+                new NewestUpdateMechanism(),
+                new AllNeighborsPropagationMechanism<>(EdgeOrientation.IN),
+                new AllNotPropagatedSightMechanism<>());
     }
     
     

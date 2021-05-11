@@ -10,7 +10,8 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.sight;
 
 
 import es.uam.eps.ir.socialranksys.diffusion.sight.SightMechanism;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
+import org.jooq.lambda.tuple.Tuple2;
 
 import java.io.Serializable;
 
@@ -18,23 +19,26 @@ import static es.uam.eps.ir.socialranksys.grid.diffusion.sight.SightMechanismIde
 
 
 /**
- * Class that selects an individual sight mechanism.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Class that selects a sight mechanism from its parameter selection.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class SightSelector<U extends Serializable,I extends Serializable,P> 
+public class SightSelector<U extends Serializable,I extends Serializable,F>
 {
     /**
-     * Selects and configures a sight mechanism.
-     * @param ppr Parameters for the sight mechanism.
+     * Selects and configures a selection mechanism.
+     * @param name      the name of the sight mechanism.
+     * @param params    the parameters of the sight mechanism.
      * @return A pair containing the name and the selected sight mechanism.
      */
-    public Tuple2oo<String, SightMechanism<U,I,P>> select(SightParamReader ppr)
+    public Tuple2<String, SightMechanism<U,I, F>> select(String name, Parameters params)
     {
-        String name = ppr.getName();
-        SightConfigurator<U,I,P> conf;
+        SightConfigurator<U,I,F> conf;
         switch(name)
         {
             case ALLRECOMMENDED:
@@ -52,6 +56,12 @@ public class SightSelector<U extends Serializable,I extends Serializable,P>
             case ALLNOTDISCARDED:
                 conf = new AllNotDiscardedSightConfigurator<>();
                 break;
+            case ALLNOTPROPAGATED:
+                conf = new AllNotPropagatedSightConfigurator<>();
+                break;
+            case ALLNOTDISCARDEDNOTPROPAGATED:
+                conf = new AllNotDiscardedNorPropagatedSightConfigurator<>();
+                break;
             case RECOMMENDED:
                 conf = new RecommendedSightConfigurator<>();
                 break;
@@ -59,7 +69,7 @@ public class SightSelector<U extends Serializable,I extends Serializable,P>
                 return null;
         }
         
-        SightMechanism<U,I,P> propagation = conf.configure(ppr);
-        return new Tuple2oo<>(name, propagation);
+        SightMechanism<U,I,F> propagation = conf.configure(params);
+        return new Tuple2<>(name, propagation);
     }
 }

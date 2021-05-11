@@ -21,10 +21,10 @@ import java.io.Serializable;
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the user.
- * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user / information pieces features.
  */
-public class Speed<U extends Serializable,I extends Serializable,P> extends AbstractGlobalSimulationMetric<U,I,P>
+public class Speed<U extends Serializable,I extends Serializable, F> extends AbstractGlobalSimulationMetric<U,I, F>
 {
 
     /**
@@ -63,7 +63,7 @@ public class Speed<U extends Serializable,I extends Serializable,P> extends Abst
     }
 
     @Override
-    public void update(Iteration<U, I, P> iteration)
+    public void update(Iteration<U, I, F> iteration)
     {
         if(this.isInitialized())
         {

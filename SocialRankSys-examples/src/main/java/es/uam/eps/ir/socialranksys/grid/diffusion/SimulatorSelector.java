@@ -14,11 +14,12 @@ import es.uam.eps.ir.socialranksys.diffusion.protocols.Protocol;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.Simulator;
 import es.uam.eps.ir.socialranksys.diffusion.stop.StopCondition;
 import es.uam.eps.ir.socialranksys.graph.Graph;
-import es.uam.eps.ir.socialranksys.grid.diffusion.filter.FilterParamReader;
 import es.uam.eps.ir.socialranksys.grid.diffusion.filter.FilterSelector;
+import es.uam.eps.ir.socialranksys.grid.diffusion.filter.YAMLFilterParameterReader;
 import es.uam.eps.ir.socialranksys.grid.diffusion.protocol.ProtocolSelector;
 import es.uam.eps.ir.socialranksys.grid.diffusion.stop.StopConditionSelector;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
+import org.jooq.lambda.tuple.Tuple2;
 import org.ranksys.formats.parsing.Parser;
 
 import java.io.Serializable;
@@ -26,89 +27,91 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Class that selects an individual filter from a grid.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
- * @param <I> Type of the information pieces
- * @param <P> Type of the parameters
+ * Class that selects a single simulator for a grid.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the features.
  */
-public class SimulatorSelector<U extends Serializable,I extends Serializable,P> 
+public class SimulatorSelector<U extends Serializable,I extends Serializable, F>
 {
     /**
      * Parameter parser (for the filter)
      */
-    private final Parser<P> parser;
+    private final Parser<F> parser;
     
     /**
      * Constructor.
      * @param parser Parameter parser (for the filter) 
      */
-    public SimulatorSelector(Parser<P> parser)
+    public SimulatorSelector(Parser<F> parser)
     {
         this.parser = parser;
     }
     
     /**
      * Selects a protocol.
-     * @param spr Parameters for the simulation.
-     * @param num Simulation index number.
-     * @param defaultValue default value for the parameter values.
-     * @return A pair containing a simulator and a data filter.
+     * @param simParams     parameters for the simulation.
+     * @param num           simulation index number.
+     * @param defaultValue  default value for the parameter values.
+     * @return a pair containing the simulator and the data filter.
      */
-    public Tuple2oo<Simulator<U,I,P>, DataFilter<U,I,P>> select(SimulationParamReader spr, int num, P defaultValue)
+    public Tuple2oo<Simulator<U,I, F>, DataFilter<U,I, F>> select(YAMLSimulationParameterReader simParams, int num, F defaultValue)
     {
-        return this.select(spr, num, defaultValue, null);
+        return this.select(simParams, num, defaultValue, null);
     }
     
     /**
      * Selects a protocol.
-     * @param spr Parameters for the simulation.
-     * @param num Simulation index number.
-     * @param defaultValue default value for the parameter values.
-     * @param testGraph the test graph
-     * @return A pair containing a simulator and a data filter.
+     * @param simParams     parameters for the simulation.
+     * @param num           simulation index number.
+     * @param defaultValue  default value for the parameter values.
+     * @param filterGraph   a graph for filtering the data (for instance, the test graph in a recommendation).
+     * @return a pair containing a simulator and a data filter.
      */
-    public Tuple2oo<Simulator<U,I,P>,DataFilter<U,I,P>> select(SimulationParamReader spr, int num, P defaultValue, Graph<U> testGraph)
+    public Tuple2oo<Simulator<U,I, F>,DataFilter<U,I, F>> select(YAMLSimulationParameterReader simParams, int num, F defaultValue, Graph<U> filterGraph)
     {
-        if(spr == null)
+        if(simParams == null)
             return null;
         
-        if(num < 0 || num > spr.numberSimulations()) // Invalid simulation selection
+        if(num < 0 || num > simParams.numberSimulations()) // Invalid simulation selection
         {
             return null;
         }
         
         // Select the protocol
-        ProtocolSelector<U,I,P> protSel = new ProtocolSelector<>();
-        Tuple2oo<String, Protocol<U,I,P>> protPair = protSel.select(spr.getProtocolParameters(num));
+        ProtocolSelector<U,I, F> protSel = new ProtocolSelector<>();
+        Tuple2<String, Protocol<U,I, F>> protPair = protSel.select(simParams.getProtocolParameters(num));
         if(protPair == null || protPair.v2() == null)
             return null;
-        Protocol<U,I,P> protocol = protPair.v2();
+        Protocol<U,I, F> protocol = protPair.v2();
         
         // Select the filter
-        
-        FilterSelector<U,I,P> filSel = new FilterSelector<>(this.parser, defaultValue, testGraph);
-        List<FilterParamReader> filters = spr.getFilterParameters(num);
-        List<DataFilter<U,I,P>> filterList = new ArrayList<>();
-        for(FilterParamReader fpr : filters)
+        FilterSelector<U,I, F> filSel = new FilterSelector<>(this.parser, defaultValue, filterGraph);
+        List<YAMLFilterParameterReader> filters = simParams.getFilterParameters(num);
+        List<DataFilter<U,I, F>> filterList = new ArrayList<>();
+        for(YAMLFilterParameterReader fpr : filters)
         {
-            Tuple2oo<String,DataFilter<U,I,P>> filPair = filSel.select(fpr);
+            Tuple2<String,DataFilter<U,I, F>> filPair = filSel.select(fpr.getName(), fpr.getParameter());
             if(filPair == null || filPair.v2() == null)
                 return null;
-            DataFilter<U,I,P> f = filPair.v2();
+            DataFilter<U,I, F> f = filPair.v2();
             filterList.add(f);
         }
         
-        DataFilter<U,I,P> filter = new CombinedFilter<>(filterList);
+        DataFilter<U,I, F> filter = new CombinedFilter<>(filterList);
         
         // Select the stop condition
-        StopConditionSelector<U,I,P> stopSel = new StopConditionSelector<>();
-        Tuple2oo<String, StopCondition<U,I,P>> stopPair = stopSel.select(spr.getStopConditionParameters(num));
+        StopConditionSelector<U,I, F> stopSel = new StopConditionSelector<>();
+        Tuple2<String, StopCondition<U,I, F>> stopPair = stopSel.select(simParams.getStopConditionParameters(num).getName(), simParams.getStopConditionParameters(num).getParameter());
         if(stopPair == null || stopPair.v2() == null)
             return null;
-        StopCondition<U,I,P> stop = stopPair.v2();
+        StopCondition<U,I, F> stop = stopPair.v2();
                 
-        Simulator<U,I,P> simulator = new Simulator<>(protocol, stop);
+        Simulator<U,I, F> simulator = new Simulator<>(protocol, stop);
         return new Tuple2oo<>(simulator, filter);
     }
 }

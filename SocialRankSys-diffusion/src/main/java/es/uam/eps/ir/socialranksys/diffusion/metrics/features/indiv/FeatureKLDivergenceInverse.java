@@ -29,9 +29,9 @@ import java.util.stream.Stream;
  *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
- * @param <P> type of the parameters.
+ * @param <F> type of the features.
  */
-public class FeatureKLDivergenceInverse<U extends Serializable,I extends Serializable,P> extends AbstractFeatureKLDivergence<U,I,P> 
+public class FeatureKLDivergenceInverse<U extends Serializable,I extends Serializable, F> extends AbstractFeatureKLDivergence<U,I, F>
 {
     /**
      * Name fixed value.
@@ -40,13 +40,13 @@ public class FeatureKLDivergenceInverse<U extends Serializable,I extends Seriali
 
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
-     * @param unique true if a piece of information is considered once, false if it is considered each time it appears.
+     * @param userFeat  true if we are using a user feature, false if we are using an information piece feature.
+     * @param feature   the name of the feature.
+     * @param unique    true if a piece of information is considered once, false if it is considered each time it appears.
      */
-    public FeatureKLDivergenceInverse(String parameter, boolean userparam, boolean unique) 
+    public FeatureKLDivergenceInverse(String feature, boolean userFeat, boolean unique)
     {
-        super(ENTROPY + "-" + (userparam ? "user" : "info") + "-" + parameter, parameter, userparam, unique);
+        super(ENTROPY + "-" + (userFeat ? "user" : "info") + "-" + feature, feature, userFeat, unique);
     }
        
     @Override
@@ -56,7 +56,7 @@ public class FeatureKLDivergenceInverse<U extends Serializable,I extends Seriali
             return Double.NaN;
         
         KLDivergence kldiv = new KLDivergence();
-        List<P> features = this.data.getAllFeatureValues(this.getParameter()).collect(Collectors.toCollection(ArrayList::new));
+        List<F> features = this.data.getAllFeatureValues(this.getParameter()).collect(Collectors.toCollection(ArrayList::new));
         
         Stream<Double> pdistr = features.stream().map(this.pvalues::get);
         Stream<Double> qdistr = features.stream().map(p -> this.qvalues.get(p).get(user));

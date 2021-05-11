@@ -22,15 +22,15 @@ import java.util.Set;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the features.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class OnlyRepropagatedPiecesFilter<U extends Serializable, I extends Serializable, P> extends AbstractDataFilter<U,I,P> 
+public class OnlyRepropagatedPiecesFilter<U extends Serializable, I extends Serializable, F> extends AbstractDataFilter<U,I, F>
 {
 
     @Override
-    protected Index<U> filterUsers(Data<U, I, P> data)
+    protected Index<U> filterUsers(Data<U, I, F> data)
     {
         Index<U> uIndex = new FastIndex<>();
         data.getAllUsers().sorted().forEach(uIndex::addObject);
@@ -38,7 +38,7 @@ public class OnlyRepropagatedPiecesFilter<U extends Serializable, I extends Seri
     }
 
     @Override
-    protected Index<I> filterInfoPieces(Data<U, I, P> data) 
+    protected Index<I> filterInfoPieces(Data<U, I, F> data)
     {
         Index<I> iIndex = new FastIndex<>();
         data.getAllInformationPieces().sorted().forEach(i -> 
@@ -52,18 +52,18 @@ public class OnlyRepropagatedPiecesFilter<U extends Serializable, I extends Seri
     }
 
     @Override
-    protected Index<P> filterParameters(Data<U, I, P> data, String name, Index<I> iIndex) 
+    protected Index<F> filterParameters(Data<U, I, F> data, String name, Index<I> iIndex)
     {
         if(data.isUserFeature(name))
         {
-            Index<P> pIndex = new FastIndex<>();
+            Index<F> pIndex = new FastIndex<>();
             data.getAllFeatureValues(name).sorted().forEach(pIndex::addObject);
             return pIndex;
         }
         else
         {
-            Index<P> pIndex = new FastIndex<>();
-            Set<P> parameters = new HashSet<>();
+            Index<F> pIndex = new FastIndex<>();
+            Set<F> parameters = new HashSet<>();
             iIndex.getAllObjects().forEach(i -> data.getInfoPiecesFeatures(i, name).forEach(p -> parameters.add(p.v1)));
             parameters.stream().sorted().forEach(pIndex::addObject);
             return pIndex;

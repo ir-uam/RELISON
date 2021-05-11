@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -10,39 +10,44 @@ package es.uam.eps.ir.socialranksys.grid.diffusion.metrics.features.indiv;
 
 import es.uam.eps.ir.socialranksys.diffusion.metrics.SimulationMetric;
 import es.uam.eps.ir.socialranksys.diffusion.metrics.features.indiv.ExternalFeatureRecall;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricConfigurator;
-import es.uam.eps.ir.socialranksys.grid.diffusion.metrics.MetricParamReader;
 
 import java.io.Serializable;
 
 /**
- * Configures a feature recall metric.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Configures a metric that measures the fraction of the unknown features that a user has discovered.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user / information features.
+ *
+ * @see ExternalFeatureRecall
  */
-public class ExternalFeatureRecallMetricConfigurator<U extends Serializable,I extends Serializable,P> implements MetricConfigurator<U,I,P>
+public class ExternalFeatureRecallMetricConfigurator<U extends Serializable,I extends Serializable, F> implements MetricConfigurator<U,I, F>
 {
     /**
-     * Identifier for the parameter name
+     * Identifier for the feature name
      */
-    private final static String PARAMETER = "parameter";
+    private final static String FEATURE = "feature";
     /**
-     * Identifier for the param which identifies if the studied parameter is an user or an information piece feature.
+     * Identifier for the param which identifies if the studied feature is an user or an information piece feature.
      */
-    private final static String USERPARAM = "userFeature";
+    private final static String USERFEAT = "userFeature";
     
     @Override
-    public SimulationMetric<U, I, P> configure(MetricParamReader params)
+    public SimulationMetric<U, I, F> configure(Parameters params)
     {
-        String parameter = params.getParams().getStringValue(PARAMETER);
-        Boolean userParam = params.getParams().getBooleanValue(USERPARAM);
+        String feature = params.getStringValue(FEATURE);
+        Boolean userFeat = params.getBooleanValue(USERFEAT);
         
-        if(parameter == null || userParam == null)
+        if(feature == null || userFeat == null)
             return null;
         
-        return new ExternalFeatureRecall<>(parameter, userParam);
+        return new ExternalFeatureRecall<>(feature, userFeat);
     }
     
 }

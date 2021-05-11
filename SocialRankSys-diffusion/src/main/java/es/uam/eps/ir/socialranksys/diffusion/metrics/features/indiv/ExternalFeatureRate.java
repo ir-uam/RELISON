@@ -34,9 +34,9 @@ import java.util.Set;
  *
  * @param <U> type of the users of the network.
  * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <F> type of the features.
  */
-public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P> extends AbstractExternalFeatureIndividualSimulationMetric<U,I,P>
+public class ExternalFeatureRate<U extends Serializable,I extends Serializable, F> extends AbstractExternalFeatureIndividualSimulationMetric<U,I, F>
 {
     /**
      * Name fixed value.
@@ -44,14 +44,14 @@ public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P
     private final static String EXTPARAMRATE = "ext-featrate";
 
     /**
-     * Stores the number of external parameters received.
+     * Stores the number of external features received.
      */
-    private final Map<U,Double> externalParams;
+    private final Map<U,Double> externalFeats;
     
     /**
-     * Stores the total number of external parameters received.
+     * Stores the total number of external features received.
      */
-    private final Map<U,Double> totalParams;
+    private final Map<U,Double> totalFeats;
     
     /**
      * Indicates if a piece of information is considered once (or each time it appears if false).
@@ -60,24 +60,24 @@ public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P
     
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
-     * @param unique true if a piece of information is considered once, false if it is considered each time it appears.
+     * @param userFeats     true if we are using a user features, false if we are using an information piece features.
+     * @param features      the name of the features.
+     * @param unique        true if a piece of information is considered once, false if it is considered each time it appears.
      */
-    public ExternalFeatureRate(String parameter, boolean userparam, boolean unique) 
+    public ExternalFeatureRate(String features, boolean userFeats, boolean unique)
     {
-        super(EXTPARAMRATE + "-" + (userparam ? "user" : "info") + "-" + parameter + "-" + (unique ? "unique" : "repetitions"), parameter, userparam);
-        this.externalParams = new HashMap<>();
-        this.totalParams = new HashMap<>();
+        super(EXTPARAMRATE + "-" + (userFeats ? "user" : "info") + "-" + features + "-" + (unique ? "unique" : "repetitions"), features, userFeats);
+        this.externalFeats = new HashMap<>();
+        this.totalFeats = new HashMap<>();
         this.unique = unique;
     }
 
     @Override
     public void clear() 
     {
-        this.totalParams.clear();
-        this.externalParams.clear();
-        this.clearOwnParams();
+        this.totalFeats.clear();
+        this.externalFeats.clear();
+        this.clearOwnFeatures();
         this.initialized = false;
     }
 
@@ -89,11 +89,11 @@ public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P
     }
 
     /**
-     * Updates the necessary values for computing the metric (when using user parameters).
+     * Updates the necessary values for computing the metric (when using user features).
      * @param iteration the iteration data.
      */
     @Override
-    protected void updateUserParam(Iteration<U,I,P> iteration)
+    protected void updateUserFeatures(Iteration<U,I, F> iteration)
     {
         if(iteration == null) return;
         
@@ -111,11 +111,11 @@ public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P
                     // Identify the parameters of the creators.
                     data.getUserFeatures(creator, this.getParameter()).forEach(p -> 
                     {
-                        if(!this.getOwnParams(u).contains(p.v1))
+                        if(!this.getOwnFeats(u).contains(p.v1))
                         {
-                            this.externalParams.put(u, this.externalParams.get(u) + p.v2*val);
+                            this.externalFeats.put(u, this.externalFeats.get(u) + p.v2*val);
                         }
-                        this.totalParams.put(u, this.totalParams.get(u) + p.v2*val);
+                        this.totalFeats.put(u, this.totalFeats.get(u) + p.v2*val);
                     });
                 });
             });
@@ -130,11 +130,11 @@ public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P
                     data.getCreators(i.v1()).forEach(creator ->
                         data.getUserFeatures(creator, this.getParameter()).forEach(p -> 
                         {
-                            if(!this.getOwnParams(u).contains(p.v1))
+                            if(!this.getOwnFeats(u).contains(p.v1))
                             {
-                                this.externalParams.put(u, this.externalParams.get(u) + p.v2*val);
+                                this.externalFeats.put(u, this.externalFeats.get(u) + p.v2*val);
                             }
-                            this.totalParams.put(u, this.totalParams.get(u) + p.v2*val);
+                            this.totalFeats.put(u, this.totalFeats.get(u) + p.v2*val);
                         })
                     );
                 })
@@ -143,11 +143,11 @@ public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P
     }
     
     /**
-     * Updates the necessary values for computing the metric (when using user parameters).
+     * Updates the necessary values for computing the metric (when using information pieces features).
      * @param iteration the iteration data.
      */
     @Override
-    protected void updateInfoParam(Iteration<U,I,P> iteration)
+    protected void updateInfoFeatures(Iteration<U,I, F> iteration)
     {
         if(iteration == null) return;
         
@@ -162,11 +162,11 @@ public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P
                 // Identify its parameters.
                 data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p -> 
                 {
-                    if(!this.getOwnParams(u).contains(p.v1))
+                    if(!this.getOwnFeats(u).contains(p.v1))
                     {
-                        this.externalParams.put(u, this.externalParams.get(u) + p.v2*val);
+                        this.externalFeats.put(u, this.externalFeats.get(u) + p.v2*val);
                     }
-                    this.totalParams.put(u, this.totalParams.get(u) + p.v2*val);
+                    this.totalFeats.put(u, this.totalFeats.get(u) + p.v2*val);
                 });
             });
             
@@ -179,11 +179,11 @@ public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P
                     // Identify its parameters.
                     data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p -> 
                     {
-                        if(!this.getOwnParams(u).contains(p.v1))
+                        if(!this.getOwnFeats(u).contains(p.v1))
                         {
-                            this.externalParams.put(u, this.externalParams.get(u) + p.v2*val);
+                            this.externalFeats.put(u, this.externalFeats.get(u) + p.v2*val);
                         }
-                        this.totalParams.put(u, this.totalParams.get(u) + p.v2*val);
+                        this.totalFeats.put(u, this.totalFeats.get(u) + p.v2*val);
                     });
                 });
             }
@@ -195,17 +195,17 @@ public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P
     {
         if (!this.isInitialized() && this.data != null && this.data.doesFeatureExist(this.getParameter()))
         {
-            this.clearOwnParams();
-            this.totalParams.clear();
-            this.externalParams.clear();
+            this.clearOwnFeatures();
+            this.totalFeats.clear();
+            this.externalFeats.clear();
 
             data.getAllUsers().forEach(u ->
             {
-                Set<P> ownParamSet = this.computeOwnParams(u);
+                Set<F> ownParamSet = this.computeOwnFeatures(u);
 
-                this.setOwnParams(u, ownParamSet);
-                this.totalParams.put(u, 0.0);
-                this.externalParams.put(u, 0.0);
+                this.setOwnFeatures(u, ownParamSet);
+                this.totalFeats.put(u, 0.0);
+                this.externalFeats.put(u, 0.0);
             });
             this.initialized = true;
         }
@@ -216,8 +216,8 @@ public class ExternalFeatureRate<U extends Serializable,I extends Serializable,P
     {
         if(!this.isInitialized() || !data.containsUser(user)) return Double.NaN;
         
-        double total = this.totalParams.get(user);
-        double extern = this.externalParams.get(user);
+        double total = this.totalFeats.get(user);
+        double extern = this.externalFeats.get(user);
         if(total > 0.0)
             return extern / total;
         else

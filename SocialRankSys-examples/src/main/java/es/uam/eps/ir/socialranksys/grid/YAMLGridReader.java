@@ -20,7 +20,31 @@ import java.util.Map;
 import static es.uam.eps.ir.socialranksys.grid.BasicTypeIdentifiers.*;
 
 /**
- * Grid for reading a configuration from a YAML file.
+ * Class for reading a grid of parameters from a YAML file. Given a single parameter, the
+ * file should have the following form:
+ *
+ * <br />
+ * param_name:<br />
+ *    type: value_of_type<br />
+ *        values: [value1,value2,...,valueN] or value<br />
+ *        range:<br />
+ *        - start: startingValue<br />
+ *          end: endingValue<br />
+ *          step: stepValue<br />
+ *        - start: ...<br />
+ *        objects:<br />
+ *          name_of_the_object:<br />
+ *              param_name1:<br />
+ *                  type: value_of_the_type<br />
+ *                  ...<br />
+ *
+ * We should note that
+ * <ul>
+ *     <li>objects is the only tag that appears if we have to retrieve an internal object which has its own parameters (i.e. similarities
+ *  *     in UB kNN). For them, this class reads a grid of parameters.</li>
+ *     <li>range is only allowed for numeric values.</li>
+ *     <li>values is only compulsory in numeric values if range does not appear.</li>
+ * </ul>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -31,21 +55,14 @@ public abstract class YAMLGridReader
      * Identifier for the values of the parameter
      */
     private final static String VALUES = "values";
-
-    private final static String GRIDS = "grids";
-    private final static String GRID = "grid";
     /**
-     * Identifier for the parameter name
+     * The identifier for the values in objects of the grid type.
      */
-    private final static String NAME = "name";
+    private final static String OBJECTS = "objects";
     /**
      * Identifier for the parameter type
      */
     private final static String TYPE = "type";
-    /**
-     * Identifier for an individual parameter value
-     */
-    private final static String VALUE = "value";
     /**
      * Identifier for a range of values
      */
@@ -62,10 +79,6 @@ public abstract class YAMLGridReader
      * Identifier for the interval step
      */
     private final static String STEP = "step";
-    /**
-     * Identifier for the parameter list
-     */
-    private final static String PARAMS = "param";
 
     /**
      * Given a map containing the different parameters to read, obtains a grid storing the different
@@ -100,7 +113,7 @@ public abstract class YAMLGridReader
                 case BOOLEAN_TYPE -> booleanValues.put(paramName, readBooleanGrid(paramSetting));
                 case ORIENTATION_TYPE -> orientationValues.put(paramName, readOrientationGrid(paramSetting));
                 case LONG_TYPE -> longValues.put(paramName, readLongGrid(paramSetting));
-                case GRID_TYPE -> gridValues.put(paramName, readGridGrid(paramSetting));
+                case OBJECT_TYPE -> gridValues.put(paramName, readGridGrid(paramSetting));
                 default -> System.err.println("ERROR: Unidentified type");
             }
         }
@@ -368,7 +381,7 @@ public abstract class YAMLGridReader
     {
         Map<String,Grid> values = new HashMap<>();
 
-        Map<String, Object> grids = (Map<String, Object>) map.get(GRIDS);
+        Map<String, Object> grids = (Map<String, Object>) map.get(OBJECTS);
         for(Map.Entry<String, Object> grid : grids.entrySet())
         {
             String name = grid.getKey();

@@ -18,9 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Selects the propagated pieces. This algorithm propagates a certain number of information pieces each
- * iteration, chosen randomly from the own pieces of information and the received ones that the user has repropagated
- * in a real life scenario.
+ * Selection mechanism that chooses randomly a fixed number of information pieces owned by the propagating user, and,
+ * from the received ones, it randomly chooses a fixed number of pieces which the user did propagate during the actual
+ * diffusion procedure (in a real life scenario).
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -33,8 +33,8 @@ public class CountRealPropagatedSelectionMechanism<U extends Serializable,I exte
 {
     /**
      * Constructor.
-     * @param numOwn Number of own information pieces to propagate for each user and iteration.
-     * @param numPropagate Number of received information to propagate for each user and iteration.
+     * @param numOwn        the number of own information pieces to propagate for each user and iteration.
+     * @param numPropagate  the number of received information to propagate for each user and iteration.
      */
     public CountRealPropagatedSelectionMechanism(int numOwn, int numPropagate)
     {
@@ -43,9 +43,9 @@ public class CountRealPropagatedSelectionMechanism<U extends Serializable,I exte
 
     /**
      * Constructor.
-     * @param numOwn Number of own information pieces to propagate for each user and iteration.
-     * @param numPropagate Number of received information to propagate for each user and iteration.
-     * @param numRepropagate Number of information pieces to repropagate
+     * @param numOwn            the number of own information pieces to propagate for each user and iteration.
+     * @param numPropagate      the number of received information to propagate for each user and iteration.
+     * @param numRepropagate    the number of information pieces to repropagate for each user and iteration.
      */
     public CountRealPropagatedSelectionMechanism(int numOwn, int numPropagate, int numRepropagate)
     {
@@ -55,19 +55,22 @@ public class CountRealPropagatedSelectionMechanism<U extends Serializable,I exte
     @Override
     protected List<PropagatedInformation> getReceivedInformation(UserState<U> user, Data<U, I, P> data, SimulationState<U, I, P> state, int numIter, Long timestamp)
     {
+
         List<PropagatedInformation> realProp = new ArrayList<>();
         int userId = data.getUserIndex().object2idx(user.getUserId());
         
         U u = user.getUserId();
         user.getReceivedInformation().forEach(info -> 
         {
+            // for each information piece, we check whether the user did propagate it in real time.
             I i = data.getInformationPiecesIndex().idx2object(info.getInfoId());
             if(data.isRealRepropagatedPiece(u, i))
             {
                 realProp.add(new PropagatedInformation(info.getInfoId(), numIter, userId));
             }
         });
-        
-        return this.getPropagatedInformation(userId, this.getNumPropagate(), numIter, realProp);    
+
+        // we obtain a selection of such pieces.
+        return this.getPropagatedInformation(userId, this.getNumReceived(), numIter, realProp);
     }
 }

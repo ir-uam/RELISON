@@ -11,14 +11,15 @@ package es.uam.eps.ir.socialranksys.diffusion.selections;
 import java.io.Serializable;
 
 /**
- * Selection mechanism that only selects a set of own pieces of information.
+ * Selection mechanism that does not propagate any information piece created by other users (only
+ * pieces owned by the propagating user).
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users
- * @param <I> Type of the information pieces
- * @param <P> Type of the parameters
+ * @param <U> type of the users
+ * @param <I> type of the information pieces
+ * @param <P> type of the parameters
  */
 public class OnlyOwnInformationSelectionMechanism<U extends Serializable, I extends Serializable, P> extends CountSelectionMechanism<U,I,P> 
 {  
@@ -33,8 +34,8 @@ public class OnlyOwnInformationSelectionMechanism<U extends Serializable, I exte
     
     /**
      * Constructor
-     * @param numOwn number of own information pieces to propagate.
-     * @param numRepr number of information pieces to repropagate.
+     * @param numOwn    number of own information pieces to propagate.
+     * @param numRepr   number of information pieces to repropagate.
      */
     public OnlyOwnInformationSelectionMechanism(int numOwn, int numRepr)
     {

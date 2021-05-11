@@ -14,7 +14,7 @@ import java.io.Serializable;
 import java.util.*;
 
 /**
- * Computes the number of pieces of information propagated and seen in all the iterations.
+ * Estimates the fraction of the unknown features of a user have been discovered thanks to the diffusion.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -32,9 +32,9 @@ public class ExternalFeatureRecall<U extends Serializable,I extends Serializable
     private final static String RECALL = "ext-recall";
 
     /**
-     * Stores (if it is necessary), a relation between users and parameters.
+     * Stores (if it is necessary), a relation between users and features.
      */
-    private final Map<U, Set<P>> recParams;
+    private final Map<U, Set<P>> receivedFeats;
 
     /**
      * The total number of external parameters that have reached the different users
@@ -43,13 +43,13 @@ public class ExternalFeatureRecall<U extends Serializable,I extends Serializable
 
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
+     * @param userFeat  true if we are using a user feature, false if we are using an information piece feature.
+     * @param feature   the name of the feature.
      */
-    public ExternalFeatureRecall(String parameter, boolean userparam)
+    public ExternalFeatureRecall(String feature, boolean userFeat)
     {
-        super(RECALL + "-" + (userparam ? "user" : "info") + "-" + parameter, parameter, userparam);
-        this.recParams = new HashMap<>();
+        super(RECALL + "-" + (userFeat ? "user" : "info") + "-" + feature, feature, userFeat);
+        this.receivedFeats = new HashMap<>();
         this.total = new HashMap<>();
     }
 
@@ -57,8 +57,8 @@ public class ExternalFeatureRecall<U extends Serializable,I extends Serializable
     public void clear() 
     {
         this.total.clear();
-        this.recParams.clear();
-        this.clearOwnParams();
+        this.receivedFeats.clear();
+        this.clearOwnFeatures();
         this.initialized = false;
     }
 
@@ -70,11 +70,11 @@ public class ExternalFeatureRecall<U extends Serializable,I extends Serializable
     }
 
     /**
-     * Updates the necessary values for computing the metric (when using user parameters).
+     * Updates the necessary values for computing the metric (when using user features).
      * @param iteration the iteration data.
      */
     @Override
-    protected void updateUserParam(Iteration<U,I,P> iteration)
+    protected void updateUserFeatures(Iteration<U,I,P> iteration)
     {
         if(iteration == null) return;
         
@@ -87,8 +87,8 @@ public class ExternalFeatureRecall<U extends Serializable,I extends Serializable
                     // Identify the parameters of the creators.
                     data.getUserFeatures(creator, this.getParameter()).forEach(p -> 
                     {
-                        if(!this.getOwnParams(u).contains(p.v1))
-                            this.recParams.get(u).add(p.v1);
+                        if(!this.getOwnFeats(u).contains(p.v1))
+                            this.receivedFeats.get(u).add(p.v1);
                     })
                 )
             )
@@ -96,11 +96,11 @@ public class ExternalFeatureRecall<U extends Serializable,I extends Serializable
     }
     
     /**
-     * Updates the necessary values for computing the metric (when using user parameters).
+     * Updates the necessary values for computing the metric (when using information piece features).
      * @param iteration the iteration data.
      */
     @Override
-    protected void updateInfoParam(Iteration<U,I,P> iteration)
+    protected void updateInfoFeatures(Iteration<U,I,P> iteration)
     {
         if(iteration == null) return;
         
@@ -111,8 +111,8 @@ public class ExternalFeatureRecall<U extends Serializable,I extends Serializable
                 // Identify its parameters.
                 data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(p -> 
                 {
-                    if(!this.getOwnParams(u).contains(p.v1))
-                        this.recParams.get(u).add(p.v1);
+                    if(!this.getOwnFeats(u).contains(p.v1))
+                        this.receivedFeats.get(u).add(p.v1);
                 })
             )
         );
@@ -124,12 +124,12 @@ public class ExternalFeatureRecall<U extends Serializable,I extends Serializable
         if(!this.isInitialized() && data.doesFeatureExist(this.getParameter()))
         {
             double auxtotal = data.numFeatureValues(this.getParameter());
-            this.recParams.clear();
+            this.receivedFeats.clear();
             data.getAllUsers().forEach(u -> 
             {
-                Set<P> params = this.computeOwnParams(u);
-                this.setOwnParams(u, params);
-                this.recParams.put(u, new HashSet<>());
+                Set<P> params = this.computeOwnFeatures(u);
+                this.setOwnFeatures(u, params);
+                this.receivedFeats.put(u, new HashSet<>());
                 this.total.put(u, auxtotal - params.size() + 0.0);
             });
 
@@ -147,7 +147,7 @@ public class ExternalFeatureRecall<U extends Serializable,I extends Serializable
         if(!this.data.containsUser(user)) return Double.NaN;
         
         if(this.total.getOrDefault(user, 0.0) > 0.0)
-            return this.recParams.get(user).size() / this.total.get(user);
+            return this.receivedFeats.get(user).size() / this.total.get(user);
         else
             return 0.0;
     }

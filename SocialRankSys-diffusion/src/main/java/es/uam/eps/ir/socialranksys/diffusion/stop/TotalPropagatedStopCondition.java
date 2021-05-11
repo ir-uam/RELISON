@@ -19,10 +19,10 @@ import java.io.Serializable;
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the users.
- * @param <I> type of the items.
- * @param <P> type of the parameters.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class TotalPropagatedStopCondition<U extends Serializable,I extends Serializable,P> implements StopCondition<U,I,P>
+public class TotalPropagatedStopCondition<U extends Serializable,I extends Serializable, F> implements StopCondition<U,I, F>
 {
 
     /**
@@ -32,7 +32,7 @@ public class TotalPropagatedStopCondition<U extends Serializable,I extends Seria
     
     /**
      * Constructor.
-     * @param limit Maximum number of propagated pieces.
+     * @param limit maximum number of propagated pieces.
      */
     public TotalPropagatedStopCondition(long limit)
     {
@@ -40,7 +40,7 @@ public class TotalPropagatedStopCondition<U extends Serializable,I extends Seria
     }
     
     @Override
-    public boolean stop(int numIter, int numPropagated, int propagatingUsers, long newlyPropagated, long totalPropagated, Data<U, I, P> data, Long timestamp)
+    public boolean stop(int numIter, int numPropagated, int propagatingUsers, long newlyPropagated, long totalPropagated, Data<U, I, F> data, Long timestamp)
     {
         return totalPropagated > this.limit || numPropagated == 0; 
     }

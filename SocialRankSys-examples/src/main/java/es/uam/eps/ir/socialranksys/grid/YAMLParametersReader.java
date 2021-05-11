@@ -18,7 +18,26 @@ import java.util.Map;
 import static es.uam.eps.ir.socialranksys.grid.BasicTypeIdentifiers.*;
 
 /**
- * Reads parameters from a YAML file.
+ * Class for reading parameters from a YAML file. Given a single parameter, it only has
+ * a single possible value. The format of the file should then be:
+ *
+ * <br />
+ * param_name:<br />
+ *    type: value_of_type<br />
+ *    value: value<br />
+ *    object:<br />
+ *      name: grid_name<br />
+ *      params: <br />
+ *          param_name1: <br />
+ *              type: <br />
+ *              ... <br />
+ *
+ * We should note that
+ * <ul>
+ *     <li>object is the only tag that appears if we have to retrieve an internal object which has its own parameters (i.e. a similarity
+ *     in UB kNN).</li>
+ *     <li>value is compulsory for all types except for GRID.</li>
+ * </ul>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -42,13 +61,9 @@ public abstract class YAMLParametersReader
      */
     private final static String PARAMS = "params";
     /**
-     * Identifier for an individual parameter.
-     */
-    private final static String PARAM = "param";
-    /**
      * Identifier for the grid.
      */
-    private final static String GRID = "grid";
+    private final static String OBJECT = "object";
     
     /**
      * Reads the values of the parameters for a single algorithm, metric, etc.
@@ -81,7 +96,7 @@ public abstract class YAMLParametersReader
                 case BOOLEAN_TYPE -> booleanValues.put(paramName, readBoolean(paramSetting));
                 case ORIENTATION_TYPE -> orientationValues.put(paramName, readOrientation(paramSetting));
                 case LONG_TYPE -> longValues.put(paramName, readLong(paramSetting));
-                case GRID_TYPE -> recursiveValues.put(paramName, readParameters(paramSetting));
+                case OBJECT_TYPE -> recursiveValues.put(paramName, readParameters(paramSetting));
                 default -> System.err.println("ERROR: Unidentified type");
             }
         }
@@ -162,10 +177,18 @@ public abstract class YAMLParametersReader
      */
     protected Tuple2oo<String,Parameters> readParameters(Map<String, Object> map)
     {
-        Map<String, Object> grid = (Map<String, Object>) map.get(GRID);
+        Map<String, Object> grid = (Map<String, Object>) map.get(OBJECT);
         String name = grid.get(NAME).toString();
-        Map<String, Object> params = (Map<String, Object>) map.get(PARAMS);
-        Parameters parameters = this.readParameterValues(params);
-        return new Tuple2oo<>(name, parameters);
+
+        if(!grid.containsKey(PARAMS) || grid.get(PARAMS).getClass() == String.class)
+        {
+            return new Tuple2oo<>(name, new Parameters());
+        }
+        else
+        {
+            Map<String, Object> params = (Map<String, Object>) grid.get(PARAMS);
+            Parameters parameters = this.readParameterValues(params);
+            return new Tuple2oo<>(name, parameters);
+        }
     }
 }

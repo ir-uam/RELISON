@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -23,9 +23,12 @@ import static es.uam.eps.ir.socialranksys.grid.metrics.vertex.VertexMetricIdenti
 
 
 /**
- * Grid for the degree of a node in the complementary graph.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Grid for computing the degree of a node in the complementary graph.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users
  */
 public class ComplementaryDegreeGridSearch<U> implements VertexMetricGridSearch<U> 
 {

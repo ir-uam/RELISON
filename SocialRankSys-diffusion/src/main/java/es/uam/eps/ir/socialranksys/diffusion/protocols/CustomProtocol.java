@@ -22,22 +22,21 @@ import java.io.Serializable;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class CustomProtocol<U extends Serializable,I extends Serializable,P> extends Protocol<U,I,P> 
+public class CustomProtocol<U extends Serializable,I extends Serializable, F> extends Protocol<U,I, F>
 {
-
     /**
      * Constructor.
-     * @param selection Mechanism for selecting the information the user propagates.
-     * @param expiration Mechanism for discarding information pieces over time.
-     * @param update Mechanism for updating the list of information to propagate.
-     * @param prop Propagation mechanism.
-     * @param sight Sight mechanism.
+     * @param selection     mechanism for selecting the information the user propagates.
+     * @param expiration    mechanism for discarding information pieces over time.
+     * @param update        mechanism for updating the list of information to propagate.
+     * @param prop          mechanism for selecting the users towards whom propagate the information.
+     * @param sight         mechanism for selecting the information pieces that a user sees.
      */
-    public CustomProtocol(SelectionMechanism<U, I, P> selection, ExpirationMechanism<U, I, P> expiration, UpdateMechanism update, PropagationMechanism<U, I, P> prop, SightMechanism<U, I, P> sight)
+    public CustomProtocol(SelectionMechanism<U, I, F> selection, ExpirationMechanism<U, I, F> expiration, UpdateMechanism update, PropagationMechanism<U, I, F> prop, SightMechanism<U, I, F> sight)
     {
         super(selection, expiration, update, prop, sight);
     }

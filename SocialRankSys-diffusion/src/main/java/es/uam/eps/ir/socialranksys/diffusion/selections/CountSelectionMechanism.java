@@ -49,9 +49,9 @@ public class CountSelectionMechanism<U extends Serializable,I extends Serializab
     
     /**
      * Constructor.
-     * @param numOwn Number of own information pieces to propagate for each user and iteration.
-     * @param numPropagate Number of received information to propagate for each user and iteration.
-     * @param numRepropagate Number of information pieces to repropagate for each user and iteration.
+     * @param numOwn            number of own information pieces to propagate for each user and iteration.
+     * @param numPropagate      number of received information to propagate for each user and iteration.
+     * @param numRepropagate    number of information pieces to repropagate for each user and iteration.
      */
     public CountSelectionMechanism(int numOwn, int numPropagate, int numRepropagate)
     {
@@ -63,13 +63,12 @@ public class CountSelectionMechanism<U extends Serializable,I extends Serializab
     
     /**
      * Constructor.
-     * @param numOwn Number of own information pieces to propagate for each user and iteration.
-     * @param numPropagate Number of received information to propagate for each user and iteration.
+     * @param numOwn        number of own information pieces to propagate for each user and iteration.
+     * @param numPropagate  number of received information to propagate for each user and iteration.
      */
     public CountSelectionMechanism(int numOwn, int numPropagate)
     {
         this(numOwn, numPropagate, SelectionConstants.NONE);
-        
     }
     
     @Override
@@ -93,18 +92,18 @@ public class CountSelectionMechanism<U extends Serializable,I extends Serializab
     @Override
     protected List<PropagatedInformation> getRepropagatedInformation(UserState<U> user, Data<U, I, P> data, SimulationState<U, I, P> state, int numIter, Long timestamp) 
     {
-      List<PropagatedInformation> repInfo = user.getPropagatedInformation().collect(Collectors.toCollection(ArrayList::new));
+        List<PropagatedInformation> repInfo = user.getPropagatedInformation().collect(Collectors.toCollection(ArrayList::new));
         int userId = data.getUserIndex().object2idx(user.getUserId());
         
         return this.getPropagatedInformation(userId, this.numRepropagate, numIter, repInfo);        
     }
     
     /**
-     * Obtains the repropagated information from a list of pieces.
-     * @param userId the user identifier.
-     * @param count the number of information pieces to obtain from that list.
-     * @param numIter current iteration number.
-     * @param propInfo the list of propagated information we want to obtain some pieces from.
+     * Obtains a subset of the information pieces in a list to repropagate.
+     * @param userId    the identifier of the user.
+     * @param count     the (maximum) number of information pieces to retrieve from that list.
+     * @param numIter   the current iteration number.
+     * @param propInfo  the list of propagated information we want to obtain some pieces from.
      * @return the list of information pieces to propagate.
      */
     protected List<PropagatedInformation> getPropagatedInformation(int userId, int count, int numIter, List<PropagatedInformation> propInfo)
@@ -112,13 +111,15 @@ public class CountSelectionMechanism<U extends Serializable,I extends Serializab
         List<PropagatedInformation> propagatedPieces = new ArrayList<>();
         Set<Integer> setInfo = new HashSet<>();
         int size = propInfo.size();
+
+        // If we have a number of pieces that we want to retrieve:
         if(count != SelectionConstants.NONE)
         {
-            if(count == SelectionConstants.ALL || size <= count)
+            if(count == SelectionConstants.ALL || size <= count) // If there are not enough pieces, we add them all.
             {
                 propInfo.forEach(info -> propagatedPieces.add(new PropagatedInformation(info.getInfoId(), numIter, userId)));
             }
-            else
+            else // We select a subset at random:
             {
                 while(setInfo.size() < this.numOwn)
                 {
@@ -144,7 +145,7 @@ public class CountSelectionMechanism<U extends Serializable,I extends Serializab
      * Gets the number of received information pieces to propagate.
      * @return the number of received information pieces to propagate.
      */
-    public int getNumPropagate() 
+    public int getNumReceived()
     {
         return numPropagate;
     }

@@ -26,11 +26,11 @@ import java.util.stream.IntStream;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the items.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the the user / information pieces features.
  */
-public class InfoPiecesDistribution<U extends Serializable,I extends Serializable,P> extends AbstractDistribution<U,I,P> 
+public class InfoPiecesDistribution<U extends Serializable,I extends Serializable, F> extends AbstractDistribution<U,I, F>
 {
     
     /**
@@ -66,7 +66,7 @@ public class InfoPiecesDistribution<U extends Serializable,I extends Serializabl
     }
 
     @Override
-    public void update(Iteration<U, I, P> iteration)
+    public void update(Iteration<U, I, F> iteration)
     {
         if(this.isInitialized())
         {

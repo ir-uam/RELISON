@@ -19,30 +19,25 @@ import java.util.OptionalDouble;
 import java.util.TreeSet;
 
 /**
- * Computes the proportion of different parameters which have been received by each
- * user in the network. We find how many different values of a parameter have been received by each user,
- * and divide this number by the number of different values for the corresponding
- * parameter.
- * 
+ * Computes the complement of the Gini coefficient over the distribution of the features that the user
+ * does not already know.
+ *
  * We differ two cases:
- * 
+ *
  * a) User parameters: (Ex.: Communities) In this case, we take the values of the parameter
  * for the creators of the received information pieces. 
  * 
  * b) Information parameters: (Ex: hashtags) In this case, we take the values of the parameters
  * for the different information pieces which are received and observed by each individual user.
  *
- * For each user, this method does not take into account those parameters that the user already knows
- * (i.e communities in the case of user parameters, hashtags in the case of information parameters)
- *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the user.
  * @param <I> type of the information.
- * @param <P> type of the parameters.
+ * @param <F> type of the features.
  */
-public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P> extends AbstractExternalFeatureIndividualSimulationMetric<U,I,P>
+public class ExternalFeatureGini<U extends Serializable,I extends Serializable, F> extends AbstractExternalFeatureIndividualSimulationMetric<U,I, F>
 {
 
     /**
@@ -52,7 +47,7 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
 
     /**
      * For each user, this map register the total number of times each user it has received
-     * a parameter value. Ex: f there are four possible parameter values, A, B, C and D, and,
+     * a feature value. Ex: f there are four possible parameter values, A, B, C and D, and,
      * for user u, value A has been received thrice (1 in iteration 1, 2 in iteration 3) , value
      * B has been received once (in iteration 2), value C has not been received, and value
      * D has been received five times (3 in iteration 2 and 2 in iteration 4), the value of this
@@ -61,21 +56,21 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
     private final Map<U, Double> sum;
 
     /**
-     * For each user, registers the number of parameters with a certain frequency of appearance. Ex:
+     * For each user, registers the number of features with a certain frequency of appearance. Ex:
      * if value A appears 3.0 times, value B appears 3.0 times, and value C appears twice, the map
      * contains pairs (3.0,2) and (2.0,1).
      */
-    private final Map<U, Double2IntMap> paramCounter;
+    private final Map<U, Double2IntMap> featCounter;
 
     /**
-     * For each user, registers the number of times each parameter value has been received. Ex:
+     * For each user, registers the number of times each feature value has been received. Ex:
      * If there are four possible parameter values, A, B, C and D, and,
      * for user u, value A has been received thrice (1 in iteration 1, 2 in iteration 3) , value
      * B has been received once (in iteration 2), value C has not been received, and value
      * D has been received five times (3 in iteration 2 and 2 in iteration 4), the map for user u
      * will contain pairs (A,3),(B,1),(C,0),(D,5).
      */
-    private final Map<P, Map<U, Double>> indivParamCounter;
+    private final Map<F, Map<U, Double>> indivFeatCounter;
 
     /**
      * The number of different values for the feature.
@@ -89,16 +84,16 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
     
     /**
      * Constructor.
-     * @param userparam true if we are using a user parameter, false if we are using an information piece parameter.
-     * @param parameter the name of the parameter.
-     * @param unique true if a piece of information is considered once, false if it is considered each time it appears.
+     * @param userFeat  true if we are using a user feature, false if we are using an information piece feature.
+     * @param feature   the name of the feature.
+     * @param unique    true if a piece of information is considered once, false if it is considered each time it appears.
      */
-    public ExternalFeatureGini(String parameter, boolean userparam, boolean unique)
+    public ExternalFeatureGini(String feature, boolean userFeat, boolean unique)
     {
-        super(GINI + "-" + (userparam ? "user" : "info") + "-" + parameter + "-" + (unique ? "unique" : "repetitions"), parameter, userparam);
+        super(GINI + "-" + (userFeat ? "user" : "info") + "-" + feature + "-" + (unique ? "unique" : "repetitions"), feature, userFeat);
         this.sum = new HashMap<>();
-        this.paramCounter = new HashMap<>();
-        this.indivParamCounter = new HashMap<>();
+        this.featCounter = new HashMap<>();
+        this.indivFeatCounter = new HashMap<>();
         this.count = new HashMap<>();
         this.unique = unique;
     }
@@ -112,11 +107,11 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
     }
 
     @Override
-    protected void updateUserParam(Iteration<U, I, P> iteration)
+    protected void updateUserFeatures(Iteration<U, I, F> iteration)
     {
         iteration.getReceivingUsers().forEach(u -> 
         {
-            Map<P,Double> aux = new HashMap<>();
+            Map<F,Double> aux = new HashMap<>();
             
             iteration.getSeenInformation(u).forEach(i -> 
             {
@@ -125,7 +120,7 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
                 data.getCreators(i.v1()).forEach(v ->
                     data.getUserFeatures(v, this.getParameter()).forEach(param -> 
                     {
-                        if(!this.getOwnParams(u).contains(param.v1()))
+                        if(!this.getOwnFeats(u).contains(param.v1()))
                         {
                             aux.put(param.v1, param.v2*val + aux.getOrDefault(param.v1, 0.0));
                         }
@@ -140,7 +135,7 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
         {
             iteration.getReReceivingUsers().forEach(u -> 
             {
-                Map<P,Double> aux = new HashMap<>();
+                Map<F,Double> aux = new HashMap<>();
                 
                 iteration.getReReceivedInformation(u).forEach(i -> 
                 {
@@ -148,7 +143,7 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
                     data.getCreators(i.v1()).forEach(v ->
                         data.getUserFeatures(v, this.getParameter()).forEach(param ->
                         {
-                            if(!this.getOwnParams(u).contains(param.v1()))
+                            if(!this.getOwnFeats(u).contains(param.v1()))
                             {
                                 aux.put(param.v1, param.v2*val + aux.getOrDefault(param.v1, 0.0));
                             }
@@ -161,18 +156,18 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
     }
     
     @Override
-    protected void updateInfoParam(Iteration<U, I, P> iteration) 
+    protected void updateInfoFeatures(Iteration<U, I, F> iteration)
     {
         iteration.getReceivingUsers().forEach(u -> 
         {
-            Map<P,Double> aux = new HashMap<>();
+            Map<F,Double> aux = new HashMap<>();
             
             iteration.getSeenInformation(u).forEach(i -> 
             {
                 double val = (unique ? 1.0 : i.v2().size());
                 data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(param -> 
                 {
-                    if(!this.getOwnParams(u).contains(param.v1()))
+                    if(!this.getOwnFeats(u).contains(param.v1()))
                     {
                         aux.put(param.v1, param.v2*val + aux.getOrDefault(param.v1, 0.0));
                     }
@@ -188,14 +183,14 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
         {
             iteration.getReReceivingUsers().forEach(u -> 
             {
-                Map<P,Double> aux = new HashMap<>();
+                Map<F,Double> aux = new HashMap<>();
 
                 iteration.getSeenInformation(u).forEach(i -> 
                 {
                     double val = i.v2().size();
                     data.getInfoPiecesFeatures(i.v1(), this.getParameter()).forEach(param -> 
                     {
-                        if(!this.getOwnParams(u).contains(param.v1()))
+                        if(!this.getOwnFeats(u).contains(param.v1()))
                         {
                             aux.put(param.v1, param.v2*val + aux.getOrDefault(param.v1, 0.0));
                         }
@@ -212,13 +207,13 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
      * @param u the user.
      * @param aux an auxiliary map containing the new increments of several parameters for user u.
      */
-    private void updateMap(U u, Map<P, Double> aux)
+    private void updateMap(U u, Map<F, Double> aux)
     {
-        Double2IntMap pcount = this.paramCounter.get(u);
+        Double2IntMap pcount = this.featCounter.get(u);
         
         aux.keySet().forEach(p -> 
         {
-            double oldValue = this.indivParamCounter.get(p).getOrDefault(u, 0.0);
+            double oldValue = this.indivFeatCounter.get(p).getOrDefault(u, 0.0);
             double newValue = oldValue + aux.get(p);
 
             this.sum.put(u, this.sum.get(u) + newValue - oldValue);
@@ -230,7 +225,7 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
             }
 
             pcount.put(newValue, pcount.getOrDefault(newValue, 0) + 1);
-            this.indivParamCounter.get(p).put(u, newValue);
+            this.indivFeatCounter.get(p).put(u, newValue);
 
         });
     }
@@ -243,7 +238,7 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
             return Double.NaN;
         }
         
-        Double2IntMap counter = this.paramCounter.get(user);
+        Double2IntMap counter = this.featCounter.get(user);
         double gini = 0.0;
         double auxsum = this.sum.get(user);
         
@@ -270,9 +265,9 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
     @Override
     public void clear() 
     {
-        this.indivParamCounter.clear();
-        this.clearOwnParams();
-        this.paramCounter.clear();
+        this.indivFeatCounter.clear();
+        this.clearOwnFeatures();
+        this.featCounter.clear();
         this.sum.clear();
         this.count.clear();
         this.initialized = false;
@@ -282,21 +277,21 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
     protected void initialize() 
     {
         if(!this.isInitialized() && this.data != null && this.data.doesFeatureExist(this.getParameter())) {
-            this.clearOwnParams();
+            this.clearOwnFeatures();
             this.sum.clear();
             this.count.clear();
-            this.paramCounter.clear();
-            this.indivParamCounter.clear();
+            this.featCounter.clear();
+            this.indivFeatCounter.clear();
 
-            this.computeOwnParams();
+            this.computeOwnFeatures();
 
             int totalCount = data.numFeatureValues(this.getParameter());
 
             data.getAllFeatureValues(this.getParameter()).forEach(p ->
             {
                 Map<U, Double> indiv = new HashMap<>();
-                data.getAllUsers().filter(u -> !this.getOwnParams(u).contains(p)).forEach(u -> indiv.put(u, 0.0));
-                this.indivParamCounter.put(p, indiv);
+                data.getAllUsers().filter(u -> !this.getOwnFeats(u).contains(p)).forEach(u -> indiv.put(u, 0.0));
+                this.indivFeatCounter.put(p, indiv);
 
             });
 
@@ -304,12 +299,12 @@ public class ExternalFeatureGini<U extends Serializable,I extends Serializable,P
             {
                 this.sum.put(u, 0.0);
 
-                this.count.put(u, totalCount - this.getOwnParams(u).size());
+                this.count.put(u, totalCount - this.getOwnFeats(u).size());
                 // Initialize the counter map
                 Double2IntMap pcount = new Double2IntOpenHashMap();
                 pcount.defaultReturnValue(0);
                 pcount.put(0.0, this.count.get(u).intValue());
-                this.paramCounter.put(u, pcount);
+                this.featCounter.put(u, pcount);
             });
 
             this.initialized = true;

@@ -10,6 +10,7 @@ package es.uam.eps.ir.socialranksys.diffusion.selections;
 
 /**
  * Constants for the selection mechanisms.
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  */

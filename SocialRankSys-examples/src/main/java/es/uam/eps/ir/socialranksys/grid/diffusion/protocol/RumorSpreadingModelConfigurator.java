@@ -8,19 +8,25 @@
  */
 package es.uam.eps.ir.socialranksys.grid.diffusion.protocol;
 
+import es.uam.eps.ir.socialranksys.diffusion.protocols.CountThresholdModelProtocol;
 import es.uam.eps.ir.socialranksys.diffusion.protocols.Protocol;
 import es.uam.eps.ir.socialranksys.diffusion.protocols.RumorSpreadingModelProtocol;
 
 import java.io.Serializable;
 
 /**
- * Configures a Rumor Spreading model protocol
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
- * @param <I> Type of the information pieces
- * @param <P> Type of the parameters
+ * Configures a simple rumor spreading model protocol.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
+ *
+ * @see CountThresholdModelProtocol
  */
-public class RumorSpreadingModelConfigurator<U extends Serializable,I extends Serializable,P> implements ProtocolConfigurator<U,I,P>
+public class RumorSpreadingModelConfigurator<U extends Serializable,I extends Serializable, F> implements ProtocolConfigurator<U,I, F>
 {
     /**
      * Identifier for the number of received information pieces to propagate each iteration.
@@ -36,7 +42,7 @@ public class RumorSpreadingModelConfigurator<U extends Serializable,I extends Se
     private final static String WAITTIME = "waitTime";
    
     @Override
-    public Protocol<U, I, P> configure(ProtocolParamReader params)
+    public Protocol<U, I, F> configure(YAMLProtocolParameterReader params)
     {
         int numRec = params.getParams().getIntegerValue(NUMREC);
         int numOwn = params.getParams().getIntegerValue(NUMOWN);

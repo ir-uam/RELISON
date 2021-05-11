@@ -70,11 +70,9 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
      */
     private Long currentTimestamp;
     /**
-     * Full Constructor.
-     * @param protocol Communication protocol.
-     * @param stop Stop condition for the simulation.
-     * If you only want to print a distribution at the end of the simulation, then, 
-     * do not include them in this map.
+     * Full constructor.
+     * @param protocol the communication protocol to apply.
+     * @param stop     the stop condition of the simulation.
      */
     public Simulator(Protocol<U,I,P> protocol, StopCondition<U,I,P> stop)
     {
@@ -85,7 +83,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
     
     /**
      * Initializes and prepares the data.
-     * @param data Full data.
+     * @param data the complete data for the simulation.
      */
     public void initialize(Data<U,I,P> data)
     {
@@ -99,7 +97,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
     
     /**
      * Initializes and prepares the data.
-     * @param data Full data.
+     * @param data       the complete data for the simulation.
      * @param simulation the current state of the simulation.
      */
     public void initialize(Data<U,I,P> data, Simulation<U,I,P> simulation)
@@ -128,7 +126,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
     
     /**
      * Executes the simulation and stores the results in a file.
-     * @param backup File where we want to backup the simulation, to prevent errors.
+     * @param backup file where we want to backup the simulation, to prevent errors.
      * @return the simulation evolution.
      */
     public Simulation<U,I,P> simulate(String backup) 
@@ -138,7 +136,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
         long initTime = System.currentTimeMillis();
         long alarmTime = 0L;
         long totalpropagated = 0L;
-        
+
         Map<U, Long> receivedCount = new HashMap<>();
         this.state.getAllUsers().forEach(u -> 
         {
@@ -146,49 +144,77 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
             if(count > 0)
                 receivedCount.put(u.getUserId(), count);
         });
-        
-        do // Start propagation
+
+        // Start propagation
+        do
         {
-            // Store the state of the simulation in this iteration (i.e. the newly received pieces of information)
+            /*
+                Each iteration, we store the state of the simulation in an Iteration object. For instance, we store the
+                newly received pieces of information by the different users.
+             */
             Iteration<U,I,P> iteration = new SimpleIteration<>(this.numIter);
             
             long initialTime = System.currentTimeMillis();
-            
-            // First, states that no user nor piece has been propagated during the iteration
+
+            // As a first step, we indicate that no user has propagated information during the current iteration.
             this.currentPropagated = 0;
             this.currentPropagatingUsers = 0;
-    
-            // Resets the selected users in the propagated protocol
+
+            // Then, for each user in the network, we select the users towards whom they might propagate their information
+            // pieces.
+
+            // We reset the selections, i.e. if the propagation model has to select, for each user, a fixed set of users
+            // towards whom propagate information, this method does it.
             this.protocol.getProp().resetSelections(data);
-            
+
+            // Map containing the information propagated by each user:
             Map<U, Selection> allPropInfo = new HashMap<>();
             
-            // for each user, select the pieces to propagate.
+            // We first select the set of users in the system that will propagate information:
             this.protocol.getSelection().getSelectableUsers(data, state, numIter, this.currentTimestamp).forEach(u ->
             {
+                // We get the current state of the user.
                 UserState<U> user = state.getUser(u);
-                // Select which information pieces will be propagated for the user.
+                // Select which information pieces that the user will propagat.
                 Selection sel = this.protocol.getSelection().select(user, data, state, numIter, this.currentTimestamp);
+
+                // If any...
                 int numProp = sel.numPropagated();
                 if(numProp > 0)
                 {
+                    // a) we add it to the list
                     ++this.currentPropagatingUsers;
                     this.currentPropagated += sel.numPropagated();
-                
-                    // Update the user: the selected pieces are moved to the propagated list.
+                    allPropInfo.put(user.getUserId(), sel);
+
+                    // b) we move the given pieces to the propagated list.
                     user.updateReceivedToPropagated(sel.getPropagateSelection().map(Information::getInfoId));
                     user.updateOwnToPropagated(sel.getOwnSelection().map(Information::getInfoId));
-                
-                    allPropInfo.put(user.getUserId(), sel);
+
+                    // c) we update the list of users who have information which can expire
+                    long propCount = sel.getPropagateSelection().count();
+                    if(propCount > 0)
+                    {
+                        long c = receivedCount.getOrDefault(u, 0L) - propCount;
+                        if(c <= 0) receivedCount.remove(u);
+                        else receivedCount.put(u, c);
+                    }
                 }
             });
-           
+
             List<U> toRemove = new ArrayList<>();
-            // for each user, expire the selected information.
+
+            // Once we have selected the information pieces that are going to be propagated, we can then select which
+            // of them shall not be propagated in the future.
+
+            // We run over the set of users who have information in the received list.
             receivedCount.keySet().forEach(u ->
             {
+                // We get the actual state of the user.
                 UserState<U> user = state.getUser(u);
+
                 // Expire the information
+
                 // Apply the expiration of the received information pieces.
                 List<Integer> deleted = this.protocol.getExpiration().expire(user, data, numIter, this.currentTimestamp)
                         .collect(Collectors.toCollection(ArrayList::new));
@@ -196,7 +222,8 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
                 // Store the information about the discarded pieces this iteration.
                 List<I> discardedInfo = new ArrayList<>();
                 deleted.forEach(i -> discardedInfo.add(this.data.getInformationPiecesIndex().idx2object(i)));
-                
+
+                // If we can discard information:
                 if(!discardedInfo.isEmpty())
                 {
                     iteration.addDiscardingUser(user.getUserId(), discardedInfo);
@@ -204,102 +231,110 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
                     if(c <= 0) toRemove.add(u);
                     receivedCount.put(u, receivedCount.get(u) - discardedInfo.size());
                 }
+
                 user.discardReceivedInformation(deleted.stream());
             });
             
             toRemove.forEach(receivedCount::remove);
             
             this.newlyPropagatedInfo = 0;
-            // Resets the users to obtain information pieces from.
+
+            // If users can only observe information pieces from some users, then, we update these values.
             this.protocol.getSight().resetSelections(data);
 
             Set<U> receivedUsers = new HashSet<>();
-            // Now that information pieces have been selected for propagation, and the remaining
-            // have been pruned, now, we can distribute the pieces among the different users.
-            allPropInfo.keySet().forEach(u -> 
+            Map<U, List<PropagatedInformation>> receivedInfo = new HashMap<>();
+
+            // First, we identify the propagated information that reaches each user.
+            allPropInfo.keySet().forEach(u ->
             {
                 Selection sel = allPropInfo.get(u);
                 List<I> propInfo = new ArrayList<>();
-                sel.getAll().forEach(info -> propInfo.add(this.data.getInformationPiecesIndex().idx2object(info.getInfoId())));
-                if(!propInfo.isEmpty())
-                {
-                    iteration.addPropagatingUser(u,propInfo);
-                }
-                
-                // In case the selection of users that receive the information do not depend on which piece do we send
+
                 if(!this.protocol.getProp().dependsOnInformationPiece())
                 {
-                    PropagatedInformation auxpp = new PropagatedInformation(-1, 0, 0);
+                    sel.getAll().forEach(piece -> propInfo.add(this.data.getInformationPiecesIndex().idx2object(piece.getInfoId())));
+                    PropagatedInformation auxpp = new PropagatedInformation(-1,0,0);
                     this.protocol.getProp().getUsersToPropagate(auxpp, state.getUser(u), data).forEach(v ->
                     {
-                        UserState<U> uState = this.state.getUser(v);
-                        sel.getAll().filter(piece -> this.protocol.getSight().seesInformation(uState, data, piece)).forEach(piece ->
-                        {
-                            uState.updateSeen(piece);
-                            this.newlyPropagatedInfo++;
-                            receivedUsers.add(v);
-                        });
+                        if(!receivedInfo.containsKey(v)) receivedInfo.put(v, new ArrayList<>());
+                        sel.getAll().forEach(piece -> receivedInfo.get(v).add(piece));
                     });
                 }
-                else // In case different pieces could go to different users.
+                else
                 {
-                    sel.getAll().forEach(info -> 
+                    sel.getAll().forEach(info ->
                     {
-                        
-                        I i = this.data.getInformationPiecesIndex().idx2object(info.getInfoId());
-                        propInfo.add(i);
-
-                        this.protocol.getProp().getUsersToPropagate(info, state.getUser(u), data).forEach(v -> 
+                        this.protocol.getProp().getUsersToPropagate(info, state.getUser(u), data).forEach(v ->
                         {
-                            UserState<U> vState = this.state.getUser(v);
-                            if(this.protocol.getSight().seesInformation(vState, data, info))
-                            {
-                                vState.updateSeen(info);
-                                this.newlyPropagatedInfo++;
-                                receivedUsers.add(v);
-                            }
+                            if(!receivedInfo.containsKey(v)) receivedInfo.put(v, new ArrayList<>());
+                            receivedInfo.get(v).add(info);
                         });
+                        propInfo.add(this.data.getInformationPiecesIndex().idx2object(info.getInfoId()));
                     });
+                }
+
+                if(!propInfo.isEmpty())
+                {
+                    iteration.addPropagatingUser(u, propInfo);
                 }
             });
-                      
-            
+
+            // As a second step, for each receiving user, we determine which information is seen and which is not
+            receivedInfo.keySet().forEach(u ->
+            {
+                UserState<U> uState = this.state.getUser(u);
+                List<PropagatedInformation> prop = this.protocol.getSight().seesInformation(uState, data, receivedInfo.get(u));
+                if(!prop.isEmpty())
+                {
+                    this.newlyPropagatedInfo += prop.size();
+                    receivedUsers.add(u);
+                    prop.forEach(uState::updateSeen);
+                }
+            });
+
+            // Then, for each received users...
             receivedUsers.forEach(user -> 
             {
+                // We identify which information
                 Map<I, Set<U>> seenInfo = new HashMap<>();
                 Map<I, Set<U>> rereceivedInfo = new HashMap<>();
                 
                 UserState<U> uState = state.getUser(user);
-                
 
+                // Now:
                 int numRec = uState.getSeenInformation().mapToInt(propInfo -> 
                 {
                     int numRereceived = 0;
                     int info = propInfo.getInfoId();
                     Set<U> authors = new HashSet<>();
                     propInfo.getCreators().forEach(cidx -> authors.add(data.getUserIndex().idx2object(cidx)));
-                    
+
+                    // We check whether the information is new or it has been re-received.
                     if(!uState.containsDiscardedInformation(info) && !uState.containsOwnInformation(info) && !uState.containsPropagatedInformation(info) && !uState.containsReceivedInformation(info))
                     {
+                        // The information is new:
+                        numRereceived++;
                         seenInfo.put(data.getInformationPiecesIndex().idx2object(info), authors);
                     }
-                    else if((uState.containsReceivedInformation(info) || uState.containsDiscardedInformation(info)) && !uState.containsOwnInformation(info) && !uState.containsPropagatedInformation(info))
+                    else
                     {
                         if(!uState.containsReceivedInformation(info)) numRereceived++;
                         rereceivedInfo.put(data.getInformationPiecesIndex().idx2object(info), authors);
                     }
-                    
+
+                    // We move from seen to received the information piece, using the update mechanism.
                     uState.updateSeenToReceived(info, this.protocol.getUpdate());
                     
                     return numRereceived;
                 }).sum();
                 
                 uState.clearSeenInformation();
-                
+
+                // We add to the iteration the set of information pieces that the user has seen:
                 if(!seenInfo.isEmpty())
                 {
                     iteration.addReceivingUser(user, seenInfo);
-                    numRec += seenInfo.size();
                 }
                 
                 if(!rereceivedInfo.isEmpty())
@@ -319,15 +354,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
 
             totalpropagated += this.currentPropagated;
             simulation.addIteration(iteration);
-            
-            // Select the information that the different users see
-            /*this.state.getAllUsers().parallel().forEach(user -> 
-            {
-                user.updateSeen(this.protocol.getSight().seeInformation(user, data));
-            });
-            this.newlyPropagatedInfo = this.state.getAllUsers().parallel().mapToLong(user -> user.getSeenInformation().count()).sum();
-            */
-                
+
             // Move all the newly observed pieces to the received set.
             
             alarmTime += (System.currentTimeMillis() - initialTime);
@@ -349,8 +376,9 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
                 initTime = System.currentTimeMillis();
             }
                 
-        }
+        } // Checks whether the simulation has finished.
         while(!this.stop.stop(numIter, currentPropagated, currentPropagatingUsers, this.newlyPropagatedInfo, totalpropagated, data, currentTimestamp));
+
         return simulation;
     }
 }

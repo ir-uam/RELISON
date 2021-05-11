@@ -19,31 +19,31 @@ import java.util.List;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users
- * @param <I> Type of the information pieces
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class CombinedFilter<U extends Serializable, I extends Serializable,P> implements DataFilter<U,I,P> 
+public class CombinedFilter<U extends Serializable, I extends Serializable, F> implements DataFilter<U,I, F>
 {
     /**
      * Data filters.
      */
-    private final List<DataFilter<U,I,P>> dataFilters;
+    private final List<DataFilter<U,I, F>> dataFilters;
     
     /**
      * Constructor.
      * @param dataFilters List of data filters, in application order.
      */
-    public CombinedFilter(List<DataFilter<U,I,P>> dataFilters)
+    public CombinedFilter(List<DataFilter<U,I, F>> dataFilters)
     {
         this.dataFilters = dataFilters;
     }
     
     @Override
-    public Data<U, I, P> filter(Data<U, I, P> fullData)
+    public Data<U, I, F> filter(Data<U, I, F> fullData)
     {
-        Data<U,I,P> filteredData = fullData;
-        for(DataFilter<U,I,P> filter : dataFilters)
+        Data<U,I, F> filteredData = fullData;
+        for(DataFilter<U,I, F> filter : dataFilters)
         {
            filteredData = filter.filter(filteredData);
         }

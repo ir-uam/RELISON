@@ -12,6 +12,7 @@ import es.uam.eps.ir.socialranksys.diffusion.data.Data;
 import es.uam.eps.ir.socialranksys.diffusion.data.PropagatedInformation;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.SimulationEdgeTypes;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.UserState;
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 
 import java.io.Serializable;
 import java.util.*;
@@ -19,18 +20,19 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Also known as the rumour spreading propagation mechanism, this is the 
- * propagation mechanism for the pull strategy propagation mechanism.
- * Each iteration, each user selects another one which has not visited in a certain time.
- * The users share all the information between them.
- * It only uses recommended links for propagating information.
+ * Propagation mechanism for the so-called rumour spreading propagation mechanism. Following this strategy, each user
+ * selects a user each iteration: he catches the information from such user, and shares with him the information he has.
+ * It is a combination of the pull and push propagation mechanisms. A certain amount of time has to pass before a
+ * neighbor is selected again.
+ *
+ * This variant only allows propagating information through recommended links.
+ *
+ * <p>
+ *      <b>Reference:</b> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987)
+ * </p>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
- *
- *  <p>
- *  <b>Reference:</b> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987)
- *  </p>
  *
  * @param <U> type of the users.
  * @param <I> type of the information pieces.
@@ -50,15 +52,22 @@ public class PullPushStrategyPureRecommenderPropagationMechanism<U extends Seria
      * The list of users in the last iterations
      */
     private final Map<U, List<U>> lastIterations;
+
+    /**
+     * The orientation for selecting the neighborhood.
+     */
+    private final EdgeOrientation orientation;
     
     /**
      * Constructor.
-     * @param waitTime Number of iterations to wait until a profile can be revisited.
+     * @param waitTime    number of iterations to wait until a profile can be revisited.
+     * @param orientation the orientation for selecting the neighborhood.
      */
-    public PullPushStrategyPureRecommenderPropagationMechanism(int waitTime)
+    public PullPushStrategyPureRecommenderPropagationMechanism(int waitTime, EdgeOrientation orientation)
     {
         this.waitTime = waitTime;
         this.lastIterations = new HashMap<>();
+        this.orientation = orientation;
     }
 
     @Override
@@ -74,31 +83,49 @@ public class PullPushStrategyPureRecommenderPropagationMechanism<U extends Seria
     {
         Random rng = new Random();
         propagationList = new HashMap<>();
+
+        // For all the users in the system:
         data.getAllUsers().forEach((u)-> 
         {
-            List<U> neighbours = data.getGraph().getAdjacentNodes(u).filter(v -> (data.getGraph().getEdgeType(u, v) == SimulationEdgeTypes.RECOMMEND)).collect(Collectors.toCollection(ArrayList::new));
-            List<U> alreadyVisited = lastIterations.containsKey(u) ? lastIterations.get(u) : new ArrayList<>();
-            U neigh;
-            boolean selected = false;
-            
-            // Select the neighbour
-            do
+            // We first select a list of neighbors:
+            List<U> neighbours = data.getGraph().getNeighbourhood(u, orientation).filter(v ->
             {
-                if(neighbours.size() > 0)
+                if(orientation.equals(EdgeOrientation.IN))
                 {
-                    int index = rng.nextInt(neighbours.size());
-                    neigh = neighbours.get(index);
-
-                    if(!alreadyVisited.contains(neigh))
-                        selected = true;
+                    return data.getGraph().getEdgeType(v, u) == SimulationEdgeTypes.RECOMMEND;
+                }
+                else if(orientation.equals(EdgeOrientation.OUT))
+                {
+                    return data.getGraph().getEdgeType(u, v) == SimulationEdgeTypes.RECOMMEND;
                 }
                 else
                 {
-                    neigh = null;
-                    selected = true;
+                    return (data.getGraph().containsEdge(u, v) && data.getGraph().getEdgeType(u,v) == SimulationEdgeTypes.RECOMMEND) ||
+                           (data.getGraph().containsEdge(v, u) && data.getGraph().getEdgeType(v,u) == SimulationEdgeTypes.RECOMMEND);
                 }
+            }).collect(Collectors.toCollection(ArrayList::new));
+
+            // Then, we obtain the already visited.
+            List<U> alreadyVisited = lastIterations.containsKey(u) ? lastIterations.get(u) : new ArrayList<>();
+            U neigh;
+
+            // Select the neighbour
+            // First, we get which neighbors we can choose from:
+            List<U> actualNeighs = new ArrayList<>();
+            for(U v : neighbours)
+            {
+                if(!alreadyVisited.contains(v)) actualNeighs.add(v);
             }
-            while(!selected);
+
+            if(actualNeighs.size() > 0) // if there are enough neighbors to choose from:
+            {
+                int index = rng.nextInt(neighbours.size());
+                neigh = neighbours.get(index);
+            }
+            else // otherwise, we do not choose a neighbor, and we exit the loop:
+            {
+                neigh = null;
+            }
             
             if(neigh != null)
             {
@@ -112,21 +139,30 @@ public class PullPushStrategyPureRecommenderPropagationMechanism<U extends Seria
                 if(!propagationList.get(u).contains(neigh))
                     propagationList.get(u).add(neigh);
 
-                alreadyVisited.add(0, neigh);
+                alreadyVisited.add(neigh);
+            }
+            else
+            {
+                alreadyVisited.add(null);
             }
             
             // Prune the list
-            int maxSize = Math.min(this.waitTime, neighbours.size());
-            if(alreadyVisited.size() > maxSize)
+            if(alreadyVisited.size() > waitTime)
             {
-                alreadyVisited.subList(maxSize, alreadyVisited.size()).clear();
+                alreadyVisited.remove(0);
+            }
+
+            if(!this.lastIterations.containsKey(u))
+            {
+                this.lastIterations.put(u, alreadyVisited);
             }
         });
         
     }
 
     @Override
-    public boolean dependsOnInformationPiece() {
+    public boolean dependsOnInformationPiece()
+    {
         return false;
     }
 }

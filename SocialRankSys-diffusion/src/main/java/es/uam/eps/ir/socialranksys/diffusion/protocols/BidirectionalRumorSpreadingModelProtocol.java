@@ -11,8 +11,8 @@ package es.uam.eps.ir.socialranksys.diffusion.protocols;
 import es.uam.eps.ir.socialranksys.diffusion.expiration.AllNotPropagatedExpirationMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.propagation.PullPushStrategyPropagationMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.selections.CountSelectionMechanism;
-import es.uam.eps.ir.socialranksys.diffusion.sight.AllSightMechanism;
-import es.uam.eps.ir.socialranksys.diffusion.update.IndependentCascadeModelUpdateMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.sight.AllNotPropagatedSightMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.update.NewestUpdateMechanism;
 import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 
 import java.io.Serializable;
@@ -25,26 +25,26 @@ import java.io.Serializable;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public class BidirectionalRumorSpreadingModelProtocol<U extends Serializable,I extends Serializable,P> extends Protocol<U,I,P>
+public class BidirectionalRumorSpreadingModelProtocol<U extends Serializable,I extends Serializable, F> extends Protocol<U,I, F>
 {
 
     /**
      * Constructor.
-     * @param numOwn Number of own pieces of information to spread every iteration.
-     * @param numRec Number of received pieces of information to spread every iteration.
-     * @param waitTime Number of iterations before a user can be revisited.
+     * @param numOwn    number of own pieces of information to spread every iteration.
+     * @param numRec    number of received pieces of information to spread every iteration.
+     * @param waitTime  number of iterations before a user can be revisited.
      */
     public BidirectionalRumorSpreadingModelProtocol(int numOwn, int numRec, int waitTime)
     {
         super(  new CountSelectionMechanism<>(numOwn, numRec),
                 new AllNotPropagatedExpirationMechanism<>(),
-                new IndependentCascadeModelUpdateMechanism(),
+                new NewestUpdateMechanism(),
                 new PullPushStrategyPropagationMechanism<>(waitTime, EdgeOrientation.UND),
-                new AllSightMechanism<>());
+                new AllNotPropagatedSightMechanism<>());
     }
     
 }

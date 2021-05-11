@@ -14,13 +14,18 @@ import es.uam.eps.ir.socialranksys.diffusion.protocols.ThresholdModelProtocol;
 import java.io.Serializable;
 
 /**
- * Configures a Threshold model protocol
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * Configures a protocol in which propagates the received information if a large enough fraction of neighbors send the same piece to him/her.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
+ *
+ * @see ThresholdModelProtocol
  */
-public class ThresholdModelConfigurator<U extends Serializable,I extends Serializable,P> implements ProtocolConfigurator<U,I,P> 
+public class ThresholdModelConfigurator<U extends Serializable,I extends Serializable, F> implements ProtocolConfigurator<U,I, F>
 {
     /**
      * Identifier for the number of own pieces to propagate each iteration
@@ -36,7 +41,7 @@ public class ThresholdModelConfigurator<U extends Serializable,I extends Seriali
     private final static String THRESHOLD = "threshold";
 
     @Override
-    public Protocol<U, I, P> configure(ProtocolParamReader params)
+    public Protocol<U, I, F> configure(YAMLProtocolParameterReader params)
     {
         int numOwn = params.getParams().getIntegerValue(NUMOWN);
         int numRec = params.getParams().getIntegerValue(NUMREC);

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,10 +9,10 @@
 package es.uam.eps.ir.socialranksys.grid.diffusion.filter;
 
 /**
- * Identifiers for the different contact preconfigured propagation protocols available in 
- * the library
- * @author Javier Sanz-Cruzado Puig
-
+ * Identifiers for the different data filters for information diffusion which are available in
+ * the framework.
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class FilterIdentifiers 
 {

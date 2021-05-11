@@ -33,26 +33,26 @@ import java.util.stream.IntStream;
  * @author Pablo Castells (pablo.castells@uam.es)
  *
  * @param <U> type of the users.
- * @param <I> type of the items.
- * @param <P> type of hte parameters.
+ * @param <I> type of the information pieces.
+ * @param <F> type of the user and information pieces features.
  */
-public abstract class AbstractDataFilter<U extends Serializable,I extends Serializable,P> implements DataFilter<U,I,P>
+public abstract class AbstractDataFilter<U extends Serializable,I extends Serializable, F> implements DataFilter<U,I, F>
 {
 
     @Override
-    public Data<U,I,P> filter(Data<U,I,P> fullData)
+    public Data<U,I, F> filter(Data<U,I, F> fullData)
     {
         Index<U> userIndex = this.filterUsers(fullData);
         Index<I> infoPiecesIndex = this.filterInfoPieces(fullData);
         Map<Integer, Information<I>> information = this.filterInformation(fullData, infoPiecesIndex);
         Graph<U> graph = this.filterGraph(fullData, userIndex);
         Relation<Integer> userInformation = this.filterUserInformation(fullData, userIndex, infoPiecesIndex);
-        Map<String, Index<P>> parameters = new HashMap<>();
+        Map<String, Index<F>> parameters = new HashMap<>();
         List<String> userParameters = new ArrayList<>();
         Map<String, Relation<Double>> userRelation = new HashMap<>();
         for(String name : fullData.getUserFeatureNames())
         {
-            Index<P> pIndex = this.filterParameters(fullData, name, infoPiecesIndex);
+            Index<F> pIndex = this.filterParameters(fullData, name, infoPiecesIndex);
             parameters.put(name, pIndex);
             userParameters.add(name);
             
@@ -63,7 +63,7 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
         Map<String, Relation<Double>> infoRelation = new HashMap<>();
         for(String name : fullData.getInfoPiecesFeatureNames())
         {
-            Index<P> pIndex = this.filterParameters(fullData, name, infoPiecesIndex);
+            Index<F> pIndex = this.filterParameters(fullData, name, infoPiecesIndex);
             parameters.put(name, pIndex);
             infoParameters.add(name);
             
@@ -81,14 +81,14 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
      * @param data the original data.
      * @return the filtered index.
      */
-    protected abstract Index<U> filterUsers(Data<U,I,P> data);
+    protected abstract Index<U> filterUsers(Data<U,I, F> data);
     
     /**
      * Filters the set of information pieces.
      * @param data the original data.
      * @return the filtered index.
      */
-    protected abstract Index<I> filterInfoPieces(Data<U,I,P> data);
+    protected abstract Index<I> filterInfoPieces(Data<U,I, F> data);
   
     /**
      * Filters the set of feature values
@@ -97,7 +97,7 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
      * @param iIndex the filtered index of information pieces.
      * @return the filtered index.
      */
-    protected abstract Index<P> filterParameters(Data<U,I,P> data, String name, Index<I> iIndex);
+    protected abstract Index<F> filterParameters(Data<U,I, F> data, String name, Index<I> iIndex);
 
     /**
      * Obtains the filtered graph.
@@ -105,7 +105,7 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
      * @param index the user index.
      * @return the filtered graph.
      */
-    protected Graph<U> filterGraph(Data<U,I,P> data, Index<U> index)
+    protected Graph<U> filterGraph(Data<U,I, F> data, Index<U> index)
     {
         try 
         {
@@ -143,7 +143,7 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
      * @param infoPiecesIndex the filtered information pieces index.
      * @return the expanded information for the filtered data.
      */
-    protected Map<Integer, Information<I>> filterInformation(Data<U, I, P> fullData, Index<I> infoPiecesIndex) 
+    protected Map<Integer, Information<I>> filterInformation(Data<U, I, F> fullData, Index<I> infoPiecesIndex)
     {
         Map<Integer, Information<I>> information = new HashMap<>();
         infoPiecesIndex.getAllObjects().forEach(i -> 
@@ -166,7 +166,7 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
      * @param pIndex the filtered parameter index.
      * @return the filtered relation.
      */
-    protected Relation<Double> filterUserParameterRelation(Data<U, I, P> fullData, String name, Index<U> userIndex, Index<P> pIndex) 
+    protected Relation<Double> filterUserParameterRelation(Data<U, I, F> fullData, String name, Index<U> userIndex, Index<F> pIndex)
     {
         Relation<Double> relation = new FastWeightedPairwiseRelation<>();
         
@@ -197,7 +197,7 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
      * @param pIndex the filtered parameter index.
      * @return the filtered relation.
      */
-    protected Relation<Double> filterInfoParameterRelation(Data<U, I, P> fullData, String name, Index<I> infoPiecesIndex, Index<P> pIndex) 
+    protected Relation<Double> filterInfoParameterRelation(Data<U, I, F> fullData, String name, Index<I> infoPiecesIndex, Index<F> pIndex)
     {
         Relation<Double> relation = new FastWeightedPairwiseRelation<>();
         
@@ -227,7 +227,7 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
      * @param infoPiecesIndex the filtered information pieces index.
      * @return the filtered relation.
      */
-    protected Relation<Integer> filterUserInformation(Data<U, I, P> fullData, Index<U> userIndex, Index<I> infoPiecesIndex) 
+    protected Relation<Integer> filterUserInformation(Data<U, I, F> fullData, Index<U> userIndex, Index<I> infoPiecesIndex)
     {
         Relation<Integer> relation = new FastWeightedPairwiseRelation<>();
         IntStream.range(0, userIndex.numObjects()).forEach(relation::addFirstItem);
@@ -256,7 +256,7 @@ public abstract class AbstractDataFilter<U extends Serializable,I extends Serial
      * @param infoPiecesIndex the filtered information pieces index.
      * @return the filtered relation.
      */
-    protected Relation<Long> filterRealPropagatedRelation(Data<U, I, P> fullData, Index<U> userIndex, Index<I> infoPiecesIndex) 
+    protected Relation<Long> filterRealPropagatedRelation(Data<U, I, F> fullData, Index<U> userIndex, Index<I> infoPiecesIndex)
     {
         Relation<Long> relation = new FastWeightedPairwiseRelation<>();
         IntStream.range(0, userIndex.numObjects()).forEach(relation::addFirstItem);

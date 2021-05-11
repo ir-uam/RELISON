@@ -9,6 +9,7 @@
  */
 package es.uam.eps.ir.socialranksys;
 
+import com.esotericsoftware.yamlbeans.YamlReader;
 import es.uam.eps.ir.ranksys.metrics.SystemMetric;
 import es.uam.eps.ir.ranksys.rec.Recommender;
 import es.uam.eps.ir.ranksys.rec.runner.RecommenderRunner;
@@ -17,10 +18,7 @@ import org.ranksys.formats.parsing.Parsers;
 import org.ranksys.formats.rec.RecommendationFormat;
 import org.ranksys.formats.rec.SimpleRecommendationFormat;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -33,6 +31,13 @@ import java.util.*;
  */
 public class AuxiliarMethods
 {
+
+    public static Map<String, Object> readYAML(String file) throws IOException
+    {
+        Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+        YamlReader yamlReader = new YamlReader(reader);
+        return (Map<String, Object>) yamlReader.read();
+    }
 
     /**
      * Computes a recommendation and evaluates it using nDCG metric.

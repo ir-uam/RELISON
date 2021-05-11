@@ -9,10 +9,11 @@
 package es.uam.eps.ir.socialranksys.diffusion.protocols;
 
 import es.uam.eps.ir.socialranksys.diffusion.expiration.AllNotPropagatedExpirationMechanism;
-import es.uam.eps.ir.socialranksys.diffusion.propagation.AllFollowersPropagationMechanism;
-import es.uam.eps.ir.socialranksys.diffusion.selections.ThresholdSelectionMechanism;
-import es.uam.eps.ir.socialranksys.diffusion.sight.AllSightMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.propagation.AllNeighborsPropagationMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.selections.LimitedProportionThresholdSelectionMechanism;
+import es.uam.eps.ir.socialranksys.diffusion.sight.AllNotPropagatedSightMechanism;
 import es.uam.eps.ir.socialranksys.diffusion.update.OlderUpdateMechanism;
+import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 
 import java.io.Serializable;
 
@@ -42,23 +43,23 @@ import java.io.Serializable;
  *
  * @param <U> Type of the users.
  * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <F> Type of the parameters.
  */
-public class ThresholdModelProtocol<U extends Serializable,I extends Serializable,P> extends Protocol<U,I,P>
+public class ThresholdModelProtocol<U extends Serializable,I extends Serializable, F> extends Protocol<U,I, F>
 {
     /**
      * Constructor.
-     * @param numOwn Number of own pieces to propagate each iteration.
-     * @param numRec Number of pieces to repropagate.
-     * @param threshold Threshold that has to be surpassed.
+     * @param numOwn    number of own pieces to propagate each iteration.
+     * @param numRec    number of pieces to repropagate.
+     * @param threshold threshold that has to be surpassed.
      */
     public ThresholdModelProtocol(int numOwn, int numRec, double threshold) 
     {
-        super(new ThresholdSelectionMechanism<>(numOwn, numRec, threshold),
+        super(new LimitedProportionThresholdSelectionMechanism<>(numOwn, numRec, threshold, EdgeOrientation.OUT),
               new AllNotPropagatedExpirationMechanism<>(),
               new OlderUpdateMechanism(),
-              new AllFollowersPropagationMechanism<>(),
-              new AllSightMechanism<>());
+              new AllNeighborsPropagationMechanism<>(EdgeOrientation.IN),
+              new AllNotPropagatedSightMechanism<>());
     }
     
 }

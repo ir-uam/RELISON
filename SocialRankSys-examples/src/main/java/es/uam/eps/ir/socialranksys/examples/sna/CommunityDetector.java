@@ -8,17 +8,20 @@
  */
 package es.uam.eps.ir.socialranksys.examples.sna;
 
+import es.uam.eps.ir.socialranksys.AuxiliarMethods;
 import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.socialranksys.community.io.TextCommunitiesWriter;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.grid.community.CommunityDetectionSelector;
-import es.uam.eps.ir.socialranksys.grid.community.YAMLCommunityDetectionParamReader;
+import es.uam.eps.ir.socialranksys.grid.community.YAMLCommunityDetectionParametersReader;
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.io.graph.TextMultiGraphReader;
 import org.jooq.lambda.tuple.Tuple2;
 import org.ranksys.formats.parsing.Parsers;
 
+import java.io.IOException;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import static es.uam.eps.ir.socialranksys.examples.AuxiliarVariables.FALSE;
@@ -45,7 +48,7 @@ public class CommunityDetector
      *                  <li><b>Output:</b> Directory in which to store the communities.</li>
      *             </ol>
      */
-    public static void main(String[] args)
+    public static void main(String[] args) throws IOException
     {
         // Read the parameters.
         if(args.length < 7)
@@ -84,8 +87,9 @@ public class CommunityDetector
         Graph<Long> graph = greader.read(graphRoute, weighted, false);
 
         // Grid Reader
-        YAMLCommunityDetectionParamReader cdReader = new YAMLCommunityDetectionParamReader(grid);
-        cdReader.readDocument();
+        YAMLCommunityDetectionParametersReader cdReader = new YAMLCommunityDetectionParametersReader();
+        Map<String, Object> yamlMap = AuxiliarMethods.readYAML(grid);
+        cdReader.read(yamlMap);
 
         // Execute the community detection algorithms.
         System.out.println("Starting community detection");

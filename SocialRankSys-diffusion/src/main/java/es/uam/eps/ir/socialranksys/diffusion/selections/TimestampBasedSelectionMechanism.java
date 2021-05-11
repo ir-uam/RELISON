@@ -8,7 +8,6 @@
  */
 package es.uam.eps.ir.socialranksys.diffusion.selections;
 
-
 import es.uam.eps.ir.socialranksys.diffusion.data.Data;
 import es.uam.eps.ir.socialranksys.diffusion.data.PropagatedInformation;
 import es.uam.eps.ir.socialranksys.diffusion.simulation.SimulationState;
@@ -26,9 +25,9 @@ import java.util.List;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <P> type of the parameters.
  */
 public abstract class TimestampBasedSelectionMechanism<U extends Serializable, I extends Serializable, P> extends AbstractSelectionMechanism<U,I,P>  
 {
