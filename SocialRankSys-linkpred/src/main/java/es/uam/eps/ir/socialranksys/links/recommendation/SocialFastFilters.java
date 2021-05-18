@@ -9,8 +9,11 @@
  */
 package es.uam.eps.ir.socialranksys.links.recommendation;
 
+import es.uam.eps.ir.socialranksys.graph.Adapters;
+import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.links.data.GraphIndex;
+import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
 
 import java.util.function.Function;
 import java.util.function.IntPredicate;
@@ -30,13 +33,12 @@ public class SocialFastFilters
      *
      * @param <U>        type of the users.
      * @param trainGraph the original graph.
-     * @param gindex     the graph index.
      *
      * @return the filter.
      */
-    public static <U> Function<U, IntPredicate> notInTrain(FastGraph<U> trainGraph, GraphIndex<U> gindex)
+    public static <U> Function<U, IntPredicate> notInTrain(FastGraph<U> trainGraph)
     {
-        return uidx -> iidx -> !trainGraph.containsEdge(uidx, gindex.uidx2user(iidx));
+        return uidx -> iidx -> !trainGraph.containsEdge(uidx, trainGraph.getIndex().idx2object(iidx));
     }
 
     /**
@@ -92,5 +94,33 @@ public class SocialFastFilters
     public static <U> Function<U, IntPredicate> onlyFollowedUsers(FastGraph<U> trainGraph)
     {
         return uidx -> iidx -> trainGraph.getIncidentEdgesCount(trainGraph.getIndex().idx2object(iidx)) > 0;
+    }
+
+    /**
+     * Prevents recommenders from recommending links to nodes farther than a given distance from the target
+     * user.
+     * @param trainGraph    the training network.
+     * @param directed      true if we want to limit distance based on directed (true) or undirected (false) links.
+     * @param maxDistance   the maximum possible distance.
+     * @param <U>           the type of the users.
+     * @return the filter.
+     */
+    public static <U> Function<U, IntPredicate> limitedDistance(FastGraph<U> trainGraph, boolean directed, int maxDistance)
+    {
+        if(maxDistance < 0) return uidx -> iidx -> true;
+
+        FastDistanceCalculator<U> distanceCalculator = new FastDistanceCalculator<>();
+        Graph<U> aux;
+        if(!directed && trainGraph.isDirected())
+        {
+            aux = Adapters.undirected(trainGraph);
+        }
+        else
+        {
+            aux = trainGraph;
+        }
+        distanceCalculator.computeDistances(aux);
+
+        return uidx -> iidx -> distanceCalculator.getDistances(uidx, trainGraph.getIndex().idx2object(iidx)) <= maxDistance;
     }
 }

@@ -41,8 +41,8 @@ public class RecommenderIndividualSampler<U> extends AbstractIndividualSampler<U
     /**
      * Constructor.
      * @param graph the graph.
-     * @param rec a recommendation algorithm.
-     * @param k the cutoff of the recommendation.
+     * @param rec   a recommendation algorithm.
+     * @param k     the cutoff of the recommendation.
      */
     public RecommenderIndividualSampler(Graph<U> graph, Recommender<U,U> rec, int k)
     {

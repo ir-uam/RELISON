@@ -29,20 +29,20 @@ public class WekaInstanceTranslator<U>
 {
     /**
      * Translates an InstanceSet to a WekaInstanceSet.
-     * @param patternSet the original pattern set.
-     * @param name the name of the dataset (ex: train/test).
+     * @param instanceSet   the original instance set.
+     * @param name          the name of the dataset (ex: train/test).
      * @return the Weka pattern set.
      */
-    public WekaInstanceSet<U> toWeka(InstanceSet<U> patternSet, String name)
+    public WekaInstanceSet<U> toWeka(InstanceSet<U> instanceSet, String name)
     {
-        FastVector attributes = translateFeatureInfo(patternSet);
+        FastVector attributes = translateFeatureInfo(instanceSet);
         WekaInstanceSet<U> wekaSet = new WekaInstanceSet<>(attributes, name);
         
-        patternSet.getAllInstances().forEach(pattern -> 
+        instanceSet.getAllInstances().forEach(pattern ->
         {
             U u = pattern.getOrigin();
             U v = pattern.getDest();
-            weka.core.Instance instance = this.translateInstance(pattern, patternSet.getFeatInfo(), wekaSet);
+            weka.core.Instance instance = this.translateInstance(pattern, instanceSet.getFeatInfo(), wekaSet);
             wekaSet.addInstance(u,v,instance);
         });
         
@@ -53,13 +53,13 @@ public class WekaInstanceTranslator<U>
      * Given the feature information in a given InstanceSet, translates it into an object
      * containing such feature information for its use by Weka.
      *
-     * @param patternSet the original pattern set.
+     * @param instanceSet the original instance set.
      * @return the Weka feature information.
      */
-    private FastVector translateFeatureInfo(InstanceSet<U> patternSet)
+    private FastVector translateFeatureInfo(InstanceSet<U> instanceSet)
     {
         FastVector attributes = new FastVector();
-        FeatureInformation featInfo = patternSet.getFeatInfo();
+        FeatureInformation featInfo = instanceSet.getFeatInfo();
         List<String> descr = featInfo.getFeatureDescriptions();
         List<FeatureType> types = featInfo.getFeatureTypes();
         List<FastVector> nominalAttrs = new ArrayList<>();
@@ -87,7 +87,7 @@ public class WekaInstanceTranslator<U>
         }
         
         // Add the information about classes.
-        Set<Integer> classes = patternSet.getClasses();
+        Set<Integer> classes = instanceSet.getClasses();
         FastVector classVector = new FastVector();
         for(int cat : classes)
         {

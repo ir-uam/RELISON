@@ -198,8 +198,8 @@ public class InstancePostfixExLinkPredictor<U> extends AbstractLinkPredictor<U>
     }
 
     @Override
-    public List<Tuple2od<Pair<U>>> getPrediction(int maxLength, Predicate<Pair<U>> filter)
+    public Prediction<U> getPrediction(int maxLength, Predicate<Pair<U>> filter)
     {
-        return this.results.stream().filter(tuple -> filter.test(tuple.v1)).limit(maxLength).collect(Collectors.toList());
+        return new Prediction<>(this.results.stream().filter(tuple -> filter.test(tuple.v1)).limit(maxLength).collect(Collectors.toList()));
     }
 }

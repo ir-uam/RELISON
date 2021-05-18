@@ -160,5 +160,19 @@ public class WekaInstanceSet<U>
         }
         return map;
     }
+
+    /**
+     * Obtains a relationship between pairs of users and instances.
+     * @return the relationship between pairs of users and instances.
+     */
+    public Map<Pair<U>, Integer> getInstanceMap()
+    {
+        Map<Pair<U>, Integer> map = new HashMap<>();
+        for(int i = 0; i < users.size(); ++i)
+        {
+            map.put(users.get(i), i);
+        }
+        return map;
+    }
     
 }

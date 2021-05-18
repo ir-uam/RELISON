@@ -40,8 +40,8 @@ public class DistanceTwoIndividualSampler<U> extends AbstractIndividualSampler<U
     /**
      * Constructor.
      * @param graph the graph.
-     * @param uSel edge orientation for the neighbors of the origin node.
-     * @param vSel edge orientation for the neighbors of the selected nodes.
+     * @param uSel  edge orientation for the neighbors of the origin node.
+     * @param vSel  edge orientation for the neighbors of the selected nodes.
      */
     public DistanceTwoIndividualSampler(Graph<U> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {

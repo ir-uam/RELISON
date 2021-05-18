@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * Class that represents a Machine Learning dataset for link prediction / contact
+ * Class that represents a machine learning dataset for link prediction / contact
  * recommendation.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
@@ -71,10 +71,10 @@ public class InstanceSet<U>
     
     /**
      * Constructor.
-     * @param featuresInfo information about the features.
-     * @param patterns a list of patterns.
+     * @param featuresInfo  information about the features.
+     * @param instances     a list of instances.
      */
-    public InstanceSet(FeatureInformation featuresInfo, Stream<Instance<U>> patterns)
+    public InstanceSet(FeatureInformation featuresInfo, Stream<Instance<U>> instances)
     {
         this.featuresInfo = featuresInfo;
         this.originInstances = new HashMap<>();
@@ -82,7 +82,7 @@ public class InstanceSet<U>
         this.classes = new HashSet<>();
         this.size = 0;
         int numFeats = featuresInfo.numFeats();
-        patterns.forEach(pat -> 
+        instances.forEach(pat ->
         {
             U u = pat.getOrigin();
             U v = pat.getDest();
@@ -109,16 +109,16 @@ public class InstanceSet<U>
      * Constructor.
      * @param featureNames names of the features.
      * @param featureTypes types of the features.
-     * @param patterns a list of patterns.
+     * @param instances    a list of instances.
      */
-    public InstanceSet(List<String> featureNames, List<FeatureType> featureTypes, Stream<Instance<U>> patterns)
+    public InstanceSet(List<String> featureNames, List<FeatureType> featureTypes, Stream<Instance<U>> instances)
     {
-        this(new FeatureInformation(featureNames, featureTypes), patterns);
+        this(new FeatureInformation(featureNames, featureTypes), instances);
     }
     
     /**
-     * Obtain the whole set of patterns.
-     * @return a stream with all the patterns.
+     * Obtain the whole set of instances.
+     * @return a stream with all the instances.
      */
     public Stream<Instance<U>> getAllInstances()
     {
@@ -128,9 +128,9 @@ public class InstanceSet<U>
     }
     
     /**
-     * Obtain the set of patterns for a user (as edge origin).
+     * Obtain the set of instances for a user (as edge origin).
      * @param u the user.
-     * @return the set of patterns for the user.
+     * @return the set of instances for the user.
      */
     public Stream<Instance<U>> getAllInstancesWithOrigin(U u)
     {
@@ -140,9 +140,9 @@ public class InstanceSet<U>
     }
     
     /**
-     * Obtain the set of patterns for a user (as edge destination).
+     * Obtain the set of instances for a user (as edge destination).
      * @param v the user.
-     * @return the set of patterns for the user.
+     * @return the set of instances for the user.
      */
     public Stream<Instance<U>> getAllInstancesWithDest(U v)
     {
@@ -152,10 +152,10 @@ public class InstanceSet<U>
     }
     
     /**
-     * Gets an individual pattern (if it exists).
+     * Gets an individual instance (if it exists).
      * @param u the origin user.
      * @param v the destination user.
-     * @return the pattern if it exists, an empty object otherwise.
+     * @return the instance if it exists, an empty object otherwise.
      */
     public Optional<Instance<U>> getInstance(U u, U v)
     {
@@ -170,27 +170,27 @@ public class InstanceSet<U>
     }
     
     /**
-     * Adds a pattern to the set.
-     * @param pat the pattern.
+     * Adds an instance to the set.
+     * @param instance the instance.
      */
-    public void addInstance(Instance<U> pat)
+    public void addInstance(Instance<U> instance)
     {
-        U u = pat.getOrigin();
-        U v = pat.getDest();
+        U u = instance.getOrigin();
+        U v = instance.getDest();
         
         if(!this.originInstances.containsKey(u))
         {
             this.originInstances.put(u, new HashMap<>());
         }
-        this.originInstances.get(u).put(v, pat);
+        this.originInstances.get(u).put(v, instance);
 
         if(!this.destInstances.containsKey(v))
         {
             this.destInstances.put(v, new HashMap<>());
         }
-        this.destInstances.get(v).put(u, pat);
-        this.classes.add(pat.getCategory());
-        this.featuresInfo.updateStats(pat);
+        this.destInstances.get(v).put(u, instance);
+        this.classes.add(instance.getCategory());
+        this.featuresInfo.updateStats(instance);
         this.size++;
     }
     

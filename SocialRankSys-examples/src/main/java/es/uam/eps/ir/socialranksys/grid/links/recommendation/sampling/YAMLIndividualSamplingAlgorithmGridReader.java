@@ -8,11 +8,9 @@
  */
 package es.uam.eps.ir.socialranksys.grid.links.recommendation.sampling;
 
-import com.esotericsoftware.yamlbeans.YamlReader;
 import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.grid.YAMLParametersReader;
 
-import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -45,27 +43,15 @@ public class YAMLIndividualSamplingAlgorithmGridReader extends YAMLParametersRea
     
     /**
      * Reads a YAML document containing a grid.
-     * @param file the YAML file.
+     * @param map a map containing the grid information.
      */
-    public void readDocument(String file)
+    public void read(Map<String, Object> map)
     {
-        try
-        {
-            File inputFile = new File(file);
-            Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
-            YamlReader yaml = new YamlReader(reader);
+        Map<String, Object> algs = (Map<String, Object>) map.get(SAMPLERS);
 
-            Map<String, Object> map = (Map<String, Object>) yaml.read();
-            Map<String, Object> algs = (Map<String, Object>) map.get(SAMPLERS);
-
-            for(Map.Entry<String, Object> entry : algs.entrySet())
-            {
-                this.readIndividualSamplingAlgorithm(entry);
-            }
-        }
-        catch (IOException ex)
+        for(Map.Entry<String, Object> entry : algs.entrySet())
         {
-            ex.printStackTrace();
+            this.readIndividualSamplingAlgorithm(entry);
         }
     }
     

@@ -15,6 +15,10 @@ import es.uam.eps.ir.socialranksys.graph.generator.GraphCloneGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
+import es.uam.eps.ir.socialranksys.index.Index;
+
+import java.util.function.Function;
+import java.util.function.IntPredicate;
 
 /**
  * Methods for filtering the users and edges from a graph.
@@ -196,6 +200,43 @@ public class Adapters
             }
         }
         catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException ex)
+        {
+            return null;
+        }
+    }
+
+    /**
+     * Given a filter, it applies it to the edges in the graph.
+     * @param graph     the original network.
+     * @param filter    the filter to apply.
+     * @param <U>       the type of the users.
+     * @return the filtered graph.
+     */
+    public static <U> Graph<U> filteredGraph(Graph<U> graph, Function<U, IntPredicate> filter)
+    {
+        try
+        {
+            GraphGenerator<U> ggen = new EmptyGraphGenerator<>();
+            ggen.configure(graph.isDirected(), graph.isWeighted());
+            Graph<U> auxGraph = ggen.generate();
+
+            graph.getAllNodes().forEach(auxGraph::addNode);
+
+            Index<U> index = graph.getAdjacencyMatrixMap();
+            graph.getNodesWithAdjacentEdges().forEach(u ->
+            {
+                IntPredicate pred = filter.apply(u);
+                graph.getAdjacentNodes(u).filter(v -> pred.test(index.object2idx(v))).forEach(v ->
+                {
+                    double weight = graph.getEdgeWeight(u,v);
+                    int type = graph.getEdgeType(u, v);
+                    auxGraph.addEdge(u,v,weight,type);
+                });
+            });
+
+            return auxGraph;
+        }
+        catch(GeneratorNotConfiguredException | GeneratorBadConfiguredException ex)
         {
             return null;
         }

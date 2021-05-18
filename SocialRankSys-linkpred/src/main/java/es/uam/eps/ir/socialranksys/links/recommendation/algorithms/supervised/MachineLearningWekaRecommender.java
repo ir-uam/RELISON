@@ -9,16 +9,24 @@
 package es.uam.eps.ir.socialranksys.links.recommendation.algorithms.supervised;
 
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
+import es.uam.eps.ir.socialranksys.links.data.letor.InstanceSet;
+import es.uam.eps.ir.socialranksys.links.data.letor.io.InstanceSetReader;
+import es.uam.eps.ir.socialranksys.links.data.letor.io.LETORInstanceReader;
+import es.uam.eps.ir.socialranksys.links.data.ml.weka.WekaInstanceReader;
+import es.uam.eps.ir.socialranksys.links.data.ml.weka.WekaInstanceSet;
+import es.uam.eps.ir.socialranksys.links.data.ml.weka.WekaInstanceTranslator;
 import es.uam.eps.ir.socialranksys.links.recommendation.UserFastRankingRecommender;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
+import org.ranksys.formats.parsing.Parser;
 import weka.classifiers.Classifier;
 import weka.core.Attribute;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 
+import java.io.IOException;
 import java.util.Map;
 
 import static es.uam.eps.ir.socialranksys.links.data.ml.MLConstants.POSITIVECLASS;
@@ -51,7 +59,80 @@ public class MachineLearningWekaRecommender<U> extends UserFastRankingRecommende
      * The list of attributes.
      */
     private final FastVector attributes;
-    
+
+    /**
+     * Constructor. Reads the instances from three Weka files: a training set, a test set and a feature data file.
+     * @param graph             the training network.
+     * @param classifier        the classifier to apply.
+     * @param trainInstances    a file containing the training instances.
+     * @param testInstances     a file containing the test instances.
+     * @param featureData       a file containing the feature information.
+     * @param parser            the user parser.
+     * @throws IOException      if something fails while reading the files.
+     */
+    public MachineLearningWekaRecommender(FastGraph<U> graph, Classifier classifier, String trainInstances, String testInstances, String featureData, Parser<U> parser) throws IOException
+    {
+        super(graph);
+
+        WekaInstanceReader<U> reader = new WekaInstanceReader<>();
+        reader.readFeatures(featureData);
+        reader.readTrain(trainInstances);
+        reader.readTest(testInstances, parser);
+
+        Instances trainSet = reader.getTrainSet();
+        this.testSet = reader.getTestSet();
+        this.attributes = reader.getFVAttributes();
+        this.relation = reader.getInstanceIndexer();
+        this.classifier = classifier;
+
+        try
+        {
+            this.classifier.buildClassifier(trainSet);
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+        }
+    }
+
+    /**
+     * Constructor. Reads the instances from two files in the LETOR format.
+     * @param graph             the training network.
+     * @param classifier        the classifier to apply.
+     * @param trainInstances    a file containing the training instances.
+     * @param testInstances     a file containing the test instances.
+     * @param parser            the user parser.
+     * @throws IOException      if something fails while reading the files.
+     */
+    public MachineLearningWekaRecommender(FastGraph<U> graph, Classifier classifier, String trainInstances, String testInstances, Parser<U> parser) throws IOException
+    {
+        super(graph);
+
+        InstanceSetReader<U> reader = new LETORInstanceReader<>(parser);
+        InstanceSet<U> train = reader.read(trainInstances);
+        InstanceSet<U> test = reader.read(testInstances);
+
+        WekaInstanceTranslator<U> translator = new WekaInstanceTranslator<>();
+        WekaInstanceSet<U> wekaTrain = translator.toWeka(train, "train");
+        WekaInstanceSet<U> wekaTest = translator.toWeka(test, "test");
+
+        Instances trainSet = wekaTrain.getInstances();
+        this.testSet = wekaTest.getInstances();
+        this.attributes = wekaTest.getFeatures();
+        this.relation = wekaTest.getInstanceMap();
+        this.classifier = classifier;
+
+        try
+        {
+            this.classifier.buildClassifier(trainSet);
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+        }
+    }
+
+
     /**
      * Constructor
      * @param graph      the training graph.

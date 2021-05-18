@@ -30,11 +30,11 @@ public interface InstanceSetWriter<U>
 {
     /**
      * Writes a dataset into a file.
-     * @param file the name of the file.
-     * @param patternSet the pattern set to store.
-     * @throws IOException if something fails while writing.
+     * @param file          the name of the file.
+     * @param instanceSet   the instance set to store.
+     * @throws IOException  if something fails while writing.
      */
-    void write(String file, InstanceSet<U> patternSet) throws IOException;
+    void write(String file, InstanceSet<U> instanceSet) throws IOException;
     
     /**
      * Obtains an string with all the information about the features of a dataset.
@@ -45,24 +45,24 @@ public interface InstanceSetWriter<U>
 
     /**
      * Writes the feature information of a file.
-     * @param write the writer.
-     * @param featInfo feature information to write.
+     * @param write     the writer.
+     * @param featInfo  feature information to write.
      * @throws IOException if something fails while writing.
      */
     void write(Writer write, FeatureInformation featInfo) throws IOException;
 
     /**
      * Writes an individual instance into a file.
-     * @param write the writer.
-     * @param instance the instance to write.
+     * @param write     the writer.
+     * @param instance  the instance to write.
      * @throws IOException if something fails while writing.
      */
     void write(Writer write, Instance<U> instance) throws IOException;
     
     /**
-     * Obtains an string containing the information for a single pattern.
-     * @param pattern the pattern.
+     * Obtains an string containing the information for a single instance.
+     * @param instance the instance.
      * @return an string containing all the necessary information.
      */
-    String write(Instance<U> pattern);
+    String write(Instance<U> instance);
 }

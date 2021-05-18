@@ -57,7 +57,7 @@ public class RecommendationLinkPredictor<U> extends AbstractLinkPredictor<U>
     }
 
     @Override
-    public List<Tuple2od<Pair<U>>> getPrediction(int maxLength, Predicate<Pair<U>> filter)
+    public Prediction<U> getPrediction(int maxLength, Predicate<Pair<U>> filter)
     {  
         SortedSet<Tuple2od<Pair<U>>> auxSet = new TreeSet<>(this.getComparator());
         
@@ -76,6 +76,6 @@ public class RecommendationLinkPredictor<U> extends AbstractLinkPredictor<U>
                 vFilter.forEach(v -> auxSet.add(new Tuple2od<>(new Pair<>(u, v), Double.NEGATIVE_INFINITY))); // If some link does not appear in the recommendation.
         });
 
-        return auxSet.stream().limit(maxLength).collect(Collectors.toCollection(ArrayList::new));
+        return new Prediction<>(auxSet.stream().limit(maxLength).collect(Collectors.toCollection(ArrayList::new)));
     }    
 }

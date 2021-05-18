@@ -49,7 +49,7 @@ public class LambdaMARTRecommender<U> extends UserFastRankingRecommender<U>
      * The final recommendation scores.
      */
     private final Int2ObjectMap<Int2DoubleMap> scoresMaps;
-    
+
     /**
      * Constructor.
      * @param graph         the graph.

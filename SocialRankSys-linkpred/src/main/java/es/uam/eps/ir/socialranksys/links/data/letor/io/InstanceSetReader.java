@@ -17,21 +17,21 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Interface for reading a pattern set for link prediction / contact recommendation.
+ * Interface for reading an instance set for link prediction / contact recommendation.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  */
 public interface InstanceSetReader<U> 
 {
     /**
-     * Given a file, reads a pattern set.
+     * Given a file, reads an instance set.
      * @param file the file.
-     * @return the pattern set which has been read.
+     * @return the instance set which has been read.
      * @throws IOException if something fails while reading.
      */
     InstanceSet<U> read(String file) throws IOException;
@@ -45,10 +45,10 @@ public interface InstanceSetReader<U>
     FeatureInformation readHeader(List<String> header);
     
     /**
-     * Reads an individual pattern.
-     * @param line the line string containing the pattern.
+     * Reads an individual instance.
+     * @param line the line string containing the instance.
      * @param numFeats the number of features.
-     * @return the pattern.
+     * @return the instance.
      */
     Instance<U> readInstance(String line, int numFeats);
 }

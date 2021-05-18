@@ -58,28 +58,28 @@ public abstract class AbstractLinkPredictor<U> implements LinkPredictor<U>
     }
 
     @Override
-    public List<Tuple2od<Pair<U>>> getPrediction()
+    public Prediction<U> getPrediction()
     {
         return this.getPrediction(Integer.MAX_VALUE);
     }
 
     @Override
-    public List<Tuple2od<Pair<U>>> getPrediction(int maxLength)
+    public Prediction<U> getPrediction(int maxLength)
     {
         return this.getPrediction(maxLength, pair -> true);
     }
 
     @Override
-    public List<Tuple2od<Pair<U>>> getPrediction(Predicate<Pair<U>> filter)
+    public Prediction<U> getPrediction(Predicate<Pair<U>> filter)
     {
         return this.getPrediction(Integer.MAX_VALUE, filter);
     }
 
     @Override
-    public abstract List<Tuple2od<Pair<U>>> getPrediction(int maxLength, Predicate<Pair<U>> filter);
+    public abstract Prediction<U> getPrediction(int maxLength, Predicate<Pair<U>> filter);
 
     @Override
-    public List<Tuple2od<Pair<U>>> getPrediction(Stream<Pair<U>> candidates) {
+    public Prediction<U> getPrediction(Stream<Pair<U>> candidates) {
         Set<Pair<U>> pairs = candidates.collect(Collectors.toCollection(HashSet::new));
 
         return getPrediction(pairs::contains);
@@ -91,12 +91,12 @@ public abstract class AbstractLinkPredictor<U> implements LinkPredictor<U>
         Pair<U> pair = new Pair<>(u,v);
         List<Pair<U>> pairs = new ArrayList<>();
         pairs.add(pair);
-        
-        List<Tuple2od<Pair<U>>> pred = this.getPrediction(pairs.stream());
-        if(pred.isEmpty())
+
+        Prediction<U> pred = this.getPrediction(pairs.stream());
+        if(pred.getPrediction().isEmpty())
             return Double.NEGATIVE_INFINITY;
         else
-            return pred.get(0).v2;
+            return pred.getPrediction().get(0).v2;
     }
 
     /**

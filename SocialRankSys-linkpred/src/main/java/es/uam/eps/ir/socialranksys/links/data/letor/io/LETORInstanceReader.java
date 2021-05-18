@@ -82,9 +82,9 @@ public class LETORInstanceReader<U> implements InstanceSetReader<U>
 
     /**
      * Constructor.
-     * @param parser user parser.
-     * @param counter number of features.
-     * @param gen user identifier generator.
+     * @param parser    user parser.
+     * @param counter   number of features.
+     * @param gen       user identifier generator.
      */
     public LETORInstanceReader(Parser<U> parser, int counter, Generator<U> gen)
     {
@@ -179,10 +179,10 @@ public class LETORInstanceReader<U> implements InstanceSetReader<U>
  }
     
     /**
-     * Reads an individual pattern.
-     * @param line the line string containing the pattern.
-     * @param numFeats the number of features.
-     * @return the pattern.
+     * Reads an individual instance.
+     * @param line      the line string containing the instance.
+     * @param numFeats  the number of features.
+     * @return the instance.
      */
     @Override
     public Instance<U> readInstance(String line, int numFeats)

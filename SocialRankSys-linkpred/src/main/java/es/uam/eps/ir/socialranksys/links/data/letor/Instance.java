@@ -47,10 +47,10 @@ public class Instance<U>
     
     /**
      * Constructor.
-     * @param u origin user.
-     * @param v destination user.
-     * @param values List that contains the values of the attributes.
-     * @param category Class which the pattern belongs to..
+     * @param u         origin user.
+     * @param v         destination user.
+     * @param values    list that contains the values of the attributes.
+     * @param category  class which the pattern belongs to.
      */
     public Instance(U u, U v, List<Double> values, int category)
     {
@@ -62,9 +62,9 @@ public class Instance<U>
 
     /**
      * Constructor.This is useful if you do not want to assign a class to the pattern.
-     * @param u origin user.
-     * @param v destination user.
-     * @param values List that contains the values of the attributes.
+     * @param u         origin user.
+     * @param v         destination user.
+     * @param values    list that contains the values of the attributes.
      */
     public Instance(U u, U v, List<Double> values)
     {
@@ -82,7 +82,7 @@ public class Instance<U>
     
     /**
      * Gets the value for a certain attribute.
-     * @param attrId Index of the attribute
+     * @param attrId index of the attribute
      * @return the value of the attribute.
      */
     public double getValue(int attrId)

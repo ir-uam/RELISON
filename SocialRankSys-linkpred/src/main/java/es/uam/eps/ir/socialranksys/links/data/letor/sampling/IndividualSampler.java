@@ -20,14 +20,14 @@ import java.util.function.Predicate;
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  */
 public interface IndividualSampler<U> 
 {
     /**
      * Given a user, obtains the sample.
-     * @param u the parameter.
-     * @param filter a filter for the sample
+     * @param u         the parameter.
+     * @param filter    a filter for the sample
      * @return the set of sampled users, with their relevance / weight.
      */
     Set<U> sampleUsers(U u, Predicate<U> filter);

@@ -128,7 +128,7 @@ public class YAMLMetricConfigurationsReader extends YAMLConfigurationsReader
      * @param type      the type of metric.
      * @return the set of metrics of the given metric which have been retrieved.
      */
-    public Configurations getGrid(String metric, String type)
+    public Configurations getConfigurations(String metric, String type)
     {
         return this.metricsGrid.get(type).getOrDefault(metric, new Configurations());
     }

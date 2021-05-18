@@ -26,16 +26,16 @@ public interface Sampler<V>
 {   
     /**
      * Generates a subsample from a graph.
-     * @param fullGraph Graph from which we extract the subsample
-     * @param percentage Percentage of nodes/edges to extract (depending on the method)
+     * @param fullGraph     graph from which we extract the subsample.
+     * @param percentage    percentage of nodes/edges to extract (depending on the method).
      * @return the required subsample, or null if an error ocurred.
      */
     Graph<V> sample(Graph<V> fullGraph, double percentage);
     
     /**
      * Generates a subsample from a graph.
-     * @param fullGraph Graph from which we extract the subsample
-     * @param num The exact number of nodes/edges to extract
+     * @param fullGraph     graph from which we extract the subsample.
+     * @param num           the exact number of nodes/edges to extract.
      * @return the required subsample, or null if an error ocurred.
      */
     Graph<V> sample(Graph<V> fullGraph, int num);

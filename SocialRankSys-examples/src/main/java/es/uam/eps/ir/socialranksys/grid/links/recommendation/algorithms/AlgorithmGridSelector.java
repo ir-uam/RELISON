@@ -28,6 +28,8 @@ import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalo
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.pathbased.*;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.*;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.twitter.*;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.supervised.LambdaMARTGridSearch;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.supervised.WekaMLGridSearch;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
 import org.ranksys.formats.parsing.Parser;
 
@@ -290,6 +292,10 @@ public class AlgorithmGridSelector<U>
             // Content-based approaches
             case CENTROIDCB -> new CentroidCBGridSearch<>(uParser);
             case TWITTOMENDER -> new TwittomenderGridSearch<>(uParser);
+
+            // Supervised approaches:
+            case LAMBDAMART -> new LambdaMARTGridSearch<>(uParser);
+            case WEKA -> new WekaMLGridSearch<>(uParser);
 
             default -> null;
         };

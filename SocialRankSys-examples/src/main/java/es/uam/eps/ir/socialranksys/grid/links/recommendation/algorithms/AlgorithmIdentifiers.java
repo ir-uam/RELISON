@@ -89,4 +89,7 @@ public class AlgorithmIdentifiers
     public final static String CENTROIDCB = "centroidCB";
     public final static String TWITTOMENDER = "Twittomender";
 
+    // Supervised
+    public final static String LAMBDAMART = "lambdaMART";
+    public final static String WEKA = "Weka";
 }

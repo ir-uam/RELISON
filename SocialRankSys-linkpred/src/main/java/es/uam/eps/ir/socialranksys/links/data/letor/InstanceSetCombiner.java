@@ -21,7 +21,7 @@ import java.util.Optional;
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * 
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  */
 public class InstanceSetCombiner<U>
 {
@@ -29,10 +29,10 @@ public class InstanceSetCombiner<U>
      * Combines two instance sets. The combined set only contains instances which
      * are present in both sets, and share the same category.
      * 
-     * This approach just concatenates the patterns.
+     * This approach just concatenates the instances.
      * 
-     * @param first the first instance set.
-     * @param second the second instance set.
+     * @param first     the first instance set.
+     * @param second    the second instance set.
      * @return the combined instance set.
      */
     public InstanceSet<U> combine(InstanceSet<U> first, InstanceSet<U> second)
@@ -81,10 +81,10 @@ public class InstanceSetCombiner<U>
      * 
      * This approach selects a subset of the features for each instance.
      * 
-     * @param first the first instance set.
-     * @param firstFeats the indexes of the features to use from the first set.
-     * @param second the second instance set.
-     * @param secondFeats the indexes of the features to use from the second set.
+     * @param first         the first instance set.
+     * @param firstFeats    the indexes of the features to use from the first set.
+     * @param second        the second instance set.
+     * @param secondFeats   the indexes of the features to use from the second set.
      * @return the combined instance set.
      */
     public InstanceSet<U> combine(InstanceSet<U> first, List<Integer> firstFeats, InstanceSet<U> second, List<Integer> secondFeats)
@@ -136,8 +136,8 @@ public class InstanceSetCombiner<U>
     
     /**
      * Combines two instances.
-     * @param first the first instance.
-     * @param second the second instance.
+     * @param first     the first instance.
+     * @param second    the second instance.
      * @return the combined instance.
      */
     private Instance<U> combine(Instance<U> first, Instance<U> second)
@@ -156,10 +156,10 @@ public class InstanceSetCombiner<U>
 
     /**
      * Combines two instances.
-     * @param first the first instance.
-     * @param firstFeats the features to use from the first instance.
-     * @param second the second instance.
-     * @param secondFeats the features to use from the second instance.
+     * @param first         the first instance.
+     * @param firstFeats    the features to use from the first instance.
+     * @param second        the second instance.
+     * @param secondFeats   the features to use from the second instance.
      * @return the combined instance.
      */
     private Instance<U> combine(Instance<U> first, List<Integer> firstFeats, Instance<U> second, List<Integer> secondFeats)

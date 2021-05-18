@@ -8,14 +8,18 @@
  */
 package es.uam.eps.ir.socialranksys.grid.metrics.vertex;
 
+import es.uam.eps.ir.socialranksys.grid.Configurations;
 import es.uam.eps.ir.socialranksys.grid.Grid;
+import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.grid.metrics.graph.GraphMetricFunction;
 import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
 import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.graph.aggregate.AggregateVertexMetric;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -92,7 +96,38 @@ public class VertexMetricSelector<U>
             return gridsearch.grid(grid);
         return new HashMap<>();
     }
-    
+
+    /**
+     * Obtains the different variants of a given vertex metric depending on the
+     * parameters selected in a grid.
+     * @param metric    the name of the metric.
+     * @param confs     the configurations.
+     * @return a map containing the different metric suppliers, which work given a distance calculator.
+     */
+    public Map<String, VertexMetricFunction<U>> getMetrics(String metric, Configurations confs)
+    {
+        Map<String, VertexMetricFunction<U>> metrics = new HashMap<>();
+        VertexMetricGridSearch<U> gridsearch = this.getGridSearch(metric);
+        if (gridsearch != null)
+        {
+            for (Parameters params : confs.getConfigurations())
+            {
+                Grid grid = params.toGrid();
+                Map<String, VertexMetricFunction<U>> map = getMetrics(metric, grid);
+                if (map == null || map.isEmpty()) return null;
+
+                List<String> algs = new ArrayList<>(map.keySet());
+                String name = algs.get(0);
+
+                metrics.put(name, map.get(name));
+            }
+
+            return metrics;
+        }
+        return new HashMap<>();
+    }
+
+
     /**
      * Obtains the aggregate variants of a given vertex metric, given the parameters selected
      * in a grid.

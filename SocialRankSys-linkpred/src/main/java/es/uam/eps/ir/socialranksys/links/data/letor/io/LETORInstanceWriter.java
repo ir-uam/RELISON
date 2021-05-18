@@ -65,17 +65,17 @@ public class LETORInstanceWriter<U> implements InstanceSetWriter<U>
     }
 
     @Override
-    public void write(String file, InstanceSet<U> patternSet) throws IOException
+    public void write(String file, InstanceSet<U> instanceSet) throws IOException
     {
         try(BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file))))
         {
-            FeatureInformation info = patternSet.getFeatInfo();
+            FeatureInformation info = instanceSet.getFeatInfo();
 
             String featInfo = this.writeFeatureInfo(info);
             if(comments)
                 bw.write(featInfo);
 
-            patternSet.getAllInstances().forEach(pattern ->
+            instanceSet.getAllInstances().forEach(pattern ->
             {
                 try
                 {
@@ -139,15 +139,15 @@ public class LETORInstanceWriter<U> implements InstanceSetWriter<U>
     }
 
     @Override
-    public String write(Instance<U> pattern)
+    public String write(Instance<U> instance)
     {
         StringBuilder builder = new StringBuilder();
 
-        builder.append(pattern.getCategory());
+        builder.append(instance.getCategory());
         builder.append(SEPARATOR);
         builder.append(QID);
-        builder.append(pattern.getOrigin());
-        List<Double> values = pattern.getValues();
+        builder.append(instance.getOrigin());
+        List<Double> values = instance.getValues();
         int length = values.size();
         for(int i = 0; i < length; ++i)
         {
@@ -173,13 +173,13 @@ public class LETORInstanceWriter<U> implements InstanceSetWriter<U>
             builder.append(SEPARATOR);
             builder.append(COMMENT);
             builder.append(DOCID);
-            builder.append(pattern.getDest());
+            builder.append(instance.getDest());
         }
         else
         {
             builder.append(COMMENT);
             builder.append(DOCID);
-            builder.append(pattern.getDest());
+            builder.append(instance.getDest());
         }
         return builder.toString();
     }

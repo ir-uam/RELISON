@@ -105,7 +105,7 @@ public class SupervisedLinkPredictor<U> extends AbstractLinkPredictor<U>
     }
     
     @Override
-    public List<Tuple2od<Pair<U>>> getPrediction(int maxLength, Predicate<Pair<U>> filter)
+    public Prediction<U> getPrediction(int maxLength, Predicate<Pair<U>> filter)
     {
         SortedSet<Tuple2od<Pair<U>>> auxSet = new TreeSet<>(this.getComparator());
         
@@ -142,7 +142,7 @@ public class SupervisedLinkPredictor<U> extends AbstractLinkPredictor<U>
             }
         });
 
-        return auxSet.stream().limit(maxLength).collect(Collectors.toList());
+        return new Prediction<>(auxSet.stream().limit(maxLength).collect(Collectors.toList()));
     }
     
 }

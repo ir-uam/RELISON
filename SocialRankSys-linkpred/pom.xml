@@ -50,6 +50,11 @@
             <version>5.1</version>
         </dependency>
         <dependency>
+            <groupId>org.terrier</groupId>
+            <artifactId>terrier-learning</artifactId>
+            <version>5.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.ranksys</groupId>
             <artifactId>RankSys-nn</artifactId>
             <version>0.4.3</version>
@@ -85,7 +90,6 @@
             <artifactId>RankSys-mf</artifactId>
             <version>0.4.3</version>
         </dependency>
-
     </dependencies>
 
 </project>

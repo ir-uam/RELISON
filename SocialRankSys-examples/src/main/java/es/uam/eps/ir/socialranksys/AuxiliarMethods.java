@@ -10,6 +10,7 @@
 package es.uam.eps.ir.socialranksys;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
+import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.ranksys.metrics.SystemMetric;
 import es.uam.eps.ir.ranksys.rec.Recommender;
 import es.uam.eps.ir.ranksys.rec.runner.RecommenderRunner;
@@ -20,6 +21,7 @@ import org.ranksys.formats.rec.SimpleRecommendationFormat;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Class containing auxiliar methods for the Main functions.
@@ -94,12 +96,27 @@ public class AuxiliarMethods
 
         Map<String, Double> values = new HashMap<>();
 
-
-        writer = format.getWriter(output);
-        runner.run(recommender, writer);
-        writer.close();
-
-        metrics.values().forEach(SystemMetric::reset);
+        File f = new File(output);
+        if(f.exists()) // Recover the all recommendation.
+        {
+            try
+            {
+                reader = format.getReader(output);
+                Stream<Recommendation<Long, Long>> stream = reader.readAll();
+            }
+            catch(Exception ioe) // if something fails while reading, execute again:
+            {
+                writer = format.getWriter(output);
+                runner.run(recommender, writer);
+                writer.close();
+            }
+        }
+        else
+        {
+            writer = format.getWriter(output);
+            runner.run(recommender, writer);
+            writer.close();
+        }
 
         reader = format.getReader(output);
         reader.readAll().forEach(rec ->
@@ -241,6 +258,52 @@ public class AuxiliarMethods
             for(String id : ids)
             {
                 bw.write("\t" + id + "@" + maxLength);
+            }
+
+            int i = 0;
+            for(String variant : variants)
+            {
+                i += 1;
+                bw.write("\n" + variant);
+                bw.write("\t" + i/(numVariants + 0.0));
+                for(int j = 0; j < numIds; ++j)
+                {
+                    bw.write("\t" + values.get(j).get(variant));
+                }
+            }
+        }
+        catch (IOException ioe)
+        {
+            System.err.println("ERROR: Something failed while writing the output file");
+        }
+    }
+
+    /**
+     * Given a list of maps with the same keys, prints the values for all the keys.
+     *
+     * @param output    The output file.
+     * @param values    The list of maps containing the values.
+     * @param ids       Identifiers for each map.
+     */
+    public static void printFile(String output, List<Map<String, Double>> values, List<String> ids)
+    {
+        if(values == null || values.isEmpty() || ids == null || ids.isEmpty()) return;
+
+        int numIds = ids.size();
+
+        // Obtain the variants:
+        List<String> variants = new ArrayList<>(values.get(0).keySet());
+        int numVariants = variants.size();
+
+        // Sort the approaches in alphanumeric order.
+        Collections.sort(variants);
+
+        try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(output))))
+        {
+            bw.write("Variant");
+            for(String id : ids)
+            {
+                bw.write("\t" + id);
             }
 
             int i = 0;

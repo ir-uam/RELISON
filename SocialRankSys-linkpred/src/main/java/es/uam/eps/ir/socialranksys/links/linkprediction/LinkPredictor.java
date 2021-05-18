@@ -9,9 +9,7 @@
 package es.uam.eps.ir.socialranksys.links.linkprediction;
 
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
-import org.ranksys.core.util.tuples.Tuple2od;
 
-import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -32,7 +30,7 @@ public interface LinkPredictor<U>
      * @return a sorted list containing the user-user pairs and the link prediction score (in descending
      * score order).
      */
-    List<Tuple2od<Pair<U>>> getPrediction();
+    Prediction<U> getPrediction();
     
     /**
      * Given a social network, ranks the possible user-user pairs, according
@@ -43,7 +41,7 @@ public interface LinkPredictor<U>
      * @return a sorted list containing the user-user pairs and the link prediction score (in descending score
      * order).
      */
-    List<Tuple2od<Pair<U>>> getPrediction(int maxLength);
+    Prediction<U> getPrediction(int maxLength);
     
     /**
      * Given a social network, ranks the possible user-user pairs, according to the scores
@@ -53,7 +51,7 @@ public interface LinkPredictor<U>
      * @return a sorted list containing the user-user pairs and the link prediction score (in descending score
      * order).
      */
-    List<Tuple2od<Pair<U>>> getPrediction(Predicate<Pair<U>> filter);
+    Prediction<U> getPrediction(Predicate<Pair<U>> filter);
 
     /**
      * Given a social network, ranks the possible user-user pairs, according to the scores
@@ -66,7 +64,7 @@ public interface LinkPredictor<U>
      * @return a sorted list containing the user-user pairs and the link prediction score (in descending score
      * order).
      */
-    List<Tuple2od<Pair<U>>> getPrediction(int maxLength, Predicate<Pair<U>> filter);
+    Prediction<U> getPrediction(int maxLength, Predicate<Pair<U>> filter);
 
     /**
      * Given a social network, ranks the possible user-user pairs, according to the scores
@@ -77,7 +75,7 @@ public interface LinkPredictor<U>
      * @return a sorted list containing the user-user pairs and the link prediction score (in descending score
      * order).
      */
-    List<Tuple2od<Pair<U>>> getPrediction(Stream<Pair<U>> candidates);
+    Prediction<U> getPrediction(Stream<Pair<U>> candidates);
     
     /**
      * Obtains the prediction score for a pair of candidates.

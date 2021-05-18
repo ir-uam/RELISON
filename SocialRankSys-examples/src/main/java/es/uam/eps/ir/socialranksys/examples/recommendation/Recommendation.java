@@ -28,6 +28,7 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSelector;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.YAMLAlgorithmGridReader;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.metrics.YAMLRecommMetricGridReader;
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.links.data.FastGraphIndex;
 import es.uam.eps.ir.socialranksys.links.data.GraphIndex;
@@ -35,8 +36,6 @@ import es.uam.eps.ir.socialranksys.links.data.GraphSimpleFastPreferenceData;
 import es.uam.eps.ir.socialranksys.links.recommendation.SocialFastFilters;
 import es.uam.eps.ir.socialranksys.links.recommendation.metrics.accuracy.TRECAveragePrecision;
 import org.ranksys.formats.parsing.Parsers;
-import org.ranksys.formats.rec.RecommendationFormat;
-import org.ranksys.formats.rec.TRECRecommendationFormat;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,7 +47,6 @@ import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
 import static es.uam.eps.ir.socialranksys.AuxiliarMethods.computeAndEvaluate;
-import static org.ranksys.formats.parsing.Parsers.lp;
 
 /**
  * Class for applying recommendation experiments over a training graph, and evaluating them
@@ -103,12 +101,6 @@ public class Recommendation
         int maxLength = Parsers.ip.parse(args[6]);
         boolean printRecommenders = args[7].equalsIgnoreCase("true");
         boolean allUsers = args[8].equalsIgnoreCase("true");
-
-        // Initialize the maps to store the accuracy values.
-        Map<String, Double> PValues = new ConcurrentHashMap<>();
-        Map<String, Double> RValues = new ConcurrentHashMap<>();
-        Map<String, Double> nDCGValues = new ConcurrentHashMap<>();
-        Map<String, Double> MAPValues = new ConcurrentHashMap<>();
 
         // First, we do create the directories.
         if (printRecommenders)
@@ -169,18 +161,21 @@ public class Recommendation
         FastPreferenceData<Long, Long> weightedTrainData = GraphSimpleFastPreferenceData.load(weightedGraph);
         FastPreferenceData<Long, Long> unweightedTrainData = weighted ? GraphSimpleFastPreferenceData.load(unweightedGraph) : weightedTrainData;
 
-        // Clean the test graph.
-        FastGraph<Long> testGraph = (FastGraph<Long>) Adapters.onlyTrainUsers(auxTestGraph, weightedGraph);
-        FastPreferenceData<Long, Long> testData;
-        testData = GraphSimpleFastPreferenceData.load(testGraph);
         GraphIndex<Long> index = new FastGraphIndex<>(weightedGraph);
 
-        // Read the XML containing the parameter grid for each algorithm
+        // Read the YAML containing the parameter grid for each algorithm
         YAMLAlgorithmGridReader gridreader = new YAMLAlgorithmGridReader();
         Map<String, Object> yaml = AuxiliarMethods.readYAML(algorithmsPath);
         gridreader.read(yaml);
 
+        // Read the YAML containing the metric grid.
+        YAMLRecommMetricGridReader metricGridReader = new YAMLRecommMetricGridReader();
+        metricGridReader.read(yaml);
+
+        // For each algorithm, stores a set of metrics.
+        Map<String, Map<String, Double>> metricValues = new ConcurrentHashMap<>();
         Map<String, RecommendationAlgorithmFunction<Long>> recMap = new HashMap<>();
+
         // Get the different recommenders to execute
         gridreader.getAlgorithms().forEach(algorithm ->
         {
@@ -188,7 +183,7 @@ public class Recommendation
             Map<String, RecommendationAlgorithmFunction<Long>> suppliers = ags.getRecommenders(algorithm, gridreader.getGrid(algorithm));
             if (suppliers == null)
             {
-                System.err.println("ERROR: Algorithm " + algorithm + " could not be read");
+                System.err.println("ERROR: Algorithm " + algorithm + " could not be read.");
             }
             else
             {
@@ -196,17 +191,28 @@ public class Recommendation
             }
         });
 
+        Map<String, Double> PValues = new ConcurrentHashMap<>();
+        Map<String, Double> RValues = new ConcurrentHashMap<>();
+        Map<String, Double> nDCGValues = new ConcurrentHashMap<>();
+        Map<String, Double> MAPValues = new ConcurrentHashMap<>();
+
         timeb = System.currentTimeMillis();
         System.out.println("Algorithms selected (" + (timeb - timea) + " ms.)");
+
+        // Prepare the elements for the recommendation:
+        @SuppressWarnings("unchecked") Function<Long, IntPredicate> filter = FastFilters.and(FastFilters.notInTrain(weightedTrainData), FastFilters.notSelf(index), SocialFastFilters.notReciprocal(weightedGraph, index));
+
+        // Read and clean the test graph.
+        auxTestGraph = (FastGraph<Long>) Adapters.onlyTrainUsers(auxTestGraph, weightedGraph);
+        FastGraph<Long> testGraph = (FastGraph<Long>) Adapters.filteredGraph(auxTestGraph, filter);
+        FastPreferenceData<Long, Long> testData;
+        testData = GraphSimpleFastPreferenceData.load(testGraph);
+
         // Select the set of users to be recommended, the format, and the filters to apply to the recommendation
         Set<Long> targetUsers = allUsers ? weightedTrainData.getAllUsers().collect(Collectors.toCollection(HashSet::new)) : testData.getUsersWithPreferences().collect(Collectors.toCollection(HashSet::new));
         System.out.println("Num. target users: " + targetUsers.size());
-
-        // Prepare the elements for the recommendation:
-        RecommendationFormat<Long, Long> format = new TRECRecommendationFormat<>(lp, lp);
-        @SuppressWarnings("unchecked") Function<Long, IntPredicate> filter = FastFilters.and(FastFilters.notInTrain(weightedTrainData), FastFilters.notSelf(index), SocialFastFilters.notReciprocal(weightedGraph, index));
-        RecommenderRunner<Long, Long> runner = new FastFilterRecommenderRunner<>(index, index, targetUsers.stream(), filter, maxLength);
         int numUsers = testData.numUsersWithPreferences();
+        RecommenderRunner<Long, Long> runner = new FastFilterRecommenderRunner<>(index, index, targetUsers.stream(), filter, maxLength);
 
         IdealRelevanceModel<Long, Long> idealModel = new BinaryRelevanceModel<>(true, testData, 0.5);
         NDCG.NDCGRelevanceModel<Long, Long> ndcgModel = new NDCG.NDCGRelevanceModel<>(false, testData, 0.5);
