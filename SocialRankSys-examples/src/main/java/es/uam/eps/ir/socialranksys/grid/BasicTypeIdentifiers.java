@@ -19,29 +19,29 @@ public class BasicTypeIdentifiers
     /**
      * Type identifier for integers
      */
-    public final static String INTEGER_TYPE = "Integer";
+    public final static String INTEGER_TYPE = "int";
     /**
      * Type identifier for doubles
      */
-    public final static String DOUBLE_TYPE = "Double";
+    public final static String DOUBLE_TYPE = "double";
     /**
      * Type identifier for booleans
      */
-    public final static String BOOLEAN_TYPE = "Boolean";
+    public final static String BOOLEAN_TYPE = "boolean";
     /**
      * Type identifier for strings
      */
-    public final static String STRING_TYPE = "String";
+    public final static String STRING_TYPE = "string";
     /**
      * Type identifier for longs
      */
-    public final static String LONG_TYPE = "Long";
+    public final static String LONG_TYPE = "long";
     /**
      * Type identifier for edge orientations
      */
-    public final static String ORIENTATION_TYPE = "LinkOrientation";
+    public final static String ORIENTATION_TYPE = "orientation";
     /**
      * Type identifier for grids
      */
-    public final static String OBJECT_TYPE = "Object";
+    public final static String OBJECT_TYPE = "object";
 }

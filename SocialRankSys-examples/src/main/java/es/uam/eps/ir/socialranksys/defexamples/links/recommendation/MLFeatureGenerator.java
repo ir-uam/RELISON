@@ -20,11 +20,11 @@ import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.YAMLAlgo
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.sampling.IndividualSamplerFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.sampling.IndividualSamplingAlgorithmGridSelector;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.sampling.YAMLIndividualSamplingAlgorithmGridReader;
-import es.uam.eps.ir.socialranksys.grid.metrics.YAMLMetricConfigurationsReader;
-import es.uam.eps.ir.socialranksys.grid.metrics.pair.PairMetricFunction;
-import es.uam.eps.ir.socialranksys.grid.metrics.pair.PairMetricSelector;
-import es.uam.eps.ir.socialranksys.grid.metrics.vertex.VertexMetricFunction;
-import es.uam.eps.ir.socialranksys.grid.metrics.vertex.VertexMetricSelector;
+import es.uam.eps.ir.socialranksys.grid.sna.YAMLMetricConfigurationsReader;
+import es.uam.eps.ir.socialranksys.grid.sna.pair.PairMetricFunction;
+import es.uam.eps.ir.socialranksys.grid.sna.pair.PairMetricSelector;
+import es.uam.eps.ir.socialranksys.grid.sna.vertex.VertexMetricFunction;
+import es.uam.eps.ir.socialranksys.grid.sna.vertex.VertexMetricSelector;
 import es.uam.eps.ir.socialranksys.io.graph.GraphReader;
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.links.data.GraphSimpleFastPreferenceData;
@@ -58,8 +58,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static es.uam.eps.ir.socialranksys.examples.AuxiliarVariables.TRUE;
-import static es.uam.eps.ir.socialranksys.grid.metrics.MetricTypeIdentifiers.PAIR_METRIC;
-import static es.uam.eps.ir.socialranksys.grid.metrics.MetricTypeIdentifiers.VERTEX_METRIC;
+import static es.uam.eps.ir.socialranksys.grid.sna.MetricTypeIdentifiers.PAIR_METRIC;
+import static es.uam.eps.ir.socialranksys.grid.sna.MetricTypeIdentifiers.VERTEX_METRIC;
 import static es.uam.eps.ir.socialranksys.links.data.letor.FeatureType.CONTINUOUS;
 
 /**

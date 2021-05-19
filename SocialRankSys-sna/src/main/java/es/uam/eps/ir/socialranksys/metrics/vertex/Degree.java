@@ -17,7 +17,7 @@ import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 /**
  * Computes the degree of a given user in a graph.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

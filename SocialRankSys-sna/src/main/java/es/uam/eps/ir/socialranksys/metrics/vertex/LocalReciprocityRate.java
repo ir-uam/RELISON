@@ -16,7 +16,7 @@ import es.uam.eps.ir.socialranksys.metrics.VertexMetric;
 /**
  * Computes the local reciprocity rate, i.e. the proportion of edges of a node which are reciprocal.
  *
- * @param <U> Type of the users
+ * @param <U> type of the users
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
