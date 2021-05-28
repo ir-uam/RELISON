@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,33 +9,44 @@
 package es.uam.eps.ir.socialranksys.grid.sna.pair;
 
 /**
- * Identifiers for edge metrics.
- * @author Javier Sanz-Cruzado Puig
+ * Identifiers for metrics for pairs of users in the network.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  */
 public class PairMetricIdentifiers 
 {
-    
+    public static final String CCINCREASE = "Clustering coefficient increment";
+
     public static final String DISTANCE = "Distance";
-    public static final String RECIPROCALSPL = "Reciprocal Shortest Path Length";
-    public static final String GEODESICS = "Geodesics";
     public static final String DISTANCEWITHOUTLINK = "Distance without link";
-    public static final String FOAF = "FOAF";
-    public static final String WFOAF = "Weighted FOAF";
-    public static final String WFOAFLOG = "Weighted FOAF Log";
-    public static final String EFOAF = "Expanded FOAF";
-    public static final String EFOAFCOUNT = "Expanded FOAF Count";
-    public static final String PREFATTACH = "Preferential Attachment";
+    public static final String RECIPROCALSPL = "Reciprocal shortest path length";
+
+    public static final String FOAF = "Neighbor overlap";
+    public static final String COMPLFOAF = "Complementary neighbor overlap";
+
+
+    public static final String GEODESICS = "Geodesics";
+    public static final String RECIP = "Reciprocity";
+
+
+    public static final String WFOAF = "Weighted neighbor overlap";
+    public static final String WFOAFLOG = "Log weighted neighbor overlap";
+    public static final String EFOAF = "Expanded common neighbors";
+    public static final String EFOAFCOUNT = "Expanded common neighbors count";
+    public static final String PREFATTACH = "Preferential attachment";
     
     public static final String EMBEDEDNESS = "Embededness";
-    public static final String COMPLEMBEDEDNESS = "Complementary Embededness";
-    public static final String COMPLFOAF = "Complementary FOAF";
-    public static final String RECIP = "Reciprocity rate";
-    public static final String SHRINKINGDIAM = "Shrinking Diameter";
+    public static final String COMPLEMBEDEDNESS = "Complementary embeddedness";
+    public static final String WEAKNESS = "Weakness";
+
     public static final String SHRINKINGASL = "Shrinking ASL";
-    public static final String SHRINKINGDIAMNEIGH = "Shrinking Diameter Neigh";
-    public static final String SHRINKINGASLNEIGH = "Shrinking ASL Neigh";
-    public static final String BIR = "BIR";
-    public static final String CCINCREASE = "Clustering Coefficient Increment";
-    
+    public static final String SHRINKINGDIAM = "Shrinking diameter";
+    public static final String SHRINKINGDIAMNEIGH = "Shrinking neighbors diameter";
+    public static final String SHRINKINGASLNEIGH = "Shrinking neighbors ASL";
+
+    public static final String BETWEENNESS = "Betweenness";
+    public static final String WEIGHT = "Weight";
+
     
 }

@@ -10,8 +10,8 @@
 package es.uam.eps.ir.socialranksys.metrics.graph.aggregate;
 
 import es.uam.eps.ir.socialranksys.graph.Graph;
-import es.uam.eps.ir.socialranksys.metrics.EdgeMetric;
 import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
+import es.uam.eps.ir.socialranksys.metrics.PairMetric;
 
 /**
  * Graph metric computed as the aggregation of an edge metric over the edges in the network.
@@ -26,14 +26,14 @@ public class AggregateEdgeMetric<U> implements GraphMetric<U>
     /**
      * Edge metric.
      */
-    private final EdgeMetric<U> edgeMetric;
+    private final PairMetric<U> edgeMetric;
 
     /**
      * Constructor.
      *
      * @param edgeMetric Vertex metric.
      */
-    public AggregateEdgeMetric(EdgeMetric<U> edgeMetric)
+    public AggregateEdgeMetric(PairMetric<U> edgeMetric)
     {
         this.edgeMetric = edgeMetric;
     }
@@ -41,7 +41,7 @@ public class AggregateEdgeMetric<U> implements GraphMetric<U>
     @Override
     public double compute(Graph<U> graph)
     {
-        return edgeMetric.averageValue(graph);
+        return edgeMetric.averageValueOnlyLinks(graph);
     }
 
 }

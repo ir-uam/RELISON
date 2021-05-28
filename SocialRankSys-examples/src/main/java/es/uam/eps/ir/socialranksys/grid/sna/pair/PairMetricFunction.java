@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -13,15 +13,18 @@ import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
 
 /**
  * Functional interface for obtaining pair metrics.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 @FunctionalInterface
 public interface PairMetricFunction<U> 
 {
     /**
      * Obtains a pair metric.
-     * @param calc Distance calculator.
+     * @param calc distance calculator.
      * @return the pair metric.
      */
     PairMetric<U> apply(DistanceCalculator<U> calc);

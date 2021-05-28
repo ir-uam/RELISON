@@ -14,7 +14,9 @@ import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -47,6 +49,23 @@ public abstract class AbstractPairMetric<U> implements PairMetric<U>
         return values;
     }
 
+    @Override
+    public Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph)
+    {
+        Map<Pair<U>, Double> values = new HashMap<>();
+        if (!graph.isMultigraph())
+        {
+            graph.getAllNodes().forEach((orig) -> graph.getAdjacentNodes(orig).forEach(dest ->
+            {
+                if (!orig.equals(dest))
+                {
+                    values.put(new Pair<>(orig, dest), this.compute(graph, orig, dest));
+                }
+            }));
+        }
+        return values;
+    }
+
 
     @Override
     public Map<Pair<U>, Double> compute(Graph<U> graph, Stream<Pair<U>> pairs)
@@ -68,6 +87,14 @@ public abstract class AbstractPairMetric<U> implements PairMetric<U>
     {
         double value = pairs.mapToDouble(pair -> this.compute(graph, pair.v1(), pair.v2())).sum();
         return value / (pairCount + 0.0);
+    }
+
+    @Override
+    public double averageValueOnlyLinks(Graph<U> graph)
+    {
+        List<Pair<U>> pairs = new ArrayList<>();
+        graph.getAllNodes().forEach(u -> graph.getAdjacentNodes(u).forEach(v -> pairs.add(new Pair<>(u,v))));
+        return averageValue(graph, pairs.stream(), pairs.size());
     }
 
     @Override

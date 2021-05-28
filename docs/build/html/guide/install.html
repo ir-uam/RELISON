@@ -1,0 +1,199 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Install SoNALiRe &#8212; SoNALiRe 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Introduction" href="../sna/introduction.html" />
+    <link rel="prev" title="Introduction" href="introduction.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="install-sonalire">
+<h1>Install SoNALiRe<a class="headerlink" href="#install-sonalire" title="Permalink to this headline">¶</a></h1>
+<p>SoNALiRe is a library working with the following operating systems:</p>
+<ul class="simple">
+<li><p>Linux</p></li>
+<li><p>Windows 10</p></li>
+</ul>
+<p>It requires Java version 14 or later.</p>
+<div class="section" id="install-from-source">
+<h2>Install from source<a class="headerlink" href="#install-from-source" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="maven">
+<h3>MAVEN<a class="headerlink" href="#maven" title="Permalink to this headline">¶</a></h3>
+<p>The recommended way to use SoNALiRe is through Maven. This will allow you to automatically
+download all the necessary dependencies to work with this framework. In order to download
+the sources and install the library in your Maven repository, you just have to execute
+the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/JavierSanzCruza/SocialRankSys
+<span class="nb">cd</span> SocialRankSys
+mvn install
+</pre></div>
+</div>
+<p>Afterwards, if you just want to use the main programs provided with the code, you have to
+compile the examples package. For this, do the following:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> SocialRankSys-examples
+mvn clean compile assembly:single
+</pre></div>
+</div>
+<p>This will create an executable JAR which can be used to access any of the provided programs.
+If, instead, you want to integrate a SoNALiRe module in your project, you will need to add it as a
+dependency as follows:</p>
+<div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="nt">&lt;dependency&gt;</span>
+  <span class="nt">&lt;groupId&gt;</span>es.uam.eps.ir<span class="nt">&lt;/groupId&gt;</span>
+  <span class="nt">&lt;artifactId&gt;</span>SocialRankSys-[module-name]<span class="nt">&lt;/artifactId&gt;</span>
+  <span class="nt">&lt;version&gt;</span>1.0.0<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+</pre></div>
+</div>
+<p>where [module-name] indicates the name of the module you want to import.</p>
+</div>
+<div class="section" id="java">
+<h3>JAVA<a class="headerlink" href="#java" title="Permalink to this headline">¶</a></h3>
+<p>In case you do not want to use Maven, you just need to compile the library into JAR files. In order
+to do that, the following libraries (and their dependencies) are needed:</p>
+<ul class="simple">
+<li><p>FastUtil v.8.5.2. (<a class="reference external" href="https://fastutil.di.unimi.it/">https://fastutil.di.unimi.it/</a>)</p></li>
+<li><p>Matrix Toolkits Java v.1.0.4. (<a class="reference external" href="https://github.com/fommil/matrix-toolkits-java">https://github.com/fommil/matrix-toolkits-java</a>)</p></li>
+<li><dl class="simple">
+<dt>RankSys v.0.4.3. (<a class="reference external" href="http://ranksys.github.io/">http://ranksys.github.io/</a>)</dt><dd><ul>
+<li><p>RankSys-core</p></li>
+<li><p>RankSys-fast</p></li>
+<li><p>RankSys-formats</p></li>
+<li><p>RankSys-rec</p></li>
+<li><p>RankSys-nn</p></li>
+<li><p>RankSys-novdiv</p></li>
+<li><p>RankSys-novelty</p></li>
+<li><p>RankSys-mf</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>Jung v.2.1.1. (<a class="reference external" href="http://jung.sourceforge.net/">http://jung.sourceforge.net/</a>)</p></li>
+<li><dl class="simple">
+<dt>Apache Lucene v.8.4.1. (<a class="reference external" href="https://lucene.apache.org/">https://lucene.apache.org/</a>)</dt><dd><ul>
+<li><p>Lucene-core</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Terrier v.5.1. (<a class="reference external" href="http://terrier.org/">http://terrier.org/</a>)</dt><dd><ul>
+<li><p>terrier-core</p></li>
+<li><p>terrier-realtime</p></li>
+<li><p>terrier-learning</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>Weka v.3.6.6. (<a class="reference external" href="https://www.cs.waikato.ac.nz/ml/weka/">https://www.cs.waikato.ac.nz/ml/weka/</a>)</p></li>
+<li><p>Cloning v.1.9.2. (<a class="reference external" href="https://mvnrepository.com/artifact/uk.com.robust-it/cloning/1.9.2">https://mvnrepository.com/artifact/uk.com.robust-it/cloning/1.9.2</a>)</p></li>
+<li><p>Yaml Beans v.1.06 (<a class="reference external" href="https://github.com/EsotericSoftware/yamlbeans">https://github.com/EsotericSoftware/yamlbeans</a>)</p></li>
+<li><p>JUnit v. 4.13.1.</p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">SoNALiRe</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Get started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Install SoNALiRe</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Social network analysis</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../sna/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sna/config.html">Analyze the network structural properties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sna/metrics.html">Structural metrics</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="introduction.html" title="previous chapter">Introduction</a></li>
+      <li>Next: <a href="../sna/introduction.html" title="next chapter">Introduction</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Information Retrieval Group @ Universidad Autónoma de Madrid (http:\ir.ii.uam.es).
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/guide/install.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

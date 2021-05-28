@@ -93,10 +93,10 @@ public class BalancedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
         if (commSize == 1)
         {
             graph.getAllNodes().forEach(u ->
-                                        {
-                                            comm.addCommunity();
-                                            comm.add(u, comm.getNumCommunities() - 1);
-                                        });
+            {
+                comm.addCommunity();
+                comm.add(u, comm.getNumCommunities() - 1);
+            });
         }
         else if (commSize > 1)
         {
@@ -108,7 +108,7 @@ public class BalancedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
             comm.addCommunity();
             List<Set<U>> auxList = new ArrayList<>();
 
-            // For each strongly connected algorithm, apply:
+            // For each strongly connected component, apply:
             wcc.getCommunities().forEach(cc ->
             {
                 long size = wcc.getCommunitySize(cc);

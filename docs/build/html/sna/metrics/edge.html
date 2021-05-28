@@ -1,0 +1,330 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edge metrics &#8212; SoNALiRe 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Pair metrics" href="pair.html" />
+    <link rel="prev" title="Vertex metrics" href="vertex.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="edge-metrics">
+<h1>Edge metrics<a class="headerlink" href="#edge-metrics" title="Permalink to this headline">¶</a></h1>
+<p>SoNALiRe integrates the following edge metrics. If the studied edge does not exist when these metrics are used, an exception will be thrown.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#betweenness">Betweenness</a></p></li>
+<li><p><a class="reference internal" href="#common-neighbors">Common neighbors</a></p></li>
+<li><p><a class="reference internal" href="#embeddedness">Embeddedness</a></p></li>
+<li><p><a class="reference internal" href="#weakness">Weakness</a></p></li>
+<li><p><a class="reference internal" href="#weight">Weight</a></p></li>
+</ul>
+<div class="section" id="betweenness">
+<h2>Betweenness<a class="headerlink" href="#betweenness" title="Permalink to this headline">¶</a></h2>
+<p>The betweenness centrality measures, for each node, the number of shortest paths which pass through the edge.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{Betweenness}(u,v) = \sum_{(w,x)} \frac{\sigma_{wx}(u,v)}{\sigma_{wx}}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\sigma_{wx}\)</span> is the number of shortest paths between <span class="math notranslate nohighlight">\(w\)</span> and <span class="math notranslate nohighlight">\(x\)</span>, and  <span class="math notranslate nohighlight">\(\sigma_{wx}(u,v)\)</span> is the number of
+shortest paths which pass through edge <span class="math notranslate nohighlight">\((u,v)\)</span>.</p>
+<p><strong>Reference:</strong> M.E.J. Newman, M. Girvan. Finding and evaluating community structure in networks. Physical Review E 69(2), pp. 1-16 (2004)</p>
+<div class="section" id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p><em>normalize:</em> true if we want to normalize the coefficient, false otherwise.</p></li>
+</ul>
+</div>
+<div class="section" id="configuration-file">
+<h3>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Betweenness</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">edge</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">normalize</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">boolean</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">true</span><span class="p p-Indicator">,</span> <span class="nv">false</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="common-neighbors">
+<h2>Common neighbors<a class="headerlink" href="#common-neighbors" title="Permalink to this headline">¶</a></h2>
+<p>This metric just counts the number of common neighbors of the endpoints of an edge.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{CN}(u,v) = |\Gamma(u)\cap\Gamma(v)|\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Gamma(u)\)</span> is the neighborhood of user <span class="math notranslate nohighlight">\(u\)</span>.</p>
+<p>We can also compute what we call the <strong>complementary common neighbors</strong> metric, or, in other words, the value of this metric in the complementary graph. Its equation is the following one:</p>
+<div class="math notranslate nohighlight">
+\[\mbox{CN}(u,v) = |\mathcal{U}| - |\Gamma(u)\cup\Gamma(v)|\]</div>
+<div class="section" id="id1">
+<h3>Parameters<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><dl class="simple">
+<dt><em>uSel</em>: selection of the orientation for the neighborhood of the starting node of the edge. This allows the following values:</dt><dd><ul>
+<li><p>IN: we take the incoming neighbors of the user.</p></li>
+<li><p>OUT: we take the outgoing neighbors of the user.</p></li>
+<li><p>UND: we take the incoming and outgoing neighbors of the user.</p></li>
+<li><p>MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><em>vSel</em>: selection of the orientation for the neighborhood of the ending node of the edge. This allows the following values:</dt><dd><ul>
+<li><p>IN: we take the incoming neighbors of the user.</p></li>
+<li><p>OUT: we take the outgoing neighbors of the user.</p></li>
+<li><p>UND: we take the incoming and outgoing neighbors of the user.</p></li>
+<li><p>MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h3>Configuration file<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>The configuration file for the original method is the following</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Common neighbors</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vertex</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">uSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+    <span class="nt">vSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<p>while the configuration for the value of the metric in the complementary graph is:</p>
+<blockquote>
+<div><dl>
+<dt>Complementary common neighbors:</dt><dd><p>type: vertex
+params:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>uSel:</dt><dd><p>type: orientation
+values: [IN/OUT/UND/MUTUAL]</p>
+</dd>
+<dt>vSel:</dt><dd><p>type: orientation
+values: [IN/OUT/UND/MUTUAL]</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+</div>
+<div class="section" id="embeddedness">
+<h2>Embeddedness<a class="headerlink" href="#embeddedness" title="Permalink to this headline">¶</a></h2>
+<p>The embeddedness of a link measures the proportion of the neighbors of the two nodes involved in the link
+who are common to both of them. It indicates how redundant a link is in the network, and as a measure of the strength of ties.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{Embeddedness}(u,v) = \frac{|\Gamma(u)\setminus\{v\} \cap \Gamma(v)\setminus\{u\}|}{|\Gamma(u)\setminus\{v\} \cup \Gamma(v)\setminus\{u\}|}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Gamma(u)\)</span> is the neighborhood of user <span class="math notranslate nohighlight">\(u\)</span>.</p>
+<p>In our framework, we can compute two related measures: the first one, the <strong>weakness</strong>, measures the opposite: the number of
+neighbors of the endpoints who are not common to both:</p>
+<div class="math notranslate nohighlight">
+\[\mbox{Weakness}(u,v) = 1 - \mbox{Embeddedness}(u,v)\]</div>
+<p>The second one is just the value of the edge metric in the complementary graph:</p>
+<div class="math notranslate nohighlight">
+\[\mbox{Compl. Embeddedness}(u,v) = \frac{|\mathcal{U}| - |\Gamma(u) \cup \Gamma(v)|}{|\mathcal{U}| - |\Gamma(u) \cap \Gamma(v)|}\]</div>
+<dl class="simple">
+<dt><strong>References:</strong></dt><dd><ul class="simple">
+<li><ol class="upperalpha simple" start="4">
+<li><p>Easley, J.M. Kleinberg. Networks, crowds and markets (2010).</p></li>
+</ol>
+</li>
+<li><ol class="upperalpha simple" start="10">
+<li><p>Sanz-Cruzado, P. Castells. Beyond Accuracy in Link Prediction. BIAS 2020: Bias and Social Aspects in Search and Recommendation, pp 79-94.</p></li>
+</ol>
+</li>
+</ul>
+</dd>
+</dl>
+<div class="section" id="id3">
+<h3>Parameters<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>All the variants share the same two parameters:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><em>uSel</em>: selection of the orientation for the neighborhood of the starting node of the edge. This allows the following values:</dt><dd><ul>
+<li><p>IN: we take the incoming neighbors of the user.</p></li>
+<li><p>OUT: we take the incoming neighbors of the user.</p></li>
+<li><p>UND: we take the incoming and outgoing neighbors of the user.</p></li>
+<li><p>MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><em>wSel</em>: selection of the orientation for the neighborhood of the ending node of the edge. This allows the following values:</dt><dd><ul>
+<li><p>IN: we take the incoming neighbors of the user.</p></li>
+<li><p>OUT: we take the incoming neighbors of the user.</p></li>
+<li><p>UND: we take the incoming and outgoing neighbors of the user.</p></li>
+<li><p>MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="id4">
+<h3>Configuration file<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<p>The configuration for the original embeddedness metric is:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Embeddedness</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vertex</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">uSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+    <span class="nt">vSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<p>for the weakness one is:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Weakness</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vertex</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">uSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+    <span class="nt">vSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<p>and for the metric in the complementary graph:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Complementary embeddedness</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vertex</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">uSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+    <span class="nt">vSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="weakness">
+<h2>Weakness<a class="headerlink" href="#weakness" title="Permalink to this headline">¶</a></h2>
+<p>See <a class="reference internal" href="#embeddedness">Embeddedness</a></p>
+</div>
+<div class="section" id="weight">
+<h2>Weight<a class="headerlink" href="#weight" title="Permalink to this headline">¶</a></h2>
+<p>If it is available, it just measures the weight of an edge in the graph.
+In unweighted networks, all edges have weight equal to 1.</p>
+<div class="section" id="id5">
+<h3>Configuration file<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Weight</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">edge</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">SoNALiRe</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../guide/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../guide/install.html">Install SoNALiRe</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Social network analysis</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../config.html">Analyze the network structural properties</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../metrics.html">Structural metrics</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../metrics.html">Structural metrics</a><ul>
+      <li>Previous: <a href="vertex.html" title="previous chapter">Vertex metrics</a></li>
+      <li>Next: <a href="pair.html" title="next chapter">Pair metrics</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Information Retrieval Group @ Universidad Autónoma de Madrid (http:\ir.ii.uam.es).
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/sna/metrics/edge.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

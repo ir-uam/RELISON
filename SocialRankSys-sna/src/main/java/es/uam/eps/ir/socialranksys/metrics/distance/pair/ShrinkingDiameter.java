@@ -55,6 +55,8 @@ public class ShrinkingDiameter<U> extends AbstractPairMetric<U>
     @Override
     public double compute(Graph<U> graph, U orig, U dest)
     {
+        if(graph.containsEdge(orig, dest)) return 0.0;
+
         // First, we find the pairs of users at maximum distance (diameter)
         this.dc.computeDistances(graph);
 

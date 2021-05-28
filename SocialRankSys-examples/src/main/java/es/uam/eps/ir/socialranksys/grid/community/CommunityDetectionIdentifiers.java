@@ -17,7 +17,7 @@ package es.uam.eps.ir.socialranksys.grid.community;
 public class CommunityDetectionIdentifiers 
 {
     // Connectedness
-    public final static String SCC = "Strongly Connected Components";
+    public final static String SCC = "Strongly connected components";
     public final static String WCC = "Weakly Connected Components";
     
     // Modularity optimizing community detection algorithms
@@ -34,8 +34,8 @@ public class CommunityDetectionIdentifiers
     public final static String BALANCEDFASTGREEDY = "Balanced FastGreedy";
     public final static String SIZEWEIGHTEDFASTGREEDY = "Size Weighted FastGreedy";
     public final static String GINIWEIGHTEDFASTGREEDY = "Gini Weighted FastGreedy";
-    public final static String RATIOCUTSPECTRAL = "Ratio Cut Spectral Clustering";
-    public final static String NORMALIZEDCUTSPECTRAL = "Normalized Cut Spectral Clustering";
+    public final static String RATIOCUTSPECTRAL = "Ratio cut spectral clustering";
+    public final static String NORMALIZEDCUTSPECTRAL = "Normalized cut spectral clustering";
     
     /**
      * Prints the list of available algorithms

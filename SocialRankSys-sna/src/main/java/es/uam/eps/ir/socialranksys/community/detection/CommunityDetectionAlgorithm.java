@@ -10,9 +10,6 @@ package es.uam.eps.ir.socialranksys.community.detection;
 
 import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.graph.Graph;
-import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
-
-import java.util.List;
 
 /**
  * Algorithm for detecting the communities of a graph.
@@ -32,19 +29,4 @@ public interface CommunityDetectionAlgorithm<U>
      * @return The communities if everything went OK, null if not.
      */
     Communities<U> detectCommunities(Graph<U> graph);
-
-    /**
-     * Computes the communities for a certain graph, given a previous partition.Used for evolution of networks.
-     *
-     * @param graph      The full graph.
-     * @param newLinks   The links which have newly appeared in the graph.
-     * @param disapLinks The links which have disappeared from the graph.
-     * @param previous   the previous community partition
-     *
-     * @return the new community partition.
-     */
-    default Communities<U> detectCommunities(Graph<U> graph, List<Pair<U>> newLinks, List<Pair<U>> disapLinks, Communities<U> previous)
-    {
-        return this.detectCommunities(graph);
-    }
 }

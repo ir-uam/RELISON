@@ -1,0 +1,555 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Graph metrics &#8212; SoNALiRe 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="prev" title="Pair metrics" href="pair.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="graph-metrics">
+<h1>Graph metrics<a class="headerlink" href="#graph-metrics" title="Permalink to this headline">¶</a></h1>
+<p>SoNALiRe integrates the following graph metrics.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#average-shortest-path-length">Average shortest path length</a></p></li>
+<li><p><a class="reference internal" href="#average-reciprocal-shortest-path-length">Average reciprocal shortest path length</a></p></li>
+<li><p><a class="reference internal" href="#clustering-coefficient">Clustering coefficient</a></p></li>
+<li><p><a class="reference internal" href="#clustering-coefficient-complement">Clustering coefficient complement</a></p></li>
+<li><p><a class="reference internal" href="#degree-assortativity">Degree assortativity</a></p></li>
+<li><p><a class="reference internal" href="#degree-gini-complement">Degree Gini complement</a></p></li>
+<li><p><a class="reference internal" href="#degree-pearson-correlation">Degree Pearson correlation</a></p></li>
+<li><p><a class="reference internal" href="#density">Density</a></p></li>
+<li><p><a class="reference internal" href="#diameter">Diameter</a></p></li>
+<li><p><a class="reference internal" href="#edge-gini-complement">Edge Gini complement</a></p></li>
+<li><p><a class="reference internal" href="#infinite-distances">Infinite distances</a></p></li>
+<li><p><a class="reference internal" href="#radius">Radius</a></p></li>
+<li><p><a class="reference internal" href="#reciprocal-average-eccentricity">Reciprocal average eccentricity</a></p></li>
+<li><p><a class="reference internal" href="#reciprocal-diameter">Reciprocal diameter</a></p></li>
+<li><p><a class="reference internal" href="#reciprocity-rate">Reciprocity rate</a></p></li>
+</ul>
+<div class="section" id="average-shortest-path-length">
+<h2>Average shortest path length<a class="headerlink" href="#average-shortest-path-length" title="Permalink to this headline">¶</a></h2>
+<p>As its name indicates, this metric just computes the average shortest path length of a graph. In order to deal with infinite distance edges, we propose two options:</p>
+<ul class="simple">
+<li><p><strong>Option 1:</strong> We only average over those pairs of users at finite distance.</p></li>
+<li><p><strong>Option 2:</strong> We obtain the average shortest path length for each strongly connected component of the network, and then, we average the result for the different components.</p></li>
+</ul>
+<div class="section" id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p><em>mode:</em> “Non infinite distances” for option 1, “Components” for option 2.</p></li>
+</ul>
+</div>
+<div class="section" id="configuration-file">
+<h3>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">ASL</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">mode</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">string</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="s">&quot;Non</span><span class="nv"> </span><span class="s">infinite</span><span class="nv"> </span><span class="s">distances&quot;</span><span class="p p-Indicator">,</span> <span class="s">&quot;Components&quot;</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="average-reciprocal-shortest-path-length">
+<h2>Average reciprocal shortest path length<a class="headerlink" href="#average-reciprocal-shortest-path-length" title="Permalink to this headline">¶</a></h2>
+<p>This metric computes the harmonic mean of the distances between pairs of users:</p>
+<div class="math notranslate nohighlight">
+\[\mbox{ARSL} = \frac{1}{|\mathcal{U}|(|\mathcal{U}|-1)} \sum_{u,v} \frac{1}{\delta(u,v)}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\delta(u,v)\)</span> represents the distance between a pair of users.</p>
+<div class="section" id="id1">
+<h3>Configuration file<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">ARSL</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">mode</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">string</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="s">&quot;Non</span><span class="nv"> </span><span class="s">infinite</span><span class="nv"> </span><span class="s">distances&quot;</span><span class="p p-Indicator">,</span> <span class="s">&quot;Components&quot;</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="clustering-coefficient">
+<h2>Clustering coefficient<a class="headerlink" href="#clustering-coefficient" title="Permalink to this headline">¶</a></h2>
+<p>The global clustering coefficient of a social network graph measures the proportion of closed triads in the network:</p>
+<div class="math notranslate nohighlight">
+\[\mbox{CC}(\mathcal{G}) = \frac{|\{(u,v,w) | u \neq w \wedge (u,v),(v,w),(u,w) \in E\}|}{|\{(u,v,w) | u \neq w \wedge (u,v),(v,w) \in E\}|}\]</div>
+<div class="section" id="id2">
+<h3>Parameters<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><dl class="simple">
+<dt><em>uSel</em>: selection of the orientation for the first of the two links to consider in the triad (the (u,v) one).</dt><dd><ul>
+<li><p>IN: we take the (v,u) link.</p></li>
+<li><p>OUT: we take the (u,v) link.</p></li>
+<li><p>UND: we take either the (u,v) or the (v,u) link (the one that exists)</p></li>
+<li><p>MUTUAL: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><em>vSel</em>: selection of the orientation for the second of the two links in the triad (the (v,w) one).</dt><dd><ul>
+<li><p>IN: we take the (v,w) link</p></li>
+<li><p>OUT: we take the (w,v) link.</p></li>
+<li><p>UND: we take either the (w,v) or the (v,w) link (the one that exists)</p></li>
+<li><p>MUTUAL: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>The natural clustering coefficient can be chosen by taking uSel = OUT and vSel = IN.</p>
+</div>
+<div class="section" id="id3">
+<h3>Configuration file<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>The configuration file for the original method is the following</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Clustering coefficient</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">uSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+    <span class="nt">vSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="clustering-coefficient-complement">
+<h2>Clustering coefficient complement<a class="headerlink" href="#clustering-coefficient-complement" title="Permalink to this headline">¶</a></h2>
+<p>This metric is the complement of the clustering coefficient, as it takes measures the proportion of the open triads in the network.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{CCC}(\mathcal{G}) = \frac{|\{(u,v,w) | u \neq w \wedge (u,w) \notin E \wedge (u,v),(v,w) \in E\}|}{|\{(u,v,w) | u \neq w \wedge (u,v),(v,w) \in E\}|}\]</div>
+<div class="section" id="id4">
+<h3>Parameters<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><dl class="simple">
+<dt><em>uSel</em>: selection of the orientation for the first of the two links to consider in the triad (the (u,v) one).</dt><dd><ul>
+<li><p>IN: we take the (v,u) link.</p></li>
+<li><p>OUT: we take the (u,v) link.</p></li>
+<li><p>UND: we take either the (u,v) or the (v,u) link (the one that exists)</p></li>
+<li><p>MUTUAL: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><em>vSel</em>: selection of the orientation for the second of the two links in the triad (the (v,w) one).</dt><dd><ul>
+<li><p>IN: we take the (v,w) link</p></li>
+<li><p>OUT: we take the (w,v) link.</p></li>
+<li><p>UND: we take either the (w,v) or the (v,w) link (the one that exists)</p></li>
+<li><p>MUTUAL: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>The natural clustering coefficient can be chosen by taking uSel = OUT and vSel = IN.</p>
+</div>
+<div class="section" id="id5">
+<h3>Configuration file<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<p>The configuration file for the original method is the following</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Clustering coefficient complement</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">uSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+    <span class="nt">vSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="degree-assortativity">
+<h2>Degree assortativity<a class="headerlink" href="#degree-assortativity" title="Permalink to this headline">¶</a></h2>
+<p>The degree assortativity measures to what extent users create links towards similar users in terms of their degree (i.e. if users with small degree create links towards
+users with small degrees and users with large degree create links towards users with large degree) or not.</p>
+<p>In undirected networks, it is computed as:</p>
+<div class="math notranslate nohighlight">
+\[\mbox{Assortativity}(\mathcal{G}) = \frac{2\cdot|E|\cdot \sum_(u,v) |\Gamma(u)||\Gamma(v)| - \left(\sum_u |\Gamma(u)|^2\right)^2}{4m \sum_{u} |\Gamma(u)|^3 - \left(\sum_u |\Gamma(u)|^2\right)^2}\]</div>
+<p><strong>Reference</strong> :  M.E.J. Newman. Mixing patterns in networks. Physical Review E, 67 026126 (2003)</p>
+<div class="section" id="id6">
+<h3>Parameters<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><dl class="simple">
+<dt><em>orientation</em>: selection for the degree to use.</dt><dd><ul>
+<li><p>IN: we take the incoming neighbors of the users.</p></li>
+<li><p>OUT: we take the outgoing neighbors of the users.</p></li>
+<li><p>UND: we take the incoming and outgoing neighbors of the users.</p></li>
+<li><p>MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="id7">
+<h3>Configuration file<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
+<p>The configuration file for the original method is the following</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Degree assortativity</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">orientation</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="degree-pearson-correlation">
+<h2>Degree Pearson correlation<a class="headerlink" href="#degree-pearson-correlation" title="Permalink to this headline">¶</a></h2>
+<p>The degree assortativity measures the Pearson correlation of the degrees between the origin and destination endpoints of the nodes.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{Pearson}(\mathcal{G}) = \frac{\sum_{(u,v) \in E} |\Gamma(u)||\Gamma(v)|}{\sqrt{\sum_{u} |\Gamma(u)|^2 \cdot \sum_{v} |\Gamma(v)|^2}}\]</div>
+<div class="section" id="id8">
+<h3>Parameters<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><dl class="simple">
+<dt><em>uSel</em>: selection of the orientation for the neighborhood of the starting node of the edges. This allows the following values:</dt><dd><ul>
+<li><p>IN: we take the incoming neighbors of the user.</p></li>
+<li><p>OUT: we take the outgoing neighbors of the user.</p></li>
+<li><p>UND: we take the incoming and outgoing neighbors of the user.</p></li>
+<li><p>MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><em>vSel</em>: selection of the orientation for the neighborhood of the ending node of the edges. This allows the following values:</dt><dd><ul>
+<li><p>IN: we take the incoming neighbors of the user.</p></li>
+<li><p>OUT: we take the outgoing neighbors of the user.</p></li>
+<li><p>UND: we take the incoming and outgoing neighbors of the user.</p></li>
+<li><p>MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="id9">
+<h3>Configuration file<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h3>
+<p>The configuration file for the original method is the following</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Degree Pearson</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">uSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+    <span class="nt">vSel</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="degree-gini-complement">
+<h2>Degree Gini complement<a class="headerlink" href="#degree-gini-complement" title="Permalink to this headline">¶</a></h2>
+<p>The degree Gini complement indicates how balanced the degree distribution of the network is. Values close to one indicate that the degree distribution is flat, whereas values close to 0 show that a few users concentrate all the links in the network.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{DegreeGiniCompl}(\mathcal{G}) = 1 - \frac{1}{|\mathcal{U}|-1} \sum_{i = 1}^{|\mathcal{U}|} (2i - |\mathcal{U}| - 1) \frac{|\Gamma(u_i)|}{\sum_v |\Gamma(v)|}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Gamma(u)\)</span> is the neighborhood of user <span class="math notranslate nohighlight">\(u\)</span> and <span class="math notranslate nohighlight">\(u_i\)</span> is the i-th node in the network with the smaller degree.</p>
+<div class="section" id="id10">
+<h3>Parameters<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><dl class="simple">
+<dt><em>orientation</em>: selects the type of degree we use (only affects directed networks).</dt><dd><ul>
+<li><p>IN: we take the in-degree of the users.</p></li>
+<li><p>OUT: we take the out-degree of the users.</p></li>
+<li><p>UND: we take the undirected degree of the users (in-degree + out-degree)</p></li>
+<li><p>MUTUAL: we take as the degree the number of mutual links.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="id11">
+<h3>Configuration file<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h3>
+<p>The configuration file for the original method is the following</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Degree Gini Complement</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+  <span class="nt">params</span><span class="p">:</span>
+    <span class="nt">orientation</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">orientation</span>
+      <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">IN/OUT/UND/MUTUAL</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="density">
+<h2>Density<a class="headerlink" href="#density" title="Permalink to this headline">¶</a></h2>
+<p>The density of a network measures the proportion of the possible number of edges between nodes which exist in the network. This metric does not consider selfloops.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{Density}(\mathcal{G}) = \frac{|E|}{|\mathcal{U}|(|\mathcal{U}|-1)}\]</div>
+<div class="section" id="id12">
+<h3>Configuration file<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h3>
+<p>The configuration file for the original method is the following</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Density</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="diameter">
+<h2>Diameter<a class="headerlink" href="#diameter" title="Permalink to this headline">¶</a></h2>
+<p>The diameter of a network measures the maximum (finite) distance between two users in the network.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{Diameter}(\mathcal{G}) = \max_{(u,v) : \delta(u,v) &lt; \infty} \delta(u,v)\]</div>
+<p>It is equivalent to the maximum eccentricity of the network.</p>
+<div class="section" id="id13">
+<h3>Configuration file<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h3>
+<p>The configuration file for the original method is the following</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Diameter</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="edge-gini-complement">
+<h2>Edge Gini complement<a class="headerlink" href="#edge-gini-complement" title="Permalink to this headline">¶</a></h2>
+<p>The edge Gini complement computes how balanced the number of links between different pairs of user is. This metric has only sense over multigraphs, where multiple links between users are allowed. The metric formulation is similar to:</p>
+<div class="math notranslate nohighlight">
+\[\mbox{EdgeGini}(\mathcal{G}) = 1 - \frac{1}{|\mathcal{U}|(|\mathcal{U}|-1)} \sum_{i = 1}^{|\mathcal{U}|(|\mathcal{U}|-1)} (2i - |\mathcal{U}|(|\mathcal{U}|-1) - 1) \frac{|\{(u,v)_i \in E\}|}{|E|}\]</div>
+<p>where <span class="math notranslate nohighlight">\((u,v)_i\)</span> is the i-th pair of users with an smaller number of links.</p>
+<p>We differentiate three variants:</p>
+<ul class="simple">
+<li><p><strong>Inter edge Gini complement:</strong> This metric does not consider the selfloops between the users. It takes the previous equation (considering that <span class="math notranslate nohighlight">\(E\)</span> does not have selfloops).</p></li>
+<li><p><strong>Semi-complete edge Gini complement:</strong> This metric stores selfloops as a different category for the Gini index, i.e. we add an element to the sum, counting the total number of selfloops in the network.</p></li>
+<li><p><strong>Complete edge Gini complement:</strong> This metric considers selfloops. In the previous equation, we would just need to substitute <span class="math notranslate nohighlight">\(|\mathcal{U}|(|\mathcal{U}|-1)\)</span> by <span class="math notranslate nohighlight">\(|\mathcal{U}|^2\)</span> when it appears.</p></li>
+</ul>
+<div class="section" id="id14">
+<h3>Configuration file<a class="headerlink" href="#id14" title="Permalink to this headline">¶</a></h3>
+<p>The configuration for the inter edge Gini complement is:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Inter edge Gini complement</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+</pre></div>
+</div>
+<p>For the semi-complete variant is:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Semi-complete edge Gini complement</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+</pre></div>
+</div>
+<p>and, finally, the version considering selfloops is:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Complete edge Gini complement</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="infinite-distances">
+<h2>Infinite distances<a class="headerlink" href="#infinite-distances" title="Permalink to this headline">¶</a></h2>
+<p>This metric measures the number of node pairs which do not have a path between the first and the second in the network.</p>
+<div class="section" id="id15">
+<h3>Configuration file<a class="headerlink" href="#id15" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Infinite distances</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="radius">
+<h2>Radius<a class="headerlink" href="#radius" title="Permalink to this headline">¶</a></h2>
+<p>If we consider the eccentricity values of all the users (i.e. the maximum finite distance between a user and the rest of the network), the radius represents its minimum value.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{Radius}(\mathcal{G}) = \min_{u}\left(\max_{v : \delta(u,v) &lt; \infty} \delta(u,v)\right)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\delta(u,v)\)</span> represents the distance between two users.</p>
+<div class="section" id="id16">
+<h3>Configuration file<a class="headerlink" href="#id16" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Radius</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="reciprocal-average-eccentricity">
+<h2>Reciprocal average eccentricity<a class="headerlink" href="#reciprocal-average-eccentricity" title="Permalink to this headline">¶</a></h2>
+<p>This metric computes the inverse value of the average eccentricity of the network.</p>
+<p>If we consider the eccentricity values of all the users (i.e. the maximum finite distance between a user and the rest of the network), the radius represents its minimum value.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{RAE}(\mathcal{G}) = \frac{|\mathcal{U}|}{\sum_{u} \mbox{Eccentricity}(u)}\]</div>
+<dl class="simple">
+<dt><strong>References:</strong></dt><dd><ul class="simple">
+<li><ol class="upperalpha simple" start="10">
+<li><p>Sanz-Cruzado, S.M. Pepa, P. Castells. Structural novelty and diversity in link prediction. 9th International Workshop on Modeling Social Media (MSM 2018) at The Web Conference (WWW 2018). The Web Conference Companion, pp. 1347–1351.</p></li>
+</ol>
+</li>
+<li><ol class="upperalpha simple" start="10">
+<li><p>Sanz-Cruzado, P. Castells. Beyond Accuracy in Link Prediction. BIAS 2020: Bias and Social Aspects in Search and Recommendation, pp 79-94.</p></li>
+</ol>
+</li>
+</ul>
+</dd>
+</dl>
+<div class="section" id="id17">
+<h3>Configuration file<a class="headerlink" href="#id17" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Reciprocal average eccentricity</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="reciprocal-diameter">
+<h2>Reciprocal diameter<a class="headerlink" href="#reciprocal-diameter" title="Permalink to this headline">¶</a></h2>
+<p>This metric computes the inverse value of the diameter (see <a class="reference internal" href="#diameter">Diameter</a>), so, when distances are reduced among the users in the network, the value of this metric increases.</p>
+<p>If we consider the eccentricity values of all the users (i.e. the maximum finite distance between a user and the rest of the network), the radius represents its minimum value.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{RD}(\mathcal{G}) = \frac{1}{\mbox{Diameter}(\mathcal{G})}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\delta(u,v)\)</span> represents the distance between two users.</p>
+<dl class="simple">
+<dt><strong>References:</strong></dt><dd><ul class="simple">
+<li><ol class="upperalpha simple" start="10">
+<li><p>Sanz-Cruzado, S.M. Pepa, P. Castells. Structural novelty and diversity in link prediction. 9th International Workshop on Modeling Social Media (MSM 2018) at The Web Conference (WWW 2018). The Web Conference Companion, pp. 1347–1351.</p></li>
+</ol>
+</li>
+<li><ol class="upperalpha simple" start="10">
+<li><p>Sanz-Cruzado, P. Castells. Beyond Accuracy in Link Prediction. BIAS 2020: Bias and Social Aspects in Search and Recommendation, pp 79-94.</p></li>
+</ol>
+</li>
+</ul>
+</dd>
+</dl>
+<div class="section" id="id18">
+<h3>Configuration file<a class="headerlink" href="#id18" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Reciprocal diameter</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="reciprocity-rate">
+<h2>Reciprocity rate<a class="headerlink" href="#reciprocity-rate" title="Permalink to this headline">¶</a></h2>
+<p>This metric computes the proportion of the edges in the network which are reciprocal.</p>
+<div class="math notranslate nohighlight">
+\[\mbox{Reciprocity}(\mathcal{G}) = \frac{|\{(u,v) \in E | (v,u) \in E\}|}{|E|}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\delta(u,v)\)</span> represents the distance between two users.</p>
+<dl class="simple">
+<dt><strong>References:</strong></dt><dd><ul class="simple">
+<li><ol class="upperalpha simple" start="10">
+<li><p>Sanz-Cruzado, S.M. Pepa, P. Castells. Structural novelty and diversity in link prediction. 9th International Workshop on Modeling Social Media (MSM 2018) at The Web Conference (WWW 2018). The Web Conference Companion, pp. 1347–1351.</p></li>
+</ol>
+</li>
+<li><ol class="upperalpha simple" start="10">
+<li><p>Sanz-Cruzado, P. Castells. Beyond Accuracy in Link Prediction. BIAS 2020: Bias and Social Aspects in Search and Recommendation, pp 79-94.</p></li>
+</ol>
+</li>
+</ul>
+</dd>
+</dl>
+<div class="section" id="id19">
+<h3>Configuration file<a class="headerlink" href="#id19" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Reciprocity</span><span class="p">:</span>
+  <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">graph</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">SoNALiRe</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../guide/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../guide/install.html">Install SoNALiRe</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Social network analysis</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../config.html">Analyze the network structural properties</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../metrics.html">Structural metrics</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../metrics.html">Structural metrics</a><ul>
+      <li>Previous: <a href="pair.html" title="previous chapter">Pair metrics</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Information Retrieval Group @ Universidad Autónoma de Madrid (http:\ir.ii.uam.es).
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/sna/metrics/graph.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

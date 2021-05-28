@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -19,10 +19,14 @@ import java.util.function.Supplier;
 
 import static es.uam.eps.ir.socialranksys.grid.sna.pair.PairMetricIdentifiers.CCINCREASE;
 
-
 /**
+ * Grid search for the metric which measures the increment in the global clustering coefficient of a network
+ * if the pair was added.
  *
- * @author Javier
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @see ClusteringCoefficientIncrement
  */
 public class ClusteringCoefficientIncrementGridSearch<U> implements PairMetricGridSearch<U>
 {

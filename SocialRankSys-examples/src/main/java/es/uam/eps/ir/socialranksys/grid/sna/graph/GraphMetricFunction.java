@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -12,9 +12,12 @@ import es.uam.eps.ir.socialranksys.metrics.GraphMetric;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
 
 /**
+ * Functional interface for retrieving global graph metrics.
  *
- * @author Javier
- * @param <U> Type of the users.
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 @FunctionalInterface
 public interface GraphMetricFunction<U> 

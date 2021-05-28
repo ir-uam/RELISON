@@ -12,7 +12,7 @@ import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfigu
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorNotConfiguredException;
 import es.uam.eps.ir.socialranksys.index.fast.FastIndex;
 import es.uam.eps.ir.socialranksys.metrics.communities.graph.Modularity;
-import es.uam.eps.ir.socialranksys.metrics.distance.edge.EdgeBetweenness;
+import es.uam.eps.ir.socialranksys.metrics.distance.pair.EdgeBetweenness;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import org.jooq.lambda.tuple.Tuple2;
 import org.jooq.lambda.tuple.Tuple3;
@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 /**
  * Implementation of the Girvan-Newman community detection algorithm, based on removing edges with the highest
  * betweenness value.
+ *
+ * <p><b>Reference: </b>M. Girvan, M.E.J. Newman. Community structure in social and biological networks, Proc. Natl. Acad. Sci. USA 99, 7821–7826 (2002)</p>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -20,8 +20,11 @@ import java.util.function.Supplier;
 import static es.uam.eps.ir.socialranksys.grid.sna.pair.PairMetricIdentifiers.DISTANCEWITHOUTLINK;
 
 /**
- * Grid search for the distance
- * @author Javier Sanz-Cruzado Puig
+ * Grid search for the distance between two users if we removed the link between them.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users
  */
 public class DistanceWithoutLinkGridSearch<U> implements PairMetricGridSearch<U>

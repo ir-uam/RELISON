@@ -1,0 +1,209 @@
+Edge metrics
+==============
+
+SoNALiRe integrates the following edge metrics. If the studied edge does not exist when these metrics are used, an exception will be thrown.
+
+
+* `Betweenness`_
+* `Common neighbors`_
+* `Embeddedness`_
+* `Weakness`_
+* `Weight`_
+
+Betweenness
+~~~~~~~~~~~
+The betweenness centrality measures, for each node, the number of shortest paths which pass through the edge.
+
+.. math::
+
+	\mbox{Betweenness}(u,v) = \sum_{(w,x)} \frac{\sigma_{wx}(u,v)}{\sigma_{wx}}
+
+where :math:`\sigma_{wx}` is the number of shortest paths between :math:`w` and :math:`x`, and  :math:`\sigma_{wx}(u,v)` is the number of
+shortest paths which pass through edge :math:`(u,v)`.
+
+**Reference:** M.E.J. Newman, M. Girvan. Finding and evaluating community structure in networks. Physical Review E 69(2), pp. 1-16 (2004)
+
+Parameters
+^^^^^^^^^^
+
+* *normalize:* true if we want to normalize the coefficient, false otherwise.
+
+Configuration file
+^^^^^^^^^^^^^^^^^^
+
+.. code:: yaml
+
+    Betweenness:
+      type: edge
+      params:
+        normalize:
+          type: boolean
+          values: [true, false]
+
+
+Common neighbors
+~~~~~~~~~~~~~~~~
+This metric just counts the number of common neighbors of the endpoints of an edge.
+
+.. math::
+
+	\mbox{CN}(u,v) = |\Gamma(u)\cap\Gamma(v)|
+
+where :math:`\Gamma(u)` is the neighborhood of user :math:`u`.
+
+We can also compute what we call the **complementary common neighbors** metric, or, in other words, the value of this metric in the complementary graph. Its equation is the following one:
+
+.. math::
+
+	\mbox{CN}(u,v) = |\mathcal{U}| - |\Gamma(u)\cup\Gamma(v)|
+
+Parameters
+^^^^^^^^^^
+
+* *uSel*: selection of the orientation for the neighborhood of the starting node of the edge. This allows the following values:
+    * IN: we take the incoming neighbors of the user.
+    * OUT: we take the outgoing neighbors of the user.
+    * UND: we take the incoming and outgoing neighbors of the user.
+    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+* *vSel*: selection of the orientation for the neighborhood of the ending node of the edge. This allows the following values:
+    * IN: we take the incoming neighbors of the user.
+    * OUT: we take the outgoing neighbors of the user.
+    * UND: we take the incoming and outgoing neighbors of the user.
+    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+
+Configuration file
+^^^^^^^^^^^^^^^^^^
+
+The configuration file for the original method is the following
+
+.. code:: yaml
+
+    Common neighbors:
+      type: vertex
+      params:
+        uSel:
+          type: orientation
+          values: [IN/OUT/UND/MUTUAL]
+        vSel:
+          type: orientation
+          values: [IN/OUT/UND/MUTUAL]
+
+while the configuration for the value of the metric in the complementary graph is:
+
+    Complementary common neighbors:
+      type: vertex
+      params:
+        uSel:
+          type: orientation
+          values: [IN/OUT/UND/MUTUAL]
+        vSel:
+          type: orientation
+          values: [IN/OUT/UND/MUTUAL]
+
+Embeddedness
+~~~~~~~~~~~~
+
+The embeddedness of a link measures the proportion of the neighbors of the two nodes involved in the link
+who are common to both of them. It indicates how redundant a link is in the network, and as a measure of the strength of ties.
+
+.. math::
+
+	\mbox{Embeddedness}(u,v) = \frac{|\Gamma(u)\setminus\{v\} \cap \Gamma(v)\setminus\{u\}|}{|\Gamma(u)\setminus\{v\} \cup \Gamma(v)\setminus\{u\}|}
+
+where :math:`\Gamma(u)` is the neighborhood of user :math:`u`.
+
+In our framework, we can compute two related measures: the first one, the **weakness**, measures the opposite: the number of 
+neighbors of the endpoints who are not common to both:
+
+.. math::
+
+	\mbox{Weakness}(u,v) = 1 - \mbox{Embeddedness}(u,v)
+
+The second one is just the value of the edge metric in the complementary graph:
+
+.. math::
+	
+	\mbox{Compl. Embeddedness}(u,v) = \frac{|\mathcal{U}| - |\Gamma(u) \cup \Gamma(v)|}{|\mathcal{U}| - |\Gamma(u) \cap \Gamma(v)|}
+
+
+**References:**
+ * D. Easley, J.M. Kleinberg. Networks, crowds and markets (2010).
+ * J. Sanz-Cruzado, P. Castells. Beyond Accuracy in Link Prediction. BIAS 2020: Bias and Social Aspects in Search and Recommendation, pp 79-94.
+
+Parameters
+^^^^^^^^^^
+All the variants share the same two parameters:
+
+* *uSel*: selection of the orientation for the neighborhood of the starting node of the edge. This allows the following values:
+    * IN: we take the incoming neighbors of the user.
+    * OUT: we take the incoming neighbors of the user.
+    * UND: we take the incoming and outgoing neighbors of the user.
+    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+* *wSel*: selection of the orientation for the neighborhood of the ending node of the edge. This allows the following values:
+    * IN: we take the incoming neighbors of the user.
+    * OUT: we take the incoming neighbors of the user.
+    * UND: we take the incoming and outgoing neighbors of the user.
+    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+
+Configuration file
+^^^^^^^^^^^^^^^^^^
+
+The configuration for the original embeddedness metric is:
+
+.. code:: yaml
+
+    Embeddedness:
+      type: vertex
+      params:
+        uSel:
+          type: orientation
+          values: [IN/OUT/UND/MUTUAL]
+        vSel:
+          type: orientation
+          values: [IN/OUT/UND/MUTUAL]
+
+for the weakness one is:
+
+.. code:: yaml
+
+    Weakness:
+      type: vertex
+      params:
+        uSel:
+          type: orientation
+          values: [IN/OUT/UND/MUTUAL]
+        vSel:
+          type: orientation
+          values: [IN/OUT/UND/MUTUAL]
+
+and for the metric in the complementary graph:
+
+.. code:: yaml
+
+    Complementary embeddedness:
+      type: vertex
+      params:
+        uSel:
+          type: orientation
+          values: [IN/OUT/UND/MUTUAL]
+        vSel:
+          type: orientation
+          values: [IN/OUT/UND/MUTUAL]
+
+Weakness
+~~~~~~~~
+See `Embeddedness`_
+
+
+Weight
+~~~~~~
+If it is available, it just measures the weight of an edge in the graph.
+In unweighted networks, all edges have weight equal to 1.
+
+Configuration file
+^^^^^^^^^^^^^^^^^^
+
+.. code:: yaml
+
+    Weight:
+      type: edge

@@ -46,6 +46,15 @@ public interface PairMetric<U>
     Map<Pair<U>, Double> compute(Graph<U> graph);
 
     /**
+     * Computes the value of the metric for all the links in the graph.
+     *
+     * @param graph the full graph.
+     *
+     * @return A map containing the metrics for each link.
+     */
+    Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph);
+
+    /**
      * Computes the value of the metric for a selection of pairs in the graph.
      *
      * @param graph The full graph.
@@ -88,12 +97,21 @@ public interface PairMetric<U>
      */
     double averageValue(Graph<U> graph);
 
+
+    /**
+     * Computes the average value of the metric, restricted
+     * to the set of links in the network.
+     * @param graph the network.
+     * @return the average value of the metric over the links in the network.
+     */
+    double averageValueOnlyLinks(Graph<U> graph);
+
     /**
      * Computes the average value of a certain group of pairs.
      *
      * @param graph     the full graph.
-     * @param pair      A stream containing the selected pairs.
-     * @param pairCount The number of pairs in the stream.
+     * @param pair      a stream containing the selected pairs.
+     * @param pairCount the number of pairs in the stream.
      *
      * @return The average value of the metric for those pairs.
      */

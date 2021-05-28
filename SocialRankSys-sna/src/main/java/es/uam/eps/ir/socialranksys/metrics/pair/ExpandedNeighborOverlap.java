@@ -132,6 +132,44 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
     }
 
     @Override
+    public Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph)
+    {
+        Map<Pair<U>, Double> values = new HashMap<>();
+        Map<U, Set<U>> neighs = new HashMap<>();
+
+        graph.getAllNodes().forEach(u ->
+        {
+            Set<U> d2neigh = this.explore(graph, u, origin ? uSel : vSel);
+            graph.getAdjacentNodes(u).forEach(v ->
+            {
+                Set<U> vNeigh;
+                if (neighs.containsKey(v))
+                {
+                    vNeigh = neighs.get(v);
+                }
+                else
+                {
+                    vNeigh = graph.getNeighbourhood(v, origin ? vSel : uSel).collect(Collectors.toCollection(HashSet::new));
+                    neighs.put(v, vNeigh);
+                }
+
+                Set<U> aux = new HashSet<>(d2neigh);
+                aux.retainAll(vNeigh);
+                if (origin)
+                {
+                    values.put(new Pair<>(u, v), aux.size() + 0.0);
+                }
+                else
+                {
+                    values.put(new Pair<>(v, u), aux.size() + 0.0);
+                }
+            });
+        });
+
+        return values;
+    }
+
+    @Override
     public Map<Pair<U>, Double> compute(Graph<U> graph, Stream<Pair<U>> pairs)
     {
         Map<Pair<U>, Double> values = new ConcurrentHashMap<>();
@@ -181,7 +219,14 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
     public double averageValue(Graph<U> graph)
     {
         double value = this.compute(graph).values().stream().reduce(0.0, Double::sum);
-        return value / (graph.getEdgeCount() + 0.0);
+        return value / (graph.getVertexCount()*(graph.getVertexCount()-1.0) + 0.0);
+    }
+
+    @Override
+    public double averageValueOnlyLinks(Graph<U> graph)
+    {
+        double value = this.computeOnlyLinks(graph).values().stream().reduce(0.0, Double::sum);
+        return value / (graph.isDirected() ? graph.getEdgeCount() : 2.0 * graph.getEdgeCount() + 0.0);
     }
 
     @Override

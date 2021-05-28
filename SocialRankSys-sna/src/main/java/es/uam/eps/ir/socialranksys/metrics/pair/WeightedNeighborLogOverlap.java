@@ -101,10 +101,36 @@ public class WeightedNeighborLogOverlap<U> implements PairMetric<U>
     }
 
     @Override
+    public Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph)
+    {
+        Map<Pair<U>, Double> values = new HashMap<>();
+        if (!graph.isMultigraph())
+        {
+            graph.getAllNodes().forEach((orig) ->
+                graph.getAdjacentNodes(orig).forEach(dest ->
+                {
+                    if (!orig.equals(dest))
+                    {
+                        values.put(new Pair<>(orig, dest), this.compute(graph, orig, dest));
+                    }
+                })
+            );
+        }
+        return values;
+    }
+
+    @Override
     public double averageValue(Graph<U> graph)
     {
         double value = this.compute(graph).values().stream().reduce(0.0, Double::sum);
         return value / (graph.getVertexCount() * (graph.getVertexCount() - 1));
+    }
+
+    @Override
+    public double averageValueOnlyLinks(Graph<U> graph)
+    {
+        double value = this.computeOnlyLinks(graph).values().stream().reduce(0.0, Double::sum);
+        return value / (graph.isDirected() ? graph.getEdgeCount() + 0.0 : 2.0 * graph.getEdgeCount());
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -21,8 +21,12 @@ import static es.uam.eps.ir.socialranksys.grid.sna.pair.PairMetricIdentifiers.SH
 
 
 /**
+ * Grid for a metric that computes the reduction of the diameter
+ * in a network if a link is added.
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @author Javier
+ * @see ShrinkingDiameter
  */
 public class ShrinkingDiameterGridSearch<U> implements PairMetricGridSearch<U> {
     @Override

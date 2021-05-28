@@ -13,10 +13,10 @@ import es.uam.eps.ir.socialranksys.graph.UndirectedGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastDirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastUndirectedUnweightedGraph;
 import es.uam.eps.ir.socialranksys.metrics.distance.CompleteDistanceCalculator;
-import es.uam.eps.ir.socialranksys.metrics.distance.edge.EdgeBetweenness;
 import es.uam.eps.ir.socialranksys.metrics.distance.graph.ASL;
 import es.uam.eps.ir.socialranksys.metrics.distance.graph.Diameter;
 import es.uam.eps.ir.socialranksys.metrics.distance.modes.ASLMode;
+import es.uam.eps.ir.socialranksys.metrics.distance.pair.EdgeBetweenness;
 import es.uam.eps.ir.socialranksys.metrics.distance.pair.Geodesics;
 import es.uam.eps.ir.socialranksys.metrics.distance.vertex.Closeness;
 import es.uam.eps.ir.socialranksys.metrics.distance.vertex.Eccentricity;
@@ -333,32 +333,32 @@ public class DistanceMetricsTest
     @Test
     public void edgeBetweenness()
     {
-        EdgeMetric<Integer> betw = new EdgeBetweenness<>(deCalculator, true);
-        Assert.assertEquals(0.0, betw.averageValue(this.directedEmpty), 0.0001);
+        PairMetric<Integer> betw = new EdgeBetweenness<>(deCalculator, true);
+        Assert.assertEquals(0.0, betw.averageValueOnlyLinks(this.directedEmpty), 0.0001);
 
         betw = new EdgeBetweenness<>(ueCalculator, true);
-        Assert.assertEquals(0.0, betw.averageValue(this.undirectedEmpty), 0.0001);
+        Assert.assertEquals(0.0, betw.averageValueOnlyLinks(this.undirectedEmpty), 0.0001);
 
         betw = new EdgeBetweenness<>(ucCalculator, true);
-        Assert.assertEquals(1.0 / 6.0, betw.averageValue(this.undirectedComplete), 0.0001);
+        Assert.assertEquals(1.0 / 6.0, betw.averageValueOnlyLinks(this.undirectedComplete), 0.0001);
 
         betw = new EdgeBetweenness<>(dcCalculator, true);
-        Assert.assertEquals(1.0 / 12.0, betw.averageValue(this.directedComplete), 0.0001);
+        Assert.assertEquals(1.0 / 12.0, betw.averageValueOnlyLinks(this.directedComplete), 0.0001);
 
         betw = new EdgeBetweenness<>(dwcCalculator, true);
-        Assert.assertEquals(3.0 / 42.0, betw.averageValue(this.directedWeaklyConnected), 0.0001);
+        Assert.assertEquals(3.0 / 42.0, betw.averageValueOnlyLinks(this.directedWeaklyConnected), 0.0001);
 
         betw = new EdgeBetweenness<>(dscCalculator, true);
-        Assert.assertEquals(9.272727272 / 42.0, betw.averageValue(this.directedStronglyConnected), 0.0001);
+        Assert.assertEquals(9.272727272 / 42.0, betw.averageValueOnlyLinks(this.directedStronglyConnected), 0.0001);
 
         betw = new EdgeBetweenness<>(dncCalculator, true);
-        Assert.assertEquals(2.0 / 30.0, betw.averageValue(this.directedNonConnected), 0.0001);
+        Assert.assertEquals(2.0 / 30.0, betw.averageValueOnlyLinks(this.directedNonConnected), 0.0001);
 
         betw = new EdgeBetweenness<>(uscCalculator, true);
-        Assert.assertEquals(2.875 / 15.0, betw.averageValue(this.undirectedConnected), 0.0001);
+        Assert.assertEquals(2.875 / 15.0, betw.averageValueOnlyLinks(this.undirectedConnected), 0.0001);
 
         betw = new EdgeBetweenness<>(uncCalculator, true);
-        Assert.assertEquals(1.0 / 15.0, betw.averageValue(this.undirectedNonConnected), 0.0001);
+        Assert.assertEquals(1.0 / 15.0, betw.averageValueOnlyLinks(this.undirectedNonConnected), 0.0001);
 
     }
 

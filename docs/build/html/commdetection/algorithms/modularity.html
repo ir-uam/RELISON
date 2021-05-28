@@ -1,0 +1,292 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modularity-based community detection algorithms &#8212; SoNALiRe 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="prev" title="Connectedness community detection algorithms" href="connectedness.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="modularity-based-community-detection-algorithms">
+<h1>Modularity-based community detection algorithms<a class="headerlink" href="#modularity-based-community-detection-algorithms" title="Permalink to this headline">¶</a></h1>
+<p>This family of community detection algorithms considers network properties to compute the partition. We have implemented the following community detection algorithms.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#fastgreedy">FastGreedy</a></p></li>
+<li><p><a class="reference internal" href="#girvan-newman">Girvan-Newman</a></p></li>
+<li><p><a class="reference internal" href="#infomap">Infomap</a></p></li>
+<li><p><a class="reference internal" href="#label-propagation">Label propagation</a></p></li>
+<li><p><a class="reference internal" href="#louvain">Louvain</a></p></li>
+<li><p><a class="reference internal" href="#spectral-clustering">Spectral clustering</a></p></li>
+</ul>
+<div class="section" id="fastgreedy">
+<h2>FastGreedy<a class="headerlink" href="#fastgreedy" title="Permalink to this headline">¶</a></h2>
+<p>This is an agglomerative clustering method which starts with each node on a different community, and, each step, joins the pair of communities which increases modularity the most (or decreases it the least). From the dendogram, we take the partition maximizing the modularity of the network.</p>
+<p>In the framework, we consider three variants of these method in addition to the original version. These additional variants attempt to find not only a set of communities maximizing the modularity of the network, but, at the same time, balancing the number of users on each community. The three additional variants are:</p>
+<ul class="simple">
+<li><p><strong>Balanced FastGreedy</strong>: fixes a maximum community size, and, it applies again the community detection algorithm over the communities larger than the fixed size.</p></li>
+<li><p><strong>Gini weighted FastGreedy</strong>: joins the pair of communities that, at the same time, increase the modularity and minimizes the Gini index of the community size distribution. Then, it chooses the partition maximizing the modularity (as earlier).</p></li>
+<li><p><strong>Size weighted FastGreedy</strong>: joins the pair of communities that maximize the modularity and minimize the distance between the number of users in the communities to join and the average number of users on each community.</p></li>
+</ul>
+<p><strong>Reference:</strong> M.E.J. Newman. Fast Algorithm for detecting community structure in networks. Physical Review E 69(6): 066133 (2004)</p>
+<div class="section" id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline">¶</a></h3>
+<p>The original FastGreedy approach does not consider any parameters, but the balanced and Gini weighted variants do.</p>
+<p>For the <strong>balanced FastGreedy</strong> algorithm, we have the following parameters:</p>
+<ul class="simple">
+<li><p><em>size</em>: the maximum allowed community size.</p></li>
+</ul>
+<p>whereas for the <strong>Gini weighted FastGreedy</strong>, we take the following parameter:</p>
+<ul class="simple">
+<li><p><em>lambda</em>: the weight given to the Gini index of the size distribution.</p></li>
+</ul>
+</div>
+<div class="section" id="configuration-file">
+<h3>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this headline">¶</a></h3>
+<p>The original FastGreedy algorithm has the following configuration file:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">FastGreedy</span><span class="p">:</span>
+</pre></div>
+</div>
+<p>whereas the balanced variant has this one:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Balanced FastGreedy</span><span class="p">:</span>
+  <span class="nt">size</span><span class="p">:</span>
+    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int</span>
+    <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">,</span><span class="nv">10</span><span class="p p-Indicator">,</span><span class="nv">100</span><span class="p p-Indicator">,</span><span class="nv">1000</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<p>the Gini weighted approach has the following:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Gini weighted FastGreedy</span><span class="p">:</span>
+  <span class="nt">lambda</span><span class="p">:</span>
+    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">double</span>
+    <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">0.1</span><span class="p p-Indicator">,</span><span class="nv">1</span><span class="p p-Indicator">,</span><span class="nv">10</span><span class="p p-Indicator">,</span><span class="nv">100</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<p>and the size weighted variant:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Size weighted FastGreedy</span><span class="p">:</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="girvan-newman">
+<h2>Girvan-Newman<a class="headerlink" href="#girvan-newman" title="Permalink to this headline">¶</a></h2>
+<p>The Girvan-Newman algorithm generates the community partition by gradually removing the edge with the largest betweenness in the network. It generates a dendogram, and the partition that maximizes the modularity of the network is selected.</p>
+<p><strong>Reference:</strong> M. Girvan, M.E.J. Newman. Community structure in social and biological networks, Proc. Natl. Acad. Sci. USA 99, 7821–7826 (2002)</p>
+<div class="section" id="id1">
+<h3>Configuration file<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Girvan-Newman</span><span class="p">:</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="infomap">
+<h2>Infomap<a class="headerlink" href="#infomap" title="Permalink to this headline">¶</a></h2>
+<p>The Infomap algorithm computes a community partition of the network by computing the minimum length necessary for describing a random walk in the network. For this it uses a two-level Huffman compressing code: the first one differentiates communities in the network, and the second nodes inside of each community.</p>
+<p>To compute this metric, we call to the original implementation of the algorithm, provided by the authors in <a class="reference external" href="http://mapequation.org">http://mapequation.org</a>.</p>
+<p><strong>Reference:</strong> M. Rosvall and C. Bergstrom. Maps of random walks on complex networks reveal community structure. Proceedings of the National Academy of Sciences 105(4), pp. 1118-1123 (2008)</p>
+<div class="section" id="id2">
+<h3>Parameters<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p><em>trials</em>: the number of iterations of the most external loop of the algorithm.</p></li>
+</ul>
+</div>
+<div class="section" id="id3">
+<h3>Configuration file<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Infomap</span><span class="p">:</span>
+  <span class="nt">trials</span><span class="p">:</span>
+    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int</span>
+    <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">,</span><span class="nv">5</span><span class="p p-Indicator">,</span><span class="nv">10</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="label-propagation">
+<h2>Label propagation<a class="headerlink" href="#label-propagation" title="Permalink to this headline">¶</a></h2>
+<p>The label propagation algorithm starts with all nodes in different communities.
+Then, iteratively, each node selects the community of the majority of its neigbors, until everything converges.</p>
+<p><strong>Reference:</strong> U.N. Raghavan, R. Albert, S. Kumara. Near linear time algorithm to detect communities in large-scale networks. Physical Review E 76: 036106 (2007).</p>
+<div class="section" id="id4">
+<h3>Configuration file<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Label propagation</span><span class="p">:</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="louvain">
+<h2>Louvain<a class="headerlink" href="#louvain" title="Permalink to this headline">¶</a></h2>
+<p>The Louvain algorithm applies a multi-level community detection algorithm. It starts with all the nodes in different communities, and, iteratively, moves a node to another community in the network where the increment in the modularity is maximum.</p>
+<p>When the modularity does not vary, it condenses the network, so communities are now
+the nodes, and applies the algorithm over that condensed network.</p>
+<p><strong>Reference:</strong>  V. Blondel, J. Guillaume, R. Lambiotte, E. Lefebvre, Fast unfolding of communities in large networks. Journal of Statistical Mechanics 10 (2008)</p>
+<div class="section" id="id5">
+<h3>Parameters<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p><em>threshold</em>: the minimum variance of the modularity. If in an iteration it changes less than this threshold, we end the phase.</p></li>
+</ul>
+</div>
+<div class="section" id="id6">
+<h3>Configuration file<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Louvain</span><span class="p">:</span>
+  <span class="nt">threshold</span><span class="p">:</span>
+    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">double</span>
+    <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">0.001</span><span class="p p-Indicator">,</span><span class="nv">0.01</span><span class="p p-Indicator">,</span><span class="nv">0.1</span><span class="p p-Indicator">,</span><span class="nv">1</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="spectral-clustering">
+<h3>Spectral clustering<a class="headerlink" href="#spectral-clustering" title="Permalink to this headline">¶</a></h3>
+<p>The spectral clustering algorithm is a community detection technique for finding a balanced set of communities. It uses the max-flow min-cut theory to find a partition such as the number of edges between two sets is minimized, where a cut between two communities is just the number of edges between them.</p>
+<p>We consider two variants of this algorithm:</p>
+<ul class="simple">
+<li><p><strong>Ratio cut spectral clustering</strong>: Minimizes the ratio cut of the partition, which is defined as:</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\mbox{RatioCut}(\mathcal{G}|\mathcal{C}) = \frac{1}{|\mathcal{C}|} \sum_c \frac{|\{(u,v) \in E | u \in c \wedge v \notin c\}|}{|c|}\]</div>
+<ul class="simple">
+<li><p><strong>Normalized cut spectral clustering</strong>: Minimizes the normalized cut of the partition, defined as:</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\mbox{RatioCut}(\mathcal{G}|\mathcal{C}) = \frac{1}{|\mathcal{C}|} \sum_c \frac{|\{(u,v) \in E | u \in c \wedge v \notin c\}|}{\mbox{vol}(c)}\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\mbox{vol}(c) = \sum_{v\in c} |\Gamma(v)|\]</div>
+<p><strong>Reference:</strong> R. Zafarani, M.A. Abassi, H. Liu. Social Media Mining: An Introduction. Chapter 6. 2014</p>
+</div>
+<div class="section" id="id7">
+<h3>Parameters<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p><em>k</em>: the desired number of communities.</p></li>
+</ul>
+</div>
+<div class="section" id="id8">
+<h3>Configuration file<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<p>For the ratio cut version, the configuration file would look as:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Ratio cut spectral clustering</span><span class="p">:</span>
+  <span class="nt">k</span><span class="p">:</span>
+    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int</span>
+    <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">10</span><span class="p p-Indicator">,</span><span class="nv">20</span><span class="p p-Indicator">,</span><span class="nv">30</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<p>and, for the normalized cut version:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">Normalized cut spectral clustering</span><span class="p">:</span>
+  <span class="nt">k</span><span class="p">:</span>
+    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int</span>
+    <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">10</span><span class="p p-Indicator">,</span><span class="nv">20</span><span class="p p-Indicator">,</span><span class="nv">30</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">SoNALiRe</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../guide/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../guide/install.html">Install SoNALiRe</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Social network analysis</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../sna/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sna/config.html">Experimental configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sna/code.html">Integrate structural metrics in a Java project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sna/metrics.html">Structural metrics summary</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Community detection</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../config.html">Experimental configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../code.html">Integrate communities in a Java project</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../algorithms.html">Community detection algorithms summary</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../introduction.html">Introduction</a><ul>
+  <li><a href="../algorithms.html">Community detection algorithms summary</a><ul>
+      <li>Previous: <a href="connectedness.html" title="previous chapter">Connectedness community detection algorithms</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Information Retrieval Group @ Universidad Autónoma de Madrid (http:\ir.ii.uam.es).
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/commdetection/algorithms/modularity.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

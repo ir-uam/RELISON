@@ -20,7 +20,6 @@ import es.uam.eps.ir.socialranksys.grid.sna.MetricTypeIdentifiers;
 import es.uam.eps.ir.socialranksys.grid.sna.YAMLMetricGridReader;
 import es.uam.eps.ir.socialranksys.grid.sna.comm.global.GlobalCommunityMetricSelector;
 import es.uam.eps.ir.socialranksys.grid.sna.comm.indiv.IndividualCommunityMetricSelector;
-import es.uam.eps.ir.socialranksys.grid.sna.edge.EdgeMetricSelector;
 import es.uam.eps.ir.socialranksys.grid.sna.graph.GraphMetricSelector;
 import es.uam.eps.ir.socialranksys.grid.sna.pair.PairMetricSelector;
 import es.uam.eps.ir.socialranksys.grid.sna.vertex.VertexMetricSelector;
@@ -240,9 +239,9 @@ public class GraphAnalyzer
         System.out.println("Starting edge metrics...");
         a = System.currentTimeMillis();
 
-        EdgeMetricSelector<Long> edgeSel = new EdgeMetricSelector<>();
+        PairMetricSelector<Long> edgeSel = new PairMetricSelector<>();
 
-        Map<String, Supplier<EdgeMetric<Long>>> edgeMetrics = new HashMap<>();
+        Map<String, Supplier<PairMetric<Long>>> edgeMetrics = new HashMap<>();
         metricsSet = gridReader.getMetrics(type);
         metricsSet.forEach(metric -> edgeMetrics.putAll(edgeSel.getMetrics(metric, gridReader.getGrid(metric, MetricTypeIdentifiers.EDGE_METRIC), dc)));
         System.out.println("Identified " + edgeMetrics.size() + " metrics");
@@ -267,10 +266,10 @@ public class GraphAnalyzer
             System.out.println("Running " + metric);
             Long a2 = System.currentTimeMillis();
 
-            EdgeMetric<Long> em = value.get();
+            PairMetric<Long> em = value.get();
 
             // Compute the individual values
-            Map<Pair<Long>, Double> values = em.compute(graph);
+            Map<Pair<Long>, Double> values = em.computeOnlyLinks(graph);
             Long b2 = System.currentTimeMillis();
             System.out.println("Computed " + metric + " (" + (b2 - a2) + " ms.)");
 

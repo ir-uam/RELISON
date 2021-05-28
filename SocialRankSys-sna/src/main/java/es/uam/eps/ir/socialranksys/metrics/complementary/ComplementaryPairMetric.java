@@ -63,6 +63,16 @@ public class ComplementaryPairMetric<U> implements PairMetric<U>
     }
 
     @Override
+    public Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph)
+    {
+        if(graph.isMultigraph())
+        {
+            return null;
+        }
+        return metric.computeOnlyLinks(graph.complement());
+    }
+
+    @Override
     public Map<Pair<U>, Double> compute(Graph<U> graph, Stream<Pair<U>> pairs)
     {
         if (graph.isMultigraph())
@@ -80,6 +90,16 @@ public class ComplementaryPairMetric<U> implements PairMetric<U>
             return Double.NaN;
         }
         return metric.averageValue(graph.complement());
+    }
+
+    @Override
+    public double averageValueOnlyLinks(Graph<U> graph)
+    {
+        if (graph.isMultigraph())
+        {
+            return Double.NaN;
+        }
+        return metric.averageValueOnlyLinks(graph.complement());
     }
 
     @Override

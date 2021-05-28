@@ -1,7 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
+ *  de Madrid, http://ir.ii.uam.es
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 package es.uam.eps.ir.socialranksys.grid.sna.graph;
 
@@ -16,9 +19,12 @@ import java.util.function.Supplier;
 import static es.uam.eps.ir.socialranksys.grid.sna.graph.GraphMetricIdentifiers.*;
 
 /**
- * Class that translates from a grid to the different contact recommendation algorithns.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Class that translates from a grid to the different global metrics of the social network graph.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users
  */
 public class GraphMetricSelector<U>
 {
@@ -56,9 +62,9 @@ public class GraphMetricSelector<U>
     /**
      * Obtains the different variants of a given global graph metric depending on the 
      * parameters selected in a grid.
-     * @param name the name of the metric.
-     * @param grid the grid containing the different parameters.
-     * @param distcalc a distance calculator.
+     * @param name      the name of the metric.
+     * @param grid      the grid containing the different parameters.
+     * @param distcalc  a distance calculator.
      * @return a map containing the different metric suppliers.
      */
     public Map<String, Supplier<GraphMetric<U>>> getMetrics(String name, Grid grid, DistanceCalculator<U> distcalc)

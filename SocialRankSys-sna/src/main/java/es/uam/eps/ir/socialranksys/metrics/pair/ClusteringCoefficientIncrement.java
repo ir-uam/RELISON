@@ -26,6 +26,8 @@ import java.util.stream.Stream;
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users.
  */
 public class ClusteringCoefficientIncrement<U> extends AbstractPairMetric<U>
 {

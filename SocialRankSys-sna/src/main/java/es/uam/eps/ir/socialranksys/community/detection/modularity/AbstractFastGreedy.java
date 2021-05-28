@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * <b>Reference:</b> M.E.J. Newman. Fast Algorithm for detecting community structure in networks. Physical Review E 69(6): 066133 (2004)
  * </p>
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -46,12 +46,19 @@ public abstract class AbstractFastGreedy<U> implements CommunityDetectionAlgorit
      */
     private final int rngSeed;
 
+    /**
+     * Constructor.
+     */
     public AbstractFastGreedy()
     {
         rngSeed = 0;
         rng = new Random(rngSeed);
     }
 
+    /**
+     * Constructor.
+     * @param rngSeed the random seed.
+     */
     public AbstractFastGreedy(int rngSeed)
     {
         this.rngSeed = rngSeed;
@@ -166,8 +173,8 @@ public abstract class AbstractFastGreedy<U> implements CommunityDetectionAlgorit
     /**
      * Finds the optimal pair of communities to merge.
      *
-     * @param graph The original graph.
-     * @param comm  The communities.
+     * @param graph the original graph.
+     * @param comm  the communities.
      *
      * @return A triple containing: a) the first comm. to merge, b) the second one, c) the mod. increment.
      */

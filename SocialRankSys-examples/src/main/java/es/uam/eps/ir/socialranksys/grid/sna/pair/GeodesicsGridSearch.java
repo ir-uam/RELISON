@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -7,7 +7,6 @@
  *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 package es.uam.eps.ir.socialranksys.grid.sna.pair;
-
 
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.metrics.PairMetric;
@@ -21,9 +20,14 @@ import java.util.function.Supplier;
 import static es.uam.eps.ir.socialranksys.grid.sna.pair.PairMetricIdentifiers.GEODESICS;
 
 /**
- * Grid search for the distance
- * @author Javier Sanz-Cruzado Puig
+ * Grid search for the number of shortest paths between two nodes.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
  * @param <U> type of the users
+ *
+ * @see Geodesics
  */
 public class GeodesicsGridSearch<U> implements PairMetricGridSearch<U>
 {   

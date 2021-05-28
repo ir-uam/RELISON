@@ -18,8 +18,6 @@ import es.uam.eps.ir.socialranksys.grid.sna.MetricGridReader;
 import es.uam.eps.ir.socialranksys.grid.sna.MetricTypeIdentifiers;
 import es.uam.eps.ir.socialranksys.grid.sna.comm.global.GlobalCommunityMetricSelector;
 import es.uam.eps.ir.socialranksys.grid.sna.comm.indiv.IndividualCommunityMetricSelector;
-import es.uam.eps.ir.socialranksys.grid.sna.edge.EdgeMetricFunction;
-import es.uam.eps.ir.socialranksys.grid.sna.edge.EdgeMetricSelector;
 import es.uam.eps.ir.socialranksys.grid.sna.graph.GraphMetricFunction;
 import es.uam.eps.ir.socialranksys.grid.sna.graph.GraphMetricSelector;
 import es.uam.eps.ir.socialranksys.grid.sna.pair.PairMetricFunction;
@@ -138,11 +136,11 @@ public class GraphMetricsEvaluation
 
         // Edge metrics
         System.out.println("Starting edge metrics...");
-        Map<String, EdgeMetricFunction<Long>> edgeMetrics = new HashMap<>();
-        EdgeMetricSelector<Long> edgeSelector = new EdgeMetricSelector<>();
+        Map<String, PairMetricFunction<Long>> edgeMetrics = new HashMap<>();
+        PairMetricSelector<Long> edgeSelector = new PairMetricSelector<>();
         gridReader.getMetrics(MetricTypeIdentifiers.EDGE_METRIC).forEach(metric ->
         {
-            Map<String,EdgeMetricFunction<Long>> map = edgeSelector.getMetrics(metric, gridReader.getGrid(metric, MetricTypeIdentifiers.EDGE_METRIC));
+            Map<String,PairMetricFunction<Long>> map = edgeSelector.getMetrics(metric, gridReader.getGrid(metric, MetricTypeIdentifiers.EDGE_METRIC));
             edgeMetrics.putAll(map);
         });
         System.out.println("Identified " + edgeMetrics.size() + " edge metrics");
@@ -217,7 +215,7 @@ public class GraphMetricsEvaluation
             // Compute edge metrics.
             edgeMetrics.forEach((name, value) ->
             {
-                EdgeMetric<Long> em = value.apply(dc);
+                PairMetric<Long> em = value.apply(dc);
                 double average = em.averageValue(graph);
                 values.put("Average edge " + name, average);
             });

@@ -90,6 +90,35 @@ public class PreferentialAttachment<U> implements PairMetric<U>
     }
 
     @Override
+    public Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph)
+    {
+        Map<Pair<U>, Double> values = new HashMap<>();
+        Map<U, Double> degrees = new HashMap<>();
+
+        graph.getAllNodes().forEach(u ->
+        {
+            double degree = graph.getNeighbourhoodSize(u, uSel);
+            graph.getAdjacentNodes(u).forEach(v ->
+            {
+                double vdegree;
+                if (degrees.containsKey(v))
+                {
+                    vdegree = degrees.get(v);
+                }
+                else
+                {
+                    vdegree = degrees.containsKey(v) ? degrees.get(v) : graph.getNeighbourhoodSize(v, vSel);
+                    degrees.put(v, vdegree);
+                }
+
+                values.put(new Pair<>(u, v), degree * vdegree);
+            });
+        });
+
+        return values;
+    }
+
+    @Override
     public Map<Pair<U>, Double> compute(Graph<U> graph, Stream<Pair<U>> pairs)
     {
         Map<Pair<U>, Double> values = new ConcurrentHashMap<>();
@@ -134,7 +163,14 @@ public class PreferentialAttachment<U> implements PairMetric<U>
     public double averageValue(Graph<U> graph)
     {
         double value = this.compute(graph).values().stream().reduce(0.0, Double::sum);
-        return value / (graph.getEdgeCount() + 0.0);
+        return value / (graph.getVertexCount()*(graph.getVertexCount() - 1.0));
+    }
+
+    @Override
+    public double averageValueOnlyLinks(Graph<U> graph)
+    {
+        double value = this.computeOnlyLinks(graph).values().stream().reduce(0.0, Double::sum);
+        return value / (graph.isDirected() ? graph.getEdgeCount() + 0.0 : 2.0*graph.getEdgeCount());
     }
 
     @Override

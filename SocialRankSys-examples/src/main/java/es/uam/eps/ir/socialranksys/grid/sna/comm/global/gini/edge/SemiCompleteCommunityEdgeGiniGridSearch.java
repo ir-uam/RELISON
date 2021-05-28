@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -21,22 +21,25 @@ import static es.uam.eps.ir.socialranksys.grid.sna.comm.global.GlobalCommunityMe
 
 /**
  * Grid for the semi-complete community edge Gini of the graph.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users
  */
 public class SemiCompleteCommunityEdgeGiniGridSearch<U> implements GlobalCommunityMetricGridSearch<U>
 {
-    
     /**
-     * Identifier for the variable that indicates if autoloops are allowed or not.
+     * Identifier for the variable that indicates if selfloops are allowed or not.
      */
-    private final static String NODEAUTOLOOPS = "autoloops";
+    private final static String NODESELFLOOPS = "selfloops";
+
     @Override
     public Map<String, Supplier<CommunityMetric<U>>> grid(Grid grid)
     {
         Map<String, Supplier<CommunityMetric<U>>> metrics = new HashMap<>();
-        grid.getBooleanValues(NODEAUTOLOOPS).forEach(autoloops ->
-            metrics.put(SEMICOMPLETECOMMUNITYEDGEGINI + "_" + (autoloops ? "autoloops" : "noautoloops"), () -> new SemiCompleteCommunityEdgeGini<>(autoloops)));
+        grid.getBooleanValues(NODESELFLOOPS).forEach(selfloops ->
+            metrics.put(SEMICOMPLETECOMMUNITYEDGEGINI + "_" + (selfloops ? "selfloops" : "noselfloops"), () -> new SemiCompleteCommunityEdgeGini<>(selfloops)));
         
         return metrics;
     }

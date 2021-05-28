@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * <b>Reference: </b> D. Easley, J.M. Kleinberg. Networks, crowds and markets (2010)
  * </p>
  *
- * @param <U> Type of the users in the graph.
+ * @param <U> type of the users in the graph.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -43,8 +43,8 @@ public class Embededness<U> extends AbstractPairMetric<U>
     /**
      * Constructor.
      *
-     * @param uSel Selection of the neighbours of the first node.
-     * @param vSel Selection of the neighbours of the second node.
+     * @param uSel selection of the neighbours of the first node.
+     * @param vSel selection of the neighbours of the second node.
      */
     public Embededness(EdgeOrientation uSel, EdgeOrientation vSel)
     {

@@ -26,7 +26,7 @@ import java.util.stream.Stream;
  * <b>References: </b></p>
  *     <ol>
  *         <li>J. Sanz-Cruzado, P. Castells. Beyond accuracy in link prediction. 3rd Workshop on Social Media for Personalization and Search (SoMePEaS 2019).</li>
- *         <li>J. Sanz-Cruzado, S.M. Pepa, P. Castells. Structural novelty and diversity in link prediction. 0th International Workshop on Modeling Social Media (MSM 2018) at The Web Conference (WWW 2018)</li>
+ *         <li>J. Sanz-Cruzado, S.M. Pepa, P. Castells. Structural novelty and diversity in link prediction. 9th International Workshop on Modeling Social Media (MSM 2018) at The Web Conference (WWW 2018)</li>
  *     </ol>
  *
  *
@@ -79,7 +79,7 @@ public class ReciprocalShortestPathLength<U> extends AbstractPairMetric<U>
         }
         else
         {
-            return dist;
+            return 1.0/dist;
         }
     }
 

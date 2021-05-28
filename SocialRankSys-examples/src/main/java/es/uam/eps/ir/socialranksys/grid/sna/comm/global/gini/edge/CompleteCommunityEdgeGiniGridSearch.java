@@ -21,23 +21,28 @@ import static es.uam.eps.ir.socialranksys.grid.sna.comm.global.GlobalCommunityMe
 
 
 /**
- * Grid for the complete community edge Gini of the graph.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Grid for the complete community edge gini of the graph.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users
+ *
+ * @see CompleteCommunityEdgeGini
  */
 public class CompleteCommunityEdgeGiniGridSearch<U> implements GlobalCommunityMetricGridSearch<U>
 {
     
     /**
-     * Identifier for the variable that indicates if autoloops are allowed or not.
+     * Identifier for the variable that indicates if selfloops are allowed or not.
      */
-    private final static String NODEAUTOLOOPS = "autoloops";
+    private final static String NODESELFLOOPS = "selfloops";
     @Override
     public Map<String, Supplier<CommunityMetric<U>>> grid(Grid grid)
     {
         Map<String, Supplier<CommunityMetric<U>>> metrics = new HashMap<>();
-        grid.getBooleanValues(NODEAUTOLOOPS).forEach(autoloops -> 
-            metrics.put(COMPLETECOMMUNITYEDGEGINI + "_" +  (autoloops ? "autoloops" : "noautoloops"), () -> new CompleteCommunityEdgeGini<>(autoloops)));
+        grid.getBooleanValues(NODESELFLOOPS).forEach(selfloops ->
+            metrics.put(COMPLETECOMMUNITYEDGEGINI + "_" +  (selfloops ? "selfloops" : "noselfloops"), () -> new CompleteCommunityEdgeGini<>(selfloops)));
         
         return metrics;
     }

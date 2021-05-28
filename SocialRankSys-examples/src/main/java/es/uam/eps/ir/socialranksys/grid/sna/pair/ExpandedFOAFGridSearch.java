@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -22,12 +22,17 @@ import java.util.function.Supplier;
 import static es.uam.eps.ir.socialranksys.grid.sna.pair.PairMetricIdentifiers.EFOAF;
 
 /**
- * Grid for the embeddedness of an edge.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Grid for the expanded number of common neighbors of a pair of users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ *
+ * @param <U> type of the users
+ *
+ * @see ExpandedNeighborOverlap
  */
-public class ExpandedFOAFGridSearch<U> implements PairMetricGridSearch<U> 
-{    
+public class ExpandedFOAFGridSearch<U> implements PairMetricGridSearch<U>
+{
 
     /**
      * Identifier for the origin neighborhood selection
@@ -37,7 +42,10 @@ public class ExpandedFOAFGridSearch<U> implements PairMetricGridSearch<U>
      * Identifier for the destination neighborhood selection
      */
     private final static String VSEL = "vSel";
-    
+    /**
+     * Identifier for the parameter indicating whether we take the distance two neighborhood of the first or the
+     * second node.
+     */
     private final static String ORIGIN = "origin";
 
     @Override

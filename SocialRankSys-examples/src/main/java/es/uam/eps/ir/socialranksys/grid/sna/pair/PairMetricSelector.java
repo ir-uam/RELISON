@@ -1,7 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
+ *  de Madrid, http://ir.ii.uam.es
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 package es.uam.eps.ir.socialranksys.grid.sna.pair;
 
@@ -24,9 +27,9 @@ import static es.uam.eps.ir.socialranksys.grid.sna.pair.PairMetricIdentifiers.*;
 
 
 /**
- * Class that translates from a grid to the different contact recommendation algorithns.
- * @author Javier Sanz-Cruzado Puig
- * @param <U> Type of the users
+ * Class that translates from a grid to the different pair metrics.
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+ * @param <U> type of the users.
  */
 public class PairMetricSelector<U>
 {
@@ -37,80 +40,39 @@ public class PairMetricSelector<U>
      */
     public PairMetricGridSearch<U> getGridSearch(String metric)
     {
-        PairMetricGridSearch<U> gridsearch;
-        switch(metric)
+        // Default behavior
+        return switch (metric)
         {
-            case DISTANCE:
-                gridsearch = new DistanceGridSearch<>();
-                break;
-            case GEODESICS:
-                gridsearch = new GeodesicsGridSearch<>();
-                break;
-            case DISTANCEWITHOUTLINK:
-                gridsearch = new DistanceWithoutLinkGridSearch<>();
-                break;
-            case EMBEDEDNESS:
-                gridsearch = new EmbedednessGridSearch<>();
-                break;
-            case COMPLEMBEDEDNESS:
-                gridsearch = new ComplementaryEmbedednessGridSearch<>();
-                break;
-            case COMPLFOAF:
-                gridsearch = new ComplementaryFOAFGridSearch<>();
-                break;
-            case RECIP:
-                gridsearch = new ReciprocityRateGridSearch<>();
-                break;
-            case RECIPROCALSPL:
-                gridsearch = new ReciprocalShortestPathLengthGridSearch<>();
-                break;
-            case SHRINKINGDIAM:
-                gridsearch = new ShrinkingDiameterGridSearch<>();
-                break;
-            case SHRINKINGASL:
-                gridsearch = new ShrinkingASLGridSearch<>();
-                break;
-            case SHRINKINGASLNEIGH:
-                gridsearch = new ShrinkingASLNeighborsGridSearch<>();
-                break;
-            case SHRINKINGDIAMNEIGH:
-                gridsearch = new ShrinkingDiameterNeighborsGridSearch<>();
-                break;
-            case CCINCREASE:
-                gridsearch = new ClusteringCoefficientIncrementGridSearch<>();
-                break;
-            case FOAF:
-                gridsearch = new FOAFGridSearch<>();
-                break;
-            case WFOAF:
-                gridsearch = new WeightedFOAFGridSearch<>();
-                break;
-            case WFOAFLOG:
-                gridsearch = new WeightedFOAFLogGridSearch<>();
-                break;
-            case EFOAF:
-                gridsearch = new ExpandedFOAFGridSearch<>();
-                break;
-            case EFOAFCOUNT:
-                gridsearch = new ExpandedFOAFCountGridSearch<>();
-                break;
-            case PREFATTACH:
-                gridsearch = new PreferentialAttachmentGridSearch<>();
-                break;
-            // Default behavior
-            default:
-                gridsearch = null;
-        }
-        
-        return gridsearch;
+            case BETWEENNESS -> new EdgeBetweennessGridSearch<>();
+            case DISTANCE -> new DistanceGridSearch<>();
+            case GEODESICS -> new GeodesicsGridSearch<>();
+            case DISTANCEWITHOUTLINK -> new DistanceWithoutLinkGridSearch<>();
+            case EMBEDEDNESS -> new EmbedednessGridSearch<>();
+            case COMPLEMBEDEDNESS -> new ComplementaryEmbedednessGridSearch<>();
+            case COMPLFOAF -> new ComplementaryFOAFGridSearch<>();
+            case RECIP -> new ReciprocityRateGridSearch<>();
+            case RECIPROCALSPL -> new ReciprocalShortestPathLengthGridSearch<>();
+            case SHRINKINGDIAM -> new ShrinkingDiameterGridSearch<>();
+            case SHRINKINGASL -> new ShrinkingASLGridSearch<>();
+            case SHRINKINGASLNEIGH -> new ShrinkingASLNeighborsGridSearch<>();
+            case SHRINKINGDIAMNEIGH -> new ShrinkingDiameterNeighborsGridSearch<>();
+            case CCINCREASE -> new ClusteringCoefficientIncrementGridSearch<>();
+            case FOAF -> new FOAFGridSearch<>();
+            case WFOAF -> new WeightedFOAFGridSearch<>();
+            case WFOAFLOG -> new WeightedFOAFLogGridSearch<>();
+            case EFOAF -> new ExpandedFOAFGridSearch<>();
+            case EFOAFCOUNT -> new ExpandedFOAFCountGridSearch<>();
+            case PREFATTACH -> new PreferentialAttachmentGridSearch<>();
+            default -> null;
+        };
     }
     
-        /**
+    /**
      * Obtains the different variants of a given pair metric depending on the 
      * parameters selected in a grid.
-     * @param name the name of the metric.
-     * @param grid the grid containing the different parameters.
-     * @param distcalc a distance calculator.
+     * @param name      the name of the metric.
+     * @param grid      the grid containing the different parameters.
+     * @param distcalc  a distance calculator.
      * @return a map containing the different metric suppliers.
      */
     public Map<String, Supplier<PairMetric<U>>> getMetrics(String name, Grid grid, DistanceCalculator<U> distcalc)
@@ -141,9 +103,9 @@ public class PairMetricSelector<U>
     /**
      * Obtains the aggregate variants of a given pair metric, given the parameters selected
      * in a grid.
-     * @param metric the name of the metric.
-     * @param grid the grid containing the different parameters.
-     * @param distCalc a distance calculator.
+     * @param metric    the name of the metric.
+     * @param grid      the grid containing the different parameters.
+     * @param distCalc  a distance calculator.
      * @return a map, indexed by metric name, containing the different variants of the metric selected in the grid.
      */
     public Map<String, Supplier<GraphMetric<U>>> getGraphMetrics(String metric, Grid grid, DistanceCalculator<U> distCalc)
@@ -162,8 +124,8 @@ public class PairMetricSelector<U>
     /**
      * Obtains the aggregate variants of a given pair metric, given the parameters selected
      * in a grid.
-     * @param metric the name of the metric.
-     * @param grid the grid containing the different parameters.
+     * @param metric    the name of the metric.
+     * @param grid      the grid containing the different parameters.
      * @return a map, indexed by metric name, containing the different variants of the metric selected in the grid.
      */
     public Map<String, GraphMetricFunction<U>> getGraphMetrics(String metric, Grid grid)

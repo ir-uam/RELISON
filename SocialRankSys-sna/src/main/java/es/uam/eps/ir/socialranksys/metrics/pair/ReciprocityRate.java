@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 /**
  * Checks if a graph has the reciprocal edge of a pair.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -53,6 +53,14 @@ public class ReciprocityRate<U> implements PairMetric<U>
     }
 
     @Override
+    public Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph)
+    {
+        Map<Pair<U>, Double> res = new HashMap<>();
+        graph.getAllNodes().forEach(u -> graph.getAdjacentNodes(u).forEach(v -> res.put(new Pair<>(u, v), this.compute(graph, u, v))));
+        return res;
+    }
+
+    @Override
     public Map<Pair<U>, Double> compute(Graph<U> graph, Stream<Pair<U>> pairs)
     {
         Map<Pair<U>, Double> res = new ConcurrentHashMap<>();
@@ -64,6 +72,14 @@ public class ReciprocityRate<U> implements PairMetric<U>
     public double averageValue(Graph<U> graph)
     {
         Map<Pair<U>, Double> res = this.compute(graph);
+        OptionalDouble opt = res.values().stream().mapToDouble(v -> v).average();
+        return opt.isPresent() ? opt.getAsDouble() : Double.NaN;
+    }
+
+    @Override
+    public double averageValueOnlyLinks(Graph<U> graph)
+    {
+        Map<Pair<U>, Double> res = this.computeOnlyLinks(graph);
         OptionalDouble opt = res.values().stream().mapToDouble(v -> v).average();
         return opt.isPresent() ? opt.getAsDouble() : Double.NaN;
     }

@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Experimental configuration &#8212; SoNALiRe 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Structural metrics summary" href="metrics.html" />
+    <link rel="prev" title="Introduction" href="introduction.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="experimental-configuration">
+<h1>Experimental configuration<a class="headerlink" href="#experimental-configuration" title="Permalink to this headline">¶</a></h1>
+<p>In our framework, we include a program that simplifies measuring the structural properties of a given network. This program can be executed as follows, once the
+binary for the library has been generated:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>java -jar SoNALiRe.jar sna network multigraph directed weighted selfloops metrics output <span class="o">(</span>-communities comm1,comm2,...,commN --distances<span class="o">)</span>
+</pre></div>
+</div>
+<p>where</p>
+<ul class="simple">
+<li><p><cite>network</cite>: a file containing the social network graph to analyze.</p></li>
+<li><p><cite>multigraph</cite>: true if the network allows multiple edges between each pair of users, false otherwise.</p></li>
+<li><p><cite>directed</cite>: true if the network is directed, false otherwise.</p></li>
+<li><p><cite>weighted</cite>: true if we want to use the weights of the links, false otherwise (weights will be binary).</p></li>
+<li><p><cite>selfloops</cite>: true if we allow links between a node and itself, false otherwise.</p></li>
+<li><p><cite>metrics</cite>: a configuration file for reading the structural properties we want to measure (see <a class="reference internal" href="#configuration-file">Configuration file</a> below).</p></li>
+<li><p><cite>output</cite>: a directory in which to store the structural properties.</p></li>
+<li><dl class="simple">
+<dt>Optional parameters:</dt><dd><ul>
+<li><p><cite>-communities comm1,comm2,…,commN</cite>: a comma-separated list of files containing community partitions of the users.</p></li>
+<li><p><cite>–distances</cite>: indicates that we want to pre-compute the distance-based metrics in the network (recommended if more than one is used).</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<div class="section" id="configuration-file">
+<h2>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this headline">¶</a></h2>
+<p>In order to select a suitable set of metrics, the program receives, as input, a configuration file, specifying the different properties we
+want to measure and analyze. This is a Yaml file with the following format:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">metrics</span><span class="p">:</span>
+  <span class="nt">metric_name1</span><span class="p">:</span>
+    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vertex/pair/graph/indiv. community/global community</span>
+      <span class="l l-Scalar l-Scalar-Plain">params</span><span class="p p-Indicator">:</span>
+        <span class="nt">param_name1</span><span class="p">:</span>
+          <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int/double/boolean/string/long/orientation/object</span>
+          <span class="nt">values</span><span class="p">:</span> <span class="p p-Indicator">[</span><span class="nv">value1</span><span class="p p-Indicator">,</span><span class="nv">value2</span><span class="p p-Indicator">,</span><span class="nv">...</span><span class="p p-Indicator">,</span><span class="nv">valueN</span><span class="p p-Indicator">]</span> <span class="l l-Scalar l-Scalar-Plain">/ value</span>
+          <span class="nt">range</span><span class="p">:</span>
+          <span class="p p-Indicator">-</span> <span class="nt">start</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">startingValue</span>
+            <span class="nt">end</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">endingValue</span>
+            <span class="nt">step</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">stepValue</span>
+          <span class="p p-Indicator">-</span> <span class="nt">start</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">...</span>
+          <span class="nt">objects</span><span class="p">:</span>
+            <span class="nt">name_of_the_object</span><span class="p">:</span>
+              <span class="nt">param_name1</span><span class="p">:</span>
+                <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int/double/boolean/string/long/orientation/object</span>
+                <span class="l l-Scalar l-Scalar-Plain">...</span>
+              <span class="nt">param_name2</span><span class="p">:</span>
+                <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">int/double/boolean/string/long/orientation/object</span>
+                <span class="l l-Scalar l-Scalar-Plain">...</span>
+  <span class="nt">metric_name2</span><span class="p">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">...</span>
+</pre></div>
+</div>
+<p>In this configuration file, we identify each metric by each name, and, afterwards, we identify its type. We differentiate between six groups of metrics:</p>
+<ul class="simple">
+<li><p><strong>Vertex metrics:</strong> Properties of individual nodes in the network (e.g. degree, local clustering coefficient).</p></li>
+<li><p><strong>Pair metrics:</strong> Properties of pairs of users in the network.</p></li>
+<li><p><strong>Graph metrics:</strong> Global properties of the network (e.g. global clustering coefficient).</p></li>
+<li><p><strong>Individual community metrics:</strong> Properties of a single community in the partition (e.g. community size, degree).</p></li>
+<li><p><strong>Global community metrics:</strong> Global metrics depending on the community partition (e.g. modularity).</p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">SoNALiRe</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Get started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../guide/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guide/install.html">Install SoNALiRe</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Social network analysis</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Experimental configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">Structural metrics summary</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="introduction.html">Introduction</a><ul>
+      <li>Previous: <a href="introduction.html" title="previous chapter">Introduction</a></li>
+      <li>Next: <a href="metrics.html" title="next chapter">Structural metrics summary</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Information Retrieval Group @ Universidad Autónoma de Madrid (http:\ir.ii.uam.es).
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/sna/config.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

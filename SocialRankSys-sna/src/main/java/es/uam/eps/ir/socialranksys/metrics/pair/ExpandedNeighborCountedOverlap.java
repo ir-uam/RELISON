@@ -137,6 +137,12 @@ public class ExpandedNeighborCountedOverlap<U> implements PairMetric<U>
     }
 
     @Override
+    public Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph)
+    {
+        return null;
+    }
+
+    @Override
     public Map<Pair<U>, Double> compute(Graph<U> graph, Stream<Pair<U>> pairs)
     {
         Map<Pair<U>, Double> values = new ConcurrentHashMap<>();
@@ -187,6 +193,12 @@ public class ExpandedNeighborCountedOverlap<U> implements PairMetric<U>
     {
         double value = this.compute(graph).values().stream().reduce(0.0, Double::sum);
         return value / (graph.getEdgeCount() + 0.0);
+    }
+
+    @Override
+    public double averageValueOnlyLinks(Graph<U> graph)
+    {
+        return 0;
     }
 
     @Override

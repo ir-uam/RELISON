@@ -24,7 +24,7 @@ import java.util.stream.Stream;
  * Computes the distance between two nodes in the network, considering that the link does not exist.
  * If there is no link, the usual distance is computed.
  *
- * @param <U> Type of the users.
+ * @param <U> type of the users.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
