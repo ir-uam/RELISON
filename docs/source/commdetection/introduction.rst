@@ -8,7 +8,7 @@ Community detection algorithms are included in the SNA module of the framework, 
 
     <dependency>
       <groupId>es.uam.eps.ir</groupId>
-      <artifactId>SocialRankSys-sna</artifactId>
+      <artifactId>SoNALiRe-sna</artifactId>
       <version>1.0.0</version>
     </dependency>
 

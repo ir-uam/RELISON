@@ -21,8 +21,8 @@ the following command:
 
 .. code:: bash
 	
-	git clone https://github.com/JavierSanzCruza/SocialRankSys
-	cd SocialRankSys
+	git clone https://github.com/JavierSanzCruza/SoNALiRe
+	cd SoNALiRe
 	mvn install
 
 Afterwards, if you just want to use the main programs provided with the code, you have to 
@@ -30,7 +30,7 @@ compile the examples package. For this, do the following:
 
 .. code:: bash
 
-	cd SocialRankSys-examples
+	cd SoNALiRe-examples
 	mvn clean compile assembly:single
 
 This will create an executable JAR which can be used to access any of the provided programs.
@@ -41,7 +41,7 @@ dependency as follows:
 
     <dependency>
       <groupId>es.uam.eps.ir</groupId>
-      <artifactId>SocialRankSys-[module-name]</artifactId>
+      <artifactId>SoNALiRe-[module-name]</artifactId>
       <version>1.0.0</version>
     </dependency>
 
