@@ -24,12 +24,14 @@ import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalo
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.distance.ShortestDistanceGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.foaf.*;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.ir.*;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.mf.FastImplicitMFGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.mf.ImplicitMFGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.pathbased.*;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.randomwalks.*;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.standalone.twitter.*;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.supervised.LambdaMARTGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.supervised.WekaMLGridSearch;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
 import org.ranksys.formats.parsing.Parser;
 
@@ -241,6 +243,7 @@ public class AlgorithmGridSelector<U>
             case DFREE -> new DFReeGridSearch<>();
             case DFREEKLIM -> new DFReeKLIMGridSearch<>();
             case VSM -> new VSMGridSearch<>();
+            case PIVOTEDVSM -> new PivotedNormalizationVSMGridSearch<>();
 
             // Friends of friends algorithms
             case ADAMIC -> new AdamicAdarGridSearch<>();
@@ -266,6 +269,11 @@ public class AlgorithmGridSelector<U>
             case HITS -> new HITSGridSearch<>();
             case SALSA -> new SALSAGridSearch<>();
 
+            case COMMUTE -> new CommuteTimeGridSearch<>();
+            case HITTING -> new HittingTimeGridSearch<>();
+            case COMMUTEPERS -> new CommuteTimePersPageRankGridSearch<>();
+            case HITTINGPERS -> new HittingTimePersPageRankGridSearch<>();
+
             case PERSPAGERANK -> new PersonalizedPageRankGridSearch<>();
             case PERSHITS -> new PersonalizedHITSGridSearch<>();
             case PERSSALSA -> new PersonalizedSALSAGridSearch<>();
@@ -280,10 +288,11 @@ public class AlgorithmGridSelector<U>
 
             // Matrix factorization
             case IMF -> new ImplicitMFGridSearch<>();
+            case FASTIMF -> new FastImplicitMFGridSearch<>();
 
             // kNN
-            case UB -> new UserBasedCFGridSearch<>();
-            case IB -> new ItemBasedCFGridSearch<>();
+            case UB -> new UserBasedCFGridSearch<>(uParser);
+            case IB -> new ItemBasedCFGridSearch<>(uParser);
 
             // Baselines
             case RANDOM -> new RandomGridSearch<>();

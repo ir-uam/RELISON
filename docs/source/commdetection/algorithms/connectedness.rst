@@ -18,7 +18,7 @@ Configuration file
     Strongly connected components:
 
 Weakly connected components
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Under this algorithm, two nodes belong to the same component if there is a finite length path between them without considering the direction of the edges. 
 
 Configuration file

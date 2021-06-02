@@ -22,7 +22,6 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.links.prediction.metrics.LinkPredictionMetricFunction;
 import es.uam.eps.ir.socialranksys.grid.links.prediction.metrics.LinkPredictionMetricGridSelector;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSelector;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.YAMLAlgorithmGridReader;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.metrics.YAMLRecommMetricGridReader;
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
@@ -35,6 +34,7 @@ import es.uam.eps.ir.socialranksys.links.linkprediction.filter.LinkPredFastFilte
 import es.uam.eps.ir.socialranksys.links.linkprediction.io.LinkPredictionFormat;
 import es.uam.eps.ir.socialranksys.links.linkprediction.io.SimpleLinkPredictionFormat;
 import es.uam.eps.ir.socialranksys.links.linkprediction.metrics.LinkPredictionMetric;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.links.recommendation.features.LuceneTfIdfFeaturesReader;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Pair;
 import org.ranksys.formats.feature.SimpleFeaturesReader;
@@ -427,7 +427,6 @@ public class LinkPrediction
      *
      * @return the value of the metrics.
      *
-     * @throws IOException if something fails during the writing / reading of the recommendation file.
      */
     public static Map<String, Double> computeAndEvaluate(LinkPredictor<Long> predictor, Predicate<Pair<Long>> filter, Graph<Long> testGraph, Map<String, LinkPredictionMetric<Long>> metrics)
     {

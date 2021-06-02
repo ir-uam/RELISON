@@ -13,6 +13,7 @@ import es.uam.eps.ir.ranksys.fast.preference.FastPreferenceData;
 import es.uam.eps.ir.ranksys.mf.Factorization;
 import es.uam.eps.ir.ranksys.mf.Factorizer;
 import es.uam.eps.ir.ranksys.mf.als.HKVFactorizer;
+import es.uam.eps.ir.ranksys.mf.als.PZTFactorizer;
 import es.uam.eps.ir.ranksys.mf.rec.MFRecommender;
 import es.uam.eps.ir.ranksys.rec.Recommender;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
@@ -26,11 +27,11 @@ import java.util.Map;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.Supplier;
 
-import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmIdentifiers.IMF;
+import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmIdentifiers.FASTIMF;
 
 /**
- * Grid search generator for the Implicit Matrix Factorization algorithm by 
- * Hu, Koren and Volinsky (HKV) algorithm.
+ * Grid search generator for the fast Implicit Matrix Factorization algorithm by
+ * Pilászy, Zibriczky and Tikk (PZT) algorithm.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Craig Macdonald (craig.macdonald@glasgow.ac.uk)
@@ -39,13 +40,13 @@ import static es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.A
  *
  * @param <U> type of the users.
  *
- * @see es.uam.eps.ir.ranksys.mf.als.HKVFactorizer
- * @see es.uam.eps.ir.ranksys.mf.rec.MFRecommender
+ * @see es.uam.eps.ir.ranksys.mf.als.PZTFactorizer
+ * @see MFRecommender
  */
-public class ImplicitMFGridSearch<U> implements AlgorithmGridSearch<U>
+public class FastImplicitMFGridSearch<U> implements AlgorithmGridSearch<U>
 {   
     /**
-     * Identifier fort the parameter that regulates the importance of the error and the norm of the latent vectors.
+     * Identifier for the parameter that regulates the importance of the error and the norm of the latent vectors.
      */
     private final static String LAMBDA = "lambda";
     /**
@@ -53,7 +54,7 @@ public class ImplicitMFGridSearch<U> implements AlgorithmGridSearch<U>
      */
     private final static String ALPHA = "alpha";
     /**
-     * Identifier for the number of latent factors.
+     * Identifier for indicating if teleport always goes to the origin node.
      */
     private final static String K = "k";
     /**
@@ -81,9 +82,9 @@ public class ImplicitMFGridSearch<U> implements AlgorithmGridSearch<U>
                 DoubleUnaryOperator confidence = (double x) -> 1 + alpha*x;
                 ks.forEach(k ->
                     lambdas.forEach(lambda ->
-                        recs.put(IMF + "_" + k + "_" + lambda + "_" + alpha, (graph, prefData) ->
+                        recs.put(FASTIMF + "_" + k + "_" + lambda + "_" + alpha, (graph, prefData) ->
                         {
-                           Factorizer<U, U> factorizer = new HKVFactorizer<>(lambda, confidence, NUMITER);
+                           Factorizer<U, U> factorizer = new PZTFactorizer<>(lambda, confidence, NUMITER);
                            Factorization<U, U> factorization = factorizer.factorize(k, prefData);
                            return new MFRecommender<>(prefData, prefData, factorization);
                         })));
@@ -95,12 +96,12 @@ public class ImplicitMFGridSearch<U> implements AlgorithmGridSearch<U>
                 ks.forEach(k ->
                     lambdas.forEach(lambda ->
                         weighted.forEach(weight ->
-                            recs.put(IMF + "_" + (weight ? "wei" : "unw") + "_" + k + "_" + lambda + "_" + alpha, new RecommendationAlgorithmFunction<>()
+                            recs.put(FASTIMF + "_" + (weight ? "wei" : "unw") + "_" + k + "_" + lambda + "_" + alpha, new RecommendationAlgorithmFunction<>()
                             {
                                 @Override
                                 public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
                                 {
-                                    Factorizer<U, U> factorizer = new HKVFactorizer<>(lambda, confidence, NUMITER);
+                                    Factorizer<U, U> factorizer = new PZTFactorizer<>(lambda, confidence, NUMITER);
                                     Factorization<U, U> factorization = factorizer.factorize(k, prefData);
                                     return new MFRecommender<>(prefData, prefData, factorization);
                                 }
@@ -130,7 +131,7 @@ public class ImplicitMFGridSearch<U> implements AlgorithmGridSearch<U>
             DoubleUnaryOperator confidence = (double x) -> 1 + alpha*x;
             ks.forEach(k ->
                 lambdas.forEach(lambda ->
-                    recs.put(IMF + "_" + k + "_" + lambda + "_" + alpha, () ->
+                    recs.put(FASTIMF + "_" + k + "_" + lambda + "_" + alpha, () ->
                     {
                         Factorizer<U, U> factorizer = new HKVFactorizer<>(lambda, confidence, NUMITER);
                         Factorization<U, U> factorization = factorizer.factorize(k, prefData);

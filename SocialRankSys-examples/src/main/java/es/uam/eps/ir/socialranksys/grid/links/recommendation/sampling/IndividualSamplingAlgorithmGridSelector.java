@@ -78,8 +78,10 @@ public class IndividualSamplingAlgorithmGridSelector<U>
     {
         return switch (name)
         {
+            case IndividualSamplingAlgorithmIdentifiers.ALL -> new AllSamplerConfigurator<>();
             case IndividualSamplingAlgorithmIdentifiers.DISTANCETWO -> new DistanceTwoIndividualSamplerConfigurator<>();
             case IndividualSamplingAlgorithmIdentifiers.DISTANCETWOLP -> new DistanceTwoLinkPredictionIndividualSamplerConfigurator<>();
+            case IndividualSamplingAlgorithmIdentifiers.LINKPRED -> new LinkPredictionSamplerConfigurator<>();
             case IndividualSamplingAlgorithmIdentifiers.RECOMMENDER -> new RecommenderIndividualSamplerConfigurator<>(uParser);
             default -> null;
         };

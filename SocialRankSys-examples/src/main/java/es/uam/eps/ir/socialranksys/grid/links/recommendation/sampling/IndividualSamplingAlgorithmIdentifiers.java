@@ -17,8 +17,10 @@ package es.uam.eps.ir.socialranksys.grid.links.recommendation.sampling;
 public class IndividualSamplingAlgorithmIdentifiers 
 {
     // Random selection
-    public final static String DISTANCETWO = "Distance Two";
-    public final static String DISTANCETWOLP = "Distance Two Link Prediction";
+    public final static String ALL = "All";
+    public final static String DISTANCETWO = "Distance two";
+    public final static String DISTANCETWOLP = "Distance two link prediction";
+    public final static String LINKPRED = "Link prediction";
     public final static String RECOMMENDER = "Recommender";
     
     /**
@@ -26,8 +28,10 @@ public class IndividualSamplingAlgorithmIdentifiers
      */
     public static void printPartitionAlgorithmList()
     {
+        System.out.println(ALL);
         System.out.println(DISTANCETWO);
         System.out.println(DISTANCETWOLP);
+        System.out.println(LINKPRED);
         System.out.println(RECOMMENDER);
     }
 }

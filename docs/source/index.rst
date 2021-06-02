@@ -20,6 +20,7 @@ or in the speed or diversity of the information diffusion).
 
    guide/introduction
    guide/install
+   license
 
 .. toctree::
    :maxdepth: 1
@@ -39,9 +40,22 @@ or in the speed or diversity of the information diffusion).
    commdetection/code
    commdetection/algorithms
 
-Indices and tables
-==================
+.. toctree::
+   :maxdepth: 1
+   :caption: Link recommendation and prediction
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   link/introduction
+   link/preparation
+   link/config
+   link/code
+   link/algorithms
+   link/evaluation
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Information diffusion
+
+   diffusion/introduction
+   diffusion/config
+   diffusion/protocols
+   diffusion/evaluation

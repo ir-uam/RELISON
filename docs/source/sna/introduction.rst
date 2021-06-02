@@ -1,5 +1,5 @@
-Introduction
-============
+Social network analysis
+=======================
 
 SoNALiRe provides functionality for analyzing the structural properties of the social network graphs: vertex, links, communities and graph properties can be easily computed thanks to our framework. We provide several ways to determine the topological properties of networks: with a program which straightforwardly allows you to compute any of the included social network properties in the framework by reading a configuration file, and by integrating the framework in your own library.
 
@@ -19,7 +19,7 @@ This section is divided as follows:
 
 .. toctree::
    :maxdepth: 1
-   :caption: Community detection
+   :caption: Social network analysis
 
    config
    code

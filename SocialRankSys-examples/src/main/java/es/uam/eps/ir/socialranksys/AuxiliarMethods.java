@@ -33,7 +33,12 @@ import java.util.stream.Stream;
  */
 public class AuxiliarMethods
 {
-
+    /**
+     * Reads a Yaml file
+     * @param file the route to the file
+     * @return a map containing the root of the Yaml file
+     * @throws IOException if something fails while reading the file.
+     */
     public static Map<String, Object> readYAML(String file) throws IOException
     {
         Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
@@ -75,6 +80,58 @@ public class AuxiliarMethods
         });
         return metric.evaluate();
     }
+
+    /**
+     * Writes and evaluates a recommendation.
+     *
+     * @param output      Route of the file in which to store the recommendation.
+     * @param recs        the recommendations to read and evaluate.
+     * @param metrics     the metrics.
+     *
+     * @return the value of the metric.
+     *
+     * @throws IOException if something fails during the writing / reading of the recommendation file.
+     */
+    public static Map<String, Double> writeAndEvaluate(String output, Stream<Recommendation<Long,Long>> recs, Map<String, SystemMetric<Long, Long>> metrics) throws IOException
+    {
+        RecommendationFormat<Long, Long> format = new SimpleRecommendationFormat<>(Parsers.lp, Parsers.lp);
+        RecommendationFormat.Writer<Long, Long> writer = format.getWriter(output);
+        RecommendationFormat.Reader<Long, Long> reader;
+
+        Map<String, Double> values = new HashMap<>();
+
+        boolean wentright = recs.map(recommendation ->
+        {
+            try
+            {
+                writer.write(recommendation);
+                return true;
+            }
+            catch (IOException e)
+            {
+                return false;
+            }
+        }).reduce(true, (x,y) -> x && y);
+
+        if(!wentright)
+        {
+            throw new IOException("Something failed while writing the recommendation in file " + output);
+        }
+
+        reader = format.getReader(output);
+        reader.readAll().forEach(rec ->
+        {
+            if (rec != null && rec.getItems() != null && !rec.getItems().isEmpty())
+            {
+                metrics.values().forEach(metric -> metric.add(rec));
+            }
+        });
+
+        metrics.forEach((key, value) -> values.put(key, value.evaluate()));
+        return values;
+    }
+
+
 
     /**
      * Computes a recommendation and evaluates it using metrics.
@@ -254,7 +311,7 @@ public class AuxiliarMethods
 
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(output))))
         {
-            bw.write("Variant");
+            bw.write("Variant\tFraction");
             for(String id : ids)
             {
                 bw.write("\t" + id + "@" + maxLength);
@@ -300,7 +357,7 @@ public class AuxiliarMethods
 
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(output))))
         {
-            bw.write("Variant");
+            bw.write("Variant\tFraction");
             for(String id : ids)
             {
                 bw.write("\t" + id);

@@ -88,7 +88,7 @@ public class LocalPathIndex<U> extends GlobalMatrixBasedRecommender<U>
     @Override
     protected double[][] getJBLASMatrix()
     {
-        double[][] adj = graph.getAdjacencyMatrix(EdgeOrientation.OUT);
+        double[][] adj = graph.getAdjacencyMatrix(orient);
         DoubleMatrix adjM = new DoubleMatrix(adj);
         DoubleMatrix matrix = DoubleMatrix.zeros(adjM.rows, adjM.columns);
         DoubleMatrix aux = DoubleMatrix.eye(adjM.rows);

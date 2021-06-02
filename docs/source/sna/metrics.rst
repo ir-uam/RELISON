@@ -7,7 +7,6 @@ SoNALiRe provides the following metrics:
    :maxdepth: 1
 
    metrics/vertex
-   metrics/edge
    metrics/pair
    metrics/graph
    metrics/indivcomm

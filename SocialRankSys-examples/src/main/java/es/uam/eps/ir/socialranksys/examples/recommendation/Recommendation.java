@@ -26,7 +26,6 @@ import es.uam.eps.ir.socialranksys.graph.Adapters;
 import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSelector;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.YAMLAlgorithmGridReader;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.metrics.YAMLRecommMetricGridReader;
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
@@ -34,6 +33,7 @@ import es.uam.eps.ir.socialranksys.links.data.FastGraphIndex;
 import es.uam.eps.ir.socialranksys.links.data.GraphIndex;
 import es.uam.eps.ir.socialranksys.links.data.GraphSimpleFastPreferenceData;
 import es.uam.eps.ir.socialranksys.links.recommendation.SocialFastFilters;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.links.recommendation.metrics.accuracy.TRECAveragePrecision;
 import org.ranksys.formats.parsing.Parsers;
 
@@ -200,10 +200,11 @@ public class Recommendation
         System.out.println("Algorithms selected (" + (timeb - timea) + " ms.)");
 
         // Prepare the elements for the recommendation:
-        @SuppressWarnings("unchecked") Function<Long, IntPredicate> filter = FastFilters.and(FastFilters.notInTrain(weightedTrainData), FastFilters.notSelf(index), SocialFastFilters.notReciprocal(weightedGraph, index));
+        Function<Long, IntPredicate> filter = FastFilters.and(FastFilters.notInTrain(weightedTrainData), FastFilters.notSelf(index), SocialFastFilters.notReciprocal(weightedGraph, index));
 
         // Read and clean the test graph.
-        auxTestGraph = (FastGraph<Long>) Adapters.onlyTrainUsers(auxTestGraph, weightedGraph);
+        auxTestGraph = Adapters.onlyTrainUsers(auxTestGraph, weightedGraph);
+        assert auxTestGraph != null;
         FastGraph<Long> testGraph = (FastGraph<Long>) Adapters.filteredGraph(auxTestGraph, filter);
         FastPreferenceData<Long, Long> testData;
         testData = GraphSimpleFastPreferenceData.load(testGraph);

@@ -1,6 +1,6 @@
 
 Modularity-based community detection algorithms
-============================================
+================================================
 This family of community detection algorithms considers network properties to compute the partition. We have implemented the following community detection algorithms.
 
 * `FastGreedy`_
@@ -91,7 +91,7 @@ To compute this metric, we call to the original implementation of the algorithm,
 **Reference:** M. Rosvall and C. Bergstrom. Maps of random walks on complex networks reveal community structure. Proceedings of the National Academy of Sciences 105(4), pp. 1118-1123 (2008)
 
 Parameters
-^^^^^^^^^
+^^^^^^^^^^
 * *trials*: the number of iterations of the most external loop of the algorithm.
 
 
@@ -130,7 +130,7 @@ the nodes, and applies the algorithm over that condensed network.
 **Reference:**  V. Blondel, J. Guillaume, R. Lambiotte, E. Lefebvre, Fast unfolding of communities in large networks. Journal of Statistical Mechanics 10 (2008)
 
 Parameters
-^^^^^^^^^
+^^^^^^^^^^
 * *threshold*: the minimum variance of the modularity. If in an iteration it changes less than this threshold, we end the phase.
 
 
@@ -172,7 +172,7 @@ where
 **Reference:** R. Zafarani, M.A. Abassi, H. Liu. Social Media Mining: An Introduction. Chapter 6. 2014
 
 Parameters
-^^^^^^^^^
+^^^^^^^^^^
 * *k*: the desired number of communities.
 
 Configuration file

@@ -17,13 +17,15 @@ import es.uam.eps.ir.ranksys.nn.item.neighborhood.TopKItemNeighborhood;
 import es.uam.eps.ir.ranksys.nn.item.sim.ItemSimilarity;
 import es.uam.eps.ir.ranksys.nn.sim.Similarity;
 import es.uam.eps.ir.ranksys.rec.Recommender;
+import es.uam.eps.ir.ranksys.rec.fast.FastRecommender;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityFunction;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.knn.similarities.SimilarityGridSelector;
+import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSelector;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.RecommendationAlgorithmFunction;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.RecommenderSimilarity;
 import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.knn.similarities.SpecificItemSimilarity;
+import org.ranksys.formats.parsing.Parser;
 
 import java.util.HashMap;
 import java.util.List;
@@ -61,7 +63,21 @@ public class ItemBasedCFGridSearch<U> implements AlgorithmGridSearch<U>
      * Identifier for indicating whether the result is weighted or not.
      */
     private static final String WEIGHTED = "weighted";
-    
+
+    /**
+     * A parser for reading the users.
+     */
+    private final Parser<U> uParser;
+
+    /**
+     * Constructor.
+     * @param uParser a parser for reading the users.
+     */
+    public ItemBasedCFGridSearch(Parser<U> uParser)
+    {
+        this.uParser = uParser;
+    }
+
     @Override
     public Map<String, Supplier<Recommender<U, U>>> grid(Grid grid, FastGraph<U> graph, FastPreferenceData<U,U> prefData)
     {
@@ -70,18 +86,19 @@ public class ItemBasedCFGridSearch<U> implements AlgorithmGridSearch<U>
         Map<String, Grid> similarities = grid.getGridValues(SIM);
         List<Integer> ks = grid.getIntegerValues(K);
         List<Integer> qs = grid.getIntegerValues(Q);
-        
-        SimilarityGridSelector<U> selector = new SimilarityGridSelector<>();
+
+        AlgorithmGridSelector<U> selector = new AlgorithmGridSelector<>(uParser);
         
         ks.forEach(k ->
             qs.forEach(q ->
                 similarities.forEach((simname, simgrid) -> 
                 {
-                    Map<String, Supplier<Similarity>> sims = selector.getSimilarities(simname, simgrid, graph, prefData);
+                    Map<String, Supplier<Recommender<U,U>>> sims = selector.getRecommenders(simname, simgrid, graph, prefData);
                     sims.forEach((name, sim) ->
                         recs.put(IB + "_" + name + "_" + k + "_" + q, () -> 
                         {
-                            ItemSimilarity<U> similarity = new SpecificItemSimilarity<>(prefData, sim.get());
+                            Similarity s = new RecommenderSimilarity(graph, (FastRecommender<U,U>) sim.get());
+                            ItemSimilarity<U> similarity = new SpecificItemSimilarity<>(prefData, s);
                             ItemNeighborhood<U> neighborhood = new CachedItemNeighborhood<>(new TopKItemNeighborhood<>(similarity, k));
                             return new ItemNeighborhoodRecommender<>(prefData, neighborhood, q);
                         }));
@@ -98,18 +115,19 @@ public class ItemBasedCFGridSearch<U> implements AlgorithmGridSearch<U>
         List<Integer> ks = grid.getIntegerValues(K);
         List<Integer> qs = grid.getIntegerValues(Q);
         List<Boolean> weighted = grid.getBooleanValues(WEIGHTED);
-        SimilarityGridSelector<U> selector = new SimilarityGridSelector<>();
+        AlgorithmGridSelector<U> selector = new AlgorithmGridSelector<>(uParser);
 
         if(weighted.isEmpty())
             ks.forEach(k ->
                 qs.forEach(q ->
                     similarities.forEach((simname, simgrid) ->
                     {
-                        Map<String, SimilarityFunction<U>> sims = selector.getSimilarities(simname, simgrid);
+                        Map<String, RecommendationAlgorithmFunction<U>> sims = selector.getRecommenders(simname, simgrid);
                         sims.forEach((name, sim) ->
                             recs.put(IB + "_" + name + "_" + k + "_" + q, (FastGraph<U> graph, FastPreferenceData<U, U> prefData) ->
                             {
-                                ItemSimilarity<U> similarity = new SpecificItemSimilarity<>(prefData, sim.apply(graph, prefData));
+                                Similarity s = new RecommenderSimilarity(graph, (FastRecommender<U,U>) sim.apply(graph, prefData));
+                                ItemSimilarity<U> similarity = new SpecificItemSimilarity<>(prefData, s);
                                 ItemNeighborhood<U> neighborhood = new CachedItemNeighborhood<>(new TopKItemNeighborhood<>(similarity, k));
                                 return new ItemNeighborhoodRecommender<>(prefData, neighborhood, q);
                             }));
@@ -119,7 +137,7 @@ public class ItemBasedCFGridSearch<U> implements AlgorithmGridSearch<U>
                 qs.forEach(q ->
                     similarities.forEach((simname, simgrid) ->
                     {
-                        Map<String, SimilarityFunction<U>> sims = selector.getSimilarities(simname, simgrid);
+                        Map<String, RecommendationAlgorithmFunction<U>> sims = selector.getRecommenders(simname, simgrid);
                         sims.forEach((name, sim) ->
                             weighted.forEach( weight ->
                                 recs.put(IB + "_" + (weight ? "wei" : "unw") + "_" + name + "_" + k + "_" + q, new RecommendationAlgorithmFunction<>()
@@ -127,7 +145,8 @@ public class ItemBasedCFGridSearch<U> implements AlgorithmGridSearch<U>
                                     @Override
                                     public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
                                     {
-                                        ItemSimilarity<U> similarity = new SpecificItemSimilarity<>(prefData, sim.apply(graph, prefData));
+                                        Similarity s = new RecommenderSimilarity(graph, (FastRecommender<U,U>) sim.apply(graph, prefData));
+                                        ItemSimilarity<U> similarity = new SpecificItemSimilarity<>(prefData, s);
                                         ItemNeighborhood<U> neighborhood = new CachedItemNeighborhood<>(new TopKItemNeighborhood<>(similarity, k));
                                         return new ItemNeighborhoodRecommender<>(prefData, neighborhood, q);
                                     }

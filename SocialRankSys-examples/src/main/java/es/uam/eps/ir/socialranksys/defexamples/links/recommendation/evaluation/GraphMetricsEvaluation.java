@@ -11,9 +11,7 @@ package es.uam.eps.ir.socialranksys.defexamples.links.recommendation.evaluation;
 import es.uam.eps.ir.socialranksys.AuxiliarMethods;
 import es.uam.eps.ir.socialranksys.community.Communities;
 import es.uam.eps.ir.socialranksys.community.io.TextCommunitiesReader;
-import es.uam.eps.ir.socialranksys.graph.Adapters;
 import es.uam.eps.ir.socialranksys.graph.Graph;
-import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.graph.generator.GraphCloneGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.GraphGenerator;
 import es.uam.eps.ir.socialranksys.graph.generator.exception.GeneratorBadConfiguredException;
@@ -29,6 +27,7 @@ import es.uam.eps.ir.socialranksys.grid.sna.pair.PairMetricSelector;
 import es.uam.eps.ir.socialranksys.grid.sna.vertex.VertexMetricFunction;
 import es.uam.eps.ir.socialranksys.grid.sna.vertex.VertexMetricSelector;
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
+import es.uam.eps.ir.socialranksys.io.graph.TextMultiGraphReader;
 import es.uam.eps.ir.socialranksys.metrics.*;
 import es.uam.eps.ir.socialranksys.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.socialranksys.metrics.distance.FastDistanceCalculator;
@@ -56,57 +55,75 @@ public class GraphMetricsEvaluation
     /**
      * Program which analyzes the different properties of a graph.
      * @param args Execution arguments
-     * <ul>
-     *  <li><b>Training graph file:</b> File containing the training graph to analyze</li>
-     *  <li><b>Test graph file:</b> File containing the test graph</li>
-     *  <li><b>Metric grid:</b> YAML file containing all the metrics we want to compute</li>
-     *  <li><b>Recommenders route:</b> Directory which contains the recommendations to evaluate</li>
-     *  <li><b>Directed:</b> true if the graph is directed, false if not</li>
-     *  <li><b>Weighted:</b> true if the graph is weighted, false if not</li>
-     *  <li><b>Comm. Route</b> The path which contains the community files</li>
-     *  <li><b>Comm. files:</b> A comma separated list of community files for the graph</li>
-     *  <li><b>Output folder:</b> Folder for storing the different outcomes</li>
-     *  <li><b>Max. Length:</b> Maximum length of the recommendations (each element below that position will be discarded)</li>
-     *  <li><b>Full Graph:</b> For pairs / edge metrics, indicates if the metric restricts to the recommended links, or it is computed for each pair of nodes / edge in the network</li>
-     *  <li><b>Only relevant:</b> true if we want to add only relevant edges to the graph, false if we want to add all</li>
-     * </ul>
+     *             <ol>
+     *                  <li><b>Train:</b> Route to the file containing the training graph.</li>
+     *                  <li><b>Test:</b> Route to the file containing the test links.</li>
+     *                  <li><b>Multigraph:</b> true if the network allows multiple edges, false otherwise.</li>
+     *                  <li><b>Directed:</b> true if the network is directed, false otherwise.</li>
+     *                  <li><b>Weighted:</b> true if the network is weighted, false otherwise.</li>
+     *                  <li><b>Selfloops:</b> true if the network allows self-loops, false otherwise.</li>
+     *                  <li><b>Rec. directory:</b> directory containing the recommendations.</li>
+     *                  <li><b>Grid:</b> Route to a YAML file containing the structural metric configurations.</li>
+     *                  <li><b>Output file:</b> File in which to store the structural metrics.</li>
+     *                  <li><b>Rec. Length:</b> Maximum number of recommendations per user to consider.</li>
+     *                  <li><b>Full graph:</b> if true, it uses all the edges/pairs of users in the networks. If false, only the recommended ones.</li>
+     *                  <li><b>Only relevant:</b> true if we only add to the original network only those correctly recommended links, false otherwise.</li>
+     *             </ol>
      */
     public static void main(String[] args) throws IOException
     {
-        if(args.length < 10)
+        if(args.length < 13)
         {
-            System.err.println("Usage: <training graph file> <test graph file> <metric grid> <recroute> <directed> <weighted> <commroute> <commfiles> <output folder> <length> <fullGraph> <onlyrel>");
+            System.err.println("Invalid arguments.");
+            System.err.println("Usage:");
+            System.err.println("\tTrain: Route to the file containing the training graph.");
+            System.err.println("\tTest: Route to the file containing the test links.");
+            System.err.println("\tMultigraph: true if the network allows multiple edges, false otherwise.");
+            System.err.println("\tDirected: true if the network is directed, false otherwise.");
+            System.err.println("\tWeighted: true if the network is weighted, false otherwise.");
+            System.err.println("\tSelfloops: true if the network allows self-loops, false otherwise.");
+            System.err.println("\tRec. directory: directory containing the recommendations.");
+            System.err.println("\tGrid: Route to a YAML file containing the structural metric configurations.");
+            System.err.println("\tOutput file: File in which to store the structural metrics.");
+            System.err.println("\tRec. Length: Maximum number of recommendations per user to consider.");
+            System.err.println("\tFull graph: if true, it uses all the edges/pairs of users in the networks. If false, only the recommended ones.");
+            System.err.println("\tOnly relevant: true if we only add to the original network only those correctly recommended links, false otherwise.");
             return;
         }
 
         // Argument reading
         String graphFile = args[0];
         String testGraphFile = args[1];
-        String metricGrid = args[2];
-        String recRoute = args[3];
-        boolean directed = args[4].equalsIgnoreCase("true");
-        boolean weighted = args[5].equalsIgnoreCase("true");
-        String commpath = args[6];
+
+        boolean multigraph = args[2].equalsIgnoreCase("true");
+        boolean directed = args[3].equalsIgnoreCase("true");
+        boolean weighted = args[4].equalsIgnoreCase("true");
+        boolean selfloops = args[5].equalsIgnoreCase("true");
+
+        String recRoute = args[6];
+
         String[] comms = args[7].split(",");
         List<String> commFiles = Arrays.asList(comms);
-        String outputFile = args[8];
-        int length = Parsers.ip.parse(args[9]);
-        boolean fullGraph = args[10].equalsIgnoreCase("true");
-        boolean onlyrel = args[11].equalsIgnoreCase("true");
+
+        String metricGrid = args[8];
+
+        String outputFile = args[9];
+        int length = Parsers.ip.parse(args[10]);
+        boolean fullGraph = args[11].equalsIgnoreCase("true");
+        boolean onlyrel = args[12].equalsIgnoreCase("true");
 
         // Read the graphs
         long a = System.currentTimeMillis();
         
-        TextGraphReader<Long> greader = new TextGraphReader<>(directed, weighted, false, "\t", Parsers.lp);
-        Graph<Long> auxGraph = greader.read(graphFile, weighted, false);
-        Graph<Long> auxTestGraph = greader.read(testGraphFile, weighted, onlyrel);
+        TextGraphReader<Long> greader = (multigraph) ? new TextMultiGraphReader<>(directed, weighted, selfloops, "\t", Parsers.lp) :
+        new TextGraphReader<>(directed, weighted, false, "\t", Parsers.lp);
+        Graph<Long> graph = greader.read(graphFile, weighted, false);
+        Graph<Long> testGraph = greader.read(testGraphFile, false, false);
 
-        // Clean the graph
-        FastGraph<Long> graph = (FastGraph<Long>) Adapters.removeAutoloops(auxGraph);
-        FastGraph<Long> testGraph = (FastGraph<Long>) Adapters.removeAutoloops(auxTestGraph);
 
         if(graph == null || testGraph == null)
         {
+            System.err.println("ERROR: graphs could not be read.");
             return;
         }
         long b = System.currentTimeMillis();
@@ -118,7 +135,12 @@ public class GraphMetricsEvaluation
 
         Map<String, Communities<Long>> communities = new HashMap<>();
         TextCommunitiesReader<Long> creader = new TextCommunitiesReader<>("\t", Parsers.lp);
-        commFiles.forEach((comm) -> communities.put(comm, creader.read(commpath + comm)));
+        commFiles.forEach((comm) ->
+        {
+            File f = new File(comm);
+            String c = f.getName();
+            communities.put(c, creader.read(comm));
+        });
 
         b = System.currentTimeMillis();
         System.out.println("Communities read (" + (b-a) + " ms.");

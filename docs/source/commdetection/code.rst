@@ -100,7 +100,7 @@ This method obtains the underlying tree of the dendogram.
 
 	Communities<U> getCommunitiesByNumber(int n)
 
-Obtains a community partition containing, at most, :java:`n`communities.
+Obtains a community partition containing, at most, :java:`n` communities.
 
 **Arguments:**
 	* *n*: the maximum number of communities.

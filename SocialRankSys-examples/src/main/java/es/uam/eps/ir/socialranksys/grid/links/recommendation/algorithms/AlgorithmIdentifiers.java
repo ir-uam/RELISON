@@ -30,6 +30,7 @@ public class AlgorithmIdentifiers
     public final static String QLL = "QLL";
 
     public final static String VSM = "VSM";
+    public final static String PIVOTEDVSM = "Pivoted normalization VSM";
 
     public final static String PL2 = "PL2";
     public final static String DLH = "DLH";
@@ -38,7 +39,7 @@ public class AlgorithmIdentifiers
     public final static String DFREEKLIM = "DFReeKLIM";
 
     // Friends of friends
-    public final static String ADAMIC = "Adamic";
+    public final static String ADAMIC = "Adamic-Adar";
     public final static String JACCARD = "Jaccard";
     public final static String MCN = "MCN";
     public final static String COSINE = "Cosine";
@@ -67,18 +68,24 @@ public class AlgorithmIdentifiers
     public final static String PERSSALSA = "Personalized SALSA";
     public final static String PERSHITS = "Personalized HITS";
 
+    public final static String COMMUTE = "Commute time PageRank";
+    public final static String HITTING = "Hitting time PageRank";
+    public final static String COMMUTEPERS = "Commute time personalized PageRank";
+    public final static String HITTINGPERS = "Hitting time personalized PageRank";
+
     public final static String PROPFLOW = "PropFlow";
 
     // Twitter
     public final static String CLOSURE = "Closure";
     public final static String MONEY = "Money";
     public final static String LOVE = "Love";
-    public final static String TWITTERAVGCOS = "Twitter average cosine";
-    public final static String TWITTERCENTROIDCOS = "Twitter centroid cosine";
-    public final static String TWITTERMAXCOS = "Twitter maximum cosine";
+    public final static String TWITTERAVGCOS = "Average cosine";
+    public final static String TWITTERCENTROIDCOS = "Centroid cosine";
+    public final static String TWITTERMAXCOS = "Maximum cosine";
 
     // Collaborative filtering
     public final static String IMF = "iMF";
+    public final static String FASTIMF = "Fast iMF";
     public final static String UB = "UB kNN";
     public final static String IB = "IB kNN";
 

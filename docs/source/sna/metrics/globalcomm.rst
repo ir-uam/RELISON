@@ -181,7 +181,7 @@ Configuration file
       type: global community          
 
 Number of communities
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 As its name indicates, this metric just takes the number of communities in the partition.
 
 Configuration file

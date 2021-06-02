@@ -28,12 +28,12 @@ import es.uam.eps.ir.socialranksys.grid.Parameters;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridReader;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSelector;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmIdentifiers;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.io.graph.TextGraphReader;
 import es.uam.eps.ir.socialranksys.links.data.FastGraphIndex;
 import es.uam.eps.ir.socialranksys.links.data.GraphIndex;
 import es.uam.eps.ir.socialranksys.links.data.GraphSimpleFastPreferenceData;
 import es.uam.eps.ir.socialranksys.links.recommendation.SocialFastFilters;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.basic.Random;
 import es.uam.eps.ir.socialranksys.utils.datatypes.Tuple2oo;
 import org.ranksys.core.util.tuples.Tuple2od;
@@ -162,7 +162,6 @@ public class Validation
             AlgorithmGridSelector<Long> algorithmSelector = new AlgorithmGridSelector<>(Parsers.lp);
 
             // Configure the recommender runner
-            @SuppressWarnings("unchecked")
             Function<Long, IntPredicate> filter = FastFilters.and(FastFilters.notInTrain(unweightedTrainData), FastFilters.notSelf(index), SocialFastFilters.notReciprocal(unweightedGraph, index));
             RecommenderRunner<Long, Long> runner = new FastFilterRecommenderRunner<>(index, index, validationData.getUsersWithPreferences(), filter, maxLength);
             List<Parameters> configurations = confs.getConfigurations();

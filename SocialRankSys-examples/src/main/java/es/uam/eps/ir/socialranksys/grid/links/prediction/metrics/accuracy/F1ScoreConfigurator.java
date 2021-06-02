@@ -15,7 +15,7 @@ import es.uam.eps.ir.socialranksys.graph.Graph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.prediction.metrics.LinkPredictionMetricConfigurator;
 import es.uam.eps.ir.socialranksys.grid.links.prediction.metrics.LinkPredictionMetricFunction;
-import es.uam.eps.ir.socialranksys.links.linkprediction.metrics.Accuracy;
+import es.uam.eps.ir.socialranksys.links.linkprediction.metrics.F1Score;
 import es.uam.eps.ir.socialranksys.links.linkprediction.metrics.LinkPredictionMetric;
 
 import java.util.HashMap;
@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static es.uam.eps.ir.socialranksys.grid.links.prediction.metrics.LinkPredictionMetricIdentifiers.ACCURACY;
+import static es.uam.eps.ir.socialranksys.grid.links.prediction.metrics.LinkPredictionMetricIdentifiers.F1SCORE;
 
 
 /**
@@ -34,7 +34,7 @@ import static es.uam.eps.ir.socialranksys.grid.links.prediction.metrics.LinkPred
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @see Accuracy
+ * @see es.uam.eps.ir.socialranksys.links.linkprediction.metrics.F1Score
  */
 public class F1ScoreConfigurator<U, F> implements LinkPredictionMetricConfigurator<U, F>
 {
@@ -55,8 +55,8 @@ public class F1ScoreConfigurator<U, F> implements LinkPredictionMetricConfigurat
         List<Integer> cutoffs = grid.getIntegerValues(CUTOFF);
         List<Double> thresholds = grid.getDoubleValues(THRESHOLD);
 
-        cutoffs.forEach(cutoff -> metrics.put(ACCURACY + "@" + cutoff, ((trainGraph, testGraph, trainData, testData, featData, comms) -> new Accuracy<>(cutoff))));
-        thresholds.forEach(threshold -> metrics.put(ACCURACY + "_" + threshold, ((trainGraph, testGraph, trainData, testData, featData, comms) -> new Accuracy<>(threshold))));
+        cutoffs.forEach(cutoff -> metrics.put(F1SCORE + "@" + cutoff, ((trainGraph, testGraph, trainData, testData, featData, comms) -> new F1Score<>(cutoff))));
+        thresholds.forEach(threshold -> metrics.put(F1SCORE + "_" + threshold, ((trainGraph, testGraph, trainData, testData, featData, comms) -> new F1Score<>(threshold))));
 
         return metrics;
     }
@@ -69,8 +69,8 @@ public class F1ScoreConfigurator<U, F> implements LinkPredictionMetricConfigurat
         List<Integer> cutoffs = grid.getIntegerValues(CUTOFF);
         List<Double> thresholds = grid.getDoubleValues(THRESHOLD);
 
-        cutoffs.forEach(cutoff -> metrics.put(ACCURACY + "@" + cutoff, () -> new Accuracy<>(cutoff)));
-        thresholds.forEach(threshold -> metrics.put(ACCURACY + "_" + threshold, () -> new Accuracy<>(threshold)));
+        cutoffs.forEach(cutoff -> metrics.put(F1SCORE + "@" + cutoff, () -> new F1Score<>(cutoff)));
+        thresholds.forEach(threshold -> metrics.put(F1SCORE + "_" + threshold, () -> new F1Score<>(threshold)));
 
         return metrics;
     }

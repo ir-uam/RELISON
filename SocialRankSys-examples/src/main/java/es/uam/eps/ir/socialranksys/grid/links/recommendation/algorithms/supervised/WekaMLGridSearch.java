@@ -13,7 +13,7 @@ import es.uam.eps.ir.ranksys.rec.Recommender;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.supervised.MachineLearningWekaRecommender;
 import org.jooq.lambda.tuple.Tuple2;
 import org.ranksys.formats.parsing.Parser;
@@ -58,7 +58,7 @@ public class WekaMLGridSearch<U> implements AlgorithmGridSearch<U>
     /**
      * The number of iterations of the random forest algorithm.
      */
-    private final static String ITER = "iter";
+    private final static String ITER = "iterations";
 
     /**
      * Parser for reading users.
@@ -98,7 +98,7 @@ public class WekaMLGridSearch<U> implements AlgorithmGridSearch<U>
                 {
                     try
                     {
-                        return new MachineLearningWekaRecommender<U>(graph, classifier.v2.get(), trainFiles.get(j), testFiles.get(j), uParser);
+                        return new MachineLearningWekaRecommender<>(graph, classifier.v2.get(), trainFiles.get(j), testFiles.get(j), uParser);
                     }
                     catch (Exception e)
                     {
@@ -125,7 +125,7 @@ public class WekaMLGridSearch<U> implements AlgorithmGridSearch<U>
                 case "logistic":
                     list.add(new Tuple2<>(name, Logistic::new));
                     break;
-                case "randomforest":
+                case "random-forest":
                     List<Integer> iters = grid.getIntegerValues(ITER);
                     iters.forEach(iter -> list.add(new Tuple2<>(name + "_" + iter, () ->
                     {
@@ -167,7 +167,7 @@ public class WekaMLGridSearch<U> implements AlgorithmGridSearch<U>
                 {
                     try
                     {
-                        return new MachineLearningWekaRecommender<U>(graph, classifier.v2.get(), trainFiles.get(j), testFiles.get(j), uParser);
+                        return new MachineLearningWekaRecommender<>(graph, classifier.v2.get(), trainFiles.get(j), testFiles.get(j), uParser);
                     }
                     catch (Exception e)
                     {

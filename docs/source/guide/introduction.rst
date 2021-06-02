@@ -1,5 +1,5 @@
 Introduction
-============
+===============
 
 SoNALiRe is a comprehensive framework for social network analysis and recommendation in Java. This framework
 allows the analysis of multiple structural properties of a social network graph (from simple ones like the 

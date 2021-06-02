@@ -17,16 +17,16 @@ import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmIdentifiers;
 import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.RecommendationAlgorithmFunction;
-import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.ir.QLD;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.ir.PL2;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.ir.PivotedNormalizationVSM;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-
 /**
- * Grid search generator for Query Likelihood algorithm with Dirichlet smoothing.
+ * Grid search generator for the PL2 Divergence from Randomness method
  *
  * @param <U> type of the users.
  *
@@ -35,15 +35,14 @@ import java.util.function.Supplier;
  * @author Iadh Ounis (iadh.ounis@glasgow.ac.uk)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @see es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.ir.QLD
+ * @see PL2
  */
-public class QLDGridSearch<U> implements AlgorithmGridSearch<U>
+public class PivotedNormalizationVSMGridSearch<U> implements AlgorithmGridSearch<U>
 {
     /**
-     * Identifier for the trade-off between the regularization term and the original term in
-     * the Query Likelihood Dirichlet formula.
+     * Identifier for the parameter for tuning the importance of the candidate user length.
      */
-    private static final String MU = "mu";
+    private static final String S = "s";
     /**
      * Identifier for the orientation of the target user neighborhood
      */
@@ -61,14 +60,14 @@ public class QLDGridSearch<U> implements AlgorithmGridSearch<U>
     public Map<String, Supplier<Recommender<U, U>>> grid(Grid grid, FastGraph<U> graph, FastPreferenceData<U, U> prefData)
     {
         Map<String, Supplier<Recommender<U, U>>> recs = new HashMap<>();
-        List<Double> mus = grid.getDoubleValues(MU);
+        List<Double> cs = grid.getDoubleValues(S);
         List<EdgeOrientation> uSels = grid.getOrientationValues(USEL);
         List<EdgeOrientation> vSels = grid.getOrientationValues(VSEL);
 
-        mus.forEach(mu ->
+        cs.forEach(c ->
             uSels.forEach(uSel ->
                 vSels.forEach(vSel ->
-                    recs.put(AlgorithmIdentifiers.QLD + "_" + uSel + "_" + vSel + "_" + mu, () -> new QLD<>(graph, uSel, vSel, mu)))));
+                    recs.put(AlgorithmIdentifiers.PIVOTEDVSM + "_" + uSel + "_" + vSel + "_" + c, () -> new PivotedNormalizationVSM<>(graph, uSel, vSel, c)))));
 
         return recs;
     }
@@ -77,26 +76,27 @@ public class QLDGridSearch<U> implements AlgorithmGridSearch<U>
     public Map<String, RecommendationAlgorithmFunction<U>> grid(Grid grid)
     {
         Map<String, RecommendationAlgorithmFunction<U>> recs = new HashMap<>();
-        List<Double> mus = grid.getDoubleValues(MU);
+        List<Double> cs = grid.getDoubleValues(S);
         List<EdgeOrientation> uSels = grid.getOrientationValues(USEL);
         List<EdgeOrientation> vSels = grid.getOrientationValues(VSEL);
         List<Boolean> weighted = grid.getBooleanValues(WEIGHTED);
+
         if(weighted.isEmpty())
-            mus.forEach(mu ->
+            cs.forEach(c ->
                 uSels.forEach(uSel ->
                     vSels.forEach(vSel ->
-                        recs.put(AlgorithmIdentifiers.QLD + "_" + uSel + "_" + vSel + "_" + mu, (graph, prefData) -> new QLD<>(graph, uSel, vSel, mu)))));
+                        recs.put(AlgorithmIdentifiers.PL2 + "_" + uSel + "_" + vSel + "_" + c, (graph, prefData) -> new PivotedNormalizationVSM<>(graph, uSel, vSel, c)))));
         else
-            mus.forEach(mu ->
+            cs.forEach(c ->
                 uSels.forEach(uSel ->
                     vSels.forEach(vSel ->
                         weighted.forEach(weight ->
-                            recs.put(AlgorithmIdentifiers.QLD +"_" + (weight ? "wei" : "unw") + "_" + uSel + "_" + vSel + "_" + mu, new RecommendationAlgorithmFunction<>()
+                            recs.put(AlgorithmIdentifiers.PL2 + "_" + (weight ? "wei" : "unw") +"_" + uSel + "_" + vSel + "_" + c, new RecommendationAlgorithmFunction<>()
                             {
                                 @Override
                                 public Recommender<U, U> apply(FastGraph<U> graph, FastPreferenceData<U, U> prefData)
                                 {
-                                    return new QLD<>(graph, uSel, vSel, mu);
+                                    return new PivotedNormalizationVSM<>(graph, uSel, vSel, c);
                                 }
 
                                 @Override
@@ -105,7 +105,6 @@ public class QLDGridSearch<U> implements AlgorithmGridSearch<U>
                                     return weight;
                                 }
                             })))));
-
         return recs;
     }
 

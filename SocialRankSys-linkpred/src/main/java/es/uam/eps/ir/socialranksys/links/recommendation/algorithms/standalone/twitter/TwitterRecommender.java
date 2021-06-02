@@ -20,6 +20,7 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Twitter-based recommender. Following the details disclosed by Twitter about their contact
@@ -70,7 +71,18 @@ public abstract class TwitterRecommender<U> extends UserFastRankingRecommender<U
         this.circlesize = circlesize;        
         this.r = r;
         this.circles = new HashMap<>();
-        graph.getAllNodes().forEach(u -> circles.put(u, this.trainingGraph(u)));
+
+        if(circlesize >= graph.getVertexCount() || circlesize <= 0)
+        {
+            FastGraph<U> g = trainingGraph(graph.getAllNodes().collect(Collectors.toSet()));
+            graph.getAllNodes().forEach(u -> circles.put(u, g));
+        }
+        else
+        {
+            graph.getAllNodes().forEach(u -> circles.put(u, this.trainingGraph(u)));
+        }
+
+
         this.supplier = supplier;
     }
     
@@ -81,6 +93,7 @@ public abstract class TwitterRecommender<U> extends UserFastRankingRecommender<U
      */
     private Set<U> getCircleOfTrust(U u)
     {
+
         Comparator<Tuple2od<U>> comparator = (Tuple2od<U> t1, Tuple2od<U> t2) -> {
             if(t1.v2 > t2.v2)
                 return -1;
@@ -109,7 +122,38 @@ public abstract class TwitterRecommender<U> extends UserFastRankingRecommender<U
         
         return circle;
     }
-    
+
+    /**
+     * Builds the training bipartite graph.
+     * @param nodes the set of nodes.
+     * @return the graph if everything goes well, false otherwise.
+     */
+    private FastGraph<U> trainingGraph(Set<U> nodes)
+    {
+        EmptyGraphGenerator<U> empty = new EmptyGraphGenerator<>();
+        empty.configure(this.getGraph().isDirected(), this.getGraph().isWeighted());
+
+        try
+        {
+            Graph<U> graph = empty.generate();
+
+            for (U v : nodes)
+            {
+                graph.addNode(v);
+                this.getGraph().getAdjacentNodes(v).forEach(adj ->
+                {
+                    graph.addNode(adj);
+                    graph.addEdge(v, adj);
+                });
+            }
+
+            return (FastGraph<U>) graph;
+        }
+        catch (GeneratorNotConfiguredException ex)
+        {
+            return null;
+        }
+    }
     /**
      * Computes a reduced training graph
      * @param u user
@@ -117,37 +161,9 @@ public abstract class TwitterRecommender<U> extends UserFastRankingRecommender<U
      */
     private FastGraph<U> trainingGraph(U u)
     {
-        EmptyGraphGenerator<U> empty = new EmptyGraphGenerator<>();
-        empty.configure(this.getGraph().isDirected(), this.getGraph().isWeighted());
-        
-        try 
-        {
-            Graph<U> graph = empty.generate();
-            Set<U> circle = this.getCircleOfTrust(u);
-            
-            for(U v : circle)
-            {
-                graph.addNode(v);
-                this.getGraph().getAdjacentNodes(v).forEach(adj -> 
-                {
-                    graph.addNode(adj);
-                    graph.addEdge(v, adj);
-                });
-            }
-            
-            graph.addNode(u);
-            this.getGraph().getAdjacentNodes(u).forEach(adj ->
-            {
-                graph.addNode(adj);
-                graph.addEdge(u, adj);
-            });
-            
-            return (FastGraph<U>) graph;
-        }
-        catch (GeneratorNotConfiguredException ex)
-        {
-            return null;
-        }
+        Set<U> circle = this.getCircleOfTrust(u);
+        circle.add(u);
+        return this.trainingGraph(circle);
     }
 
     @Override

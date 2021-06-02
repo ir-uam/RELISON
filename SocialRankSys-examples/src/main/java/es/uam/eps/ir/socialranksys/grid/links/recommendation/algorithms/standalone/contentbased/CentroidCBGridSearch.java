@@ -17,7 +17,7 @@ import es.uam.eps.ir.socialranksys.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSearch;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.contentbased.CentroidCBRecommender;
 import org.ranksys.formats.parsing.Parser;
 
@@ -49,7 +49,7 @@ public class CentroidCBGridSearch<U> implements AlgorithmGridSearch<U>
     /**
      * Identifier for the orientation.
      */
-    private static final String ORIENT = "orient";
+    private static final String ORIENT = "orientation";
 
     /**
      * Parser for the user identifiers.

@@ -46,3 +46,13 @@ want to measure and analyze. This is a Yaml file with the following format:
                 ...
       algorithm_name2:
         ...
+
+Output file
+~~~~~~~~~~~
+Once the community detection algorithm is generated, the community partition is stored into a file. Such file has the following format, where each line is tab-separated:
+
+.. code::
+
+    node-id comm-id
+
+where `node-id` is the identifier of the user in the network, and `comm-id` is the community number.

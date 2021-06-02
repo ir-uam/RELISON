@@ -15,7 +15,7 @@ import es.uam.eps.ir.socialranksys.graph.fast.FastGraph;
 import es.uam.eps.ir.socialranksys.grid.Grid;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSearch;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmIdentifiers;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.standalone.pathbased.Katz;
 
 import java.util.HashMap;
@@ -43,7 +43,7 @@ public class KatzGridSearch<U> implements AlgorithmGridSearch<U>
     /**
      * Identifier for the orientation selection for the adjacency matrix.
      */
-    private static final String ORIENT = "orient";
+    private static final String ORIENT = "orientation";
 
     @Override
     public Map<String, Supplier<Recommender<U, U>>> grid(Grid grid, FastGraph<U> graph, FastPreferenceData<U, U> prefData)

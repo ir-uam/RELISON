@@ -1,5 +1,5 @@
 Install SoNALiRe
-================
+==================
 
 SoNALiRe is a library working with the following operating systems:
 
@@ -9,10 +9,10 @@ SoNALiRe is a library working with the following operating systems:
 It requires Java version 14 or later.
 
 Install from source
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 MAVEN
-^^^^^
+^^^^^^
 
 The recommended way to use SoNALiRe is through Maven. This will allow you to automatically
 download all the necessary dependencies to work with this framework. In order to download 
@@ -48,7 +48,7 @@ dependency as follows:
 where [module-name] indicates the name of the module you want to import.
 
 JAVA
-^^^^
+^^^^^
 
 In case you do not want to use Maven, you just need to compile the library into JAR files. In order 
 to do that, the following libraries (and their dependencies) are needed:

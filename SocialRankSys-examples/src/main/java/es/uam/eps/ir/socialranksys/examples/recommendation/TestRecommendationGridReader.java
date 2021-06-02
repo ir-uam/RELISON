@@ -11,8 +11,8 @@ package es.uam.eps.ir.socialranksys.examples.recommendation;
 
 import es.uam.eps.ir.socialranksys.AuxiliarMethods;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.AlgorithmGridSelector;
-import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.socialranksys.grid.links.recommendation.algorithms.YAMLAlgorithmGridReader;
+import es.uam.eps.ir.socialranksys.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import org.ranksys.formats.parsing.Parsers;
 
 import java.io.IOException;
