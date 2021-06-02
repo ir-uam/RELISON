@@ -27,9 +27,9 @@ import java.util.Map;
  *          <li><i>Priori distribution:</i> The priori value for an individual user feature is computed as the sum over
  *          the set of users of the product of the number of pieces published by the user and the value of the
  *          user feature for the user.
- *          For example, let's suppose we have four different users, with two different communites:<br/>
+ *          For example, let's suppose we have four different users, with two different communites:<br>
  * 
- *          User 1: Comm 1 (value 1), (i1,i2,i3), User 2: Comm 1 (value 2), (i4,i5), User 3: Comm 1 (value 2), (i6), User 4: Comm 2 (value 3), (i7,i8,i9,i10) <br/>
+ *          User 1: Comm 1 (value 1), (i1,i2,i3), User 2: Comm 1 (value 2), (i4,i5), User 3: Comm 1 (value 2), (i6), User 4: Comm 2 (value 3), (i7,i8,i9,i10) <br>
  *  
  *          Then: Comm1 = 3*1 + 2*2 + 1*2 = 9; Comm2 = 3*4 = 12
  *          </li>

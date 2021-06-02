@@ -51,7 +51,8 @@ public class EdgeBetweenness<U> implements PairMetric<U>
     /**
      * Constructor.
      *
-     * @param dc distance calculator.
+     * @param dc        distance calculator.
+     * @param normalize true if we have to normalize the betweenness, false otherwise.
      */
     public EdgeBetweenness(DistanceCalculator<U> dc, boolean normalize)
     {
@@ -61,6 +62,7 @@ public class EdgeBetweenness<U> implements PairMetric<U>
 
     /**
      * Constructor.
+     * @param normalize true if we have to normalize the betweenness, false otherwise.
      */
     public EdgeBetweenness(boolean normalize)
     {

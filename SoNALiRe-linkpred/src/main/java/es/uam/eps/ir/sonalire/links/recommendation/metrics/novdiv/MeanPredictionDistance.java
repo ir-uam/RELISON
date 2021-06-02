@@ -22,10 +22,10 @@ import java.util.List;
  * Metric that finds the harmonic mean of the reciprocal distances between the different target user - candidate user pairs
  * of the recommendation.
  *
- * <p><b>References:</b>
+ * <br><b>References:</b>
  * <ol>
  *  <li>J. Sanz-Cruzado and P. Castells. Beyond Accuracy in Link Prediction. SoMePeaS 2019.</li>
- * </ol></p>
+ * </ol>
  *
  * @param <U> Type of the users.
  *

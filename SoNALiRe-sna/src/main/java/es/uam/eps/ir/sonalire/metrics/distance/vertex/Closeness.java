@@ -23,8 +23,8 @@ import java.util.OptionalDouble;
  * Metric that computes the closeness of the nodes.
  *
  * <p>
- * <b>References:</b><br/>
- * M.E.J. Newman. Networks: an introduction (2010)<br />
+ * <b>References:</b><br>
+ * M.E.J. Newman. Networks: an introduction (2010)<br>
  * L.C. Freeman. Centrality in Networks: I. Conceptual clarification, Social Networks 1, 1979, pp.215-239
  * </p>
  *

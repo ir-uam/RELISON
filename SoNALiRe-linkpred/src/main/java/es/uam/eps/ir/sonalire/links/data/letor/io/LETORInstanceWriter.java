@@ -21,15 +21,15 @@ import static es.uam.eps.ir.sonalire.links.data.letor.io.LETORFormatConstants.*;
 
 /**
  * Class for writing patterns in the LETOR format (for Learning TO Rank task).
- * Format: <br/>
+ * Format: <br>
  *
- * #featId1: description1 stats1 <br/>
- * #featId2: description2 stats2 <br/>
- * ... <br/>
- * #featIdN: descriptionN statsN <br/>
- * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v] <br/>
- * ... <br/>
- * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v] <br/>
+ * #featId1: description1 stats1 <br>
+ * #featId2: description2 stats2 <br>
+ * ... <br>
+ * #featIdN: descriptionN statsN <br>
+ * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v] <br>
+ * ... <br>
+ * [relevance(u,v) or class1(u,v)] qid:[user u] [featId1]:[value1(u,v)] [featId2]:[value2(u,v)] ... [featIdN]:[valueN(u,v)] #docId=[user v] <br>
  *
  * @see <a href="https://www.microsoft.com/en-us/research/project/letor-learning-rank-information-retrieval/#!letor-4-0">LETOR v.4.0</a>
  *

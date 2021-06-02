@@ -295,8 +295,9 @@ public interface MultiEdges
     /**
      * Removes an edge.
      *
-     * @param orig Source node.
-     * @param dest Incoming node.
+     * @param orig  source node.
+     * @param dest  incoming node.
+     * @param idx   the number of the edge
      *
      * @return true if everything went OK, false if not.
      */
@@ -305,7 +306,7 @@ public interface MultiEdges
     /**
      * Removes a node from the edge list.
      *
-     * @param idx The identifier of the node.
+     * @param idx the identifier of the node.
      *
      * @return true if everything went OK, false otherwise.
      */
@@ -314,8 +315,8 @@ public interface MultiEdges
     /**
      * Removes all the edges between a pair of nodes.
      *
-     * @param orig Source node.
-     * @param dest Incoming node.
+     * @param orig source node.
+     * @param dest incoming node.
      *
      * @return true if everything went OK, false otherwise.
      */
@@ -324,9 +325,10 @@ public interface MultiEdges
     /**
      * Modifies the weight of an edge.
      *
-     * @param orig   Source node.
-     * @param dest   Incoming node.
-     * @param weight The new weight of the edge.
+     * @param orig   source node.
+     * @param dest   incoming node.
+     * @param idx    the number of the edge.
+     * @param weight the new weight of the edge.
      *
      * @return true if everything went OK, false if not, or the edge does not exist.
      */

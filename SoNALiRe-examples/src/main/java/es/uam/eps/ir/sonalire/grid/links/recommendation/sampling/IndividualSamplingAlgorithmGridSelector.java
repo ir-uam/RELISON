@@ -71,7 +71,9 @@ public class IndividualSamplingAlgorithmGridSelector<U>
     /**
      * Obtains a configurator for an individual sampling algorithm.
      *
-     * @param name the name of the algorithm.
+     * @param name      the name of the algorithm.
+     * @param uParser   parser for reading users.
+     *
      * @return the configurator if exists, null otherwise.
      */
     public IndividualSamplingAlgorithmConfigurator<U> getConfigurator(String name, Parser<U> uParser)

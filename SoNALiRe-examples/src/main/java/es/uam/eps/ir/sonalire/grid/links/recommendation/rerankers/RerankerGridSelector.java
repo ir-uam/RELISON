@@ -204,7 +204,9 @@ public class RerankerGridSelector<U>
     /**
      * Obtains the different variants of the available algorithms using the different
      * parameters in the grid.
-     * @return a map containing the different algorithm suppliers.
+     *
+     * @param reranker the name of the reranker.
+     * @return the grid search for configuring the reranker.
      */
     public RerankerGridSearch<U> getRerankerGridSearch(String reranker)
     {

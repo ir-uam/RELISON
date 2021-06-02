@@ -40,6 +40,7 @@ public class InfomapConfigurator<U extends Serializable> implements CommunityDet
 
     /**
      * Constructor
+     * @param tempFolder a folder for storing temporary files.
      */
     public InfomapConfigurator(String tempFolder)
     {

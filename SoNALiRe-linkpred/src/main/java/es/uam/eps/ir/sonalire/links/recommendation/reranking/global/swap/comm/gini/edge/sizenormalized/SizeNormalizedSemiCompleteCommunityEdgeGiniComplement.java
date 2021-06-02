@@ -68,6 +68,7 @@ public class SizeNormalizedSemiCompleteCommunityEdgeGiniComplement<U> extends Co
      * @param norm          the normalization scheme.
      * @param graph         the original graph.
      * @param communities   the relation between communities and users in the graph.
+     * @param selfloops     true if we allow self loops between the users, false otherwise.
      * @param outer         true if we want to force links outside communities, false otherwise.
      */
     protected SizeNormalizedSemiCompleteCommunityEdgeGiniComplement(double lambda, int cutoff, Supplier<Normalizer<U>> norm, Graph<U> graph, Communities<U> communities, boolean selfloops, boolean outer)

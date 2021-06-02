@@ -20,14 +20,14 @@ import java.util.Set;
  * Class for reading contact recommendation / link prediction algorithms.
  * For each algorithm, it reads a list of configurations.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * algorithms:<br/>
- *     algorithm_name:<br />
- *     - param1: ...<br/>
- *       param2: ...<br/>
- *     - param1: ...<br />
+ * File format:<br>
+ * algorithms:<br>
+ *     algorithm_name:<br >
+ *     - param1: ...<br>
+ *       param2: ...<br>
+ *     - param1: ...<br >
  *     ...
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
@@ -54,6 +54,7 @@ public class AlgorithmConfigurationsReader extends ConfigurationsReader
 
     /**
      * Reads a YAML document containing the different configurations of a list of algorithms.
+     * @param map the object containing the configurations.
      */
     public void  read(Map<String, Object> map)
     {

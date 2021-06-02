@@ -87,6 +87,8 @@ public class LinkPrediction
      *                      </ul>
      *                  </li>
      *             </ol>
+     *
+     * @throws IOException if something fails while reading / writing.
      */
     public static void main(String[] args) throws IOException
     {
@@ -396,6 +398,7 @@ public class LinkPrediction
      * @param output        route of the file in which to store the link prediction.
      * @param predictor     the link prediction algorithm to apply.
      * @param filter        the filter for selecting which links can be predicted.
+     * @param testGraph     the test graph for the evaluation.
      * @param metrics       the metrics to evaluate
      *
      * @return the value of the metrics.
@@ -423,6 +426,7 @@ public class LinkPrediction
      *
      * @param predictor     the link prediction algorithm to apply.
      * @param filter        the filter for selecting which links can be predicted.
+     * @param testGraph     the test graph for the evaluation.
      * @param metrics       the metrics to evaluate
      *
      * @return the value of the metrics.

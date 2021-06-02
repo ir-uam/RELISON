@@ -29,13 +29,12 @@ import static es.uam.eps.ir.sonalire.graph.edges.EdgeOrientation.UND;
  *
  * @param <U> type of the users.
  *
- * <p>
- * <b>References: </b>
+ * <br>
+ * <b>References:</b>
  *   <ol>
  *     <li>Seidman, S.B. Network structure and minimum degree. Social Networks 5(3), pp. 269-287 (1983)</li>
- *     <li>Batagelj, V., Zaversnik. An O(m) Algorithm for Cores Decomposition of networks. arXiv (2003) </li>
+ *     <li>Batagelj, V., Zaversnik. An O(m) Algorithm for Cores Decomposition of networks. arXiv (2003)</li>
  *   </ol>
- * </p>
  */
 public class Coreness<U> implements VertexMetric<U>
 {

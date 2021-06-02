@@ -34,7 +34,8 @@ public class CommuteTime<U> extends UserFastRankingRecommender<U>
     /**
      * Constructor.
      *
-     * @param graph A fast graph representing the social network.
+     * @param graph         a fast graph representing the social network.
+     * @param hittingTime   the hitting time algorithm to use.
      */
     public CommuteTime(FastGraph<U> graph, AbstractHittingTime<U> hittingTime)
     {

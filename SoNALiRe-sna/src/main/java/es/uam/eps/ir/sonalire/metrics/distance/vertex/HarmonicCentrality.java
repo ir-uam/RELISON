@@ -18,8 +18,8 @@ import es.uam.eps.ir.sonalire.metrics.distance.modes.ClosenessMode;
  * network.
  *
  * <p>
- * <b>References:</b><br/>
- * M.E.J. Newman. Networks: an introduction (2010)<br />
+ * <b>References:</b><br>
+ * M.E.J. Newman. Networks: an introduction (2010)<br>
  * L.C. Freeman. Centrality in Networks: I. Conceptual clarification, Social Networks 1, 1979, pp.215-239
  * </p>
  *

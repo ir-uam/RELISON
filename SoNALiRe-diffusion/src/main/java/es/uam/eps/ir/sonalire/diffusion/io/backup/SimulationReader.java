@@ -15,14 +15,14 @@ import es.uam.eps.ir.sonalire.diffusion.simulation.Simulation;
 import java.io.Serializable;
 
 /**
- * Interface for writing a simulation into a file.
+ * Interface for reading a simulation from a file.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @param <U> Type of the users.
- * @param <I> Type of the information pieces.
- * @param <P> Type of the parameters.
+ * @param <U> type of the users.
+ * @param <I> type of the information pieces.
+ * @param <P> type of the parameters.
  */
 public interface SimulationReader<U extends Serializable, I extends Serializable, P> 
 {

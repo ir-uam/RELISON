@@ -19,16 +19,16 @@ import java.util.Map;
  * Class for reading parameters from a YAML file. Given a single parameter, it only has
  * a single possible value. The format of the file should then be:
  *
- * <br />
- * param_name:<br />
- *    type: value_of_type<br />
- *    value: value<br />
- *    object:<br />
- *      name: grid_name<br />
- *      params: <br />
- *          param_name1: <br />
- *              type: <br />
- *              ... <br />
+ * <br >
+ * param_name:<br >
+ *    type: value_of_type<br >
+ *    value: value<br >
+ *    object:<br >
+ *      name: grid_name<br >
+ *      params: <br >
+ *          param_name1: <br >
+ *              type: <br>
+ *              ... <br >
  *
  * We should note that
  * <ul>

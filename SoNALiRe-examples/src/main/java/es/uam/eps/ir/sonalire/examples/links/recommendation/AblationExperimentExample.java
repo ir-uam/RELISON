@@ -558,11 +558,12 @@ public class AblationExperimentExample
 
     /**
      * Generates the samples for a collection of datasets.
-     * @param file the file.
-     * @param expDirectory the directory in which to store the file.
-     * @param partitions the different partitions.
-     * @param numPartitions the number of partitions.
-     * @param filename the name of the file.
+     * @param file              the file.
+     * @param expDirectory      the directory in which to store the file.
+     * @param partitions        the different partitions.
+     * @param numPartitions     the number of partitions.
+     * @param numFeats          the number of features
+     * @param filename          the name of the file.
      * @throws IOException if something fails while reading / writing.
      */
     private static void readAndSampleReducedDiscrete(String file, String expDirectory, Map<Integer, Set<Integer>> partitions, int numPartitions, int numFeats, String filename) throws IOException

@@ -14,11 +14,7 @@ import es.uam.eps.ir.sonalire.grid.Grid;
 import es.uam.eps.ir.sonalire.grid.Parameters;
 import es.uam.eps.ir.sonalire.grid.community.connectedness.StronglyConnectedComponentsConfigurator;
 import es.uam.eps.ir.sonalire.grid.community.connectedness.WeaklyConnectedComponentsConfigurator;
-import es.uam.eps.ir.sonalire.grid.community.edge.GirvanNewmanConfigurator;
-import es.uam.eps.ir.sonalire.grid.community.modularity.FastGreedyConfigurator;
-import es.uam.eps.ir.sonalire.grid.community.modularity.InfomapConfigurator;
-import es.uam.eps.ir.sonalire.grid.community.modularity.LabelPropagationConfigurator;
-import es.uam.eps.ir.sonalire.grid.community.modularity.LouvainConfigurator;
+import es.uam.eps.ir.sonalire.grid.community.modularity.*;
 import es.uam.eps.ir.sonalire.grid.community.modularity.balanced.*;
 import org.jooq.lambda.tuple.Tuple2;
 

@@ -19,10 +19,12 @@ import java.io.Serializable;
 /**
  * Adaptation of the pull-push protocol.
  *
- * <p><b>References:</b><br /> B. Doerr, M. Fouz, T. Friedrich, Social networks spread rumors in sublogarithmic time, 43rd Annual ACM Symposium on Theory of Computing (STOC 2011), pp. 21-30. (2011)</p>
- * * </br>
- * A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987)
- * </p>
+ * <br><b>References:</b>
+ * <ul>
+ * <li>B. Doerr, M. Fouz, T. Friedrich, Social networks spread rumors in sublogarithmic time, 43rd Annual ACM Symposium on Theory of Computing (STOC 2011), pp. 21-30. (2011)</li>
+ * <li>A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987)</li>
+ * </ul>
+ *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *

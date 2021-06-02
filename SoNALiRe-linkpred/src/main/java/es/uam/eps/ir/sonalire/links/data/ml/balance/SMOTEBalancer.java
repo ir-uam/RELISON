@@ -41,7 +41,9 @@ public class SMOTEBalancer<U> implements Balancer<U>
 
     /**
      * Constructor.
-     * @param k number of neighbors of each instance.
+     * @param k     number of neighbors of each instance.
+     * @param gen   user identifier generator.
+     * @param init  initial user value.
      */
     public SMOTEBalancer(int k, Generator<U> gen, U init)
     {

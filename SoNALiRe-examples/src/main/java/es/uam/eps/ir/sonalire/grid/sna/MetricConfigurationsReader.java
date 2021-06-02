@@ -20,17 +20,17 @@ import java.util.Set;
  * Class for reading social network analysis metrics.
  * For each metric, a list of parameter configurations is read.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * metrics:<br/>
- *     metric_name:<br />
- *     type: value<br />
- *     params:<br />
- *     - param1: ...<br/>
- *       param2: ...<br/>
- *     - param1: ...<br/>
- *       ... <br/>
+ * File format:<br>
+ * metrics:<br>
+ *     metric_name:<br >
+ *     type: value<br >
+ *     params:<br >
+ *     - param1: ...<br>
+ *       param2: ...<br>
+ *     - param1: ...<br>
+ *       ... <br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -69,6 +69,7 @@ public class MetricConfigurationsReader extends ConfigurationsReader
     
     /**
      * It reads the YAML document containing the data.
+     * @param map map containing the configurations for the metrics.
      */
     public void read(Map<String, Object> map)
     {

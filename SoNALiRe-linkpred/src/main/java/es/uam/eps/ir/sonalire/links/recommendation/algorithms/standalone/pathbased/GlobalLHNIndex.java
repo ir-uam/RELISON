@@ -50,7 +50,8 @@ public class GlobalLHNIndex<U> extends GlobalMatrixBasedRecommender<U>
     /**
      * Constructor. By default, considers networks as undirected.
      *
-     * @param graph A fast graph representing the social network.
+     * @param graph a fast graph representing the social network.
+     * @param phi   the decay factor of the similarity.
      */
     public GlobalLHNIndex(FastGraph<U> graph, double phi)
     {
@@ -63,7 +64,9 @@ public class GlobalLHNIndex<U> extends GlobalMatrixBasedRecommender<U>
     /**
      * Constructor. By default, considers networks as undirected.
      *
-     * @param graph A fast graph representing the social network.
+     * @param graph     a fast graph representing the social network.
+     * @param phi       the decay factor for the similarity.
+     * @param orient    the orientation for selecting the adjacency matrix.
      */
     public GlobalLHNIndex(FastGraph<U> graph, double phi, EdgeOrientation orient)
     {

@@ -17,12 +17,12 @@ import java.util.Map;
  * Class for reading a selection mechanism for information diffusion.
  * For each metric, a single set of parameters is read.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * selection:<br/>
- *     name: selection_name<br/>
- *     params: ...<br />
+ * File format:<br>
+ * selection:<br>
+ *     name: selection_name<br>
+ *     params: ...<br >
  *          param1:
  *          ...
  *

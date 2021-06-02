@@ -271,12 +271,20 @@ public class MLFeatureGenerator
      * @param train             training graph.
      * @param test              validation/test graph.
      * @param directed          true if the graph is directed, false otherwise.
-     * @param weightedSampling  true if the graph is weighted, false otherwise.
+     * @param weightedSampling  true if we use edge weights for the sampling procedure, false if we take binary weights.
+     * @param weightedClasses   true if we use edge weights as classes, false if we use binary classes.
+     * @param weightedFeatures  true if we use edge weights to compute the features, false otherwise.
      * @param sampling          sampling algorithm grid.
      * @param output            file in which to output the examples.
      * @param descriptions      list of features.
      * @param types             list of types.
-     * @param similarities      list of similarity functions.
+     * @param similarities      list of recommendation algorithms to compute scores as features.
+     * @param vertexmetrics     list of vertex metrics to compute the features.
+     * @param pairmetrics       list of pair metrics to compute the features.
+     * @param normalization     the normalization scheme to use.
+     *
+     * @return the information about the features.
+     *
      * @throws IOException if something failed while creating the instances.
      */
     private static FeatureInformation computeInstances(String train, String test, boolean directed, boolean weightedSampling, boolean weightedClasses, boolean weightedFeatures, String sampling, String output, List<String> descriptions, List<FeatureType> types, List<RecommendationAlgorithmFunction<Long>> similarities, List<VertexMetricFunction<Long>> vertexmetrics, List<PairMetricFunction<Long>> pairmetrics, String normalization) throws IOException
@@ -510,7 +518,7 @@ public class MLFeatureGenerator
 
     /**
      * Normalizes a recommendation.
-     * @param recomm the recommendation.
+     * @param recomm        the recommendation.
      * @param normalization the identifier of the normalization algorithm.
      * @return the normalized recommendation.
      */
@@ -531,9 +539,10 @@ public class MLFeatureGenerator
     }
 
     /**
-     * Normalizes a recommendation.
-     * @param recomm the recommendation.
+     * Normalizes a map of values.
+     * @param recomm        the map.
      * @param normalization the identifier of the normalization algorithm.
+     * @param <L>           the type of the keys.
      * @return the normalized recommendation.
      */
     private static <L> Map<L, Double> normalize(Map<L, Double> recomm, String normalization)

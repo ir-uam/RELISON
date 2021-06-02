@@ -33,6 +33,8 @@ public class LuceneTfIdfFeaturesReader
      * Loads features from an index.
      * @param route     the index route.
      * @param graph     the graph containing the users to retrieve.
+     * @param uParser   reads users from text.
+     * @param <U>       the type of the users.
      * @return a stream containing the features.
      */
     public static <U> Stream<Tuple3<U,String,Double>> load(String route, Graph<U> graph, Parser<U> uParser)

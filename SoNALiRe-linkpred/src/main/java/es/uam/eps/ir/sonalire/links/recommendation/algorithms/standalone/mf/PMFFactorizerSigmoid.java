@@ -109,12 +109,16 @@ public class PMFFactorizerSigmoid<U,I> extends ALSFactorizer<U,I>
     
     /**
      * Minimizes the parameters for one of the two matrices.
-     * @param p         matrix to optimize.
-     * @param q         fixed matrix.
-     * @param lambda    the regularization parameter for this matrix.
-     * @param data      preference data.
+     * @param p             matrix to optimize.
+     * @param q             fixed matrix.
+     * @param lambda        the regularization parameter for this matrix.
+     * @param data          preference data.
+     * @param learningRate  the learning rate of the algorithm.
+     *
+     * @param <U> type of the users.
+     * @param <I> type of the items.
      */
-    protected static <U,I,O> void set_min(DenseDoubleMatrix2D p, final DenseDoubleMatrix2D q, double lambda, FastPreferenceData<U,I> data, double learningRate)
+    protected static <U,I> void set_min(DenseDoubleMatrix2D p, final DenseDoubleMatrix2D q, double lambda, FastPreferenceData<U,I> data, double learningRate)
     {
         final int K = q.columns();
         // Applying gradient descent for optimizing the P matrix

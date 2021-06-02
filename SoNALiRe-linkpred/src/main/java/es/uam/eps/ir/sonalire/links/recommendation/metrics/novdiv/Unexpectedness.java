@@ -13,14 +13,14 @@ import es.uam.eps.ir.ranksys.novelty.unexp.PDItemNovelty;
 /**
  * Global version of the unexpectedness (expected profile distance).
  *
- * <p><b>References:</b>
+ * <br><b>References:</b>
  * <ol>
  *  <li>S. Vargas. Novelty and diversity evaluation and enhancement in Recommender
  * Systems. PhD Thesis (2015)</li>
  *  <li>S. Vargas and P. Castells. Rank and relevance in novelty and diversity for
  *  * Recommender Systems. RecSys 2011.</li>
  *  <li>J. Sanz-Cruzado and P. Castells. Beyond Accuracy in Link Prediction. SoMePeaS 2019.</li>
- * </ol></p>
+ * </ol>
  *
  * @param <U> type of the users.
  * @param <I> type of the items.

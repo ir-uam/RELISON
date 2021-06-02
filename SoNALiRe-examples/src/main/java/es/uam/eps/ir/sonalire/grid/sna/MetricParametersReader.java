@@ -19,14 +19,14 @@ import java.util.Set;
  * Class for reading social network analysis metrics.
  * For each metric, a single set of parameters is read.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * metrics:<br/>
- *     metric_name:<br />
- *     type: value<br />
- *     params:<br />
- *         param1: ...<br/>
+ * File format:<br>
+ * metrics:<br>
+ *     metric_name:<br >
+ *     type: value<br >
+ *     params:<br >
+ *         param1: ...<br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -65,6 +65,7 @@ public class MetricParametersReader extends ParametersReader
     
     /**
      * It reads the YAML document containing the data.
+     * @param map the map containing the metric parameters.
      */
     public void read(Map<String, Object> map)
     {

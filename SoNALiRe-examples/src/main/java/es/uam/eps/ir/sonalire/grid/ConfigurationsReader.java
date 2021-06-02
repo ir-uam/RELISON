@@ -16,17 +16,17 @@ import java.util.Map;
  * Class for reading parameters from a YAML file. It receives a list of parameter configurations,
  * which are separately read. The file should look as it follows:
  *
- * <br />
- * - param1:<br />
- *      type: value_of_type<br />
- *      value: value<br />
- *   param2:<br />
- *      ...<br />
- *   paramN:<br />
- *      type: value_of_type<br />
- *      value: value<br />
- * - param1:<br />
- *      ....<br />
+ * <br>
+ * - param1:<br>
+ *      type: value_of_type<br>
+ *      value: value<br>
+ *   param2:<br>
+ *      ...<br>
+ *   paramN:<br>
+ *      type: value_of_type<br>
+ *      value: value<br>
+ * - param1:<br>
+ *      ....<br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

@@ -20,12 +20,12 @@ import java.util.Set;
  * Class for reading contact recommendation metrics.
  * For each metric, it reads a single configuration.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * metrics:<br/>
- *     metric_name:<br />
- *         param1: ...<br/>
+ * File format:<br>
+ * metrics:<br>
+ *     metric_name:<br >
+ *         param1: ...<br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -51,6 +51,7 @@ public class LinkPredictionMetricParametersReader extends ParametersReader
 
     /**
      * Obtains the metric parameters for different recommendation metrics.
+     * @param map the map containing the metric configuration.
      */
     public void read(Map<String, Object> map)
     {

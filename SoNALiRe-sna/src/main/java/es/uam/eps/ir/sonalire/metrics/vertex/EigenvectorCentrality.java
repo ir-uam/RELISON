@@ -58,7 +58,7 @@ public class EigenvectorCentrality<U> extends MatrixBasedVertexMetric<U>
      * Constructor. It takes the paths leading to the users (right eigenvector - Orientation OUT).
      * @param library   the matrix library to use.
      */
-    public EigenvectorCentrality(MatrixLibrary library, double alpha)
+    public EigenvectorCentrality(MatrixLibrary library)
     {
         this(library, EdgeOrientation.OUT);
     }

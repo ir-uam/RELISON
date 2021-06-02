@@ -21,16 +21,16 @@ import java.util.Map;
  * Reads the parameter for a distribution during information diffusion simulations.
  * It reads a single configuration for each distribution. In a file, it should look as:
  *
- * distrib_name:<br/>
- *  params:<br />
- *      param1: ...<br />
- *  times:<br />
- *      values: [value1,value2,...,valueN] or value1<br/>
+ * distrib_name:<br>
+ *  params:<br >
+ *      param1: ...<br >
+ *  times:<br >
+ *      values: [value1,value2,...,valueN] or value1<br>
  *      range:
- *      - start: start_val<br/>
- *        end: end_val <br/>
- *        step: steps_val <br/>
- *      - start: ... <br/>
+ *      - start: start_val<br>
+ *        end: end_val <br>
+ *        step: steps_val <br>
+ *      - start: ... <br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

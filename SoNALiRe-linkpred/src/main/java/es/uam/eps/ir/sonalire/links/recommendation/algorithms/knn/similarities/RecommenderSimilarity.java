@@ -35,7 +35,8 @@ public class RecommenderSimilarity extends GraphSimilarity
     /**
      * Constructor.
      *
-     * @param graph the social network graph.
+     * @param graph       the social network graph.
+     * @param recommender the recommendation algorithm to use as similarity.
      */
     public RecommenderSimilarity(FastGraph<?> graph, FastRecommender<?,?> recommender)
     {

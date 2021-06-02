@@ -29,13 +29,13 @@ import org.jblas.Solve;
  * ratio between the number of spanning divergent forests such that nodes u and v belong to the same divergent tree and
  * the total number of spanning divergent forests for the network.
  *
- * <p>
+ * <br>
  *  <b>References:</b>
  *  <ol>
  *      <li>L. Lü, T. Zhou. Link prediction in complex networks. A survey. Physica A 390(6), pp. 1150-1170 (2011)</li>
  *      <li>P.Y. Chebotarev, E.V. Shamis. The Matrix-Forest Theorem and Measuring Relations in Small Social Groups. Automation and Remote Control 58(9), pp. 1505-1514 (1997)</li>
  *  </ol>
- * </p>
+ *
  *
  * @param <U> type of the users.
  *

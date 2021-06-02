@@ -19,13 +19,13 @@ import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
  * between two users, the recommendation score is divided by the size of either the target user or the candidate user:
  * the user with a larger number of them. This way, nodes with small degree are promoted.
  *
- * <p>
+ * <br>
  *  <b>References: </b>
  *  <ol>
  *      <li>E. Ravasz, A.L. Somera, D.A. Mongru, Z.N. Oltvai, A-L. Barabasi. Hierarchical Organization in Metabolic Networks, Science 297 (2002)</li>
  *      <li>T. Zhou, L. Lü, Y. Zhang. Predicting missing links via local information. European Physical Journal B 71, 623-630 (2009)</li>
  *  </ol>
- * </p>
+ *
  * 
  * @param <U> type of the users.
  *

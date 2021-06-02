@@ -20,11 +20,11 @@ import java.util.Set;
  * Class for reading a community detection algorithm.
  * For each algorithm, a list of parameter configurations is read.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * algorithm:<br/>
- *     param1: ...<br />
+ * File format:<br>
+ * algorithm:<br>
+ *     param1: ...<br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

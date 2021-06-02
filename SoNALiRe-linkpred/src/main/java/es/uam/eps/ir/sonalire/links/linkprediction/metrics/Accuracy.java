@@ -20,7 +20,7 @@ public class Accuracy<U> extends AbstractClassificationMetric<U>
 {
     /**
      * Constructor.
-     * @param cutoff the number of items in the ranking to consider. If cutoff <= 0, we consider that the links in the ranking are all
+     * @param cutoff the number of items in the ranking to consider. If cutoff is smaller or equal than 0, we consider that the links in the ranking are all
      *               the seen objects.
      */
     public Accuracy(int cutoff)

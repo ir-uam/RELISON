@@ -27,7 +27,8 @@ public interface IndividualContentIndexBuilder<C, U> extends IndexBuilder<C>
      * Writes the contents of a user in the index.
      *
      * @param content   the published content.
-     * @param contentId the user.
+     * @param contentId the identifier of the content.
+     * @param userId    the identifier of the author of the content.
      *
      * @throws IOException if something fails while writing the contents.
      */

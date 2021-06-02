@@ -107,23 +107,26 @@ public class PMFFactorizerBasic<U,I> extends ALSFactorizer<U,I>
     @Override
     protected void set_minP(DenseDoubleMatrix2D p, DenseDoubleMatrix2D q, FastPreferenceData<U, I> data) 
     {
-        set_min(p, q, this.lambdaU, data,learningRate);
+        set_min(p, q, this.lambdaU, data);
     }
 
     @Override
     protected void set_minQ(DenseDoubleMatrix2D q, DenseDoubleMatrix2D p, FastPreferenceData<U, I> data) 
     {
-        set_min(q, p, lambdaV, new TransposedPreferenceData<>(data),learningRate);
+        set_min(q, p, lambdaV, new TransposedPreferenceData<>(data));
     }
     
     /**
      * Minimizes the parameters for one of the two matrices.
-     * @param p         matrix to optimize.
-     * @param q         fixed matrix.
-     * @param lambda    the regularization parameter for this matrix.
-     * @param data      preference data.
+     * @param p                 matrix to optimize.
+     * @param q                 fixed matrix.
+     * @param lambda            the regularization parameter for this matrix.
+     * @param data              preference data.
+     *
+     * @param <U> the type of the users.
+     * @param <I> the type of the items.
      */
-    protected static <U,I,O> void set_min(final DenseDoubleMatrix2D p, final DenseDoubleMatrix2D q, double lambda, FastPreferenceData<U,I> data, double learningRate)
+    protected static <U,I> void set_min(final DenseDoubleMatrix2D p, final DenseDoubleMatrix2D q, double lambda, FastPreferenceData<U,I> data)
     {
         final int K = p.columns();
         

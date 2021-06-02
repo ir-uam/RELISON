@@ -20,14 +20,14 @@ import java.util.Set;
  * Class for reading contact recommendation metrics.
  * For each metric, it reads a list of configurations.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * metrics:<br/>
- *     metric_name:<br />
- *     - param1: ...<br/>
- *       param2: ...<br/>
- *     - param1: ...<br />
+ * File format:<br>
+ * metrics:<br>
+ *     metric_name:<br >
+ *     - param1: ...<br>
+ *       param2: ...<br>
+ *     - param1: ...<br >
  *     ...
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
@@ -54,6 +54,7 @@ public class LinkPredictionMetricConfigurationsReader extends ConfigurationsRead
 
     /**
      * Reads a YAML document containing the different configurations of a list of metrics.
+     * @param map a map containing the configurations for the different metrics.
      */
     public void  read(Map<String, Object> map)
     {

@@ -69,6 +69,8 @@ public class GraphMetricsEvaluation
      *                  <li><b>Full graph:</b> if true, it uses all the edges/pairs of users in the networks. If false, only the recommended ones.</li>
      *                  <li><b>Only relevant:</b> true if we only add to the original network only those correctly recommended links, false otherwise.</li>
      *             </ol>
+     *
+     * @throws IOException if something fails while reading / writing.
      */
     public static void main(String[] args) throws IOException
     {

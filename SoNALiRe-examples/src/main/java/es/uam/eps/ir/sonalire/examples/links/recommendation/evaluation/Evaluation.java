@@ -84,6 +84,8 @@ public class Evaluation
      *                      </ul>
      *                  </li>
      *             </ol>
+     *
+     * @throws IOException if something fails while reading / writing.
      */
     public static void main(String[] args) throws IOException
     {

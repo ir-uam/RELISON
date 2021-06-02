@@ -100,7 +100,8 @@ public class ROCCurve<U>
     /**
      * Computes the ROC curve for a prediction. It considers that the prediction is applied over all possible
      * edges in the network (regardless of whether they previously existed or not).
-     * @param pred the prediction.
+     * @param pred      the prediction.
+     * @param filter    a filter for indicating the pairs of users to consider.
      * @return the value of the metric.
      */
     public List<Pair<Double>> evaluate(Prediction<U> pred, Predicate<Pair<U>> filter)
@@ -160,7 +161,8 @@ public class ROCCurve<U>
     /**
      * Computes the ROC curve for a prediction. It considers that the prediction is applied over all possible
      * edges in the network (regardless of whether they previously existed or not).
-     * @param pred the prediction.
+     * @param pred          the prediction.
+     * @param candidates    an stream containing the set of pairs to consider for the curve.
      * @return the value of the metric.
      */
     public List<Pair<Double>> evaluate(Prediction<U> pred, Stream<Pair<U>> candidates)

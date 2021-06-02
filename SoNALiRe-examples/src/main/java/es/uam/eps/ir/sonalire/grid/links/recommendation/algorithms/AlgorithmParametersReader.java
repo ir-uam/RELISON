@@ -20,12 +20,12 @@ import java.util.Set;
  * Class for reading contact recommendation / link prediction algorithms.
  * For each algorithm, it reads a single configuration
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * algorithms:<br/>
- *     algorithm_name:<br />
- *         param1: ...<br/>
+ * File format:<br>
+ * algorithms:<br>
+ *     algorithm_name:<br>
+ *         param1: ...<br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -51,6 +51,7 @@ public class AlgorithmParametersReader extends ParametersReader
 
     /**
      * Obtains the algorithm grids for different people-to-people recommendation algorithms.
+     * @param map the object containing the grids for the people-to-people recommendation algorithms.
      */
     public void read(Map<String, Object> map)
     {

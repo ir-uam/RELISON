@@ -21,7 +21,6 @@ import es.uam.eps.ir.sonalire.grid.links.recommendation.algorithms.standalone.ba
 import es.uam.eps.ir.sonalire.grid.links.recommendation.algorithms.standalone.baselines.RandomGridSearch;
 import es.uam.eps.ir.sonalire.grid.links.recommendation.algorithms.standalone.contentbased.CentroidCBGridSearch;
 import es.uam.eps.ir.sonalire.grid.links.recommendation.algorithms.standalone.contentbased.TwittomenderGridSearch;
-import es.uam.eps.ir.sonalire.grid.links.recommendation.algorithms.standalone.distance.ShortestDistanceGridSearch;
 import es.uam.eps.ir.sonalire.grid.links.recommendation.algorithms.standalone.foaf.*;
 import es.uam.eps.ir.sonalire.grid.links.recommendation.algorithms.standalone.ir.*;
 import es.uam.eps.ir.sonalire.grid.links.recommendation.algorithms.standalone.mf.FastImplicitMFGridSearch;

@@ -13,14 +13,14 @@ import es.uam.eps.ir.ranksys.novelty.longtail.PCItemNovelty;
 /**
  * Global version of the long tail novelty.
  *
- * <p><b>References:</b>
+ * <br><b>References:</b>
  * <ol>
  *  <li>S. Vargas. Novelty and diversity evaluation and enhancement in Recommender
  * Systems. PhD Thesis (2015)</li>
  *  <li>S. Vargas and P. Castells. Rank and relevance in novelty and diversity for
  *  * Recommender Systems. RecSys 2011.</li>
  *  <li>J. Sanz-Cruzado and P. Castells. Beyond Accuracy in Link Prediction. SoMePeaS 2019.</li>
- * </ol></p>
+ * </ol>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

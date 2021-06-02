@@ -17,12 +17,12 @@ import java.util.Map;
  * Class for reading an update mechanism for information diffusion.
  * For each mechanism, a single set of parameters is read.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * update:<br/>
- *     name: update_name<br/>
- *     params: ...<br />
+ * File format:<br>
+ * update:<br>
+ *     name: update_name<br>
+ *     params: ...<br>
  *          param1:
  *          ...
  *

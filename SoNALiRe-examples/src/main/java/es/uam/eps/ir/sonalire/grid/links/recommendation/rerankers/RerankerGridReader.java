@@ -19,12 +19,12 @@ import java.util.Set;
  * Class for reading reranking algorithms.
  * For each algorithm, a grid of parameters is read.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * rerankers:<br/>
- *     reranker_name:<br />
- *         param1: ...<br/>
+ * File format:<br>
+ * rerankers:<br>
+ *     reranker_name:<br >
+ *         param1: ...<br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

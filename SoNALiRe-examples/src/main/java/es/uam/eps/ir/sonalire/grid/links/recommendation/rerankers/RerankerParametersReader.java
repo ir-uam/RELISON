@@ -20,12 +20,12 @@ import java.util.Set;
  * Class for reading reranking algorithms.
  * For each algorithm, it reads a single configuration
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * rerankers:<br/>
- *     reranker_name:<br />
- *         param1: ...<br/>
+ * File format:<br>
+ * rerankers:<br>
+ *     reranker_name:<br >
+ *         param1: ...<br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -50,7 +50,8 @@ public class RerankerParametersReader extends ParametersReader
     }
 
     /**
-     * Obtains the algorithm grids for different people-to-people recommendation algorithms.
+     * Obtains the algorithm grids for different reranking algorithms.
+     * @param map the map containing the parameters for the reranker
      */
     public void read(Map<String, Object> map)
     {

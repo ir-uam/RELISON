@@ -45,7 +45,7 @@ public abstract class AbstractClassificationMetric<U> implements LinkPredictionM
     private final boolean useCutoff;
     /**
      * Constructor.
-     * @param cutoff the number of items in the ranking to consider. If cutoff <= 0, we consider that the links in the ranking are all
+     * @param cutoff the number of items in the ranking to consider. If cutoff is smaller or equal than 0, we consider that the links in the ranking are all
      *               the seen objects.
      */
     public AbstractClassificationMetric(int cutoff)

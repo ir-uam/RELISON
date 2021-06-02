@@ -175,6 +175,8 @@ public class LambdaMARTJForestsRecommender<U> extends UserFastRankingRecommender
     /**
      * Recursively deletes the contents of a folder.
      * @param dir the directory.
+     *
+     * @return true if everything went OK, false otherwise.
      */
     public static boolean deleteDirectory(File dir)
     {

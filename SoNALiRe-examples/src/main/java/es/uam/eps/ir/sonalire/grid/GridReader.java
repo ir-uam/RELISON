@@ -23,20 +23,20 @@ import static es.uam.eps.ir.sonalire.grid.BasicTypeIdentifiers.*;
  * Class for reading a grid of parameters from a YAML file. Given a single parameter, the
  * file should have the following form:
  *
- * <br />
- * param_name:<br />
- *    type: value_of_type<br />
- *        values: [value1,value2,...,valueN] or value<br />
- *        range:<br />
- *        - start: startingValue<br />
- *          end: endingValue<br />
- *          step: stepValue<br />
- *        - start: ...<br />
- *        objects:<br />
- *          name_of_the_object:<br />
- *              param_name1:<br />
- *                  type: value_of_the_type<br />
- *                  ...<br />
+ * <br >
+ * param_name:<br >
+ *    type: value_of_type<br >
+ *        values: [value1,value2,...,valueN] or value<br >
+ *        range:<br >
+ *        - start: startingValue<br >
+ *          end: endingValue<br >
+ *          step: stepValue<br >
+ *        - start: ...<br >
+ *        objects:<br >
+ *          name_of_the_object:<br >
+ *              param_name1:<br >
+ *                  type: value_of_the_type<br >
+ *                  ...<br >
  *
  * We should note that
  * <ul>

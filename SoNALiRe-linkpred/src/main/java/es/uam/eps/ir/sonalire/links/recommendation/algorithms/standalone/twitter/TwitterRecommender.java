@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
  *      </ul>
  * </li>
  * <li>use a given recommendation (bipartite) algorithm to finish.</li>
+ * </ol>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

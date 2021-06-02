@@ -21,14 +21,14 @@ import java.util.Set;
  * Class for reading reranking algorithms.
  * For each algorithm, it reads a list of configurations.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * rerankers:<br/>
- *     reranker:<br />
- *     - param1: ...<br/>
- *       param2: ...<br/>
- *     - param1: ...<br />
+ * File format:<br>
+ * rerankers:<br>
+ *     reranker:<br >
+ *     - param1: ...<br>
+ *       param2: ...<br>
+ *     - param1: ...<br >
  *     ...
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
@@ -55,6 +55,7 @@ public class RerankerConfigurationsReader extends ConfigurationsReader
 
     /**
      * Reads a YAML document containing the different configurations of a list of rerankers.
+     * @param map the map containing the configurations for the rerankers.
      */
     public void read(Map<String, Object> map)
     {

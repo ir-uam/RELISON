@@ -56,7 +56,8 @@ public class PushStrategyPropagationMechanism<U extends Serializable,I extends S
     private final EdgeOrientation orientation;
     /**
      * Constructor.
-     * @param waitTime number of iterations to wait until a profile can be revisited.
+     * @param waitTime      number of iterations to wait until a profile can be revisited.
+     * @param orientation   the orientation for selecting the neighbors.
      */
     public PushStrategyPropagationMechanism(int waitTime, EdgeOrientation orientation)
     {

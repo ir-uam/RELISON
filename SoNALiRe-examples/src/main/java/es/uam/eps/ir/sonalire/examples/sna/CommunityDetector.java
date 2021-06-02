@@ -47,6 +47,8 @@ public class CommunityDetector
      *                  <li><b>Algorithms:</b> YAML file containing the configuration of the community detection algorithms.</li>
      *                  <li><b>Output:</b> Directory in which to store the communities.</li>
      *             </ol>
+     *
+     * @throws IOException if something fails while reading / writing.
      */
     public static void main(String[] args) throws IOException
     {

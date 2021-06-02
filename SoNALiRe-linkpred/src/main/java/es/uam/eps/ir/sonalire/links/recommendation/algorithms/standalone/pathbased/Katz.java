@@ -25,13 +25,13 @@ import org.jblas.Solve;
  * Katz algorithm. This algorithm weights the paths between two users, giving more weight to those at
  * closer distances.
  *
- * <p>
+ * <br>
  *     <b>References:</b>
  *      <ol>
  *          <li>L. Katz. A new status index derived from sociometric analysis. Psychometrika 18(1), 39-43 (1953)</li>
  *          <li>D. Liben-Nowell, D., J. Kleinberg. The Link Prediction Problem for Social Networks. Journal of the American Society for Information Science and Technology 58(7) (2007)</li>
  *      </ol>
- * </p>
+ *
  *
  * @param <U> Type of the users
  *

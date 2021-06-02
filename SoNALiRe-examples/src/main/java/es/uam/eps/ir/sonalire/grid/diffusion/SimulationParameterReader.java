@@ -20,18 +20,18 @@ import java.util.stream.Collectors;
 /**
  * Reads a YAML file containing the configuration for simulating information diffusion.
  *
- * File format:<br/>
- * simulations:<br/>
- * - protocol: ...<br />
- *   filters: <br/>
- *      filter_name: <br/>
- *          filter_param_1: ... <br/>
- *          filter_param_2: ... <br/>
- *          ... <br/>
- *      filter_name: <br/>
- *          ... <br/>
- *   stop: <br/>
- * - protocol: ...<br/>
+ * File format:<br>
+ * simulations:<br>
+ * - protocol: ...<br>
+ *   filters: <br>
+ *      filter_name: <br>
+ *          filter_param_1: ... <br>
+ *          filter_param_2: ... <br>
+ *          ... <br>
+ *      filter_name: <br>
+ *          ... <br>
+ *   stop: <br>
+ * - protocol: ...<br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

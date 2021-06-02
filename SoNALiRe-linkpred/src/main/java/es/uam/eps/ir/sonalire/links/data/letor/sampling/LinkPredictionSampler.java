@@ -32,7 +32,9 @@ public class LinkPredictionSampler<U> extends AbstractIndividualSampler<U>
 
     /**
      * Constructor.
-     * @param graph the graph.
+     * @param graph     the graph.
+     * @param testGraph the test graph containing the set of positive links.
+
      */
     public LinkPredictionSampler(Graph<U> graph, Graph<U> testGraph)
     {

@@ -19,12 +19,12 @@ import java.util.Set;
  * Class for reading contact recommendation / link prediction algorithms.
  * For each algorithm, a grid of parameters is read.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * algorithms:<br/>
- *     algorithm_name:<br />
- *         param1: ...<br/>
+ * File format:<br>
+ * algorithms:<br>
+ *     algorithm_name:<br >
+ *         param1: ...<br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)

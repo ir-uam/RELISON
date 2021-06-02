@@ -109,6 +109,7 @@ public class LinkPredFastFilters<U>
     /**
      * Limits the set of users to consider to a set of them.
      * @param targetUsers the set of available users.
+     * @param <U> type of the users.
      * @return the filter.
      */
     public static <U> Predicate<Pair<U>> onlyUsers(Set<U> targetUsers)

@@ -9,6 +9,6 @@
  */
 
 /**
- * Classes for configuring IR models.
+ * Classes for configuring IR models for contact recommendation.
  */
 package es.uam.eps.ir.sonalire.grid.links.recommendation.algorithms.standalone.ir;

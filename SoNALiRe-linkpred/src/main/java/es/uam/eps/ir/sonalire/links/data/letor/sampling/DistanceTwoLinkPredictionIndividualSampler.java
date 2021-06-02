@@ -43,9 +43,10 @@ public class DistanceTwoLinkPredictionIndividualSampler<U> extends AbstractIndiv
     
     /**
      * Constructor.
-     * @param graph the graph.
-     * @param uSel  edge orientation for the neighbors of the origin node.
-     * @param vSel  edge orientation for the neighbors of the selected nodes.
+     * @param graph     the graph.
+     * @param testGraph the test graph containing the set of positive links.
+     * @param uSel      edge orientation for the neighbors of the origin node.
+     * @param vSel      edge orientation for the neighbors of the selected nodes.
      */
     public DistanceTwoLinkPredictionIndividualSampler(Graph<U> graph, Graph<U> testGraph, EdgeOrientation uSel, EdgeOrientation vSel)
     {

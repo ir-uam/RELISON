@@ -39,6 +39,9 @@ public class RandomGraphGenerator
      *                  <li><b>Number of nodes:</b> the number of nodes.</li>
      *                  <li><b>Rest of parameters: </b> algorithm parameters.</li>
      *             </ul>
+     *
+     * @throws GeneratorBadConfiguredException if the generators are badly configured.
+     * @throws GeneratorNotConfiguredException if the generators are not configured.
      */
     public static void main(String[] args) throws GeneratorNotConfiguredException, GeneratorBadConfiguredException
     {

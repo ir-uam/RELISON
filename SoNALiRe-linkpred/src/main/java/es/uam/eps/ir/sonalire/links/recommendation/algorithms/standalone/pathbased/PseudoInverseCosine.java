@@ -31,12 +31,11 @@ import org.jblas.Solve;
  * Then, it takes the cosine similarity (which is computed as the (u,v) coordinate of the matrix, divided by
  * the square root of the product of the (u,u) and (v,v) coordinates).
  *
- * <p>
+ * <br>
  *  <b>References:</b>
  *  <ol>
  *      <li>F. Fouss, A. Pirotte, J-M. Renders, M. Saerens. Random-walk computatin of similarities between nodes of a graph with application to collaborative recommendation. IEEE TKDE 19(3), pp. 355-369 (2007)</li>
  *  </ol>
- * </p>
  *
  * @param <U> type of the users.
  *

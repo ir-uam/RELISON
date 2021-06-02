@@ -19,14 +19,14 @@ import java.util.Set;
  * Class for reading social network analysis metrics.
  * For each metric, a grid of parameters is read.
  *
- * <br/>
+ * <br>
  *
- * File format:<br/>
- * metrics:<br/>
- *     metric_name:<br />
- *          type: value<br />
- *          params:<br />
- *              param1: ...<br/>
+ * File format:<br>
+ * metrics:<br>
+ *     metric_name:<br >
+ *          type: value<br >
+ *          params:<br >
+ *              param1: ...<br>
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
@@ -64,6 +64,7 @@ public class MetricGridReader extends GridReader
     
     /**
      * It reads the YAML document containing the data.
+     * @param map map containing the grids for the metrics.
      */
     public void read(Map<String, Object> map)
     {

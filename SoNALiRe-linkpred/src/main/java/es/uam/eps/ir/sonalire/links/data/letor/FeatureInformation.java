@@ -43,7 +43,8 @@ public class FeatureInformation
     
     /**
      * Constructor.
-     * @param featureNames description of the different features.
+     * @param featureNames  description of the different features.
+     * @param types         a list of feature types (continuous or nominal types).
      */
     public FeatureInformation(List<String> featureNames, List<FeatureType> types)
     {

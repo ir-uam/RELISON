@@ -24,13 +24,12 @@ import org.jblas.DoubleMatrix;
  * Local path index recommender. It takes all paths of distances between 2 and k between the target and candidate
  * users, and weights them, so shortest paths are more important.
  *
- * <p>
+ * <br>
  *     <b>References:</b>
  *      <ol>
  *          <li>L. Lü, C. Jin, T. Zhou. Similarity Index Based on Local Paths for Link Prediction of Complex Networks. Physical Review E 80(4): 046122 (2009)</li>
  *          <li>L. Lü, T. Zhou. Link Prediction in Complex Networks: A survey. Physica A 390(6), 1150-1170 (2011)</li>
  *      </ol>
- * </p>
  *
  * @param <U> type of the users
  *
@@ -57,7 +56,7 @@ public class LocalPathIndex<U> extends GlobalMatrixBasedRecommender<U>
      *
      * @param graph a fast graph representing the social network.
      * @param beta  the dampening factor.
-     * @param k     the maximum distance between the target and candidate users (k >= 2)
+     * @param k     the maximum distance between the target and candidate users (k greater or equal than 2)
      */
     public LocalPathIndex(FastGraph<U> graph, double beta, int k)
     {
@@ -73,7 +72,7 @@ public class LocalPathIndex<U> extends GlobalMatrixBasedRecommender<U>
      *
      * @param graph     a fast graph representing the social network.
      * @param beta      the dampening factor.
-     * @param k         the maximum distance between the target and candidate users (k >= 2)
+     * @param k         the maximum distance between the target and candidate users (k greater or equal than 2)
      * @param orient    the orientation for selecting the adjacency matrix.
      */
     public LocalPathIndex(FastGraph<U> graph, double beta, int k, EdgeOrientation orient)
