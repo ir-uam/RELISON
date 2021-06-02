@@ -35,26 +35,26 @@ public class Main
 
             switch (main)
             {
-                case "sna" -> classpath = "es.uam.eps.ir.socialranksys.defexamples.sna.GraphAnalyzer";
-                case "communities" -> classpath = "es.uam.eps.ir.socialranksys.defexamples.sna.CommunityDetector";
-                case "recommendation" -> classpath = "es.uam.eps.ir.socialranksys.defexamples.links.recommendation.Recommendation";
-                case "prediction" -> classpath = "es.uam.eps.ir.socialranksys.defexamples.links.prediction.LinkPrediction";
+                case "sna" -> classpath = "es.uam.eps.ir.socialranksys.examples.sna.GraphAnalyzer";
+                case "communities" -> classpath = "es.uam.eps.ir.socialranksys.examples.sna.CommunityDetector";
+                case "recommendation" -> classpath = "es.uam.eps.ir.socialranksys.examples.links.recommendation.Recommendation";
+                case "prediction" -> classpath = "es.uam.eps.ir.socialranksys.examples.links.prediction.LinkPrediction";
                 case "index" ->
                 {
                     index = 2;
                     if(args[1].equalsIgnoreCase("user"))
-                        classpath = "es.uam.eps.ir.socialranksys.defexamples.content.UserIndexGenerator";
+                        classpath = "es.uam.eps.ir.socialranksys.examples.content.UserIndexGenerator";
                     else if(args[1].equalsIgnoreCase("infopiece"))
-                        classpath = "es.uam.eps.ir.socialranksys.defexamples.content.InformationPieceIndexGenerator";
+                        classpath = "es.uam.eps.ir.socialranksys.examples.content.InformationPieceIndexGenerator";
                     else
                         classpath = null;
                 }
-                case "effects" -> classpath = "es.uam.eps.ir.socialranksys.defexamples.links.recommendation.evaluation.GraphMetricsEvaluation";
-                case "reranking" -> classpath = "es.uam.eps.ir.socialranksys.defexampleslinks.recommendation.Reranking";
-                case "featuregen" -> classpath = "es.uam.eps.ir.socialranksys.defexampleslinks.recommendation.MLFeatureGenerator";
-                case "graphgen" -> classpath = "es.uam.eps.ir.socialranksys.defexamples.graphgen.RandomGraphGenerator";
-                case "diffusion" -> classpath = "es.uam.eps.ir.socialranksys.defexamples.diffusion.Diffusion";
-                case "diffusion-eval" -> classpath = "es.uam.eps.ir.socialranksys.defexamples.diffusion.DiffusionEvaluation";
+                case "effects" -> classpath = "es.uam.eps.ir.socialranksys.examples.links.recommendation.evaluation.GraphMetricsEvaluation";
+                case "reranking" -> classpath = "es.uam.eps.ir.socialranksys.exampleslinks.recommendation.Reranking";
+                case "featuregen" -> classpath = "es.uam.eps.ir.socialranksys.exampleslinks.recommendation.MLFeatureGenerator";
+                case "graphgen" -> classpath = "es.uam.eps.ir.socialranksys.examples.graphgen.RandomGraphGenerator";
+                case "diffusion" -> classpath = "es.uam.eps.ir.socialranksys.examples.diffusion.Diffusion";
+                case "diffusion-eval" -> classpath = "es.uam.eps.ir.socialranksys.examples.diffusion.DiffusionEvaluation";
                 default -> classpath = null;
             }
 
