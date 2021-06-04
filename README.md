@@ -1,30 +1,30 @@
-![Java CI with Maven](https://github.com/JavierSanzCruza/SoNALiRe/workflows/Java%20CI%20with%20Maven/badge.svg)
+![Java CI with Maven](https://github.com/JavierSanzCruza/Relison/workflows/Java%20CI%20with%20Maven/badge.svg)
 [![GitHub license](https://img.shields.io/badge/license-MPL--2.0-orange)](https://www.mozilla.org/en-US/MPL/)
 
-# SoNALiRe
+# RELISON
 
-SoNALiRe is a Java library devised for the implementation and evaluation of different social analysis and network mining techniques.
+Relison is a Java library devised for the implementation and evaluation of different social analysis and network mining techniques.
 This framework has been created as the result of the research documented in several publications on contact recommendation and
  link prediction in social networks (which we refer **here**) and a [PhD thesis](http://javiersanzcruza.github.io/jsanzcruzado-phdthesis.pdf). 
- In addition to contact recommendation and link prediction functionalities, SoNALiRe can be used to perform multiple
+ In addition to contact recommendation and link prediction functionalities, Relison can be used to perform multiple
  social network analysis and network science tasks: analyzing structural properties of social networks (the library includes a wide
  variety of metrics, from the most classical metrics to novel ones targeting the structural diversity of the network),
  community detection, functionalities for indexing user-generated contents, and for performing information
  diffusion simulations over social networks.
  
 ## Introduction
-SocialRanksys is a new Java framework for the implementation and evaluation of techniques for social network analysis and mining. These framework has been created as the result of the research documented in several publications on contact recommendation in social networks (see here) and a . But, in addition to those contact recommendation and link prediction functionalities, SoNALiRe can be used to perform multiple social network analysis and network science tasks: analyzing structural properties of social networks (including the most classical metrics, along with several new ones, targeting the structural diversity of the network), community detection and performing information diffusion simulations over social networks. 
+RELISON is a new Java framework for the implementation and evaluation of techniques for social network analysis and mining. These framework has been created as the result of the research documented in several publications on contact recommendation in social networks (see here) and a . But, in addition to those contact recommendation and link prediction functionalities, SoNALiRe can be used to perform multiple social network analysis and network science tasks: analyzing structural properties of social networks (including the most classical metrics, along with several new ones, targeting the structural diversity of the network), community detection and performing information diffusion simulations over social networks. 
 
 The framework has been programmed targetting the Java 14 version, one of the most recent versions of the popular programming language. Built upon the [RankSys library](http://ranksys.github.io), we take advantage of the many features provided by the last versions of Java. The code is licensed under the [MPL 2.0](https://www.mozilla.org/en-US/MPL/2.0/).
 
 ## Packages
 Up to date, the following packages have been published:
-- **SoNALiRe-core:** Basic graph definitions and generators.
-- **SoNALiRe-sna:** Social network analysis metrics and community detection.
-- **SoNALiRe-content:** Classes and definitions for user-generated contents in social networks.
-- **SoNALiRe-linkpred:** Link prediction and contact recommendation functionalities.
-- **SoNALiRe-diffusion:** Simulation of information diffusion dynamics.
-- **SoNALiRe-examples:** Examples showcasing the functionality of the library.
+- **Relison-core:** Basic graph definitions and generators.
+- **Relison-sna:** Social network analysis metrics and community detection.
+- **Relison-content:** Classes and definitions for user-generated contents in social networks.
+- **Relison-linkpred:** Link prediction and contact recommendation functionalities.
+- **Relison-diffusion:** Simulation of information diffusion dynamics.
+- **Relison-examples:** Examples showcasing the functionality of the library.
 
 ## System Requirements
 - **Java JDK:** Java 14 or above.
@@ -37,7 +37,7 @@ Up to date, the following packages have been published:
 ## Instalation
 In order to install this framework, you need to have Maven [http://maven.apache.org](http://maven.apache.org) installed 
 on your system. Then, download the files into a directory. If you want to obtain a .jar containing all the packages,
-go to the SoNALiRe-examples directory and execute the following command:
+go to the Relison-examples directory and execute the following command:
 ```
 mvn compile assembly::single
 ```
@@ -50,7 +50,7 @@ mvn install
 Once it is installed in your Maven library, you can import the package you are interested to use in your project 
 adding the following dependence.
 ```
-    <artifactId>SoNALiRe-[package-name]</artifactId>
+    <artifactId>Relison-[package-name]</artifactId>
     <groupId>es.uam.eps.ir</groupId>
     <version>1.0-SNAPSHOT</version>
 ```

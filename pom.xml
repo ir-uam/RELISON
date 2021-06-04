@@ -24,16 +24,16 @@
     </build>
 
     <groupId>es.uam.eps.ir</groupId>
-    <artifactId>SoNALiRe</artifactId>
+    <artifactId>Relison</artifactId>
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
-        <module>SoNALiRe-core</module>
-        <module>SoNALiRe-content</module>
-        <module>SoNALiRe-sna</module>
-        <module>SoNALiRe-examples</module>
-        <module>SoNALiRe-linkpred</module>
-        <module>SoNALiRe-diffusion</module>
+        <module>Relison-core</module>
+        <module>Relison-content</module>
+        <module>Relison-sna</module>
+        <module>Relison-examples</module>
+        <module>Relison-linkpred</module>
+        <module>Relison-diffusion</module>
     </modules>
 
 
