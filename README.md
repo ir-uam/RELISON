@@ -1,4 +1,4 @@
-![Java CI with Maven](https://github.com/JavierSanzCruza/Relison/workflows/Java%20CI%20with%20Maven/badge.svg)
+![Java CI with Maven](https://github.com/ir-uam/RELISON/workflows/Java%20CI%20with%20Maven/badge.svg)
 [![GitHub license](https://img.shields.io/badge/license-MPL--2.0-orange)](https://www.mozilla.org/en-US/MPL/)
 
 # RELISON
