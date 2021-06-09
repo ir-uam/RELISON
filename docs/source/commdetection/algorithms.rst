@@ -1,7 +1,7 @@
 Community detection algorithms summary
 ======================================
 
-SoNALiRe provides the following algorithms:
+RELISON provides the following algorithms:
 
 .. toctree::
    :maxdepth: 1

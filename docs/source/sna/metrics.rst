@@ -1,7 +1,7 @@
 Structural metrics summary
 ==========================
 
-SoNALiRe provides the following metrics:
+RELISON provides the following metrics:
 
 .. toctree::
    :maxdepth: 1

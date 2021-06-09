@@ -1,9 +1,9 @@
 Pair metrics
 ==============
 
-SoNALiRe integrates a set of metrics which can be computed for any pair of users. All the metrics which can be applied to links are included here, but they can be computed for any possible set of users.
+RELISON integrates a set of metrics which can be computed for any pair of users. All the metrics which can be applied to links are included here, but they can be computed for any possible set of users.
 
-SoNALiRe integrates the following edge metrics:
+RELISON integrates the following edge metrics:
 
 * `Betweenness`_
 * `Clustering coefficient increment`_

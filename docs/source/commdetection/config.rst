@@ -6,7 +6,7 @@ binary for the library has been generated:
 
 .. code:: bash
 
-	java -jar SoNALiRe.jar communities network multigraph directed weighted selfloops algorithms output
+	java -jar RELISON.jar communities network multigraph directed weighted selfloops algorithms output
 
 where
 

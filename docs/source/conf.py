@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'SoNALiRe'
+project = 'RELISON'
 copyright = '2021, Information Retrieval Group @ Universidad Autónoma de Madrid (http:\\ir.ii.uam.es)'
 author = 'Javier Sanz-Cruzado, Pablo Castells'
 

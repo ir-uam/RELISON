@@ -1,7 +1,7 @@
 Graph metrics
 ==============
 
-SoNALiRe integrates the following graph metrics.
+RELISON integrates the following graph metrics.
 
 
 * `Average shortest path length`_

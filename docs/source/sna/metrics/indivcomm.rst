@@ -1,7 +1,7 @@
 Individual community metrics
 ============================
 
-Given a community partition, it is possible to compute several metrics considering the different clusters of users. Individual community metrics evaluate the structural properties for each community on its own. SoNALiRe integrates the following metrics:
+Given a community partition, it is possible to compute several metrics considering the different clusters of users. Individual community metrics evaluate the structural properties for each community on its own. RELISON integrates the following metrics:
 
 * `Degree`_
 * `Size`_

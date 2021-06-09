@@ -1,7 +1,7 @@
-Install SoNALiRe
+Install RELISON
 ==================
 
-SoNALiRe is a library working with the following operating systems:
+RELISON is a library working with the following operating systems:
 
 * Linux
 * Windows 10
@@ -14,15 +14,15 @@ Install from source
 MAVEN
 ^^^^^^
 
-The recommended way to use SoNALiRe is through Maven. This will allow you to automatically
+The recommended way to use RELISON is through Maven. This will allow you to automatically
 download all the necessary dependencies to work with this framework. In order to download 
 the sources and install the library in your Maven repository, you just have to execute
 the following command: 
 
 .. code:: bash
 	
-	git clone https://github.com/JavierSanzCruza/SoNALiRe
-	cd SoNALiRe
+	git clone https://github.com/JavierSanzCruza/RELISON
+	cd RELISON
 	mvn install
 
 Afterwards, if you just want to use the main programs provided with the code, you have to 
@@ -30,18 +30,18 @@ compile the examples package. For this, do the following:
 
 .. code:: bash
 
-	cd SoNALiRe-examples
+	cd Relison-examples
 	mvn clean compile assembly:single
 
 This will create an executable JAR which can be used to access any of the provided programs.
-If, instead, you want to integrate a SoNALiRe module in your project, you will need to add it as a
+If, instead, you want to integrate a RELISON module in your project, you will need to add it as a
 dependency as follows:
 
 .. code:: xml
 
     <dependency>
       <groupId>es.uam.eps.ir</groupId>
-      <artifactId>SoNALiRe-[module-name]</artifactId>
+      <artifactId>Relison-[module-name]</artifactId>
       <version>1.0.0</version>
     </dependency>
 

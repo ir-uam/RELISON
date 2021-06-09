@@ -1,7 +1,7 @@
 Global community metrics
 ============================
 
-Given a community partition, it is possible to compute several metrics for the complete network considering such partition. SoNALiRe integrates the following metrics:
+Given a community partition, it is possible to compute several metrics for the complete network considering such partition. RELISON integrates the following metrics:
 
 * `Destiny community size`_
 * `Degree Gini complement`_

@@ -1,7 +1,7 @@
 Vertex metrics
 ==============
 
-SoNALiRe integrates the following vertex metrics.
+RELISON integrates the following vertex metrics.
 
 
 * `Betweenness`_
