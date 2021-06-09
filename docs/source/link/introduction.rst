@@ -14,15 +14,3 @@ In order to use these functionalities, it is important to import the following p
       <artifactId>Relison-linkpred</artifactId>
       <version>1.0.0</version>
     </dependency>
-
-This section is divided as follows:
- 
-.. toctree::
-   :maxdepth: 1
-   :caption: Link prediction and recommendation
-
-   preparation
-   config
-   code
-   algorithms
-   evaluation

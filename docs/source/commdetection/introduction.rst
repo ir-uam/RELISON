@@ -11,13 +11,3 @@ Community detection algorithms are included in the SNA module of the framework, 
       <artifactId>Relison-sna</artifactId>
       <version>1.0.0</version>
     </dependency>
-
-This section is divided as follows:
- 
-.. toctree::
-   :maxdepth: 1
-   :caption: Community detection
-
-   config
-   code
-   algorithms

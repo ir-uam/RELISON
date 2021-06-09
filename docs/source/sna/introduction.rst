@@ -14,13 +14,3 @@ The social network metrics are included in the SNA module of the framework, whic
       <artifactId>Relison-sna</artifactId>
       <version>1.0.0</version>
     </dependency>
-
-This section is divided as follows:
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Social network analysis
-
-   config
-   code
-   metrics

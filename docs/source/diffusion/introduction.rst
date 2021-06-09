@@ -13,14 +13,3 @@ Everything needed for the simulation of information diffusion is included in the
       <artifactId>Relison-diffusion</artifactId>
       <version>1.0.0</version>
     </dependency>
-
-This section is divided as follows:
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Social network analysis
-
-   basics
-   config
-   code
-   metrics
