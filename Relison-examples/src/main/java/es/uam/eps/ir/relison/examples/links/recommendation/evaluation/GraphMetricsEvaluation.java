@@ -29,6 +29,7 @@ import es.uam.eps.ir.relison.grid.sna.vertex.VertexMetricSelector;
 import es.uam.eps.ir.relison.io.graph.TextGraphReader;
 import es.uam.eps.ir.relison.io.graph.TextMultiGraphReader;
 import es.uam.eps.ir.relison.metrics.*;
+import es.uam.eps.ir.relison.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.relison.metrics.distance.FastDistanceCalculator;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
@@ -74,7 +75,7 @@ public class GraphMetricsEvaluation
      */
     public static void main(String[] args) throws IOException
     {
-        if(args.length < 13)
+        if(args.length < 12)
         {
             System.err.println("Invalid arguments.");
             System.err.println("Usage:");
@@ -101,18 +102,29 @@ public class GraphMetricsEvaluation
         boolean directed = args[3].equalsIgnoreCase("true");
         boolean weighted = args[4].equalsIgnoreCase("true");
         boolean selfloops = args[5].equalsIgnoreCase("true");
-
         String recRoute = args[6];
+        String metricGrid = args[7];
+        String outputFile = args[8];
+        int length = Parsers.ip.parse(args[9]);
+        boolean fullGraph = args[10].equalsIgnoreCase("true");
+        boolean onlyrel = args[11].equalsIgnoreCase("true");
+        List<String> comms = new ArrayList<>();
+        boolean precomputeDistances = false;
 
-        String[] comms = args[7].split(",");
-        List<String> commFiles = Arrays.asList(comms);
-
-        String metricGrid = args[8];
-
-        String outputFile = args[9];
-        int length = Parsers.ip.parse(args[10]);
-        boolean fullGraph = args[11].equalsIgnoreCase("true");
-        boolean onlyrel = args[12].equalsIgnoreCase("true");
+        // Optional arguments:
+        for(int i = 12; i < args.length; ++i)
+        {
+            if(args[i].equalsIgnoreCase("-communities"))
+            {
+                String commFiles = args[++i];
+                String[] commNames = commFiles.split(",");
+                comms.addAll(Arrays.asList(commNames));
+            }
+            else if(args[i].equalsIgnoreCase("--distances"))
+            {
+                precomputeDistances = true;
+            }
+        }
 
         // Read the graphs
         long a = System.currentTimeMillis();
@@ -136,14 +148,17 @@ public class GraphMetricsEvaluation
         a = System.currentTimeMillis();
 
         Map<String, Communities<Long>> communities = new HashMap<>();
-        TextCommunitiesReader<Long> creader = new TextCommunitiesReader<>("\t", Parsers.lp);
-        commFiles.forEach((comm) ->
-        {
-            File f = new File(comm);
-            String c = f.getName();
-            communities.put(c, creader.read(comm));
-        });
 
+        if(!comms.isEmpty())
+        {
+            TextCommunitiesReader<Long> creader = new TextCommunitiesReader<>("\t", Parsers.lp);
+            comms.forEach((comm) ->
+            {
+                File f = new File(comm);
+                String c = f.getName();
+                communities.put(c, creader.read(comm));
+            });
+        }
         b = System.currentTimeMillis();
         System.out.println("Communities read (" + (b-a) + " ms.");
 
@@ -279,7 +294,10 @@ public class GraphMetricsEvaluation
                     long bb = System.currentTimeMillis();
                     System.out.println("Algorithm " + recFile + " : finished reading (" + (bb-aa) + " ms.)" );
 
-                    DistanceCalculator<Long> dc = new FastDistanceCalculator<>();
+                    DistanceCalculator<Long> dc = new CompleteDistanceCalculator<>();
+
+                    if(precomputeDistances) dc.computeDistances(recGraph);
+
                     // Compute vertex metrics.
                     vertexMetrics.forEach((name, value) ->
                     {
@@ -318,32 +336,35 @@ public class GraphMetricsEvaluation
                     bb = System.currentTimeMillis();
                     System.out.println("Algorithm " + recFile + " : pair metrics done (" + (bb-aa) + " ms.)" );
 
-                    // Compute indiv comm. metrics.
-                    indivCommMetrics.forEach((name, value) ->
+                    if(!communities.isEmpty())
                     {
-                        IndividualCommunityMetric<Long> icm = value.get();
-
-                        communities.forEach((commName, comm) ->
+                        // Compute indiv comm. metrics.
+                        indivCommMetrics.forEach((name, value) ->
                         {
-                            double average = icm.averageValue(recGraph, comm);
-                            recMetrics.put("Average comm " + commName + " " + name, average);
-                        });
-                    });
-                    bb = System.currentTimeMillis();
-                    System.out.println("Algorithm " + recFile + " : indiv community metrics done (" + (bb-aa) + " ms.)" );
+                            IndividualCommunityMetric<Long> icm = value.get();
 
-                    // Compute global comm. metrics.
-                    globalCommMetrics.forEach((name, value) ->
-                    {
-                        CommunityMetric<Long> gcm = value.get();
-                        communities.forEach((commName, comm) ->
-                        {
-                            double average = gcm.compute(recGraph, comm);
-                            recMetrics.put("Comm " + commName + " " + name, average);
+                            communities.forEach((commName, comm) ->
+                            {
+                                double average = icm.averageValue(recGraph, comm);
+                                recMetrics.put("Average comm " + commName + " " + name, average);
+                            });
                         });
-                     });
-                    bb = System.currentTimeMillis();
-                    System.out.println("Algorithm " + recFile + " : global community metrics done (" + (bb-aa) + " ms.)" );
+                        bb = System.currentTimeMillis();
+                        System.out.println("Algorithm " + recFile + " : indiv community metrics done (" + (bb-aa) + " ms.)" );
+
+                        // Compute global comm. metrics.
+                        globalCommMetrics.forEach((name, value) ->
+                        {
+                            CommunityMetric<Long> gcm = value.get();
+                            communities.forEach((commName, comm) ->
+                            {
+                                double average = gcm.compute(recGraph, comm);
+                                recMetrics.put("Comm " + commName + " " + name, average);
+                            });
+                         });
+                        bb = System.currentTimeMillis();
+                        System.out.println("Algorithm " + recFile + " : global community metrics done (" + (bb-aa) + " ms.)" );
+                    }
 
                     // Compute graph metrics.
                     graphMetrics.forEach((name, value) ->

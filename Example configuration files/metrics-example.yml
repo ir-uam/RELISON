@@ -1,5 +1,5 @@
 metrics:
-	Clustering coefficient:
+  Clustering coefficient:
     type: graph
     params:
       uSel:

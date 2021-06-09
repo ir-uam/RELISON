@@ -36,7 +36,7 @@ public class PairMetricIdentifiers
     public static final String EFOAFCOUNT = "Expanded common neighbors count";
     public static final String PREFATTACH = "Preferential attachment";
     
-    public static final String EMBEDEDNESS = "Embededness";
+    public static final String EMBEDEDNESS = "Embeddedness";
     public static final String COMPLEMBEDEDNESS = "Complementary embeddedness";
     public static final String WEAKNESS = "Weakness";
 

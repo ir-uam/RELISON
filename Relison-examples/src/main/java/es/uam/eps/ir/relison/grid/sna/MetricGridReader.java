@@ -89,7 +89,7 @@ public class MetricGridReader extends GridReader
         String metricType = metricObject.get(TYPE).toString();
         if(metricsGrid.containsKey(metricType))
         {
-            if(metricObject.containsKey(PARAMS) && metricObject.get(PARAMS).getClass() == String.class) // In this case, there are no parameters
+            if(!metricObject.containsKey(PARAMS) || metricObject.get(PARAMS).getClass() == String.class) // In this case, there are no parameters
             {
                 metricsGrid.get(metricType).put(metricName, new Grid());
             }

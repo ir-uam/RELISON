@@ -19,9 +19,13 @@ import es.uam.eps.ir.relison.graph.generator.GraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.exception.GeneratorBadConfiguredException;
 import es.uam.eps.ir.relison.graph.generator.exception.GeneratorNotConfiguredException;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
+import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
+import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Computes some of the distance based metrics: distances, number of geodesic paths between two nodes, betweenness.
@@ -126,16 +130,20 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
         // Initialize all distances to Infinity.
         graph.getAllNodes().forEach(orig ->
         {
-            this.distancesFrom.put(orig, new HashMap<>());
-            this.distancesTo.put(orig, new HashMap<>());
-            this.geodesics.put(orig, new HashMap<>());
-            graph.getAllNodes().forEach(dest ->
-            {
-                this.distancesFrom.get(orig).put(dest, Double.POSITIVE_INFINITY);
-                this.distancesTo.get(orig).put(dest, Double.POSITIVE_INFINITY);
-                this.geodesics.get(orig).put(dest, 0.0);
-            });
+            Object2DoubleMap<U> distFrom = new Object2DoubleOpenHashMap<>();
+            Object2DoubleMap<U> distTo = new Object2DoubleOpenHashMap<>();
+            Object2DoubleMap<U> geodesics = new Object2DoubleOpenHashMap<>();
+
+            distFrom.defaultReturnValue(Double.POSITIVE_INFINITY);
+            distTo.defaultReturnValue(Double.POSITIVE_INFINITY);
+            geodesics.defaultReturnValue(0.0);
+            this.distancesFrom.put(orig, distFrom);
+            this.distancesTo.put(orig, distTo);
+            this.geodesics.put(orig, geodesics);
         });
+
+        AtomicInteger atom = new AtomicInteger();
+        atom.set(0);
 
         // Then, for each user u, apply BFS to obtain the distances to other nodes.
         // We compute this in parallel to obtain much faster results.
@@ -292,6 +300,13 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
             catch (GeneratorNotConfiguredException | GeneratorBadConfiguredException ex)
             {
                 flag = false;
+            }
+
+
+            int count = atom.incrementAndGet();
+            if(count % 1000 == 0)
+            {
+                System.err.println("Run over " + count + " users." );
             }
 
             return new Pair<>(asl, counter);
