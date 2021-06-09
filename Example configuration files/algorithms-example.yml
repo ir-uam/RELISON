@@ -1,0 +1,38 @@
+algorithms:
+  iMF:
+    k:
+      type: int
+      values: 300
+    lambda:
+      type: double
+      values: 150.0
+    alpha:
+      type: double
+      values: 40.0
+  BM25:
+    uSel:
+      type: orientation
+      values: OUT
+    vSel:
+      type: orientation
+      values: IN
+    dlSel:
+      type: orientation
+      values: OUT
+    k:
+      type: double
+      values: 0.1
+    b:
+      type: double
+      values: 0.1
+  Popularity:
+  Random:
+metrics:
+  nDCG:
+    cutoff:
+      type: int
+      values: 10
+  MAP:
+    cutoff:
+      type: int
+      values: 10

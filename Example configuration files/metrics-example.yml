@@ -1,0 +1,21 @@
+metrics:
+	Clustering coefficient:
+    type: graph
+    params:
+      uSel:
+        type: orientation
+        values: IN
+      vSel:
+        type: orientation
+        values: OUT
+  Eccentricity:
+    type: vertex
+  Embeddedness:
+    type: edge
+    params:
+      uSel:
+        type: orientation
+        values: OUT
+      vSel:
+        type: orientation
+        values: IN 

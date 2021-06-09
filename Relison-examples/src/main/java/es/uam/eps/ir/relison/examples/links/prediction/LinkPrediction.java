@@ -179,7 +179,7 @@ public class LinkPrediction
         // First, we do create the directories.
         if (printRecommenders)
         {
-            File directory = new File(output + "recs" + File.separator);
+            File directory = new File(output + "preds" + File.separator);
             if(!directory.exists())
             {
                 boolean create = directory.mkdirs();
@@ -353,7 +353,7 @@ public class LinkPrediction
             Recommender<Long, Long> rec = isWeighted ? supplier.apply(weightedGraph, weightedTrainData) : supplier.apply(unweightedGraph, unweightedTrainData);
             RecommendationLinkPredictor<Long> lp = new RecommendationLinkPredictor<>(isWeighted ? weightedGraph : unweightedGraph, rec);
 
-            String path = output + File.separator + name + ".txt";
+            String path = output + "preds" + File.separator + name + ".txt";
 
             // Obtain the metric values
             Map<String, Double> values;

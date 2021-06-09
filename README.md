@@ -1,6 +1,8 @@
 ![Java CI with Maven](https://github.com/ir-uam/RELISON/workflows/Java%20CI%20with%20Maven/badge.svg)
 [![GitHub license](https://img.shields.io/badge/license-MPL--2.0-orange)](https://www.mozilla.org/en-US/MPL/)
 
+[Documentation](https://relison.readthedocs.io)
+
 # RELISON
 
 Relison is a Java library devised for the implementation and evaluation of different social analysis and network mining techniques.

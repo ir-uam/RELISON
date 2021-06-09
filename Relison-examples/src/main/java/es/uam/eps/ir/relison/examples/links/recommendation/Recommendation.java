@@ -357,7 +357,7 @@ public class Recommendation
             boolean isWeighted = supplier.isWeighted();
             Recommender<Long, Long> rec = isWeighted ? supplier.apply(weightedGraph, weightedTrainData) : supplier.apply(unweightedGraph, unweightedTrainData);
 
-            String path = output + File.separator + name + ".txt";
+            String path = output + "recs" + File.separator + name + ".txt";
 
             // Obtain the metric values
             Map<String, Double> values;
