@@ -318,7 +318,7 @@ public class DataReader<U extends Serializable,I extends Serializable, F>
             }
         }
 
-        Relation<Long> realPropagated = realPropagatedFile != null ? this.readRealPropagatedFile(realPropagatedFile, userIndex, infoIndex, uParser, iParser) : new FastWeightedPairwiseRelation<>();
+        Relation<Long> realPropagated = realPropagatedFile != null ? this.readRealPropagatedFile(realPropagatedFile, userIndex, infoIndex, uParser, iParser) : null;
         return new Data<>(graph, userIndex, infoIndex, infoMap, userInfo, parameters, userParametersNames, userParameters, infoParametersNames, infoParameters, realPropagated);
     }
     

@@ -275,15 +275,18 @@ public class Diffusion
                 if(recFile != null)
                 {
                     // Read the recommendation
-                    String[] recRoute = recFile.split(File.pathSeparator);
+                    String[] recRoute = recFile.split("/");
                     //String[] recRoute = recFile.split("\\Q\\\\E");
                     rec = recRoute[recRoute.length - 1];
                 }
 
+                String outputPath = output + i + "-" + (rec != null ? (rec + "-") : "") + j + ".txt";
+                System.out.println("Output path: " + outputPath);
+
 
                 // Write the simulation into a file (binary mode).
                 SimulationWriter<Long,Long,Long> simwriter = new BinarySimulationWriter<>();
-                simwriter.initialize(output + i + "-" + (rec != null ? (rec + "-") : "") + j + ".txt");
+                simwriter.initialize(outputPath);
                 simwriter.writeSimulation(simulation);
                 simwriter.close();  
 

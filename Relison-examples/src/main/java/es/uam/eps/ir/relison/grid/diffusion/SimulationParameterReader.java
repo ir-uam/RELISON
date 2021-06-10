@@ -119,10 +119,12 @@ public class SimulationParameterReader extends ParametersReader
             fpr.readFilter(filter);
             fprs.add(fpr);
         }
+        this.filterParams.add(fprs);
 
         Map<String, Object> stop = (Map<String, Object>) element.get(STOP);
         StopConditionParameterReader scpr = new StopConditionParameterReader();
         scpr.readStopCondition(stop);
+        this.stopParams.add(scpr);
     }
        
     /**

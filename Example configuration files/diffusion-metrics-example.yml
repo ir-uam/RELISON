@@ -1,0 +1,18 @@
+metrics:
+  Speed:
+  Global feature Gini:
+    feature:
+      type: string
+      value: hashtag
+    userFeature:
+      type: boolean
+      value: false
+    unique:
+      type: boolean
+      value: true
+filters:
+  Creator:
+  Tag:
+    tagName:
+      type: string
+      value: hashtag

@@ -1,23 +1,23 @@
-filters:
-  Minimum pieces feature:
-    tagName:
-      type: string
-      value: hashtag
-    minValue:
-      type: int
-      value: 25
-  Creator:
-  Tag:
-    tagName:
-      type: string
-      value: hashtag
-protocol:
-  name: Independent cascade model
-  type: PRECONFIGURED
-  params:
-    numOwn:
-      type: int
-      value: 1
-    prob:
-      type: double
-      value: 0.1
+simulations:
+- filters:
+    Creator:
+    Tag:
+      tagName:
+        type: string
+        value: hashtag
+  protocol:
+    name: Independent cascade model
+    type: PRECONFIGURED
+    params:
+      numOwn:
+        type: int
+        value: 1
+      prob:
+        type: double
+        value: 0.1
+  stop:
+    name: Num. iter
+    params:
+      numIter:
+        type: int
+        value: 1000
