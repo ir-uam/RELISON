@@ -8,6 +8,7 @@
  */
 package es.uam.eps.ir.relison.examples.links.recommendation.evaluation;
 
+import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.relison.community.Communities;
 import es.uam.eps.ir.relison.community.io.TextCommunitiesReader;
 import es.uam.eps.ir.relison.examples.AuxiliarMethods;
@@ -28,10 +29,12 @@ import es.uam.eps.ir.relison.grid.sna.vertex.VertexMetricFunction;
 import es.uam.eps.ir.relison.grid.sna.vertex.VertexMetricSelector;
 import es.uam.eps.ir.relison.io.graph.TextGraphReader;
 import es.uam.eps.ir.relison.io.graph.TextMultiGraphReader;
+import es.uam.eps.ir.relison.links.linkprediction.Prediction;
+import es.uam.eps.ir.relison.links.linkprediction.io.LinkPredictionFormat;
+import es.uam.eps.ir.relison.links.linkprediction.io.SimpleLinkPredictionFormat;
 import es.uam.eps.ir.relison.metrics.*;
 import es.uam.eps.ir.relison.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
-import es.uam.eps.ir.relison.metrics.distance.FastDistanceCalculator;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
 import org.ranksys.core.util.tuples.Tuple2od;
 import org.ranksys.formats.parsing.Parsers;
@@ -91,6 +94,11 @@ public class GraphMetricsEvaluation
             System.err.println("\tRec. Length: Maximum number of recommendations per user to consider.");
             System.err.println("\tFull graph: if true, it uses all the edges/pairs of users in the networks. If false, only the recommended ones.");
             System.err.println("\tOnly relevant: true if we only add to the original network only those correctly recommended links, false otherwise.");
+            System.err.println("\tOptional:");
+            System.err.println("\t\t-communities file1,file2,...: a comma-separated list of community files.");
+            System.err.println("\t\t--distances: true if we want to precompute distances between the users. (by defaults: false)");
+            System.err.println("\t\t--prediction user/global: if we want to read a link prediction and not a contact recommendation. Then, the user option indicates that we" +
+                                       "want to limit the number of predicted links per user, the global indicates that we want to limit the global number of predicted links.");
             return;
         }
 
@@ -111,6 +119,8 @@ public class GraphMetricsEvaluation
         List<String> comms = new ArrayList<>();
         boolean precomputeDistances = false;
 
+        boolean isPrediction = false;
+        boolean globalRank = false;
         // Optional arguments:
         for(int i = 12; i < args.length; ++i)
         {
@@ -123,6 +133,18 @@ public class GraphMetricsEvaluation
             else if(args[i].equalsIgnoreCase("--distances"))
             {
                 precomputeDistances = true;
+            }
+            else if(args[i].equalsIgnoreCase("--prediction"))
+            {
+                isPrediction = true;
+                if(args[++i].equalsIgnoreCase("user"))
+                {
+                    globalRank = false;
+                }
+                else
+                {
+                    globalRank = true;
+                }
             }
         }
 
@@ -248,6 +270,7 @@ public class GraphMetricsEvaluation
         // Configure the graph cloner
         GraphGenerator<Long> generator = new GraphCloneGenerator<>();
         RecommendationFormat<Long, Long> format = new SimpleRecommendationFormat<>(Parsers.lp, Parsers.lp);
+        LinkPredictionFormat<Long> lpFormat = new SimpleLinkPredictionFormat<>(Parsers.lp);
         generator.configure(graph);
 
         System.out.println("\n");
@@ -274,23 +297,65 @@ public class GraphMetricsEvaluation
                     Graph<Long> recGraph = generator.generate();
                     List<Pair<Long>> extraEdges = new ArrayList<>();
 
-                    // Read the recommendation and add the edges
-                    format.getReader(recRoute + recFile).readAll().forEach(rec ->
+                    if(!isPrediction)
                     {
-                        long u = rec.getUser();
-                        List<Tuple2od<Long>> items = rec.getItems();
-                        long maxLength = Math.min(items.size(), length);
-                        for(int i = 0; i < maxLength; ++i)
+                        // Read the recommendation and add the edges
+                        format.getReader(recRoute + recFile).readAll().forEach(rec ->
                         {
-                            long v = items.get(i).v1;
-                            if(!onlyrel || testGraph.containsEdge(u, v))
+                            long u = rec.getUser();
+                            List<Tuple2od<Long>> items = rec.getItems();
+                            long maxLength = Math.min(items.size(), length);
+                            for(int i = 0; i < maxLength; ++i)
                             {
-                                recGraph.addEdge(u, v);
-                                extraEdges.add(new Pair<>(u,v));
+                                long v = items.get(i).v1;
+                                if(!onlyrel || testGraph.containsEdge(u, v))
+                                {
+                                    recGraph.addEdge(u, v);
+                                    extraEdges.add(new Pair<>(u,v));
+                                }
+                            }
+                        });
+                    }
+                    else
+                    {
+                        Prediction<Long> pred = lpFormat.getReader(recRoute + recFile).read();
+
+                        if(globalRank)
+                        {
+                            long maxLength = Math.min(pred.getPrediction().size(), length);
+                            List<Tuple2od<Pair<Long>>> prediction = pred.getPrediction();
+                            for(int i = 0; i < maxLength; ++i)
+                            {
+                                Pair<Long> link = prediction.get(i).v1;
+                                if(!onlyrel || testGraph.containsEdge(link.v1(), link.v2()))
+                                {
+                                    recGraph.addEdge(link.v1(), link.v2());
+                                    extraEdges.add(link);
+                                }
                             }
                         }
-                    });
-
+                        else
+                        {
+                            graph.getAllNodes().forEach(u ->
+                            {
+                                Recommendation<Long, Long> rec = pred.getPrediction(u);
+                                if (rec != null)
+                                {
+                                    List<Tuple2od<Long>> items = rec.getItems();
+                                    long maxLength = Math.min(items.size(), length);
+                                    for (int i = 0; i < maxLength; ++i)
+                                    {
+                                        long v = items.get(i).v1;
+                                        if (!onlyrel || testGraph.containsEdge(u, v))
+                                        {
+                                            recGraph.addEdge(u, v);
+                                            extraEdges.add(new Pair<>(u, v));
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
                     long bb = System.currentTimeMillis();
                     System.out.println("Algorithm " + recFile + " : finished reading (" + (bb-aa) + " ms.)" );
 

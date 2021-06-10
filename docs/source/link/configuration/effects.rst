@@ -15,12 +15,17 @@ where
 * :code:`weighted`: true if we want to use the weights of the links, false otherwise (weights will be binary).
 * :code:`selfloops`: true if we allow links between a node and itself, false otherwise.
 * :code:`rec-folder`: a recommendation file / a directory containing recommendation files.
-* :code:`comm-files`: a comma-separated list of community partitions.
 * :code:`config`: a Yaml configuration file for reading the structural metrics we want to apply (see `Configuration file`_ below).
 * :code:`output`: a directory in which to store the metrics.
 * :code:`rec-length`: the maximum number of recommended links to each user to consider.
 * :code:`full-graph`: true if we use all edges/pairs to compute edge/pair metrics.
 * :code:`onlyrel`: true if we only add the relevant edges to the training network.
+* **Optional arguments:**
+    * :code:`-communities file1,file2,...,fileN`: a comma-separated list of files containing a community partition of the network.
+    * :code:`--distances`: true if we want to precompute distances between the users (by default: false). Recommended if we use several distance-based metrics.
+    * :code:`--prediction user/global`: we include this option if we want to read the outcome of a link prediction. Then, :code:`user` indicates that we add :code:`rec-length` predicted links per user to the expanded network,
+whereas :code:`global` indicates that we just add the top :code:`rec-length` of the prediction.
+
 
 Configuration file
 ~~~~~~~~~~~~~~~~~~

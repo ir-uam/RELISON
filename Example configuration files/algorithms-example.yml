@@ -9,6 +9,9 @@ algorithms:
     alpha:
       type: double
       values: 40.0
+    weighted:
+      type: boolean
+      values: false
   BM25:
     uSel:
       type: orientation
@@ -25,6 +28,9 @@ algorithms:
     b:
       type: double
       values: 0.1
+    weighted:
+      type: boolean
+      values: true
   Popularity:
   Random:
 metrics:
