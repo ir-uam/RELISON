@@ -76,23 +76,23 @@ public class DirectedWeightedGraphTest
         List<Tuple3<String, String, Double>> prefs = new ArrayList<>();
 
         int numPref = users.stream().mapToInt(u ->
-                                              {
-                                                  int K = rnd.nextInt(Math.min(500, N));
-                                                  Set<Integer> set = new HashSet<>();
-                                                  rnd.ints(K, 0, N).forEach(k ->
-                                                                            {
-                                                                                int aux = k;
-                                                                                while (set.contains(aux))
-                                                                                {
-                                                                                    aux = (aux + 1) % N;
-                                                                                }
-                                                                                set.add(aux);
-                                                                                // Edge weights will be between 0 and 5
-                                                                                prefs.add(new Tuple3<>(u, users.get(aux), 5 * rnd.nextDouble()));
-                                                                            });
+        {
+            int K = rnd.nextInt(Math.min(500, N));
+            Set<Integer> set = new HashSet<>();
+            rnd.ints(K, 0, N).forEach(k ->
+            {
+                int aux = k;
+                while (set.contains(aux))
+                {
+                    aux = (aux + 1) % N;
+                }
+                set.add(aux);
+                // Edge weights will be between 0 and 5
+                prefs.add(new Tuple3<>(u, users.get(aux), 5 * rnd.nextDouble()));
+            });
 
-                                                  return K;
-                                              }).sum();
+            return K;
+        }).sum();
 
         // Add the different edges: since we have created numPref different edges, they will all appear in the graph.
         prefs.forEach(tuple -> graph.addEdge(tuple.v1, tuple.v2, tuple.v3, EdgeType.getDefaultValue(), false));
@@ -103,41 +103,45 @@ public class DirectedWeightedGraphTest
 
         // Check that the graph has registered the edges, with their corresponding weights.       
         rnd.ints(1000, 0, numPref).forEach(i ->
-                                           {
-                                               String user = prefs.get(i).v1;
-                                               String item = prefs.get(i).v2;
-                                               double val = prefs.get(i).v3;
+        {
+            String user = prefs.get(i).v1;
+            String item = prefs.get(i).v2;
+            double val = prefs.get(i).v3;
 
-                                               double optional = graph.getEdgeWeight(user, item);
-                                               if (!EdgeWeight.isErrorValue(optional))
-                                               {
-                                                   assertEquals(val, optional, 0.00001);
-                                               }
-                                               else
-                                               {
-                                                   fail();
-                                               }
-                                           });
+            double optional = graph.getEdgeWeight(user, item);
+            if (!EdgeWeight.isErrorValue(optional))
+            {
+                assertEquals(val, optional, 0.00001);
+            }
+            else
+            {
+                fail();
+            }
+        });
 
         // Once this has been tested, we will just add some new extra preferences        
         List<Tuple3<String, String, Double>> extraPrefs = new ArrayList<>();
         int numExtraPref = users.stream().mapToInt(u ->
-                                                   {
-                                                       int K = rnd.nextInt(Math.min(100, N - graph.getAdjacentNodesCount(u)));
-                                                       Set<Integer> set = graph.getAdjacentNodes(u).map(graph::object2idx).collect(Collectors.toCollection(HashSet::new));
-                                                       rnd.ints(K, 0, N).forEach(k ->
-                                                                                 {
-                                                                                     int aux = k;
-                                                                                     while (set.contains(aux))
-                                                                                     {
-                                                                                         aux = (aux + 1) % N;
-                                                                                     }
-                                                                                     set.add(aux);
-                                                                                     extraPrefs.add(new Tuple3<>(u, users.get(aux), 5 * rnd.nextDouble()));
-                                                                                 });
+        {
+            if(N - graph.getAdjacentNodesCount(u) > 0)
+            {
+                int K = rnd.nextInt(Math.min(100, N - graph.getAdjacentNodesCount(u)));
+                Set<Integer> set = graph.getAdjacentNodes(u).map(graph::object2idx).collect(Collectors.toCollection(HashSet::new));
+                rnd.ints(K, 0, N).forEach(k ->
+                {
+                    int aux = k;
+                    while (set.contains(aux))
+                    {
+                        aux = (aux + 1) % N;
+                    }
+                    set.add(aux);
+                    extraPrefs.add(new Tuple3<>(u, users.get(aux), 5 * rnd.nextDouble()));
+                });
 
-                                                       return K;
-                                                   }).sum();
+                return K;
+            }
+            return 0;
+        }).sum();
 
         // We add the new preferences
         extraPrefs.forEach(tuple -> graph.addEdge(tuple.v1, tuple.v2, tuple.v3, EdgeType.getDefaultValue(), false));
@@ -147,61 +151,61 @@ public class DirectedWeightedGraphTest
         {
             assertEquals(graph.getEdgeCount(), numPref + numExtraPref);
             rnd.ints(1000, 0, numExtraPref).forEach(i ->
-                                                    {
-                                                        String user = extraPrefs.get(i).v1;
-                                                        String item = extraPrefs.get(i).v2;
-                                                        double val = extraPrefs.get(i).v3;
+            {
+                String user = extraPrefs.get(i).v1;
+                String item = extraPrefs.get(i).v2;
+                double val = extraPrefs.get(i).v3;
 
-                                                        double optional = graph.getEdgeWeight(user, item);
-                                                        if (!EdgeWeight.isErrorValue(optional))
-                                                        {
-                                                            assertEquals(val, optional, 0.00001);
-                                                        }
-                                                        else
-                                                        {
-                                                            fail();
-                                                        }
-                                                    });
+                double optional = graph.getEdgeWeight(user, item);
+                if (!EdgeWeight.isErrorValue(optional))
+                {
+                    assertEquals(val, optional, 0.00001);
+                }
+                else
+                {
+                    fail();
+                }
+            });
         }
 
         // Now, let's check what happens when we try to access some invalid nodes / edges
         List<Tuple3<String, String, Double>> falsePrefs = new ArrayList<>();
         // We generate false links towards non-existing users.
         int falsePref = users.stream().mapToInt(u ->
-                                                {
-                                                    int K = rnd.nextInt(Math.min(50, N));
-                                                    Set<Integer> set = new HashSet<>();
-                                                    rnd.ints(K, 0, 200).forEach(k ->
-                                                                                {
-                                                                                    int aux = k;
-                                                                                    while (set.contains(aux))
-                                                                                    {
-                                                                                        aux = (aux + 1) % 200;
-                                                                                    }
-                                                                                    set.add(aux);
-                                                                                    falsePrefs.add(new Tuple3<>(u, Integer.toString(aux + N), 5 * rnd.nextDouble()));
-                                                                                });
+        {
+            int K = rnd.nextInt(Math.min(50, N));
+            Set<Integer> set = new HashSet<>();
+            rnd.ints(K, 0, 200).forEach(k ->
+            {
+                int aux = k;
+                while (set.contains(aux))
+                {
+                    aux = (aux + 1) % 200;
+                }
+                set.add(aux);
+                falsePrefs.add(new Tuple3<>(u, Integer.toString(aux + N), 5 * rnd.nextDouble()));
+            });
 
-                                                    return K;
-                                                }).sum();
+            return K;
+        }).sum();
         // And also from non-existing users
         falsePref += IntStream.range(N, N + 200).map(u ->
-                                                     {
-                                                         int K = rnd.nextInt(Math.min(50, N));
-                                                         Set<Integer> set = new HashSet<>();
-                                                         rnd.ints(K, 0, N).forEach(k ->
-                                                                                   {
-                                                                                       int aux = k;
-                                                                                       while (set.contains(aux))
-                                                                                       {
-                                                                                           aux = (aux + 1) % N;
-                                                                                       }
-                                                                                       set.add(aux);
-                                                                                       falsePrefs.add(new Tuple3<>(Integer.toString(u), Integer.toString(aux), 5 * rnd.nextDouble()));
-                                                                                   });
+        {
+            int K = rnd.nextInt(Math.min(50, N));
+            Set<Integer> set = new HashSet<>();
+            rnd.ints(K, 0, N).forEach(k ->
+            {
+                int aux = k;
+                while (set.contains(aux))
+                {
+                    aux = (aux + 1) % N;
+                }
+                set.add(aux);
+                falsePrefs.add(new Tuple3<>(Integer.toString(u), Integer.toString(aux), 5 * rnd.nextDouble()));
+            });
 
-                                                         return K;
-                                                     }).sum();
+            return K;
+        }).sum();
 
         // Now, we try to add all the links to the graph.
         falsePrefs.forEach(tuple -> graph.addEdge(tuple.v1, tuple.v2, tuple.v3, EdgeType.getDefaultValue(), false));
@@ -211,14 +215,14 @@ public class DirectedWeightedGraphTest
 
         // We check that none of the false links appear in the graph.
         rnd.ints(1000, 0, falsePref).forEach(i ->
-                                             {
-                                                 String user = falsePrefs.get(i).v1;
-                                                 String item = falsePrefs.get(i).v2;
-                                                 double val = falsePrefs.get(i).v3;
+        {
+            String user = falsePrefs.get(i).v1;
+            String item = falsePrefs.get(i).v2;
+            double val = falsePrefs.get(i).v3;
 
-                                                 double optional = graph.getEdgeWeight(user, item);
-                                                 assertEquals(optional, EdgeWeight.getErrorValue(), 0.00001);
-                                             });
+            double optional = graph.getEdgeWeight(user, item);
+            assertEquals(optional, EdgeWeight.getErrorValue(), 0.00001);
+        });
 
         // Now, we do add the new users and edges.
         List<String> extraUsers = IntStream.range(N, N + 200).mapToObj(Integer::toString).collect(toList());
@@ -232,14 +236,14 @@ public class DirectedWeightedGraphTest
         assertEquals(graph.getEdgeCount(), numPref + numExtraPref + falsePref);
         // and whether the new edges are in the network or not.
         rnd.ints(1000, 0, falsePref).forEach(i ->
-                                             {
-                                                 String user = falsePrefs.get(i).v1;
-                                                 String item = falsePrefs.get(i).v2;
-                                                 double val = falsePrefs.get(i).v3;
+        {
+            String user = falsePrefs.get(i).v1;
+            String item = falsePrefs.get(i).v2;
+            double val = falsePrefs.get(i).v3;
 
-                                                 double optional = graph.getEdgeWeight(user, item);
-                                                 assertEquals(optional, val, 0.00001);
-                                             });
+            double optional = graph.getEdgeWeight(user, item);
+            assertEquals(optional, val, 0.00001);
+        });
 
         // We delete some users from the graph. We delete every user which was added before (N, N+200)
         Collections.shuffle(extraUsers);
@@ -252,15 +256,20 @@ public class DirectedWeightedGraphTest
         // Finally, we select some of the links in the graph for deletion:
         List<Tuple2<String, String>> prefsToDelete = new ArrayList<>();
         int numDeleted = users.stream().mapToInt(u ->
-                                                 {
-                                                     int K = rnd.nextInt(Math.min(20, graph.getAdjacentNodesCount(u)));
-                                                     List<String> ls = new ArrayList<>();
-                                                     graph.getAdjacentNodes(u).forEach(ls::add);
-                                                     Collections.shuffle(ls);
+        {
+             if(graph.getAdjacentNodesCount(u) > 0)
+             {
+                 int K = rnd.nextInt(Math.min(20, graph.getAdjacentNodesCount(u)));
+                 List<String> ls = new ArrayList<>();
+                 graph.getAdjacentNodes(u).forEach(ls::add);
+                 Collections.shuffle(ls);
 
-                                                     ls.subList(0, K).forEach(pref -> prefsToDelete.add(new Tuple2<>(u, pref)));
-                                                     return K;
-                                                 }).sum();
+                 ls.subList(0, K).forEach(pref -> prefsToDelete.add(new Tuple2<>(u, pref)));
+                 return K;
+             }
+
+             return 0;
+        }).sum();
 
         // We remove them
         prefsToDelete.forEach(pref -> graph.removeEdge(pref.v1, pref.v2));
@@ -270,14 +279,15 @@ public class DirectedWeightedGraphTest
         assertEquals(graph.getEdgeCount(), numPref + numExtraPref + -numDeleted);
 
         // Check that the links do not appear in the graph.
-        rnd.ints(1000, 0, numDeleted).forEach(i ->
-                                              {
-                                                  String user = prefsToDelete.get(i).v1;
-                                                  String item = prefsToDelete.get(i).v2;
+        if(numDeleted > 0)
+            rnd.ints(1000, 0, numDeleted).forEach(i ->
+            {
+                String user = prefsToDelete.get(i).v1;
+                String item = prefsToDelete.get(i).v2;
 
-                                                  double optional = graph.getEdgeWeight(user, item);
-                                                  assertEquals(optional, EdgeWeight.getErrorValue(), 0.00001);
-                                              });
+                double optional = graph.getEdgeWeight(user, item);
+                assertEquals(optional, EdgeWeight.getErrorValue(), 0.00001);
+            });
     }
 
     @Test
@@ -297,28 +307,28 @@ public class DirectedWeightedGraphTest
         // Generate a set of links between nodes
         List<Tuple3<String, String, Double>> prefs = new ArrayList<>();
         int numPref = IntStream.range(0, N - 1).map(i ->
-                                                    {
-                                                        String u = users.get(i);
-                                                        int K = rnd.nextInt(Math.min(500, N - i));
-                                                        Set<Integer> set = new HashSet<>();
-                                                        rnd.ints(K, 1, N - i).forEach(k ->
-                                                                                      {
-                                                                                          int aux = k;
-                                                                                          while (set.contains(aux))
-                                                                                          {
-                                                                                              aux = (aux + 1) % (N - i);
-                                                                                              if (aux == 0)
-                                                                                              {
-                                                                                                  aux++;
-                                                                                              }
-                                                                                          }
-                                                                                          set.add(aux);
-                                                                                          // Edge weights will be between 0 and 5
-                                                                                          prefs.add(new Tuple3<>(u, users.get(aux + i), 5 * rnd.nextDouble()));
-                                                                                      });
+        {
+            String u = users.get(i);
+            int K = rnd.nextInt(Math.min(500, N - i));
+            Set<Integer> set = new HashSet<>();
+            rnd.ints(K, 1, N - i).forEach(k ->
+            {
+                int aux = k;
+                while (set.contains(aux))
+                {
+                    aux = (aux + 1) % (N - i);
+                    if (aux == 0)
+                    {
+                        aux++;
+                    }
+                }
+                set.add(aux);
+                // Edge weights will be between 0 and 5
+                prefs.add(new Tuple3<>(u, users.get(aux + i), 5 * rnd.nextDouble()));
+            });
 
-                                                        return K;
-                                                    }).sum();
+            return K;
+        }).sum();
 
         double prob = rnd.nextDouble();
         List<Tuple3<String, String, Double>> mutualPrefs = new ArrayList<>();
@@ -327,34 +337,34 @@ public class DirectedWeightedGraphTest
 
         // Generate a random set of mutual dependencies
         int numMutualPref = prefs.stream().mapToInt(pref ->
-                                                    {
-                                                        if (!pref.v1.equals(pref.v2) && rnd.nextDouble() < prob)
-                                                        {
-                                                            mutualPrefs.add(new Tuple3<>(pref.v2, pref.v1, pref.v3));
-                                                            if (mutuals.containsKey(pref.v1))
-                                                            {
-                                                                mutuals.put(pref.v1, mutuals.get(pref.v1) + 1);
-                                                            }
-                                                            else
-                                                            {
-                                                                mutuals.put(pref.v1, 1);
-                                                            }
-                                                            if (mutuals.containsKey(pref.v2))
-                                                            {
-                                                                mutuals.put(pref.v2, mutuals.get(pref.v2) + 1);
-                                                            }
-                                                            else
-                                                            {
-                                                                mutuals.put(pref.v2, 1);
-                                                            }
-                                                            return 1;
-                                                        }
-                                                        else
-                                                        {
-                                                            nonMutualPrefs.add(pref);
-                                                        }
-                                                        return 0;
-                                                    }).sum();
+        {
+            if (!pref.v1.equals(pref.v2) && rnd.nextDouble() < prob)
+            {
+                mutualPrefs.add(new Tuple3<>(pref.v2, pref.v1, pref.v3));
+                if (mutuals.containsKey(pref.v1))
+                {
+                    mutuals.put(pref.v1, mutuals.get(pref.v1) + 1);
+                }
+                else
+                {
+                    mutuals.put(pref.v1, 1);
+                }
+                if (mutuals.containsKey(pref.v2))
+                {
+                    mutuals.put(pref.v2, mutuals.get(pref.v2) + 1);
+                }
+                else
+                {
+                    mutuals.put(pref.v2, 1);
+                }
+                return 1;
+            }
+            else
+            {
+                nonMutualPrefs.add(pref);
+            }
+            return 0;
+        }).sum();
 
         // Add the different edges: since we have created numPref different edges, they will all appear in the graph.
         prefs.forEach(tuple -> graph.addEdge(tuple.v1, tuple.v2, tuple.v3, EdgeType.getDefaultValue(), false));
@@ -364,15 +374,15 @@ public class DirectedWeightedGraphTest
         assertEquals(graph.getEdgeCount(), numPref + numMutualPref);
 
         IntStream.range(0, rnd.nextInt(1000)).forEach(i ->
-                                                      {
-                                                          int mutual = rnd.nextInt(numMutualPref);
-                                                          assertTrue(graph.isMutual(mutualPrefs.get(mutual).v1, mutualPrefs.get(mutual).v2));
-                                                          assertTrue(graph.isMutual(mutualPrefs.get(mutual).v2, mutualPrefs.get(mutual).v1));
-                                                          int nonmutual = rnd.nextInt(numPref - numMutualPref);
-                                                          assertTrue(graph.containsEdge(nonMutualPrefs.get(nonmutual).v1, nonMutualPrefs.get(nonmutual).v2));
-                                                          assertFalse(graph.isMutual(nonMutualPrefs.get(nonmutual).v1, nonMutualPrefs.get(nonmutual).v2));
-                                                          assertFalse(graph.isMutual(nonMutualPrefs.get(nonmutual).v2, nonMutualPrefs.get(nonmutual).v1));
-                                                      });
+        {
+            int mutual = rnd.nextInt(numMutualPref);
+            assertTrue(graph.isMutual(mutualPrefs.get(mutual).v1, mutualPrefs.get(mutual).v2));
+            assertTrue(graph.isMutual(mutualPrefs.get(mutual).v2, mutualPrefs.get(mutual).v1));
+            int nonmutual = rnd.nextInt(numPref - numMutualPref);
+            assertTrue(graph.containsEdge(nonMutualPrefs.get(nonmutual).v1, nonMutualPrefs.get(nonmutual).v2));
+            assertFalse(graph.isMutual(nonMutualPrefs.get(nonmutual).v1, nonMutualPrefs.get(nonmutual).v2));
+            assertFalse(graph.isMutual(nonMutualPrefs.get(nonmutual).v2, nonMutualPrefs.get(nonmutual).v1));
+        });
 
         mutuals.keySet().forEach(key -> assertEquals(graph.getMutualNodesCount(key), mutuals.get(key).intValue()));
     }

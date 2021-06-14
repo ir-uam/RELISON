@@ -78,23 +78,23 @@ public class DirectedUnweightedGraphTest
         // Generate a set of links between nodes (including autoloops)
         List<Tuple3<String, String, Double>> prefs = new ArrayList<>();
         int numPref = users.stream().mapToInt(u ->
-                                              {
-                                                  int K = rnd.nextInt(Math.min(500, N));
-                                                  Set<Integer> set = new HashSet<>();
-                                                  rnd.ints(K, 0, N).forEach(k ->
-                                                                            {
-                                                                                int aux = k;
-                                                                                while (set.contains(aux))
-                                                                                {
-                                                                                    aux = (aux + 1) % N;
-                                                                                }
-                                                                                set.add(aux);
-                                                                                // Edge weights will be between 0 and 5
-                                                                                prefs.add(new Tuple3<>(u, users.get(aux), 5 * rnd.nextDouble()));
-                                                                            });
+        {
+            int K = rnd.nextInt(Math.min(500, N));
+            Set<Integer> set = new HashSet<>();
+            rnd.ints(K, 0, N).forEach(k ->
+            {
+                int aux = k;
+                while (set.contains(aux))
+                {
+                    aux = (aux + 1) % N;
+                }
+                set.add(aux);
+                // Edge weights will be between 0 and 5
+                prefs.add(new Tuple3<>(u, users.get(aux), 5 * rnd.nextDouble()));
+            });
 
-                                                  return K;
-                                              }).sum();
+            return K;
+        }).sum();
 
         // Add the different edges: since we have created numPref different edges, they will all appear in the graph.
         prefs.forEach(tuple -> graph.addEdge(tuple.v1, tuple.v2, tuple.v3, EdgeType.getDefaultValue(), false));
@@ -104,43 +104,49 @@ public class DirectedUnweightedGraphTest
         assertEquals(graph.getVertexCount(), N);
         assertEquals(graph.getEdgeCount(), numPref);
 
+        if(numPref > 0)
         // Check that the graph has registered the edges, with their corresponding weights.       
-        rnd.ints(1000, 0, numPref).forEach(i ->
-                                           {
-                                               String user = prefs.get(i).v1;
-                                               String item = prefs.get(i).v2;
-                                               double val = prefs.get(i).v3;
+            rnd.ints(1000, 0, numPref).forEach(i ->
+            {
+                String user = prefs.get(i).v1;
+                String item = prefs.get(i).v2;
+                double val = prefs.get(i).v3;
 
-                                               double optional = graph.getEdgeWeight(user, item);
-                                               if (!EdgeWeight.isErrorValue(optional))
-                                               {
-                                                   assertEquals(EdgeWeight.getDefaultValue(), optional, 0.00001);
-                                               }
-                                               else
-                                               {
-                                                   fail();
-                                               }
-                                           });
+                double optional = graph.getEdgeWeight(user, item);
+                if (!EdgeWeight.isErrorValue(optional))
+                {
+                    assertEquals(EdgeWeight.getDefaultValue(), optional, 0.00001);
+                }
+                else
+                {
+                    fail();
+                }
+            });
 
         // Once this has been tested, we will just add some new extra preferences        
         List<Tuple3<String, String, Double>> extraPrefs = new ArrayList<>();
         int numExtraPref = users.stream().mapToInt(u ->
-                                                   {
-                                                       int K = rnd.nextInt(Math.min(100, N - graph.getAdjacentNodesCount(u)));
-                                                       Set<Integer> set = graph.getAdjacentNodes(u).map(graph::object2idx).collect(Collectors.toCollection(HashSet::new));
-                                                       rnd.ints(K, 0, N).forEach(k ->
-                                                                                 {
-                                                                                     int aux = k;
-                                                                                     while (set.contains(aux))
-                                                                                     {
-                                                                                         aux = (aux + 1) % N;
-                                                                                     }
-                                                                                     set.add(aux);
-                                                                                     extraPrefs.add(new Tuple3<>(u, users.get(aux), 5 * rnd.nextDouble()));
-                                                                                 });
+        {
+            if(N - graph.getAdjacentNodesCount(u) > 0)
+            {
+                int K = rnd.nextInt(Math.min(100, N - graph.getAdjacentNodesCount(u)));
+                Set<Integer> set = graph.getAdjacentNodes(u).map(graph::object2idx).collect(Collectors.toCollection(HashSet::new));
+                rnd.ints(K, 0, N).forEach(k ->
+                {
+                    int aux = k;
+                    while (set.contains(aux))
+                    {
+                        aux = (aux + 1) % N;
+                    }
+                    set.add(aux);
+                    extraPrefs.add(new Tuple3<>(u, users.get(aux), 5 * rnd.nextDouble()));
+                });
 
-                                                       return K;
-                                                   }).sum();
+                return K;
+            }
+
+            return 0;
+       }).sum();
 
         // We add the new preferences
         extraPrefs.forEach(tuple -> graph.addEdge(tuple.v1, tuple.v2, tuple.v3, EdgeType.getDefaultValue(), false));
@@ -150,61 +156,61 @@ public class DirectedUnweightedGraphTest
         {
             assertEquals(graph.getEdgeCount(), numPref + numExtraPref);
             rnd.ints(1000, 0, numExtraPref).forEach(i ->
-                                                    {
-                                                        String user = extraPrefs.get(i).v1;
-                                                        String item = extraPrefs.get(i).v2;
-                                                        double val = extraPrefs.get(i).v3;
+            {
+                String user = extraPrefs.get(i).v1;
+                String item = extraPrefs.get(i).v2;
+                double val = extraPrefs.get(i).v3;
 
-                                                        double optional = graph.getEdgeWeight(user, item);
-                                                        if (!EdgeWeight.isErrorValue(optional))
-                                                        {
-                                                            assertEquals(EdgeWeight.getDefaultValue(), optional, 0.00001);
-                                                        }
-                                                        else
-                                                        {
-                                                            fail();
-                                                        }
-                                                    });
+                double optional = graph.getEdgeWeight(user, item);
+                if (!EdgeWeight.isErrorValue(optional))
+                {
+                    assertEquals(EdgeWeight.getDefaultValue(), optional, 0.00001);
+                }
+                else
+                {
+                    fail();
+                }
+            });
         }
 
         // Now, let's check what happens when we try to access some invalid nodes / edges
         List<Tuple3<String, String, Double>> falsePrefs = new ArrayList<>();
         // We generate false links towards non-existing users.
         int falsePref = users.stream().mapToInt(u ->
-                                                {
-                                                    int K = rnd.nextInt(Math.min(50, N));
-                                                    Set<Integer> set = new HashSet<>();
-                                                    rnd.ints(K, 0, 200).forEach(k ->
-                                                                                {
-                                                                                    int aux = k;
-                                                                                    while (set.contains(aux))
-                                                                                    {
-                                                                                        aux = (aux + 1) % 200;
-                                                                                    }
-                                                                                    set.add(aux);
-                                                                                    falsePrefs.add(new Tuple3<>(u, Integer.toString(aux + N), 5 * rnd.nextDouble()));
-                                                                                });
+        {
+            int K = rnd.nextInt(Math.min(50, N));
+            Set<Integer> set = new HashSet<>();
+            rnd.ints(K, 0, 200).forEach(k ->
+            {
+                int aux = k;
+                while (set.contains(aux))
+                {
+                    aux = (aux + 1) % 200;
+                }
+                set.add(aux);
+                falsePrefs.add(new Tuple3<>(u, Integer.toString(aux + N), 5 * rnd.nextDouble()));
+            });
 
-                                                    return K;
-                                                }).sum();
+            return K;
+        }).sum();
         // And also from non-existing users
         falsePref += IntStream.range(N, N + 200).map(u ->
-                                                     {
-                                                         int K = rnd.nextInt(Math.min(50, N));
-                                                         Set<Integer> set = new HashSet<>();
-                                                         rnd.ints(K, 0, N).forEach(k ->
-                                                                                   {
-                                                                                       int aux = k;
-                                                                                       while (set.contains(aux))
-                                                                                       {
-                                                                                           aux = (aux + 1) % N;
-                                                                                       }
-                                                                                       set.add(aux);
-                                                                                       falsePrefs.add(new Tuple3<>(Integer.toString(u), Integer.toString(aux), 5 * rnd.nextDouble()));
-                                                                                   });
+        {
+            int K = rnd.nextInt(Math.min(50, N));
+            Set<Integer> set = new HashSet<>();
+            rnd.ints(K, 0, N).forEach(k ->
+            {
+                int aux = k;
+                while (set.contains(aux))
+                {
+                    aux = (aux + 1) % N;
+                }
+                set.add(aux);
+                falsePrefs.add(new Tuple3<>(Integer.toString(u), Integer.toString(aux), 5 * rnd.nextDouble()));
+            });
 
-                                                         return K;
-                                                     }).sum();
+             return K;
+        }).sum();
 
         // Now, we try to add all the links to the graph.
         falsePrefs.forEach(tuple -> graph.addEdge(tuple.v1, tuple.v2, tuple.v3, EdgeType.getDefaultValue(), false));
@@ -212,41 +218,46 @@ public class DirectedUnweightedGraphTest
         assertEquals(graph.getVertexCount(), N);
         assertEquals(graph.getEdgeCount(), numPref + numExtraPref);
 
+
+        if(falsePref > 0)
         // We check that none of the false links appear in the graph.
-        rnd.ints(1000, 0, falsePref).forEach(i ->
-                                             {
-                                                 String user = falsePrefs.get(i).v1;
-                                                 String item = falsePrefs.get(i).v2;
-                                                 double val = falsePrefs.get(i).v3;
+        {
+            rnd.ints(1000, 0, falsePref).forEach(i ->
+            {
+                String user = falsePrefs.get(i).v1;
+                String item = falsePrefs.get(i).v2;
+                double val = falsePrefs.get(i).v3;
 
-                                                 double optional = graph.getEdgeWeight(user, item);
-                                                 assertEquals(optional, EdgeWeight.getErrorValue(), 0.00001);
-                                             });
+                double optional = graph.getEdgeWeight(user, item);
+                assertEquals(optional, EdgeWeight.getErrorValue(), 0.00001);
+            });
 
-        // Now, we do add the new users and edges.
-        List<String> extraUsers = IntStream.range(N, N + 200).mapToObj(Integer::toString).collect(toList());
-        Collections.shuffle(extraUsers);
-        extraUsers.forEach(graph::addNode);
 
-        falsePrefs.forEach(t -> graph.addEdge(t.v1, t.v2, t.v3, EdgeType.getDefaultValue(), false));
+            // Now, we do add the new users and edges.
+            List<String> extraUsers = IntStream.range(N, N + 200).mapToObj(Integer::toString).collect(toList());
+            Collections.shuffle(extraUsers);
+            extraUsers.forEach(graph::addNode);
 
-        // We check the new number of edges and nodes.
-        assertEquals(graph.getVertexCount(), N + 200);
-        assertEquals(graph.getEdgeCount(), numPref + numExtraPref + falsePref);
-        // and whether the new edges are in the network or not.
-        rnd.ints(1000, 0, falsePref).forEach(i ->
-                                             {
-                                                 String user = falsePrefs.get(i).v1;
-                                                 String item = falsePrefs.get(i).v2;
-                                                 double val = falsePrefs.get(i).v3;
+            falsePrefs.forEach(t -> graph.addEdge(t.v1, t.v2, t.v3, EdgeType.getDefaultValue(), false));
 
-                                                 double optional = graph.getEdgeWeight(user, item);
-                                                 assertEquals(optional, EdgeWeight.getDefaultValue(), 0.00001);
-                                             });
+            // We check the new number of edges and nodes.
+            assertEquals(graph.getVertexCount(), N + 200);
+            assertEquals(graph.getEdgeCount(), numPref + numExtraPref + falsePref);
+            // and whether the new edges are in the network or not.
+            rnd.ints(1000, 0, falsePref).forEach(i ->
+            {
+                String user = falsePrefs.get(i).v1;
+                String item = falsePrefs.get(i).v2;
+                double val = falsePrefs.get(i).v3;
 
-        // We delete some users from the graph. We delete every user which was added before (N, N+200)
-        Collections.shuffle(extraUsers);
-        extraUsers.forEach(u -> assertTrue(graph.removeNode(u)));
+                double optional = graph.getEdgeWeight(user, item);
+                assertEquals(optional, EdgeWeight.getDefaultValue(), 0.00001);
+            });
+
+            // We delete some users from the graph. We delete every user which was added before (N, N+200)
+            Collections.shuffle(extraUsers);
+            extraUsers.forEach(u -> assertTrue(graph.removeNode(u)));
+        }
 
         // We check that the graph has the same users and edges before the deletion.
         assertEquals(graph.getVertexCount(), N);
@@ -255,20 +266,20 @@ public class DirectedUnweightedGraphTest
         // Finally, we select some of the links in the graph for deletion:
         List<Tuple2<String, String>> prefsToDelete = new ArrayList<>();
         int numDeleted = users.stream().mapToInt(u ->
-                                                 {
-                                                     int count = graph.getAdjacentNodesCount(u);
-                                                     if (count > 0)
-                                                     {
-                                                         int K = rnd.nextInt(Math.min(20, graph.getAdjacentNodesCount(u)));
-                                                         List<String> ls = new ArrayList<>();
-                                                         graph.getAdjacentNodes(u).forEach(ls::add);
-                                                         Collections.shuffle(ls);
+        {
+            int count = graph.getAdjacentNodesCount(u);
+            if (count > 0)
+            {
+                int K = rnd.nextInt(Math.min(20, graph.getAdjacentNodesCount(u)));
+                List<String> ls = new ArrayList<>();
+                graph.getAdjacentNodes(u).forEach(ls::add);
+                Collections.shuffle(ls);
 
-                                                         ls.subList(0, K).forEach(pref -> prefsToDelete.add(new Tuple2<>(u, pref)));
-                                                         return K;
-                                                     }
-                                                     return 0;
-                                                 }).sum();
+                ls.subList(0, K).forEach(pref -> prefsToDelete.add(new Tuple2<>(u, pref)));
+                return K;
+            }
+            return 0;
+         }).sum();
 
         // We remove them
         prefsToDelete.forEach(pref -> graph.removeEdge(pref.v1, pref.v2));
@@ -278,14 +289,15 @@ public class DirectedUnweightedGraphTest
         assertEquals(graph.getEdgeCount(), numPref + numExtraPref + -numDeleted);
 
         // Check that the links do not appear in the graph.
+        if(numDeleted > 0)
         rnd.ints(1000, 0, numDeleted).forEach(i ->
-                                              {
-                                                  String user = prefsToDelete.get(i).v1;
-                                                  String item = prefsToDelete.get(i).v2;
+        {
+            String user = prefsToDelete.get(i).v1;
+            String item = prefsToDelete.get(i).v2;
 
-                                                  double optional = graph.getEdgeWeight(user, item);
-                                                  assertEquals(optional, EdgeWeight.getErrorValue(), 0.00001);
-                                              });
+            double optional = graph.getEdgeWeight(user, item);
+            assertEquals(optional, EdgeWeight.getErrorValue(), 0.00001);
+        });
     }
 
     @Test
