@@ -59,9 +59,9 @@ mvn install
 Once it is installed in your Maven library, you can import the package you are interested to use in your project 
 adding the following dependence.
 ```
-    <artifactId>Relison-[package-name]</artifactId>
+    <artifactId>RELISON-[package-name]</artifactId>
     <groupId>es.uam.eps.ir</groupId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 ```
 We plan to add the library to Maven Central in the future, but, as of now, it is not available there. 
 
