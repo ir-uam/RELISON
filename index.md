@@ -1,37 +1,87 @@
-## Welcome to GitHub Pages
+ <style>
+      body {
+          background-color: #fff;
+      }
 
-You can use the [editor on GitHub](https://github.com/ir-uam/RELISON/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+      #title {
+          font-weight: bold;
+          font-size: 16pt;
+      }
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+      .btn-description {
+          display: none;
+      }
 
-### Markdown
+      #logo {
+          width: 50%;
+          padding-right: 5px;
+          padding-bottom: 5px;
+          padding-top: 5px;
+      }
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+      #description {
+          width: 50%;
+          padding-left: 5px;
+      }
 
-```markdown
-Syntax highlighted code block
+      @media (min-width: 384px) {
+          #title {
+              font-weight: bold;
+              font-size: 24pt;
+          }
 
-# Header 1
-## Header 2
-### Header 3
+          #logo {
+              width: 33%;
+              padding-right: 10px;
+              padding-bottom: 10px;
+              padding-top: 10px;
+          }
 
-- Bulleted
-- List
+          #description {
+              width: 66%;
+              padding-left: 10px;
+          }
 
-1. Numbered
-2. List
+      }
 
-**Bold** and _Italic_ and `Code` text
+      @media (min-width: 768px) {
+          #title {
+              font-weight: bold;
+              font-size: 32pt;
+          }
 
-[Link](url) and ![Image](src)
-```
+          #logo {
+              width: 25%;
+              padding-right: 10px;
+              padding-bottom: 10px;
+              padding-top: 10px;
+          }
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+          #description {
+              width: 75%;
+              padding-left: 10px;
+          }
 
-### Jekyll Themes
+          .btn-description {
+              display: initial;
+              vertical-align: middle;
+              padding-left: 1px;
+          }
+      }
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/ir-uam/RELISON/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+      .vcenter {
+          display: inline-block;
+          vertical-align: middle;
+          float: none;
+      }
+    </style> 
 
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+ <div class="row">
+        <div class="col-xs-12 col-md-8 col-md-offset-2">
+          <div class="btn-group btn-group-justified" role="group">
+            <a class="btn btn-default" href="https://github.com/ir-uam/RELISON" role="button"><img src="images/octocat-icon.png" alt="See source in GitHub"/><span class="btn-description">GitHub</span></a>
+            <a class="btn btn-default" href="https://relison.readthedocs.io" role="button"><img src="images/references.png" alt="Manual"/><span class="btn-description">Manual</span></a>
+            <a class="btn btn-default" href="javadoc/" role="button"><img src="images/javadoc.png" alt="See Javadoc"/><span class="btn-description">Javadoc</span></a>
+          </div>
+        </div>
+      </div>
