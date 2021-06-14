@@ -9,7 +9,7 @@
 
 /**
  * Classes and interfaces for configuration files for social network analysis. In particular, 
- * configuration files for the different community-based metrics to execute.
- * @see es.uam.eps.ir.relison.metrics.communities
+ * configuration files for the different global community-based metrics using the Gini index to execute.
+ * @see es.uam.eps.ir.relison.sna.metrics.communities.graph.gini
  */
-package es.uam.eps.ir.relison.grid.sna.comm;
+package es.uam.eps.ir.relison.grid.sna.comm.global.gini;
