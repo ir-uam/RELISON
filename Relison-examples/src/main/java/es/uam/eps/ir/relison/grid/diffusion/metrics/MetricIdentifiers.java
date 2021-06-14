@@ -18,42 +18,41 @@ public class MetricIdentifiers
 {
     // Parameter metrics
     public final static String RECALL = "Feature recall";
+    public final static String GINI = "Individual feature Gini complement";
+    public final static String GLOBALGINI = "Global feature Gini complement";
+    public final static String GLOBALUSERGINI = "Global feature user Gini complement";
 
-    public final static String GINI = "Feature Gini";
-    public final static String GLOBALGINI = "Global feature Gini";
-    public final static String GLOBALUSERGINI = "Global feature user Gini";
-    
-    public final static String EXTRATE = "External feature rate";
+    // External features
+    public final static String EXTRATE = "Individual external feature rate";
     public final static String GLOBALEXTRATE = "Global external feature rate";
-
-    public final static String EXTGINI = "External feature Gini";
     public final static String EXTRECALL = "External feature recall";
-    public final static String GLOBALEXTGINI = "Global external feature Gini";
+    public final static String EXTGINI = "Individual external feature Gini complement";
+    public final static String GLOBALEXTGINI = "Global external feature Gini complement";
     
     public final static String ENTROPY = "Feature entropy";
     public final static String GLOBALENTROPY = "Global feature entropy";
-    public final static String GLOBALUSERENTROPY = "Global Feature user entropy";
+    public final static String GLOBALUSERENTROPY = "Global feature user entropy";
     
-    public final static String KLD = "KLD";
-    public final static String INVKLD = "Inverse KLD";
-    public final static String GLOBALKLD = "Global KLD";
-    public final static String GLOBALKLDINVERSE = "Global inverse KLD";
-    
-    public final static String USERFEATURECOUNT = "User feature count";
-    public final static String USERFEATUREGINI = "User feature Gini";
+    public final static String KLD = "Individual feature KLD";
+    public final static String GLOBALKLD = "Global feature KLD";
+
+    public final static String USERFEATURECOUNT = "User-feature count";
+    public final static String USERFEATUREGINI = "User-feature Gini complement";
 
     // Information pieces metrics
-    public final static String USERSPEED = "Average speed";
+    public final static String USERSPEED = "Information count";
     public final static String SPEED = "Speed";
-    public final static String INFOGINI = "Information Gini";
+    public final static String INFOGINI = "Information Gini complement";
     
-    public final static String REALPROPRECALL = "Real propagated recall";
+    public final static String REALPROPRECALL = "Individual real propagated recall";
     public final static String GLOBALREALPROPRECALL = "Global real propagated recall";
     // User metrics
-    public final static String USERGLOBALGINI = "Global user Gini";
-    public final static String USERRECALL = "User recall";
-    public final static String USERGLOBALENTROPY = "Global user entropy";
-    
+    public final static String USERGLOBALGINI = "Global creator Gini complement";
+    public final static String USERINDIVGINI = "Individual creator Gini complement";
+    public final static String USERRECALL = "Creator recall";
+    public final static String USERGLOBALENTROPY = "Global creator entropy";
+    public final static String USERINDIVENTROPY = "Individual creator entropy";
+
     /**
      * Prints the list of available metrics
      */
@@ -62,8 +61,10 @@ public class MetricIdentifiers
         System.out.println("Metrics:");
         System.out.println("\tUser metrics:");
         System.out.println("\t\t" + USERGLOBALGINI);
+        System.out.println("\t\t" + USERINDIVGINI);
         System.out.println("\t\t" + USERRECALL);
         System.out.println("\t\t" + USERGLOBALENTROPY);
+        System.out.println("\t\t" + USERINDIVENTROPY);
         System.out.println("\tInformation pieces metrics:");
         System.out.println("\t\t" + USERSPEED);
         System.out.println("\t\t" + SPEED);
@@ -81,9 +82,7 @@ public class MetricIdentifiers
         System.out.println("\t\t" + EXTRATE);
         System.out.println("\t\t" + GLOBALEXTRATE);
         System.out.println("\t\t" + KLD);
-        System.out.println("\t\t" + INVKLD);
         System.out.println("\t\t" + GLOBALKLD);
-        System.out.println("\t\t" + GLOBALKLDINVERSE);
         System.out.println();
     }
 }

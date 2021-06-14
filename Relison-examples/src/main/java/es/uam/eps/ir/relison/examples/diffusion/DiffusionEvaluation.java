@@ -53,22 +53,27 @@ public class DiffusionEvaluation
      * Evaluates a group of simulations
      * @param args Execution parameters
      * <ol>
-     *  <li><b>User Index Path:</b> Route to the file containing the list of users</li>
-     *  <li><b>Information Index Path:</b> Route to the file containing the identifiers of the information pieces</li>
-     *  <li><b>Graph file:</b> The route to the file where the training graph is stored </li>
-     *  <li><b>Multigraph:</b> True if the graph is multigraph, false if it is not.</li>
-     *  <li><b>Directed:</b> True if the graph is directed, false if it is not</li>
-     *  <li><b>Weighted:</b> True if the graph is weighted, false if it is not</li>
-     *  <li><b>Read Types:</b> True if the types of the edges have to be read, false it not</li>
-     *  <li><b>Recommendation file:</b> File containing the recommended files, in TREC format</li>
-     *  <li><b>Top N:</b> The maximum number of links to pick on each recommendation</li>
-     *  <li><b>Information file: </b> Route to the file where the relation between users and information pieces is stored </li>
-     *  <li><b>User feature files: </b> Separated by commas, the list of files which contain the features for the nodes in the graph </li>
-     *  <li><b>Information pieces features files: </b> Separated by commas, the list of files containing the features for the information pieces</li>
-     *  <li><b>Real propagated information:</b> A file containing a relation between users and propagated information</li>
-     *  <li><b>Configuration:</b> Configuration file for the simulations to run</li>
-     *  <li><b>Input folder: </b> Folder in which the simulations are stored.</li>
-     *  <li><b>Output folder: </b> Folder in which the output metrics files will be stored.</li>
+     *  <li><b>configuration:</b> a YAML file containing the evaluation metrics and distributions.</li>
+     *  <li><b>graphFile:</b> path to a file containing the graph.</li>
+     *  <li><b>multigraph:</b> true if the graph has multiple edges between users, false otherwise.</li>
+     *  <li><b>directed:</b> true if the graph is directed, false otherwise.</li>
+     *  <li><b>weighted:</b> true if the graph is weighted, false otherwise.</li>
+     *  <li><b>selfLoops:</b> true if the graph accepts selfloops, false otherwise.</li>
+     *  <li><b>readTypes:</b> true if the graph types have to be read from the file, false otherwise.</li>
+     *  <li><b>uIndexPath:</b> route of a file containing the list of users.</li>
+     *  <li><b>iIndexPath:</b> route of a file containing the list of identifiers of the different information pieces.</li>
+     *  <li><b>inputFolder:</b> directory containing the simulations to evaluate.</li>
+     *  <li><b>outputFolder:</b> directory to store the evaluation results.</li>
+     *  <li><b>infoFile:</b> file containing the relation between users and information pieces.</li>
+     *  <li><b>Optional arguments:</b>
+     *      <ul>
+     *          <li><b>-rec recFile:</b> path to a recommendation file, whose edges will be added to the network.</li>
+     *          <li><b>-n n:</b> the number of links (per user) to add from the recommendation (if any). By default: 10</li>
+     *          <li><b>-test-graph file:</b> a folder to a network file containing additional edges (and shall be used for filtering the recommended edges to add).</li>
+     *          <li><b>-userfeats file1,file2,...,fileN:</b> a comma-separated list of files containing the features for the users in the network (e.g. communities).</li>
+     *          <li><b>-infofeats file1,file2,...,fileN:</b> a comma-separated list of files containing the features for the information pieces (e.g. hashtags).</li>
+     *          <li><b>-realprop file:</b> a file indicating which information pieces have been repropagated by users in another information diffusion process.</li>
+     *      </ul></li>
      * </ol>
      * @throws IOException if something fails while reading / writing data
      */
@@ -87,9 +92,9 @@ public class DiffusionEvaluation
             System.err.println("\treadTypes: true if the graph types have to be read from the file, false otherwise.");
             System.err.println("\tuIndexPath: route of a file containing the list of users.");
             System.err.println("\tiIndexPath: route of a file containing the list of identifiers of the different information pieces.");
-            System.err.println("\tinfoFile: file containing the relation between users and information pieces.");
             System.err.println("\tinputFolder: a directory containing the simulations to evaluate.");
             System.err.println("\toutputFolder: a directory for storing the outcome of the evaluation.");
+            System.err.println("\tinputFolder: a directory containing the simulations to evaluate.");
             System.err.println("Optional arguments:");
             System.err.println("\t" + REC + " recFile: path to a recommendation file, whose edges will be added to the network.");
             System.err.println("\t" + N + " n: the number of links (per user) to add from the recommendation (if any). By default: 10");
@@ -248,13 +253,13 @@ public class DiffusionEvaluation
             String file = f.getAbsolutePath();
             if(f.isDirectory()) continue;
 
-            String[] split = file.split(File.pathSeparator);
+            String[] split = file.split("/");
             //String[] split = file.split("\\Q\\\\E");
             String outputFile = split[split.length - 1];
 
             // First, read the simulation:
             SimulationReader<Long,Long,Long> sreader = new BinarySimulationReader<>();
-            sreader.initialize(inputFolder + file);
+            sreader.initialize(file);
             Simulation<Long,Long,Long> sim = sreader.readSimulation(filteredData);
             System.out.println("Simulation " + outputFile + " read");
 

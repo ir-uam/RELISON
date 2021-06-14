@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -38,25 +38,18 @@ public class DistributionSelector<U extends Serializable,I extends Serializable,
      */
     public Tuple3<String, Distribution<U,I, F>, List<Integer>> select(String name, Parameters params, List<Integer> times)
     {
-        DistributionConfigurator<U,I, F> conf;
-        switch(name)
+        DistributionConfigurator<U,I, F> conf = switch (name)
         {
-            case INFOFEATS:
-                conf = new InfoFeatureDistributionConfigurator<>();
-                break;
-            case USERFEATS:
-                conf = new UserFeatDistributionConfigurator<>();
-                break;
-            case INFORMATION:
-                conf = new InfoPiecesDistributionConfigurator<>();
-                break;
-            case MIXEDFEATS:
-                conf = new MixedParamDistributionConfigurator<>();
-                break;
-            default:
-                return null;
-        }
-        
+            case INFOFEATS -> new InfoFeatureDistributionConfigurator<>();
+            case USERFEATS -> new UserFeatDistributionConfigurator<>();
+            case INFORMATION -> new InfoPiecesDistributionConfigurator<>();
+            case MIXEDFEATS -> new MixedParamDistributionConfigurator<>();
+            case USERS -> new UserDistributionConfigurator<>();
+            default -> null;
+        };
+
+        if(conf == null) return null;
+
         Distribution<U,I, F> propagation = conf.configure(params);
         return new Tuple3<>(propagation.getName(), propagation, times);
     }

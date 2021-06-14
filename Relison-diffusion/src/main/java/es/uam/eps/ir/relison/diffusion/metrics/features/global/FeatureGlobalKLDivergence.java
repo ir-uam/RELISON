@@ -31,7 +31,7 @@ public class FeatureGlobalKLDivergence<U extends Serializable,I extends Serializ
     /**
      * Name fixed value.
      */
-    private final static String ENTROPY = "feat-gl-kld";
+    private final static String ENTROPY = "global-feat-kld";
     
     /**
      * Constructor.

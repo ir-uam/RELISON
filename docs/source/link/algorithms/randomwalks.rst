@@ -226,6 +226,7 @@ Parameters
 ^^^^^^^^^^
 * :code:`maxLength`: importance of the Laplacian matrix.
 * :code:`orientation`: the method to choose the orientation of the paths.
+
     * :code:`IN`: the walker advances through incoming edges.
     * :code:`OUT`: the walker advances through outgoing edges.
     * :code:`UND`: the walker advances through any edge.

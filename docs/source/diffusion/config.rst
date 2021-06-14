@@ -22,7 +22,7 @@ where:
 * :code:`info`: a path containing the user-generated contents.
 * Optional arguments:
     * :code:`-rec rec-file`: path to a recommendation file, whose edges will be added to the network.
-    * :code:`-n n: the number of links (per user) to add from the recommendation (if any). By default: 10.
+    * :code:`-n` n: the number of links (per user) to add from the recommendation (if any). By default: 10.
     * :code:`-test-graph file`: route to a network file containing additional edges (and shall be used for filtering the recommended edges to add).
     * :code:`-userfeats file1,file2,...,fileN`: a comma-separated list of files containing the features for the users in the network (e.g. communities).
     * :code:`-infofeats file1,file2,...,fileN`: a comma-separated list of files containing the features for the information pieces (e.g. hashtags).
@@ -93,8 +93,9 @@ As we can see in the previous code, each element in the list corresponds to a di
 * **filter:** modifies the input data. For instance, it just considers information pieces created before a given timestamp.
 * **stop:** the stop condition of the simulation (after no information is propagated, after a given timestamp is reached...)
 * **protocol:** the simulation protocol. Indicates how the information travels through the network. We differentiate two types of protocol:
-    *preconfigured*: the protocol is fully implemented in the library
-    *custom*: we build a new protocol by combining its different elements.
+
+   * *preconfigured*: the protocol is fully implemented in the library
+   * *custom*: we build a new protocol by combining its different elements.
 
 Input files
 ~~~~~~~~~~~~

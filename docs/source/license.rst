@@ -1,7 +1,7 @@
 License
 ========
 
-Copyright (C) 2020 Information Retrieval Group at Universidad Autónoma de Madrid, http://ir.ii.uam.es.
+Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma de Madrid, http://ir.ii.uam.es.
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,6 @@ Contact
 ========
 Questions? Please contact
 
-Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
-
-Pablo Castells (pablo.castells@uam.es)
+* Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+* Pablo Castells (pablo.castells@uam.es)
 

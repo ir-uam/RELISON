@@ -46,7 +46,7 @@ Information pieces file
 ~~~~~~~~~~~~~~~~~~~~~~~~
 The information pieces (individual user-generated contents) file needs to have the following format (CSV divided by tabs):
 
-.. code:: txt
+.. code::
 
     infoId  userId  text  reprCount  likeCount  created  truncated
 

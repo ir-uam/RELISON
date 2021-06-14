@@ -15,7 +15,7 @@ algorithms:
   BM25:
     uSel:
       type: orientation
-      values: UND
+      values: OUT
     vSel:
       type: orientation
       values: IN

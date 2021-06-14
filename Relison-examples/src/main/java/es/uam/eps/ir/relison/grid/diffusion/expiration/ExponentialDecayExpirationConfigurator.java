@@ -32,7 +32,7 @@ public class ExponentialDecayExpirationConfigurator<U extends Serializable,I ext
     /**
      * Identifier for the half life of the expiration of an information piece.
      */
-    private final static String HALFLIFE = "halfLife";
+    private final static String HALFLIFE = "half-life";
 
     @Override
     public ExpirationMechanism<U, I, F> configure(Parameters params)

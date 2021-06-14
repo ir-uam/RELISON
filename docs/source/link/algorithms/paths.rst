@@ -19,6 +19,7 @@ Parameters
 ^^^^^^^^^^
 * :code:`phi`: decay factor for the similarity as we use longer paths between the users. 
 * :code:`orientation`: the method to choose the adjacency matrix. This parameter does not influence in undirected networks.
+
     * :code:`IN`: coordinate :math:`A_{ij}` shows the weight of the :math:`(j,i)` edge.
     * :code:`OUT`: coordinate :math:`A_{ij}` shows the weight of the :math:`(i,j)` edge.
     * :code:`UND`: coordinate :math:`A_{ij}` shows the sum of the weights of the :math:`(i,j)` and :math:`(j,i)` edges.
@@ -50,6 +51,7 @@ Parameters
 ^^^^^^^^^^
 * :code:`b`: decay factor for the greater distance paths.
 * :code:`orientation`: the method to choose the adjacency matrix. This parameter does not influence in undirected networks.
+
     * :code:`IN`: coordinate :math:`A_{ij}` shows the weight of the :math:`(j,i)` edge.
     * :code:`OUT`: coordinate :math:`A_{ij}` shows the weight of the :math:`(i,j)` edge.
     * :code:`UND`: coordinate :math:`A_{ij}` shows the sum of the weights of the :math:`(i,j)` and :math:`(j,i)` edges.
@@ -81,6 +83,7 @@ Parameters
 * :code:`b`: decay factor for the greater distance paths.
 * :code:`k`: the maximum distance between the target and candidate users (greater or equal than 3).
 * :code:`orientation`: the method to choose the adjacency matrix. This parameter does not influence in undirected networks.
+
     * :code:`IN`: coordinate :math:`A_{ij}` shows the weight of the :math:`(j,i)` edge.
     * :code:`OUT`: coordinate :math:`A_{ij}` shows the weight of the :math:`(i,j)` edge.
     * :code:`UND`: coordinate :math:`A_{ij}` shows the sum of the weights of the :math:`(i,j)` and :math:`(j,i)` edges.
@@ -114,6 +117,7 @@ Parameters
 ^^^^^^^^^^
 * :code:`alpha`: importance of the Laplacian matrix.
 * :code:`orientation`: the method to choose the adjacency matrix. This parameter does not influence in undirected networks.
+
     * :code:`IN`: coordinate :math:`A_{ij}` shows the weight of the :math:`(j,i)` edge.
     * :code:`OUT`: coordinate :math:`A_{ij}` shows the weight of the :math:`(i,j)` edge.
     * :code:`UND`: coordinate :math:`A_{ij}` shows the sum of the weights of the :math:`(i,j)` and :math:`(j,i)` edges.
@@ -143,6 +147,7 @@ This algorithm represents each user by the u-th row of the pseudo-inverse of the
 Parameters
 ^^^^^^^^^^
 * :code:`orientation`: the method to choose the adjacency matrix. This parameter does not influence in undirected networks.
+
     * :code:`IN`: coordinate :math:`A_{ij}` shows the weight of the :math:`(j,i)` edge.
     * :code:`OUT`: coordinate :math:`A_{ij}` shows the weight of the :math:`(i,j)` edge.
     * :code:`UND`: coordinate :math:`A_{ij}` shows the sum of the weights of the :math:`(i,j)` and :math:`(j,i)` edges.
@@ -171,6 +176,7 @@ The shortest path distance recommends people in the network who are close to the
 Parameters
 ^^^^^^^^^^
 * :code:`orientation`: the orientation to choose for the edges.
+
     * :code:`IN`: it considers the distance between the candidate user and the target user.
     * :code:`OUT`: it considers the distance between the target and the candidate user.
     * :code:`UND`: it considers the distance between the target and candidate users if the network was undirected.

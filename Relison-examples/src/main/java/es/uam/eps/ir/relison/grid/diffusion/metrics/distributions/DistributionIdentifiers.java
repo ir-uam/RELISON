@@ -19,6 +19,7 @@ public class DistributionIdentifiers
     public final static String USERFEATS = "User features";
     public final static String INFORMATION = "Information";
     public final static String MIXEDFEATS = "Mixed features";
+    public final static String USERS = "Users";
     
     /**
      * Prints the list of available distributions
@@ -30,6 +31,7 @@ public class DistributionIdentifiers
         System.out.println("\t" + USERFEATS + "\n");
         System.out.println("\t" + INFORMATION + "\n");
         System.out.println("\t" + MIXEDFEATS + "\n");
+        System.out.println("\t" + USERS + "\n");
         System.out.println();
     }
 }

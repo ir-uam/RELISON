@@ -2,10 +2,10 @@ Simulation description
 =======================
 In order to use the information diffusion simulations, it is important to understand how they work, so they can be properly configured. Our simulations consider that time is discrete: they are divided in time steps, where information is exchanged between the users (no information is spread in the network between two consecutive iterations of the process). Then, in this section, we describe a single information diffusion step.
 
-* `Spreading information`_
-* `Receiving information`_
+* `Information spread`_
+* `Information reception`_
 
-Spreading information
+Information spread
 ^^^^^^^^^^^^^^^^^^^^^^
 We illustrate in the following feature the process for spreading information pieces to different people in the network:
 
@@ -28,7 +28,7 @@ Once the elements have been selected, it is necessary to choose the users who sh
 But, once the user has propagated some information, we pass all the non-propagated information pieces coming from the *received* list, and we establish if we are going to be able to propagate them in future iterations. For this, we use what we call an **expiration mechanism**. This expiration mechanism determines (using some properties of the piece, like the time it has been in the received list, the author of the piece, etc.) whether the user might be able to share the 
 information in the future (and, as such, it returns to the *received* list), or not (and the piece is removed from that list).
 
-Receiving information
+Information reception
 ^^^^^^^^^^^^^^^^^^^^^^
 Users store all the received information in a user-generated content list, named the *received list*. We need to describe how pieces manage to reach the *received* list. We illustrate this in the following figure:
 

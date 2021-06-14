@@ -34,7 +34,7 @@ shortest paths which pass through node :math:`u`.
 Parameters
 ^^^^^^^^^^
 
-* *normalize:* true if we want to normalize the coefficient, false otherwise.
+* :code:`normalize`: true if we want to normalize the coefficient, false otherwise.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -88,11 +88,12 @@ The coreness of a node measures the maximum k-core it belongs to. A k-core is a 
 Parameters
 ^^^^^^^^^^
 
-* *orientation:* selection of the neighborhood of the node we want to use for computing the degrees. In undirected neighbors, the value of the degree does not change when this parameter does. This is only useful in directed networks. This allows the following parameters:
-    * IN: for using the in-degree.
-    * OUT: for using the out-degree.
-    * UND: for using the degree :math:`\mbox{degree}(u) = \mbox{in-degree}(u) + \mbox{out-degree}(u)`
-    * MUTUAL: for using the number of reciprocated links.
+* :code:`orientation`: selection of the neighborhood of the node we want to use for computing the degrees. In undirected neighbors, the value of the degree does not change when this parameter does. This is only useful in directed networks. This allows the following parameters:
+
+    * :code:`IN`: for using the in-degree.
+    * :code:`OUT`: for using the out-degree.
+    * :code:`UND`: for using the degree :math:`\mbox{degree}(u) = \mbox{in-degree}(u) + \mbox{out-degree}(u)`
+    * :code:`MUTUAL`: for using the number of reciprocated links.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -138,11 +139,12 @@ is not properly defined.
 Parameters
 ^^^^^^^^^^
 
-* *orientation:* selection of the neighborhood of the node we want to use for computing the degree. In undirected neighbors, the value of the degree does not change when this parameter does. This is only useful in directed networks. This allows the following parameters:
-    * IN: for computing the in-degree.
-    * OUT: for computing the out-degree.
-    * UND: :math:`\mbox{degree}(u) = \mbox{in-degree}(u) + \mbox{out-degree}(u)`
-    * MUTUAL: only counts reciprocated links.
+* :code:`orientation`: selection of the neighborhood of the node we want to use for computing the degree. In undirected neighbors, the value of the degree does not change when this parameter does. This is only useful in directed networks. This allows the following parameters:
+
+    * :code:`IN`: for computing the in-degree.
+    * :code:`OUT`: for computing the out-degree.
+    * :code:`UND`: for computing the degree :math:`\mbox{degree}(u) = \mbox{in-degree}(u) + \mbox{out-degree}(u)`
+    * :code:`MUTUAL`: for just counting the number of reciprocated links.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -227,11 +229,12 @@ of the eigenvector associated to the largest eigenvalue of the adjacency matrix.
 Parameters
 ^^^^^^^^^^
 
-* *orientation:* selection of the neighborhood of the node we use for determining the adjacency matrix. In undirected neighbors, the adjacency matrix does not change when this parameter does. This is only useful in directed networks. This allows the following parameters:
-    * IN: :math:`A_uv = w(v,u)`
-    * OUT: :math:`A_uv = w(u,v)`
-    * UND: :math:`A_uv = w(u,v) + w(v,u)`
-    * MUTUAL: :math:`A_uv = w(u,v) + w(v,u)`, but only if :math:`w(u,v)\cdot w(v,u) > 0`
+* :code:`orientation`: selection of the neighborhood of the node we use for determining the adjacency matrix. In undirected neighbors, the adjacency matrix does not change when this parameter does. This is only useful in directed networks. This allows the following parameters:
+
+    * :code:`IN`: :math:`A_uv = w(v,u)`
+    * :code:`OUT`: :math:`A_uv = w(u,v)`
+    * :code:`UND`: :math:`A_uv = w(u,v) + w(v,u)`
+    * :code:`MUTUAL`: :math:`A_uv = w(u,v) + w(v,u)`, but only if :math:`w(u,v)\cdot w(v,u) > 0`
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -302,7 +305,7 @@ After each iteration, the scores are normalized.
 Parameters
 ^^^^^^^^^^
 
-* *mode:* indicates whether we want to compute the authority scores (true) or the hub scores (false)
+* :code:`mode`: indicates whether we want to compute the authority scores (true) or the hub scores (false)
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -338,12 +341,13 @@ determine how important long paths are.
 Parameters
 ^^^^^^^^^^
 
-* *orientation:* selection of the neighborhood of the node we use for determining the adjacency matrix. In undirected neighbors, the adjacency matrix does not change when this parameter does. This is only useful in directed networks. This allows the following parameters:
-    * IN: :math:`A_{uv} = w(v,u)`
-    * OUT: :math:`A_{uv} = w(u,v)`
-    * UND: :math:`A_{uv} = w(u,v) + w(v,u)`
-    * MUTUAL: :math:`A_{uv} = w(u,v) + w(v,u)`, but only if :math:`w(u,v)\cdot w(v,u) > 0`
-* *alpha:* a dump factor for giving less importance to long paths. :math:`\alpha \in (0,1)`
+* :code:`orientation`: selection of the neighborhood of the node we use for determining the adjacency matrix. In undirected neighbors, the adjacency matrix does not change when this parameter does. This is only useful in directed networks. This allows the following parameters:
+
+    * :code:`IN`: :math:`A_uv = w(v,u)`
+    * :code:`OUT`: :math:`A_uv = w(u,v)`
+    * :code:`UND`: :math:`A_uv = w(u,v) + w(v,u)`
+    * :code:`MUTUAL`: :math:`A_uv = w(u,v) + w(v,u)`, but only if :math:`w(u,v)\cdot w(v,u) > 0`
+* :code:`alpha`: a dump factor for giving less importance to long paths. :math:`\alpha \in (0,1)`
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -372,7 +376,6 @@ The local clustering coefficient measures, the proportion of neighbors of the us
     
     CC(u) = \frac{\{(v,w) \in E | v \neq w \wedge v \in \Gamma(u) \wedge w \in \Gamma(u)\}}{|\Gamma(u)|(|\Gamma(u)|-1)}
 
-
 We also allow computing this metric in the complementary graph (what we call **complementary local clustering coefficient**)
 
 **Reference:** D.J. Watts, S.H. Strogatz. Collective dynamics of 'small-world' networks. Nature 393(6684), pp. 440-442 (1998).
@@ -381,16 +384,18 @@ We also allow computing this metric in the complementary graph (what we call **c
 Parameters
 ^^^^^^^^^^
 
-* *vSel*: selection of the orientation for selecting the first neighbor of the user. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
-* *wSel*: selection of the orientation for selecting the second neighbor of the user. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`vSel`: selection of the orientation for selecting the first neighbor of the user. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the users.
+    * :code:`OUT`: we take the outgoing neighbors of the users.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the users.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`wSel`: selection of the orientation for selecting the second neighbor of the user. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the users.
+    * :code:`OUT`: we take the outgoing neighbors of the users.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the users.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -451,7 +456,7 @@ Again, we also provide tools to compute the **complementary PageRank**, i.e. the
 Parameters
 ^^^^^^^^^^
 
-* *r:* the teleport probability. :math:`r \in (0,1)`
+* :code:`r`: the teleport probability. :math:`r \in (0,1)`
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -494,11 +499,12 @@ directed networks (it has value equal to 1 for all nodes in undirected ones).
 Parameters
 ^^^^^^^^^^
 
-* *orientation*: selection of the set of edges to consider:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time. In this case, the metric is always equal to 1.
+* :code:`orientation`: selection of the set of edges to consider:
+
+    * :code:`IN`: we take the incoming neighbors of the users.
+    * :code:`OUT`: we take the outgoing neighbors of the users.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the users.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time. In this case, the metric is always equal to 1.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -528,11 +534,12 @@ where :math:\Gamma(u) represents the neighborhood of user :math:u and :math:w(u,
 Parameters
 ^^^^^^^^^^
 
-* *orientation*: selection of the set of edges to consider:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`orientation`: selection of the set of edges to consider:
+
+    * :code:`IN`: we take the incoming neighbors of the users.
+    * :code:`OUT`: we take the outgoing neighbors of the users.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the users.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^

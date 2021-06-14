@@ -32,6 +32,7 @@ public class InfoFeatureDistributionConfigurator<U extends Serializable,I extend
      * Identifier for the selected feature.
      */
     private final static String FEATURE = "feature";
+
     @Override
     public Distribution<U, I, F> configure(Parameters params)
     {

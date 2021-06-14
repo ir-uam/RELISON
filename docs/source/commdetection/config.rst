@@ -10,13 +10,13 @@ binary for the library has been generated:
 
 where
 
-* `network`: a file containing the social network graph to analyze.
-* `multigraph`: true if the network allows multiple edges between each pair of users, false otherwise.
-* `directed`: true if the network is directed, false otherwise.
-* `weighted`: true if we want to use the weights of the links, false otherwise (weights will be binary).
-* `selfloops`: true if we allow links between a node and itself, false otherwise.
-* `algorithms`: a Yaml configuration file for reading the community detection algorithms we want to apply (see `Configuration file`_ below).
-* `output`: a directory in which to store the structural properties.
+* :code:`network`: a file containing the social network graph to analyze.
+* :code:`multigraph`: true if the network allows multiple edges between each pair of users, false otherwise.
+* :code:`directed`: true if the network is directed, false otherwise.
+* :code:`weighted`: true if we want to use the weights of the links, false otherwise (weights will be binary).
+* :code:`selfloops`: true if we allow links between a node and itself, false otherwise.
+* :code:`algorithms`: a Yaml configuration file for reading the community detection algorithms we want to apply (see `Configuration file`_ below).
+* :code:`output`: a directory in which to store the structural properties.
 
 Configuration file
 ~~~~~~~~~~~~~~~~~~

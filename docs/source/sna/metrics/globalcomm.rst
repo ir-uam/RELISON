@@ -42,11 +42,12 @@ where :math:`c_i` is i-th community with smaller degree. We differentiate two va
 Parameters
 ^^^^^^^^^^
 
-* *orientation:* selection of the neighborhood of the node we want to use for computing the degrees of the communities. In undirected neighbors, the value of the degree does not change when this parameter does. This is only useful in directed networks. This allows the following parameters:
-    * IN: for using the in-degree.
-    * OUT: for using the out-degree.
-    * UND: for using the degree :math:`\mbox{degree}(c) = \mbox{in-degree}(c) + \mbox{out-degree}(c)`
-    * MUTUAL: for using the number of reciprocated links.
+* :code:`orientation:` selection of the neighborhood of the node we want to use for computing the degrees of the communities. In undirected neighbors, the value of the degree does not change when this parameter does. This is only useful in directed networks. This allows the following parameters:
+
+    * :code:`IN`: for using the in-degree.
+    * :code:`OUT`: for using the out-degree.
+    * :code:`UND`: for using the degree :math:`\mbox{degree}(c) = \mbox{in-degree}(c) + \mbox{out-degree}(c)`
+    * :code:`MUTUAL`: for using the number of reciprocated links.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -105,7 +106,7 @@ Parameters
 
 For the semi-complete and complete versions, we have a parameter:
 
-* *selfloops*: true if we want to allow selfloops between the nodes, false otherwise.
+* :code:`selfloops`: true if we want to allow selfloops between the nodes, false otherwise.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^

@@ -31,7 +31,7 @@ As its name indicates, this metric just computes the average shortest path lengt
 Parameters
 ^^^^^^^^^^
 
-* *mode:* "Non infinite distances" for option 1, "Components" for option 2.
+* :code:`mode`: "Non infinite distances" for option 1, "Components" for option 2.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -79,18 +79,20 @@ The global clustering coefficient of a social network graph measures the proport
 Parameters
 ^^^^^^^^^^
 
-* *uSel*: selection of the orientation for the first of the two links to consider in the triad (the (u,v) one). 
-    * IN: we take the (v,u) link.
-    * OUT: we take the (u,v) link.
-    * UND: we take either the (u,v) or the (v,u) link (the one that exists)
-    * MUTUAL: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.
-* *vSel*: selection of the orientation for the second of the two links in the triad (the (v,w) one).
-    * IN: we take the (v,w) link
-    * OUT: we take the (w,v) link.
-    * UND: we take either the (w,v) or the (v,w) link (the one that exists)
-    * MUTUAL: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.
+* :code:`uSel`: selection of the orientation for the first of the two links to consider in the triad (the (u,v) one). 
 
-The natural clustering coefficient can be chosen by taking uSel = OUT and vSel = IN.
+    * :code:`IN`: we take the (v,u) link.
+    * :code:`OUT`: we take the (u,v) link.
+    * :code:`UND`: we take either the (u,v) or the (v,u) link (the one that exists)
+    * :code:`MUTUAL`: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.
+* :code:`vSel`: selection of the orientation for the second of the two links in the triad (the (v,w) one).
+
+    * :code:`IN`: we take the (v,w) link
+    * :code:`OUT`: we take the (w,v) link.
+    * :code:`UND`: we take either the (w,v) or the (v,w) link (the one that exists)
+    * :code:`MUTUAL`: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.
+
+The natural clustering coefficient can be chosen by taking :code:`uSel = IN` and :code:`vSel = OUT`.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -121,18 +123,21 @@ This metric is the complement of the clustering coefficient, as it takes measure
 Parameters
 ^^^^^^^^^^
 
-* *uSel*: selection of the orientation for the first of the two links to consider in the triad (the (u,v) one). 
-    * IN: we take the (v,u) link.
-    * OUT: we take the (u,v) link.
-    * UND: we take either the (u,v) or the (v,u) link (the one that exists)
-    * MUTUAL: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.
-* *vSel*: selection of the orientation for the second of the two links in the triad (the (v,w) one).
-    * IN: we take the (v,w) link
-    * OUT: we take the (w,v) link.
-    * UND: we take either the (w,v) or the (v,w) link (the one that exists)
-    * MUTUAL: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.
 
-The natural clustering coefficient can be chosen by taking uSel = OUT and vSel = IN.
+* :code:`uSel`: selection of the orientation for the first of the two links to consider in the triad (the (u,v) one). 
+
+    * :code:`IN`: we take the (v,u) link.
+    * :code:`OUT`: we take the (u,v) link.
+    * :code:`UND`: we take either the (u,v) or the (v,u) link (the one that exists)
+    * :code:`MUTUAL`: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.
+* :code:`vSel`: selection of the orientation for the second of the two links in the triad (the (v,w) one).
+
+    * :code:`IN`: we take the (v,w) link
+    * :code:`OUT`: we take the (w,v) link.
+    * :code:`UND`: we take either the (w,v) or the (v,w) link (the one that exists)
+    * :code:`MUTUAL`: we only consider that the pair (u,v) exists if both (u,v) and (v,u) links exist.
+
+The natural clustering coefficient can be chosen by taking :code:`uSel = IN` and :code:`vSel = OUT`.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -168,11 +173,12 @@ In undirected networks, it is computed as:
 Parameters
 ^^^^^^^^^^
 
-* *orientation*: selection for the degree to use.
-    * IN: we take the incoming neighbors of the users.
-    * OUT: we take the outgoing neighbors of the users.
-    * UND: we take the incoming and outgoing neighbors of the users.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`orientation`: selection for the degree to use.
+
+    * :code:`IN`: we take the incoming neighbors of the users.
+    * :code:`OUT`: we take the outgoing neighbors of the users.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the users.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -200,16 +206,19 @@ The degree assortativity measures the Pearson correlation of the degrees between
 Parameters
 ^^^^^^^^^^
 
-* *uSel*: selection of the orientation for the neighborhood of the starting node of the edges. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the outgoing neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
-* *vSel*: selection of the orientation for the neighborhood of the ending node of the edges. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the outgoing neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`uSel`: selection of the orientation for the neighborhood of the starting node of the edges. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the users.
+    * :code:`OUT`: we take the outgoing neighbors of the users.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the users.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
+
+* :code:`vSel`: selection of the orientation for the neighborhood of the ending node of the edges. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the users.
+    * :code:`OUT`: we take the outgoing neighbors of the users.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the users.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
 
 
 Configuration file
@@ -242,11 +251,12 @@ where :math:`\Gamma(u)` is the neighborhood of user :math:`u` and :math:`u_i` is
 Parameters
 ^^^^^^^^^^
 
-* *orientation*: selects the type of degree we use (only affects directed networks).
-    * IN: we take the in-degree of the users.
-    * OUT: we take the out-degree of the users.
-    * UND: we take the undirected degree of the users (in-degree + out-degree)
-    * MUTUAL: we take as the degree the number of mutual links.
+* :code:`orientation`: selects the type of degree we use (only affects directed networks).
+
+    * :code:`IN`: we take the in-degree of the users.
+    * :code:`OUT`: we take the out-degree of the users.
+    * :code:`UND`: we take the undirected degree of the users (in-degree + out-degree)
+    * :code:`MUTUAL`: we take as the degree the number of mutual links.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^

@@ -35,7 +35,7 @@ public class FeatureGlobalEntropy<U extends Serializable,I extends Serializable,
     /**
      * Name fixed value
      */
-    private final static String ENTROPY = "feat-gl-entropy";
+    private final static String ENTROPY = "global-feat-entropy";
 
     /**
      * Times each parameter has been received.

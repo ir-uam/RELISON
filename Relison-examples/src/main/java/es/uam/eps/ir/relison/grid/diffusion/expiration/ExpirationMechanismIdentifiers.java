@@ -18,12 +18,12 @@ package es.uam.eps.ir.relison.grid.diffusion.expiration;
 public class ExpirationMechanismIdentifiers 
 {
     // Non stop simulators (until there is no more propagation)
-    public final static String INFINITETIME = "Infinite Time";
-    public final static String ALLNOTPROP = "All Not Propagated";
+    public final static String INFINITETIME = "Infinite time";
+    public final static String ALLNOTPROP = "All not propagated";
     public final static String TIMED = "Timed";
-    public final static String EXPDECAY = "Exponential Decay";
-    public final static String ALLNOTREALPROP = "All Not Real Propagated";
-    public final static String ALLNOTREALPROPTIMESTAMP = "All Not Real Propagated Timestamp";
+    public final static String EXPDECAY = "Exponential decay";
+    public final static String ALLNOTREALPROP = "All not real propagated";
+    public final static String ALLNOTREALPROPTIMESTAMP = "All not real propagated timestamp";
    
     
     /**

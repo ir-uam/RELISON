@@ -24,7 +24,7 @@ import java.io.Serializable;
  * @param <I> type of the information pieces.
  * @param <F> type of the user and information pieces features.
  *
- * @see CountThresholdModelProtocol
+ * @see RumorSpreadingModelProtocol
  */
 public class RumorSpreadingModelConfigurator<U extends Serializable,I extends Serializable, F> implements ProtocolConfigurator<U,I, F>
 {

@@ -10,16 +10,16 @@ binary for the library has been generated:
 
 where
 
-* `network`: a file containing the social network graph to analyze.
-* `multigraph`: true if the network allows multiple edges between each pair of users, false otherwise.
-* `directed`: true if the network is directed, false otherwise.
-* `weighted`: true if we want to use the weights of the links, false otherwise (weights will be binary).
-* `selfloops`: true if we allow links between a node and itself, false otherwise.
-* `metrics`: a configuration file for reading the structural properties we want to measure (see `Configuration file`_ below).
-* `output`: a directory in which to store the structural properties.
+* :code:`network`: a file containing the social network graph to analyze.
+* :code:`multigraph`: true if the network allows multiple edges between each pair of users, false otherwise.
+* :code:`directed`: true if the network is directed, false otherwise.
+* :code:`weighted`: true if we want to use the weights of the links, false otherwise (weights will be binary).
+* :code:`selfloops`: true if we allow links between a node and itself, false otherwise.
+* :code:`metrics`: a configuration file for reading the structural properties we want to measure (see `Configuration file`_ below).
+* :code::code:`output`: a directory in which to store the structural properties.
 * Optional parameters:
-	* `-communities comm1,comm2,...,commN`: a comma-separated list of files containing community partitions of the users.
-	* `--distances`: indicates that we want to pre-compute the distance-based metrics in the network (recommended if more than one is used).
+	* :code:`-communities comm1,comm2,...,commN`: a comma-separated list of files containing community partitions of the users.
+	* :code:`--distances`: indicates that we want to pre-compute the distance-based metrics in the network (recommended if more than one is used).
 
 Configuration file
 ~~~~~~~~~~~~~~~~~~

@@ -25,16 +25,19 @@ The Adamic-Adar algorithm promotes users with a high number of common friends, b
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the candidate user (:math:`\Gamma_{out}(v) \cap \Gamma_{in}(v)`)
 * :code:`wSel`: the neighborhood selection for the common neighbor.
+
     * :code:`IN`: it considers the incoming neighborhood of the common neighbor.
     * :code:`OUT`:  it considers the outgoing neighborhood of the common neighbor.
     * :code:`UND`: it considers the all the possible neighbors of the common neighbors (:math:`\Gamma_{out}(w) \cup \Gamma_{in}(w)`)
@@ -66,11 +69,13 @@ original user and the rest of the network are taken as the coordinate values. Th
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -104,11 +109,13 @@ Friends of friends approach for favoring the recommendation nodes with smaller d
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -138,11 +145,13 @@ Friends of friends approach for favoring the recommendation nodes with higher de
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -172,11 +181,13 @@ The Jaccard algorithm uses as a recommendation score the probability that any ne
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -205,11 +216,13 @@ model.
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -237,11 +250,13 @@ The most common neighbors algorithm just takes the number of common neighbors be
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -269,16 +284,19 @@ Based on the physical resource allocation process, this method finds the amount 
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the candidate user (:math:`\Gamma_{out}(v) \cap \Gamma_{in}(v)`)
 * :code:`wSel`: the neighborhood selection for the common neighbor.
+
     * :code:`IN`: it considers the incoming neighborhood of the common neighbor.
     * :code:`OUT`:  it considers the outgoing neighborhood of the common neighbor.
     * :code:`UND`: it considers the all the possible neighbors of the common neighbors (:math:`\Gamma_{out}(w) \cup \Gamma_{in}(w)`)
@@ -311,11 +329,13 @@ This method is based on an statistic index for comparing how similar to samples 
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)

@@ -31,7 +31,7 @@ public class TimedExpirationConfigurator<U extends Serializable,I extends Serial
     /**
      * Identifier for the maximum time before expiration of an information piece.
      */
-    private final static String MAXTIME = "maxTime";
+    private final static String MAXTIME = "max-time";
 
     @Override
     public ExpirationMechanism<U, I, F> configure(Parameters params)

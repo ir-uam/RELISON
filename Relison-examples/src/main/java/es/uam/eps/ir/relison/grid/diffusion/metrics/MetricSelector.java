@@ -10,12 +10,10 @@ package es.uam.eps.ir.relison.grid.diffusion.metrics;
 
 import es.uam.eps.ir.relison.diffusion.metrics.SimulationMetric;
 import es.uam.eps.ir.relison.grid.Parameters;
+import es.uam.eps.ir.relison.grid.diffusion.metrics.creator.*;
 import es.uam.eps.ir.relison.grid.diffusion.metrics.features.global.*;
 import es.uam.eps.ir.relison.grid.diffusion.metrics.features.indiv.*;
 import es.uam.eps.ir.relison.grid.diffusion.metrics.informationpieces.*;
-import es.uam.eps.ir.relison.grid.diffusion.metrics.users.UserGlobalEntropyMetricConfigurator;
-import es.uam.eps.ir.relison.grid.diffusion.metrics.users.UserGlobalGiniMetricConfigurator;
-import es.uam.eps.ir.relison.grid.diffusion.metrics.users.UserRecallMetricConfigurator;
 import org.jooq.lambda.tuple.Tuple2;
 
 import java.io.Serializable;
@@ -40,98 +38,38 @@ public class MetricSelector<U extends Serializable,I extends Serializable,P>
      */
     public Tuple2<String, SimulationMetric<U,I,P>> select(String name, Parameters params)
     {
-        MetricConfigurator<U,I,P> conf;
-        switch(name)
+        MetricConfigurator<U,I,P> conf = switch (name)
         {
-            case MetricIdentifiers.GINI:
-                conf = new FeatureGiniMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.GLOBALGINI:
-                conf = new FeatureGlobalGiniMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.GLOBALUSERGINI:
-                conf = new FeatureGlobalUserGiniMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.RECALL:
-                conf = new FeatureRecallMetricConfigurator<>();
-                break;
+            case MetricIdentifiers.GINI -> new FeatureIndividualGiniComplementConfigurator<>();
+            case MetricIdentifiers.GLOBALGINI -> new FeatureGlobalGiniComplementConfigurator<>();
+            case MetricIdentifiers.GLOBALUSERGINI -> new FeatureGlobalUserGiniComplementConfigurator<>();
+            case MetricIdentifiers.RECALL -> new FeatureRecallConfigurator<>();
+            case MetricIdentifiers.EXTRATE -> new ExternalFeatureIndividualRateConfigurator<>();
+            case MetricIdentifiers.GLOBALEXTRATE -> new ExternalFeatureGlobalRateConfigurator<>();
+            case MetricIdentifiers.ENTROPY -> new FeatureIndividualEntropyConfigurator<>();
+            case MetricIdentifiers.GLOBALENTROPY -> new FeatureGlobalEntropyConfigurator<>();
+            case MetricIdentifiers.GLOBALUSERENTROPY -> new FeatureGlobalUserEntropyConfigurator<>();
+            case MetricIdentifiers.EXTRECALL -> new ExternalFeatureRecallConfigurator<>();
+            case MetricIdentifiers.EXTGINI -> new ExternalFeatureIndividualGiniComplementConfigurator<>();
+            case MetricIdentifiers.GLOBALEXTGINI -> new ExternalFeatureGlobalGiniConfigurator<>();
+            case MetricIdentifiers.KLD -> new FeatureIndividualKLDivergenceConfigurator<>();
+            case MetricIdentifiers.GLOBALKLD -> new FeatureGlobalKLDivergenceConfigurator<>();
+            case MetricIdentifiers.USERFEATURECOUNT -> new UserFeatureCountConfigurator<>();
+            case MetricIdentifiers.USERFEATUREGINI -> new UserFeatureGiniComplementConfigurator<>();
+            case MetricIdentifiers.USERSPEED -> new InformationCountConfigurator<>();
+            case MetricIdentifiers.SPEED -> new SpeedConfigurator<>();
+            case MetricIdentifiers.INFOGINI -> new InformationGiniComplementConfigurator<>();
+            case MetricIdentifiers.REALPROPRECALL -> new RealPropagatedIndividualRecallConfigurator<>();
+            case MetricIdentifiers.GLOBALREALPROPRECALL -> new RealPropagatedGlobalRecallConfigurator<>();
+            case MetricIdentifiers.USERGLOBALGINI -> new CreatorGlobalGiniComplementConfigurator<>();
+            case MetricIdentifiers.USERINDIVGINI -> new CreatorIndividualGiniComplementConfigurator<>();
+            case MetricIdentifiers.USERRECALL -> new CreatorRecallConfigurator<>();
+            case MetricIdentifiers.USERGLOBALENTROPY -> new CreatorGlobalEntropyConfigurator<>();
+            case MetricIdentifiers.USERINDIVENTROPY -> new CreatorIndividualEntropyConfigurator<>();
+            default -> null;
+        };
 
-            case MetricIdentifiers.EXTRATE:
-                conf = new ExternalFeatureRateMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.GLOBALEXTRATE:
-                conf = new GlobalExternalFeatureRateMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.ENTROPY:
-                conf = new FeatureEntropyMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.GLOBALENTROPY:
-                conf = new FeatureGlobalEntropyMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.GLOBALUSERENTROPY:
-                conf = new FeatureGlobalUserEntropyMetricConfigurator<>();
-                break;
-
-            case MetricIdentifiers.EXTRECALL:
-                conf = new ExternalFeatureRecallMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.EXTGINI:
-                conf = new ExternalFeatureGiniMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.GLOBALEXTGINI:
-                conf = new ExternalFeatureGlobalGiniMetricConfigurator<>();
-                break;
-
-            case MetricIdentifiers.KLD:
-                conf = new FeatureKLDivergenceMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.INVKLD:
-                conf = new FeatureKLDivergenceInverseMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.GLOBALKLD:
-                conf = new FeatureGlobalKLDivergenceMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.GLOBALKLDINVERSE:
-                conf = new FeatureGlobalKLDivergenceInverseMetricConfigurator<>();
-                break;
-                
-            case MetricIdentifiers.USERFEATURECOUNT:
-                conf = new UserFeatureCountMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.USERFEATUREGINI:
-                conf = new UserFeatureGiniMetricConfigurator<>();
-                break;
-
-            case MetricIdentifiers.USERSPEED:
-                conf = new UserSpeedMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.SPEED:
-                conf = new SpeedMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.INFOGINI:
-                conf = new InformationGiniMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.REALPROPRECALL:
-                conf = new RealPropagatedRecallMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.GLOBALREALPROPRECALL:
-                conf = new GlobalRealPropagatedRecallMetricConfigurator<>();
-                break;
-                
-            case MetricIdentifiers.USERGLOBALGINI:
-                conf = new UserGlobalGiniMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.USERRECALL:
-                conf = new UserRecallMetricConfigurator<>();
-                break;
-            case MetricIdentifiers.USERGLOBALENTROPY:
-                conf = new UserGlobalEntropyMetricConfigurator<>();
-                break;
-            
-            default:
-                return null;
-        }
-        
+        if(conf == null) return null;
         SimulationMetric<U,I,P> propagation = conf.configure(params);
         return new Tuple2<>(propagation.getName(), propagation);
     }

@@ -42,7 +42,7 @@ or in the speed or diversity of the information diffusion).
 
 .. toctree::
    :maxdepth: 1
-   :caption: Link recommendation and prediction
+   :caption: Link recommendation
 
    link/introduction
    link/preparation
@@ -56,6 +56,8 @@ or in the speed or diversity of the information diffusion).
    :caption: Information diffusion
 
    diffusion/introduction
+   diffusion/basics
    diffusion/config
-   diffusion/protocols
    diffusion/evaluation
+   diffusion/protocols
+   diffusion/metrics

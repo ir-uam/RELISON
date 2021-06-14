@@ -37,7 +37,7 @@ shortest paths which pass through edge :math:`(u,v)`.
 Parameters
 ^^^^^^^^^^
 
-* *normalize:* true if we want to normalize the coefficient, false otherwise.
+* :code:`normalize`: true if we want to normalize the coefficient, false otherwise.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -142,16 +142,21 @@ Parameters
 ^^^^^^^^^^
 All the variants share the same two parameters:
 
-* *uSel*: selection of the orientation for the neighborhood of the starting node of the edge. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
-* *wSel*: selection of the orientation for the neighborhood of the ending node of the edge. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`uSel`: selection of the orientation for the neighborhood of the starting node of the edge. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the user.
+    * :code:`OUT`: we take the incoming neighbors of the user.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the user.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
+
+* :code:`vSel`: selection of the orientation for the neighborhood of the ending node of the edge. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the user.
+    * :code:`OUT`: we take the incoming neighbors of the user.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the user.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
+
+The natural configuration for the embeddedness of a links takes :code:`uSel = OUT` and :code:`wSel = IN`.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -215,17 +220,19 @@ Another version, we name **extended neighbor counted overlap**, instead of strai
 
 Parameters
 ^^^^^^^^^^
-* *origin*: true if we take the distance 2 neighborhood of the first user, false if we take the neighborhood of the second.
-* *uSel*: selection of the orientation for the neighborhood of the first node of the pair. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
-* *vSel*: selection of the orientation for the neighborhood of the second node of the pair. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`origin`: true if we take the distance 2 neighborhood of the first user, false if we take the neighborhood of the second.
+* :code:`uSel`: selection of the orientation for the neighborhood of the first node of the pair. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the user.
+    * :code:`OUT`: we take the incoming neighbors of the user.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the user.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`vSel`: selection of the orientation for the neighborhood of the second node of the pair. This allows the following values:
+    
+    * :code:`IN`: we take the incoming neighbors of the user.
+    * :code:`OUT`: we take the incoming neighbors of the user.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the user.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -312,16 +319,18 @@ We can also compute what we call the **complementary neighbor overlap** metric, 
 Parameters
 ^^^^^^^^^^
 
-* *uSel*: selection of the orientation for the neighborhood of the first node of the pair. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
-* *vSel*: selection of the orientation for the neighborhood of the second node of the pair. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`uSel`: selection of the orientation for the neighborhood of the first node of the pair. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the user.
+    * :code:`OUT`: we take the incoming neighbors of the user.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the user.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`vSel`: selection of the orientation for the neighborhood of the second node of the pair. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the user.
+    * :code:`OUT`: we take the incoming neighbors of the user.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the user.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -367,16 +376,18 @@ where :math:`\Gamma(u)` represents the neighborhood of the user.
 Parameters
 ^^^^^^^^^^
 
-* *uSel*: selection of the orientation for the neighborhood of the first node of the pair. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
-* *vSel*: selection of the orientation for the neighborhood of the second node of the pair. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`uSel`: selection of the orientation for the neighborhood of the first node of the pair. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the user.
+    * :code:`OUT`: we take the incoming neighbors of the user.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the user.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`vSel`: selection of the orientation for the neighborhood of the second node of the pair. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the user.
+    * :code:`OUT`: we take the incoming neighbors of the user.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the user.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -494,16 +505,18 @@ We have another version, **logarithmic weighted neighbor overlap** which takes t
 Parameters
 ^^^^^^^^^^
 
-* *uSel*: selection of the orientation for the neighborhood of the first node of the pair. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
-* *vSel*: selection of the orientation for the neighborhood of the second node of the pair. This allows the following values:
-    * IN: we take the incoming neighbors of the user.
-    * OUT: we take the incoming neighbors of the user.
-    * UND: we take the incoming and outgoing neighbors of the user.
-    * MUTUAL: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`uSel`: selection of the orientation for the neighborhood of the first node of the pair. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the user.
+    * :code:`OUT`: we take the incoming neighbors of the user.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the user.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
+* :code:`vSel`: selection of the orientation for the neighborhood of the second node of the pair. This allows the following values:
+
+    * :code:`IN`: we take the incoming neighbors of the user.
+    * :code:`OUT`: we take the incoming neighbors of the user.
+    * :code:`UND`: we take the incoming and outgoing neighbors of the user.
+    * :code:`MUTUAL`: we take those neighbors who are both incoming and outgoing at the same time.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^

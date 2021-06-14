@@ -17,8 +17,10 @@ users.
 
 Parameters
 ^^^^^^^^^^
-* :code:`index`: a directory containing a Lucene index. In order to obtain it, it is necessary to execute the :code:`CBIndexGenerator` program over the set of contents of the users. This index stores the whole set of user-generated contents (each content is considered a separate document), and each piece is identified by its author. 
+
+* :code:`index`: a directory containing a Lucene index. In order to obtain it, it is necessary to execute the :code:`CBIndexGenerator` program over the set of contents of the users. This index stores the whole set of user-generated contents (each content is considered a separate document), and each piece is identified by its author.
 * :code:`orientation`: (*OPTIONAL*) if this parameter is not available, we generate the centroid using just the set of pieces created by the user. If we include this parameter, we create it by using the pieces of her neighbors (selected according to this orientation value). It can take the possible values:
+
     * :code:`IN`: for using the contents of the incoming neighbors.
     * :code:`OUT`: for using the contents of the outgoing neighbors.
     * :code:`UND`: for using the contents of both the incoming and outgoing neighbors.

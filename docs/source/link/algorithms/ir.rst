@@ -32,11 +32,13 @@ Adaptation of the binary independent retrieval (BIR) model.
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -66,16 +68,19 @@ Adaptation of the BM25 probabilistic information retrieval model.
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the candidate user (:math:`\Gamma_{out}(v) \cap \Gamma_{in}(v)`)
 * :code:`dlSel`: the neighborhood selection for computing the document length.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -118,16 +123,18 @@ DFRee
 Adaptation of a parameter-free divergence from randomness model using the average of tw  information measures.
 
 **Reference:** G. Amati, G. Amodeo, M. Bianchi, G. Marcone, F.U. Bordoni, C. Gaibisso, G. Gambosi, A. Celi, C.D. Nicola, M. Flammini.
- * FUB, IASI-CNR, UNIVAQ at TREC 2011 Microblog Track. 20th Text REtrieval Confer-ence (TREC 2011) (2011).
+FUB, IASI-CNR, UNIVAQ at TREC 2011 Microblog Track. 20th Text REtrieval Confer-ence (TREC 2011) (2011).
 
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -156,16 +163,18 @@ DFReeKLIM
 Adaptation of a parameter-free divergence from randomness model using the product of two Kullback-Leibler information measures.
 
 **Reference:** G. Amati, G. Amodeo, M. Bianchi, G. Marcone, F.U. Bordoni, C. Gaibisso, G. Gambosi, A. Celi, C.D. Nicola, M. Flammini.
- * FUB, IASI-CNR, UNIVAQ at TREC 2011 Microblog Track. 20th Text REtrieval Confer-ence (TREC 2011) (2011).
+FUB, IASI-CNR, UNIVAQ at TREC 2011 Microblog Track. 20th Text REtrieval Confer-ence (TREC 2011) (2011).
 
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -198,11 +207,13 @@ Adaptation of a parameter-free divergence from randomness model which considers 
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -235,11 +246,13 @@ Adaptation of a parameter-free divergence from randomness model which considers 
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -274,16 +287,19 @@ A version of the `BM25`_ algorithm, when parameter :code:`k` tends to infinity.
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the candidate user (:math:`\Gamma_{out}(v) \cap \Gamma_{in}(v)`)
 * :code:`dlSel`: the neighborhood selection for computing the document length.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -329,11 +345,13 @@ Adaptation of the vector space model information retrieval model with pivoted no
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -373,11 +391,13 @@ a Laplace aftereffect estimation is used as a first normalization, and, term fre
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -420,11 +440,13 @@ Parameters
 The general parameters are the following:
 
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)
@@ -513,11 +535,13 @@ Adaptation of the original vector space model in information retrieval.
 Parameters
 ^^^^^^^^^^
 * :code:`uSel`: the neighborhood selection for the target user.
+
     * :code:`IN`: it considers the incoming neighborhood of the target user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the target user.
     * :code:`UND`: it considers the all the possible neighbors of the target users (:math:`\Gamma_{out}(u) \cup \Gamma_{in}(u)`)
     * :code:`MUTUAL`: it considers as neighbors those who share a reciprocal link with the target user (:math:`\Gamma_{out}(u) \cap \Gamma_{in}(u)`)
 * :code:`vSel`: the neighborhood selection for the candidate user.
+
     * :code:`IN`: it considers the incoming neighborhood of the candidate user.
     * :code:`OUT`:  it considers the outgoing neighborhood of the candidate user.
     * :code:`UND`: it considers the all the possible neighbors of the candidate users (:math:`\Gamma_{out}(v) \cup \Gamma_{in}(v)`)

@@ -29,11 +29,11 @@ The original FastGreedy approach does not consider any parameters, but the balan
 
 For the **balanced FastGreedy** algorithm, we have the following parameters:
 
-* *size*: the maximum allowed community size.
+* :code:`size`: the maximum allowed community size.
 
 whereas for the **Gini weighted FastGreedy**, we take the following parameter:
 
-* *lambda*: the weight given to the Gini index of the size distribution.
+*  :code:`lambda`: the weight given to the Gini index of the size distribution.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
@@ -92,7 +92,7 @@ To compute this metric, we call to the original implementation of the algorithm,
 
 Parameters
 ^^^^^^^^^^
-* *trials*: the number of iterations of the most external loop of the algorithm.
+*  :code:`trials`: the number of iterations of the most external loop of the algorithm.
 
 
 Configuration file
@@ -131,7 +131,7 @@ the nodes, and applies the algorithm over that condensed network.
 
 Parameters
 ^^^^^^^^^^
-* *threshold*: the minimum variance of the modularity. If in an iteration it changes less than this threshold, we end the phase.
+*  :code:`threshold`: the minimum variance of the modularity. If in an iteration it changes less than this threshold, we end the phase.
 
 
 
@@ -173,7 +173,7 @@ where
 
 Parameters
 ^^^^^^^^^^
-* *k*: the desired number of communities.
+*  :code:`k`: the desired number of communities.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
