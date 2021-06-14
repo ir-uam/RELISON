@@ -1,23 +1,30 @@
 ![Java CI with Maven](https://github.com/ir-uam/RELISON/workflows/Java%20CI%20with%20Maven/badge.svg)
 [![GitHub license](https://img.shields.io/badge/license-MPL--2.0-orange)](https://www.mozilla.org/en-US/MPL/)
+[![Documentation Status](https://readthedocs.org/projects/relison/badge/?version=latest)](https://relison.readthedocs.io/en/latest/?badge=latest)
 
-[Documentation](https://relison.readthedocs.io)
+[Main page](https://ir-uam.github.io/RELISON) | [Documentation](https://relison.readthedocs.io) | [Javadoc](https://ir-uam.github.io/RELISON/javadoc)
 
 # RELISON
 
-Relison is a Java library devised for the implementation and evaluation of different social analysis and network mining techniques.
-This framework has been created as the result of the research documented in several publications on contact recommendation and
- link prediction in social networks (which we refer **here**) and a [PhD thesis](http://javiersanzcruza.github.io/jsanzcruzado-phdthesis.pdf). 
- In addition to contact recommendation and link prediction functionalities, Relison can be used to perform multiple
- social network analysis and network science tasks: analyzing structural properties of social networks (the library includes a wide
- variety of metrics, from the most classical metrics to novel ones targeting the structural diversity of the network),
- community detection, functionalities for indexing user-generated contents, and for performing information
- diffusion simulations over social networks.
+RELISON is a framework for experimentation on the link recommendation task in social networks, which aims to identify 
+those people in the network with whom a user might be interested to connect, interact or befriend.  RELISON provides 
+tools for executing and evaluating contact recommendation approaches, considering not only their accuracy, but also aspects 
+like their novelty, diversity and the effects that such recommendations have on global properties of the networks 
+(as changes in the structural properties or in the characteristics of the information arriving to the users). 
+In order to measure these effects, RELISON also provides functionality for a) analyzing the structural properties of social networks,
+ b) detecting clusters of users (communities) and c) simulating the diffusion of information in a social network. 
+ These functionalities can be used regardless of whether recommendations have been provided to the users.
  
-## Introduction
-RELISON is a new Java framework for the implementation and evaluation of techniques for social network analysis and mining. These framework has been created as the result of the research documented in several publications on contact recommendation in social networks (see here) and a . But, in addition to those contact recommendation and link prediction functionalities, SoNALiRe can be used to perform multiple social network analysis and network science tasks: analyzing structural properties of social networks (including the most classical metrics, along with several new ones, targeting the structural diversity of the network), community detection and performing information diffusion simulations over social networks. 
+Built upon the [RankSys library](http://ranksys.github.io), this framework has been programmed with Java 14  and has been created as the 
+result of the research documented in several publications on contact recommendation in social networks and a 
+[PhD thesis](https://javiersanzcruza.github.io/jsanzcruzado-phdthesis.pdf). The code is licensed under the [Mozilla Public License v.2.0](https://www.mozilla.org/en-US/MPL/).
 
-The framework has been programmed targetting the Java 14 version, one of the most recent versions of the popular programming language. Built upon the [RankSys library](http://ranksys.github.io), we take advantage of the many features provided by the last versions of Java. The code is licensed under the [MPL 2.0](https://www.mozilla.org/en-US/MPL/2.0/).
+## Creators
+This framework has been created by the [Information Retrieval Group](https://ir.ii.uam.es) at [Universidad Autónoma de Madrid](https://uam.es). 
+The main contributors to this library are:
+
+- Javier Sanz-Cruzado ([javier.sanz-cruzado@uam.es](javier.sanz-cruzado@uam.es))
+- Pablo Castells ([pablo.castells@uam.es](pablo.castells@uam.es))
 
 ## Packages
 Up to date, the following packages have been published:
@@ -34,7 +41,7 @@ Up to date, the following packages have been published:
 - **R:** Tested with version 3.6.3.
 - **GLIBC:** In Linux, to execute path-based approaches, this library uses JBLAS 1.2.5, which requires
   GLIBC version.
-- **Matlab:** For some matrix-based approaches, the fastest version is coded in Matlab. It has been tested with version R2020a 
+- **Matlab:** For some matrix-based approaches, we provide alternative implementations in Matlab. It has been tested with version R2020a.
 
 ## Instalation
 In order to install this framework, you need to have Maven [http://maven.apache.org](http://maven.apache.org) installed 
@@ -72,4 +79,3 @@ In this case, you will need the following libraries:
 - Weka v3.6.6.: [https://www.cs.waikato.ac.nz/ml/weka/](https://www.cs.waikato.ac.nz/ml/weka/)
 - Cloning v1.9.2.: [https://github.com/kostaskougios/cloning](https://github.com/kostaskougios/cloning)
 - JBLAS v.1.2.5.: [http://jblas.org/](http://jblas.org/)
-## More information
