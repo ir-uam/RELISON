@@ -1,3 +1,4 @@
-theme: jekyll-theme-minimal
+theme: jekyll-theme-primer
 title: RELISON
-show_downloads: true
+description: "a Java framework for REcommending LInks in SOcial Networks"
+source_link: "https://github.com/ir-uam/RELISON"
