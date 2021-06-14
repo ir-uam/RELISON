@@ -8,7 +8,7 @@
  */
 package es.uam.eps.ir.relison.grid.community;
 
-import es.uam.eps.ir.relison.community.detection.CommunityDetectionAlgorithm;
+import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.grid.Configurations;
 import es.uam.eps.ir.relison.grid.Grid;
 import es.uam.eps.ir.relison.grid.Parameters;

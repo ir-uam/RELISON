@@ -9,7 +9,7 @@
 package es.uam.eps.ir.relison.links.recommendation.reranking.global.swap.comm.gini.degree.sizenormalized;
 
 
-import es.uam.eps.ir.relison.community.Communities;
+import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.links.recommendation.reranking.global.swap.comm.gini.degree.AbstractCommunityDegreeGiniComplement;

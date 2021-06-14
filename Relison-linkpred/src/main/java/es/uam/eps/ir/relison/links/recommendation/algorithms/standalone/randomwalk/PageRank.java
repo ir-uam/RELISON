@@ -49,7 +49,7 @@ public class PageRank<U> extends UserFastRankingRecommender<U>
         this.r = r;
 
         this.pr = new Int2DoubleOpenHashMap();
-        es.uam.eps.ir.relison.metrics.vertex.PageRank<U> pageRank = new es.uam.eps.ir.relison.metrics.vertex.PageRank<>(this.r);
+        es.uam.eps.ir.relison.sna.metrics.vertex.PageRank<U> pageRank = new es.uam.eps.ir.relison.sna.metrics.vertex.PageRank<>(this.r);
         Map<U, Double> pageRanks = pageRank.compute(this.getGraph());
         pageRanks.forEach((key, value) -> pr.put(uIndex.user2uidx(key), value.doubleValue()));
     }

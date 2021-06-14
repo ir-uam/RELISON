@@ -9,9 +9,9 @@
 package es.uam.eps.ir.relison.grid.sna.graph;
 
 import es.uam.eps.ir.relison.grid.Grid;
-import es.uam.eps.ir.relison.metrics.GraphMetric;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
-import es.uam.eps.ir.relison.metrics.distance.graph.ReciprocalDiameter;
+import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.graph.ReciprocalDiameter;
 
 import java.util.HashMap;
 import java.util.Map;

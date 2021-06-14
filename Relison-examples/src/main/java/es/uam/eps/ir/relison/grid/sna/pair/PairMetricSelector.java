@@ -12,10 +12,10 @@ import es.uam.eps.ir.relison.grid.Configurations;
 import es.uam.eps.ir.relison.grid.Grid;
 import es.uam.eps.ir.relison.grid.Parameters;
 import es.uam.eps.ir.relison.grid.sna.graph.GraphMetricFunction;
-import es.uam.eps.ir.relison.metrics.GraphMetric;
-import es.uam.eps.ir.relison.metrics.PairMetric;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
-import es.uam.eps.ir.relison.metrics.graph.aggregate.AggregatePairMetric;
+import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
+import es.uam.eps.ir.relison.sna.metrics.PairMetric;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.graph.aggregate.AggregatePairMetric;
 
 import java.util.ArrayList;
 import java.util.HashMap;

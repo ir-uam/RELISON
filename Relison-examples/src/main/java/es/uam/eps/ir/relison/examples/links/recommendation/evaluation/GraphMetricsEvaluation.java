@@ -9,8 +9,8 @@
 package es.uam.eps.ir.relison.examples.links.recommendation.evaluation;
 
 import es.uam.eps.ir.ranksys.core.Recommendation;
-import es.uam.eps.ir.relison.community.Communities;
-import es.uam.eps.ir.relison.community.io.TextCommunitiesReader;
+import es.uam.eps.ir.relison.sna.community.Communities;
+import es.uam.eps.ir.relison.sna.community.io.TextCommunitiesReader;
 import es.uam.eps.ir.relison.examples.AuxiliarMethods;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.generator.GraphCloneGenerator;
@@ -32,9 +32,9 @@ import es.uam.eps.ir.relison.io.graph.TextMultiGraphReader;
 import es.uam.eps.ir.relison.links.linkprediction.Prediction;
 import es.uam.eps.ir.relison.links.linkprediction.io.LinkPredictionFormat;
 import es.uam.eps.ir.relison.links.linkprediction.io.SimpleLinkPredictionFormat;
-import es.uam.eps.ir.relison.metrics.*;
-import es.uam.eps.ir.relison.metrics.distance.CompleteDistanceCalculator;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.*;
+import es.uam.eps.ir.relison.sna.metrics.distance.CompleteDistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
 import org.ranksys.core.util.tuples.Tuple2od;
 import org.ranksys.formats.parsing.Parsers;

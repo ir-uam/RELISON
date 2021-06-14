@@ -8,9 +8,9 @@
  */
 package es.uam.eps.ir.relison.examples.sna;
 
-import es.uam.eps.ir.relison.community.Communities;
-import es.uam.eps.ir.relison.community.detection.CommunityDetectionAlgorithm;
-import es.uam.eps.ir.relison.community.io.TextCommunitiesWriter;
+import es.uam.eps.ir.relison.sna.community.Communities;
+import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
+import es.uam.eps.ir.relison.sna.community.io.TextCommunitiesWriter;
 import es.uam.eps.ir.relison.examples.AuxiliarMethods;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.grid.community.CommunityDetectionParametersReader;

@@ -10,7 +10,7 @@ package es.uam.eps.ir.relison.links.recommendation.reranking.global.swap.graph;
 
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.links.recommendation.reranking.normalizer.Normalizer;
-import es.uam.eps.ir.relison.metrics.graph.ClusteringCoefficient;
+import es.uam.eps.ir.relison.sna.metrics.graph.ClusteringCoefficient;
 
 import java.util.function.Supplier;
 

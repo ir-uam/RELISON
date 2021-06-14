@@ -39,10 +39,10 @@ import es.uam.eps.ir.relison.links.recommendation.algorithms.RecommendationAlgor
 import es.uam.eps.ir.relison.links.recommendation.filler.Filler;
 import es.uam.eps.ir.relison.links.recommendation.filler.RandomFiller;
 import es.uam.eps.ir.relison.links.recommendation.reranking.normalizer.*;
-import es.uam.eps.ir.relison.metrics.PairMetric;
-import es.uam.eps.ir.relison.metrics.VertexMetric;
-import es.uam.eps.ir.relison.metrics.distance.CompleteDistanceCalculator;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.PairMetric;
+import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
+import es.uam.eps.ir.relison.sna.metrics.distance.CompleteDistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
 import org.jooq.lambda.tuple.Tuple2;
 import org.ranksys.core.util.tuples.Tuple2od;

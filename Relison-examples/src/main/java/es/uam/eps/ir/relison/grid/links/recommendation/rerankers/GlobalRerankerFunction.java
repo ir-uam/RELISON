@@ -8,7 +8,7 @@
  */
 package es.uam.eps.ir.relison.grid.links.recommendation.rerankers;
 
-import es.uam.eps.ir.relison.community.Communities;
+import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.links.recommendation.reranking.global.GlobalReranker;
 import es.uam.eps.ir.relison.links.recommendation.reranking.normalizer.Normalizer;

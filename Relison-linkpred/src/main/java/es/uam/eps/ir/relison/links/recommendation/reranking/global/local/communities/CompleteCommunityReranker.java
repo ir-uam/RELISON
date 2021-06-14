@@ -8,10 +8,10 @@
  */
 package es.uam.eps.ir.relison.links.recommendation.reranking.global.local.communities;
 
-import es.uam.eps.ir.relison.community.Communities;
-import es.uam.eps.ir.relison.community.graph.CommunityGraphGenerator;
-import es.uam.eps.ir.relison.community.graph.CompleteCommunityGraphGenerator;
-import es.uam.eps.ir.relison.community.graph.CompleteCommunityNoSelfLoopsGraphGenerator;
+import es.uam.eps.ir.relison.sna.community.Communities;
+import es.uam.eps.ir.relison.sna.community.graph.CommunityGraphGenerator;
+import es.uam.eps.ir.relison.sna.community.graph.CompleteCommunityGraphGenerator;
+import es.uam.eps.ir.relison.sna.community.graph.CompleteCommunityNoSelfLoopsGraphGenerator;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.multigraph.MultiGraph;
 import es.uam.eps.ir.relison.links.recommendation.reranking.global.local.GraphLocalReranker;

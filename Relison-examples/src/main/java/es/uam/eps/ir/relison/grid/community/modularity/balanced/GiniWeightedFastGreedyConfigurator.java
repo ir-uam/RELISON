@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.relison.grid.community.modularity.balanced;
 
-import es.uam.eps.ir.relison.community.detection.CommunityDetectionAlgorithm;
-import es.uam.eps.ir.relison.community.detection.modularity.balanced.GiniWeightedFastGreedy;
+import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
+import es.uam.eps.ir.relison.sna.community.detection.modularity.balanced.GiniWeightedFastGreedy;
 import es.uam.eps.ir.relison.grid.Grid;
 import es.uam.eps.ir.relison.grid.community.CommunityDetectionConfigurator;
 

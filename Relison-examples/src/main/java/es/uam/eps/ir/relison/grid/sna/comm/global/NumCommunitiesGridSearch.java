@@ -10,8 +10,8 @@
 package es.uam.eps.ir.relison.grid.sna.comm.global;
 
 import es.uam.eps.ir.relison.grid.Grid;
-import es.uam.eps.ir.relison.metrics.CommunityMetric;
-import es.uam.eps.ir.relison.metrics.communities.graph.NumCommunities;
+import es.uam.eps.ir.relison.sna.metrics.CommunityMetric;
+import es.uam.eps.ir.relison.sna.metrics.communities.graph.NumCommunities;
 
 import java.util.HashMap;
 import java.util.Map;

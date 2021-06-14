@@ -3,13 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>Relison</artifactId>
+        <artifactId>RELISON</artifactId>
         <groupId>es.uam.eps.ir</groupId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>Relison-linkpred</artifactId>
+    <artifactId>RELISON-linkpred</artifactId>
     <build>
         <plugins>
             <plugin>
@@ -31,12 +31,12 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>Relison-sna</artifactId>
+            <artifactId>RELISON-sna</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>Relison-content</artifactId>
+            <artifactId>RELISON-content</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

@@ -10,8 +10,8 @@ package es.uam.eps.ir.relison.grid.sna.comm.indiv;
 
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.grid.Grid;
-import es.uam.eps.ir.relison.metrics.IndividualCommunityMetric;
-import es.uam.eps.ir.relison.metrics.communities.indiv.CommunityDegree;
+import es.uam.eps.ir.relison.sna.metrics.IndividualCommunityMetric;
+import es.uam.eps.ir.relison.sna.metrics.communities.indiv.CommunityDegree;
 
 import java.util.HashMap;
 import java.util.List;

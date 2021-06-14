@@ -9,7 +9,7 @@
 package es.uam.eps.ir.relison.grid.sna.comm.global;
 
 import es.uam.eps.ir.relison.grid.Grid;
-import es.uam.eps.ir.relison.metrics.CommunityMetric;
+import es.uam.eps.ir.relison.sna.metrics.CommunityMetric;
 
 import java.util.Map;
 import java.util.function.Supplier;

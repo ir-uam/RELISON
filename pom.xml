@@ -24,16 +24,16 @@
     </build>
 
     <groupId>es.uam.eps.ir</groupId>
-    <artifactId>Relison</artifactId>
+    <artifactId>RELISON</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <modules>
-        <module>Relison-core</module>
-        <module>Relison-content</module>
-        <module>Relison-sna</module>
-        <module>Relison-examples</module>
-        <module>Relison-linkpred</module>
-        <module>Relison-diffusion</module>
+        <module>RELISON-core</module>
+        <module>RELISON-content</module>
+        <module>RELISON-sna</module>
+        <module>RELISON-examples</module>
+        <module>RELISON-linkpred</module>
+        <module>RELISON-diffusion</module>
     </modules>
 
 

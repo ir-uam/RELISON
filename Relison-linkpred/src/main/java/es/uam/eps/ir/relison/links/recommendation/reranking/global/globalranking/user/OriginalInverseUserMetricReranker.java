@@ -10,7 +10,7 @@ package es.uam.eps.ir.relison.links.recommendation.reranking.global.globalrankin
 
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.links.recommendation.reranking.normalizer.Normalizer;
-import es.uam.eps.ir.relison.metrics.VertexMetric;
+import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.function.Supplier;

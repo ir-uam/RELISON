@@ -12,7 +12,7 @@ import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.links.recommendation.reranking.local.LambdaReranker;
 import es.uam.eps.ir.relison.links.recommendation.reranking.normalizer.Normalizer;
-import es.uam.eps.ir.relison.metrics.GraphMetric;
+import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.function.Supplier;

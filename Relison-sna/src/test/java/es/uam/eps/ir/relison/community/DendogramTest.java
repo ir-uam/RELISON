@@ -12,6 +12,8 @@ import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.fast.FastUndirectedUnweightedGraph;
 import es.uam.eps.ir.relison.graph.tree.Tree;
 import es.uam.eps.ir.relison.index.fast.FastIndex;
+import es.uam.eps.ir.relison.sna.community.Communities;
+import es.uam.eps.ir.relison.sna.community.Dendogram;
 import org.jooq.lambda.tuple.Tuple3;
 import org.junit.*;
 

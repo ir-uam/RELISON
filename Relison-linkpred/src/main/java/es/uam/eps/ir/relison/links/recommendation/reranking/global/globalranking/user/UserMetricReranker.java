@@ -11,7 +11,7 @@ package es.uam.eps.ir.relison.links.recommendation.reranking.global.globalrankin
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.links.recommendation.reranking.global.globalranking.GlobalRankingLambdaReranker;
 import es.uam.eps.ir.relison.links.recommendation.reranking.normalizer.Normalizer;
-import es.uam.eps.ir.relison.metrics.VertexMetric;
+import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
 
 import java.util.function.Supplier;
 

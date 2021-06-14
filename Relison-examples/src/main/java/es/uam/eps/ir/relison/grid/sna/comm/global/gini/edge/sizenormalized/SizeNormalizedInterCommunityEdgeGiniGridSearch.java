@@ -10,8 +10,8 @@ package es.uam.eps.ir.relison.grid.sna.comm.global.gini.edge.sizenormalized;
 
 import es.uam.eps.ir.relison.grid.Grid;
 import es.uam.eps.ir.relison.grid.sna.comm.global.GlobalCommunityMetricGridSearch;
-import es.uam.eps.ir.relison.metrics.CommunityMetric;
-import es.uam.eps.ir.relison.metrics.communities.graph.gini.edges.sizenormalized.SizeNormalizedInterCommunityEdgeGini;
+import es.uam.eps.ir.relison.sna.metrics.CommunityMetric;
+import es.uam.eps.ir.relison.sna.metrics.communities.graph.gini.edges.sizenormalized.SizeNormalizedInterCommunityEdgeGini;
 
 import java.util.HashMap;
 import java.util.Map;

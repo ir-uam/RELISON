@@ -13,7 +13,7 @@ import es.uam.eps.ir.relison.graph.DirectedGraph;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.links.recommendation.reranking.global.swap.GraphSwapReranker;
 import es.uam.eps.ir.relison.links.recommendation.reranking.normalizer.Normalizer;
-import es.uam.eps.ir.relison.metrics.graph.ClusteringCoefficient;
+import es.uam.eps.ir.relison.sna.metrics.graph.ClusteringCoefficient;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
 import org.ranksys.core.util.tuples.Tuple2od;
 

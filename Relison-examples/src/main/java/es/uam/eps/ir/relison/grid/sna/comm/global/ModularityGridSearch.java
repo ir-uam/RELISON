@@ -9,8 +9,8 @@
 package es.uam.eps.ir.relison.grid.sna.comm.global;
 
 import es.uam.eps.ir.relison.grid.Grid;
-import es.uam.eps.ir.relison.metrics.CommunityMetric;
-import es.uam.eps.ir.relison.metrics.communities.graph.Modularity;
+import es.uam.eps.ir.relison.sna.metrics.CommunityMetric;
+import es.uam.eps.ir.relison.sna.metrics.communities.graph.Modularity;
 
 import java.util.HashMap;
 import java.util.Map;

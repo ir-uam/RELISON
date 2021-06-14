@@ -9,9 +9,9 @@
 package es.uam.eps.ir.relison.grid.sna.pair;
 
 import es.uam.eps.ir.relison.grid.Grid;
-import es.uam.eps.ir.relison.metrics.PairMetric;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
-import es.uam.eps.ir.relison.metrics.pair.ClusteringCoefficientIncrement;
+import es.uam.eps.ir.relison.sna.metrics.PairMetric;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.pair.ClusteringCoefficientIncrement;
 
 import java.util.HashMap;
 import java.util.Map;

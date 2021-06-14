@@ -21,7 +21,7 @@ import es.uam.eps.ir.relison.grid.sna.comm.global.gini.edge.sizenormalized.SizeN
 import es.uam.eps.ir.relison.grid.sna.comm.global.gini.edge.sizenormalized.SizeNormalizedInterCommunityEdgeGiniGridSearch;
 import es.uam.eps.ir.relison.grid.sna.comm.global.gini.edge.sizenormalized.SizeNormalizedSemiCompleteCommunityEdgeGiniGridSearch;
 import es.uam.eps.ir.relison.grid.sna.comm.global.gini.size.CommunitySizeGiniGridSearch;
-import es.uam.eps.ir.relison.metrics.CommunityMetric;
+import es.uam.eps.ir.relison.sna.metrics.CommunityMetric;
 
 import java.util.HashMap;
 import java.util.Map;

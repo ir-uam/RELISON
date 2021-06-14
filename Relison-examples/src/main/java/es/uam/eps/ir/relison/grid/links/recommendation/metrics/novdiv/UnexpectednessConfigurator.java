@@ -14,7 +14,7 @@ import es.uam.eps.ir.ranksys.metrics.SystemMetric;
 import es.uam.eps.ir.ranksys.novdiv.distance.CosineFeatureItemDistanceModel;
 import es.uam.eps.ir.ranksys.novdiv.distance.ItemDistanceModel;
 import es.uam.eps.ir.ranksys.novelty.unexp.PDItemNovelty;
-import es.uam.eps.ir.relison.community.Communities;
+import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.grid.Grid;
 import es.uam.eps.ir.relison.grid.links.recommendation.metrics.RecommMetricConfigurator;

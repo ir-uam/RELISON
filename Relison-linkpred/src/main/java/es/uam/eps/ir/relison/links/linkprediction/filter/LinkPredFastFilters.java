@@ -10,7 +10,7 @@ package es.uam.eps.ir.relison.links.linkprediction.filter;
 
 import es.uam.eps.ir.relison.graph.Adapters;
 import es.uam.eps.ir.relison.graph.Graph;
-import es.uam.eps.ir.relison.metrics.distance.FastDistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.FastDistanceCalculator;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
 
 import java.util.Set;

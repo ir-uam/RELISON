@@ -14,7 +14,7 @@ import es.uam.eps.ir.relison.graph.generator.EmptyGraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.exception.GeneratorNotConfiguredException;
 import es.uam.eps.ir.relison.links.recommendation.UserFastRankingRecommender;
 import es.uam.eps.ir.relison.links.recommendation.algorithms.RecommenderSupplier;
-import es.uam.eps.ir.relison.metrics.vertex.PageRank;
+import es.uam.eps.ir.relison.sna.metrics.vertex.PageRank;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import org.ranksys.core.util.tuples.Tuple2od;

@@ -11,7 +11,7 @@ package es.uam.eps.ir.relison.grid.links.recommendation.metrics.novdiv;
 import es.uam.eps.ir.ranksys.core.feature.FeatureData;
 import es.uam.eps.ir.ranksys.core.preference.PreferenceData;
 import es.uam.eps.ir.ranksys.metrics.SystemMetric;
-import es.uam.eps.ir.relison.community.Communities;
+import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.grid.Grid;
 import es.uam.eps.ir.relison.grid.links.recommendation.metrics.RecommMetricConfigurator;
@@ -19,8 +19,8 @@ import es.uam.eps.ir.relison.grid.links.recommendation.metrics.RecommMetricIdent
 import es.uam.eps.ir.relison.grid.links.recommendation.metrics.RecommendationMetricFunction;
 import es.uam.eps.ir.relison.links.recommendation.metrics.novdiv.LTN;
 import es.uam.eps.ir.relison.links.recommendation.metrics.novdiv.MeanPredictionDistance;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
-import es.uam.eps.ir.relison.metrics.distance.FastDistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.FastDistanceCalculator;
 
 import java.util.HashMap;
 import java.util.List;

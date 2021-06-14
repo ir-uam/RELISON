@@ -9,10 +9,10 @@
 package es.uam.eps.ir.relison.grid.sna.vertex;
 
 import es.uam.eps.ir.relison.grid.Grid;
-import es.uam.eps.ir.relison.metrics.VertexMetric;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
-import es.uam.eps.ir.relison.metrics.distance.vertex.Closeness;
-import es.uam.eps.ir.relison.metrics.distance.vertex.HarmonicCentrality;
+import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.vertex.Closeness;
+import es.uam.eps.ir.relison.sna.metrics.distance.vertex.HarmonicCentrality;
 
 import java.util.HashMap;
 import java.util.Map;

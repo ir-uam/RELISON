@@ -11,9 +11,9 @@ package es.uam.eps.ir.relison.grid.sna.graph;
 
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.grid.Grid;
-import es.uam.eps.ir.relison.metrics.GraphMetric;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
-import es.uam.eps.ir.relison.metrics.graph.DegreePearsonCorrelation;
+import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.graph.DegreePearsonCorrelation;
 
 import java.util.HashMap;
 import java.util.List;

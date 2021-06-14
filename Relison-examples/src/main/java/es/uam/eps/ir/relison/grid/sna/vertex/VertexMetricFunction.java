@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.relison.grid.sna.vertex;
 
-import es.uam.eps.ir.relison.metrics.VertexMetric;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 
 /**
  *

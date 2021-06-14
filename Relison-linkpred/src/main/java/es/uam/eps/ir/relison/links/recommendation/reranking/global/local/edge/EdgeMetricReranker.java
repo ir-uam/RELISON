@@ -11,7 +11,7 @@ package es.uam.eps.ir.relison.links.recommendation.reranking.global.local.edge;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.links.recommendation.reranking.global.local.GraphLocalReranker;
 import es.uam.eps.ir.relison.links.recommendation.reranking.normalizer.Normalizer;
-import es.uam.eps.ir.relison.metrics.PairMetric;
+import es.uam.eps.ir.relison.sna.metrics.PairMetric;
 
 import java.util.function.Supplier;
 

@@ -13,7 +13,7 @@ import es.uam.eps.ir.relison.graph.Adapters;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.fast.FastGraph;
 import es.uam.eps.ir.relison.links.data.GraphIndex;
-import es.uam.eps.ir.relison.metrics.distance.FastDistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.FastDistanceCalculator;
 
 import java.util.function.Function;
 import java.util.function.IntPredicate;

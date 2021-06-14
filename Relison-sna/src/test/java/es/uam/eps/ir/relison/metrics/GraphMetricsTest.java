@@ -13,7 +13,8 @@ import es.uam.eps.ir.relison.graph.UndirectedGraph;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.fast.FastDirectedUnweightedGraph;
 import es.uam.eps.ir.relison.graph.fast.FastUndirectedUnweightedGraph;
-import es.uam.eps.ir.relison.metrics.graph.*;
+import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
+import es.uam.eps.ir.relison.sna.metrics.graph.*;
 import org.junit.*;
 
 import static java.lang.Double.NaN;

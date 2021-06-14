@@ -8,8 +8,8 @@
  */
 package es.uam.eps.ir.relison.links.recommendation.algorithms.standalone.randomwalk;
 
-import es.uam.eps.ir.relison.community.Communities;
-import es.uam.eps.ir.relison.community.detection.connectedness.StronglyConnectedComponents;
+import es.uam.eps.ir.relison.sna.community.Communities;
+import es.uam.eps.ir.relison.sna.community.detection.connectedness.StronglyConnectedComponents;
 import es.uam.eps.ir.relison.graph.DirectedGraph;
 import es.uam.eps.ir.relison.graph.fast.FastGraph;
 import es.uam.eps.ir.relison.links.recommendation.UserFastRankingRecommender;

@@ -15,7 +15,8 @@ import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.fast.FastDirectedUnweightedGraph;
 import es.uam.eps.ir.relison.graph.fast.FastUndirectedUnweightedGraph;
 import es.uam.eps.ir.relison.graph.multigraph.fast.FastUndirectedUnweightedMultiGraph;
-import es.uam.eps.ir.relison.metrics.vertex.Coreness;
+import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
+import es.uam.eps.ir.relison.sna.metrics.vertex.Coreness;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import org.junit.*;
 

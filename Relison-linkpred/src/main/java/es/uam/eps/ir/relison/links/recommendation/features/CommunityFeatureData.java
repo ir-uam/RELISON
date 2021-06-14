@@ -9,7 +9,7 @@
 package es.uam.eps.ir.relison.links.recommendation.features;
 
 import es.uam.eps.ir.ranksys.core.feature.FeatureData;
-import es.uam.eps.ir.relison.community.Communities;
+import es.uam.eps.ir.relison.sna.community.Communities;
 import org.jooq.lambda.tuple.Tuple2;
 
 import java.util.HashMap;

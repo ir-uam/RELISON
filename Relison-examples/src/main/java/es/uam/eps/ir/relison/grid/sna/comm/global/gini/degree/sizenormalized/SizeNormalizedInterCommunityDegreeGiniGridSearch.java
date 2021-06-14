@@ -12,8 +12,8 @@ import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.grid.Grid;
 import es.uam.eps.ir.relison.grid.sna.comm.global.GlobalCommunityMetricGridSearch;
 import es.uam.eps.ir.relison.grid.sna.comm.global.GlobalCommunityMetricIdentifiers;
-import es.uam.eps.ir.relison.metrics.CommunityMetric;
-import es.uam.eps.ir.relison.metrics.communities.graph.gini.degree.sizenormalized.SizeNormalizedInterCommunityDegreeGini;
+import es.uam.eps.ir.relison.sna.metrics.CommunityMetric;
+import es.uam.eps.ir.relison.sna.metrics.communities.graph.gini.degree.sizenormalized.SizeNormalizedInterCommunityDegreeGini;
 
 import java.util.HashMap;
 import java.util.List;

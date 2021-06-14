@@ -10,10 +10,10 @@ package es.uam.eps.ir.relison.grid.sna.graph;
 
 
 import es.uam.eps.ir.relison.grid.Grid;
-import es.uam.eps.ir.relison.metrics.GraphMetric;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
-import es.uam.eps.ir.relison.metrics.distance.graph.ASL;
-import es.uam.eps.ir.relison.metrics.distance.modes.ASLMode;
+import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.graph.ASL;
+import es.uam.eps.ir.relison.sna.metrics.distance.modes.ASLMode;
 
 import java.util.HashMap;
 import java.util.List;

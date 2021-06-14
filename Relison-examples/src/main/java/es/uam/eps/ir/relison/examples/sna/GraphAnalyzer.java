@@ -8,12 +8,12 @@
  */
 package es.uam.eps.ir.relison.examples.sna;
 
-import es.uam.eps.ir.relison.community.Communities;
-import es.uam.eps.ir.relison.community.detection.CommunityDetectionAlgorithm;
-import es.uam.eps.ir.relison.community.detection.connectedness.StronglyConnectedComponents;
-import es.uam.eps.ir.relison.community.detection.connectedness.WeaklyConnectedComponents;
-import es.uam.eps.ir.relison.community.io.CommunitiesReader;
-import es.uam.eps.ir.relison.community.io.TextCommunitiesReader;
+import es.uam.eps.ir.relison.sna.community.Communities;
+import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
+import es.uam.eps.ir.relison.sna.community.detection.connectedness.StronglyConnectedComponents;
+import es.uam.eps.ir.relison.sna.community.detection.connectedness.WeaklyConnectedComponents;
+import es.uam.eps.ir.relison.sna.community.io.CommunitiesReader;
+import es.uam.eps.ir.relison.sna.community.io.TextCommunitiesReader;
 import es.uam.eps.ir.relison.examples.AuxiliarMethods;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.grid.sna.MetricGridReader;
@@ -26,9 +26,9 @@ import es.uam.eps.ir.relison.grid.sna.vertex.VertexMetricSelector;
 import es.uam.eps.ir.relison.io.graph.GraphReader;
 import es.uam.eps.ir.relison.io.graph.TextGraphReader;
 import es.uam.eps.ir.relison.io.graph.TextMultiGraphReader;
-import es.uam.eps.ir.relison.metrics.*;
-import es.uam.eps.ir.relison.metrics.distance.CompleteDistanceCalculator;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.*;
+import es.uam.eps.ir.relison.sna.metrics.distance.CompleteDistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
 import org.ranksys.formats.parsing.Parsers;
 

@@ -10,7 +10,7 @@ package es.uam.eps.ir.relison.links.recommendation.algorithms.standalone.randomw
 
 import es.uam.eps.ir.relison.graph.fast.FastGraph;
 import es.uam.eps.ir.relison.links.recommendation.UserFastRankingRecommender;
-import es.uam.eps.ir.relison.metrics.vertex.PageRank;
+import es.uam.eps.ir.relison.sna.metrics.vertex.PageRank;
 import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 

@@ -1,7 +1,7 @@
 package es.uam.eps.ir.relison.links.recommendation.reranking.global.swap.comm.gini.edge;
 
 import es.uam.eps.ir.ranksys.core.Recommendation;
-import es.uam.eps.ir.relison.community.Communities;
+import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.links.recommendation.reranking.global.swap.comm.CommunityReranker;
 import es.uam.eps.ir.relison.links.recommendation.reranking.normalizer.Normalizer;

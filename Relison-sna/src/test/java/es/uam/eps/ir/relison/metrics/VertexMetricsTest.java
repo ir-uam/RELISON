@@ -13,9 +13,10 @@ import es.uam.eps.ir.relison.graph.UndirectedGraph;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.fast.FastDirectedUnweightedGraph;
 import es.uam.eps.ir.relison.graph.fast.FastUndirectedUnweightedGraph;
-import es.uam.eps.ir.relison.metrics.vertex.Degree;
-import es.uam.eps.ir.relison.metrics.vertex.InverseDegree;
-import es.uam.eps.ir.relison.metrics.vertex.LocalClusteringCoefficient;
+import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
+import es.uam.eps.ir.relison.sna.metrics.vertex.Degree;
+import es.uam.eps.ir.relison.sna.metrics.vertex.InverseDegree;
+import es.uam.eps.ir.relison.sna.metrics.vertex.LocalClusteringCoefficient;
 import org.junit.*;
 
 /**

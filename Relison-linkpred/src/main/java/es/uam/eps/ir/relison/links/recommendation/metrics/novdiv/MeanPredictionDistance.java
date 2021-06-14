@@ -11,8 +11,8 @@ package es.uam.eps.ir.relison.links.recommendation.metrics.novdiv;
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.ranksys.metrics.SystemMetric;
 import es.uam.eps.ir.relison.graph.Graph;
-import es.uam.eps.ir.relison.metrics.distance.DistanceCalculator;
-import es.uam.eps.ir.relison.metrics.distance.FastDistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.distance.FastDistanceCalculator;
 import org.ranksys.core.util.tuples.Tuple2od;
 
 import java.util.ArrayList;
