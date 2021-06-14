@@ -79,8 +79,12 @@
  <div class="row">
         <div class="col-xs-12 col-md-8 col-md-offset-2">
           <div class="btn-group btn-group-justified" role="group">
-            <a class="btn btn-default" href="https://github.com/ir-uam/RELISON" role="button"><img src="images/octocat-icon.png" alt="See source in GitHub"/><span class="btn-description">GitHub</span></a>
-            <a class="btn btn-default" href="https://relison.readthedocs.io" role="button"><img src="images/references.png" alt="Manual"/><span class="btn-description">Manual</span></a>
+            <a class="btn btn-default" href="https://github.com/ir-uam/RELISON" role="button"><span class="material-icons-outlined">
+code
+</span><span class="btn-description">GitHub</span></a>
+            <a class="btn btn-default" href="https://relison.readthedocs.io" role="button"><span class="material-icons-outlined">
+library_books
+</span><span class="btn-description">Manual</span></a>
             <a class="btn btn-default" href="javadoc/" role="button"><img src="images/javadoc.png" alt="See Javadoc"/><span class="btn-description">Javadoc</span></a>
           </div>
         </div>
