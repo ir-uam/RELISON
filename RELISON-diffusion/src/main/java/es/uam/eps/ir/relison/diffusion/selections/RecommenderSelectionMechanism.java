@@ -44,6 +44,10 @@ public class RecommenderSelectionMechanism<U extends Serializable,I extends Seri
      */
     private final int numPropagate;
     /**
+     * Number of already propagated information to repropagate for each user and iteration.
+     */
+    private final int numRepropagate;
+    /**
      * Probability of choosing information to propagate that comes from recommended users.
      * If there are enough pieces, each time a piece of information is selected, with probability prob that piece will come from recommended
      * users, and with probability (1-p) the piece will come from an edge in the training graph.
@@ -68,6 +72,23 @@ public class RecommenderSelectionMechanism<U extends Serializable,I extends Seri
         this.numPropagate = numPropagate;
         this.prob = prob;
         this.orientation = orientation;
+        this.numRepropagate = SelectionConstants.NONE;
+    }
+
+    /**
+     * Constructor.
+     * @param numOwn       number of own information pieces to propagate for each user and iteration.
+     * @param numPropagate number of received information to propagate for each user and iteration.
+     * @param prob         probability of chosing information to propagate that comes from recommended users.
+     * @param orientation  it indicates the neighborhood that sends the information pieces.
+     */
+    public RecommenderSelectionMechanism(int numOwn, int numPropagate, int numRepr, double prob, EdgeOrientation orientation)
+    {
+        this.numOwn = numOwn;
+        this.numPropagate = numPropagate;
+        this.prob = prob;
+        this.orientation = orientation;
+        this.numRepropagate = numRepr;
     }
 
     @Override
@@ -184,8 +205,35 @@ public class RecommenderSelectionMechanism<U extends Serializable,I extends Seri
             
             setInfo.forEach(idx -> receivedToPropagate.add(new PropagatedInformation(idx, numIter, userId)));
         }
-        
-        return new Selection(ownToPropagate, receivedToPropagate);
+
+        List<PropagatedInformation> repInfo = user.getPropagatedInformation().collect(Collectors.toCollection(ArrayList::new));
+
+        List<PropagatedInformation> propagatedPieces = new ArrayList<>();
+        Set<Integer> auxInfo = new HashSet<>();
+        int size = repInfo.size();
+
+        // If we have a number of pieces that we want to retrieve:
+        if(numRepropagate != SelectionConstants.NONE)
+        {
+            if(numRepropagate == SelectionConstants.ALL || size <= numRepropagate) // If there are not enough pieces, we add them all.
+            {
+                repInfo.forEach(info -> propagatedPieces.add(new PropagatedInformation(info.getInfoId(), numIter, userId)));
+            }
+            else // We select a subset at random:
+            {
+                while(auxInfo.size() < this.numOwn)
+                {
+                    auxInfo.add(repInfo.get(rng.nextInt(size)).getInfoId());
+                }
+
+                auxInfo.forEach(idx -> propagatedPieces.add(new PropagatedInformation(idx, numIter, userId)));
+            }
+        }
+
+        if(propagatedPieces.isEmpty())
+            return new Selection(ownToPropagate, receivedToPropagate);
+        else
+            return new Selection(ownToPropagate, receivedToPropagate, propagatedPieces);
     }
 
     @Override

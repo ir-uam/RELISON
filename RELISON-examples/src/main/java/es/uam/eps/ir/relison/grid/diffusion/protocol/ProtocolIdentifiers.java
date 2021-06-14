@@ -24,8 +24,8 @@ public class ProtocolIdentifiers
     public final static String PULL = "Pull";
     public final static String RUMORSPREADING = "Rumor spreading";
     public final static String BIDIRRUMORSPREADING = "Bidirectional rumor spreading";
-    public final static String THRESHOLD = "Threshold model";
-    public final static String COUNTTHRESHOLD = "Count threshold model";
+    public final static String THRESHOLD = "Proportion threshold";
+    public final static String COUNTTHRESHOLD = "Count threshold";
     public final static String TEMPORAL = "Temporal";
     
     /**

@@ -61,7 +61,7 @@ public class PullPushStrategyPropagationMechanism<U extends Serializable,I exten
      */
     public PullPushStrategyPropagationMechanism(int waitTime)
     {
-        this(waitTime, EdgeOrientation.IN);
+        this(waitTime, EdgeOrientation.UND);
     }  
     
     /**

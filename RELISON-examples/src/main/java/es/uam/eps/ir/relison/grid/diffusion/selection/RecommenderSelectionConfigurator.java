@@ -36,9 +36,13 @@ public class RecommenderSelectionConfigurator<U extends Serializable,I extends S
      */
     private final static String NUMOWN = "numOwn";
     /**
+ * Identifier for the number of received pieces to propagate.
+ */
+private final static String NUMREC = "numRec";
+    /**
      * Identifier for the number of received pieces to propagate.
      */
-    private final static String NUMREC = "numRec";
+    private final static String NUMREPR = "numRepr";
     /**
      * Identifier for the probability of selecting a piece received by a recommended user.
      */
@@ -53,11 +57,17 @@ public class RecommenderSelectionConfigurator<U extends Serializable,I extends S
     {
         int numOwn = params.getIntegerValue(NUMOWN);
         int numRec = params.getIntegerValue(NUMREC);
+
         double prob = params.getDoubleValue(PROB);
         EdgeOrientation orient = params.getOrientationValue(ORIENTATION);
 
-        
-        return new RecommenderSelectionMechanism<>(numOwn, numRec, prob, orient);
+        if(params.getIntegerValues().containsKey(NUMREPR))
+        {
+            int numRepr = params.getIntegerValue(NUMREPR);
+            return new RecommenderSelectionMechanism<>(numOwn, numRec, numRepr, prob, orient);
+        }
+        else
+            return new RecommenderSelectionMechanism<>(numOwn, numRec, prob, orient);
     }
     
 }

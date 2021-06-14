@@ -63,7 +63,7 @@ public class ProtocolSelector<U extends Serializable,I extends Serializable, F>
                     conf = new BidirectionalRumorSpreadingModelConfigurator<>();
                     break;
                 case ProtocolIdentifiers.THRESHOLD:
-                    conf = new ThresholdModelConfigurator<>();
+                    conf = new ProportionThresholdModelConfigurator<>();
                     break;
                 case ProtocolIdentifiers.COUNTTHRESHOLD:
                     conf = new CountThresholdModelConfigurator<>();

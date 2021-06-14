@@ -99,7 +99,7 @@ Configuration file
 
 Rumor spreading
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Also called push-pull protocol, this is a combination of the `Pull`_ and `Push`_ protocols, where each user selects a) a user to receive information from and b) a user to send information to. He/she just propagates a fixed number of their created contents and a fixed number of the received contents.
+Also called push-pull protocol, this is a combination of the `Pull`_ and `Push`_ protocols, where each user selects a neighbors, and he/she just propagates a fixed number of their created contents and a fixed number of the received contents to the neighbor, and the neighbor sends it to him.
 
 We consider a second version, named *bidirectional rumor-spreading model*, which does not consider the orientation of the edges for selecting the nodes from which receive information and towards whom propagate information.
 
@@ -193,7 +193,7 @@ Threshold
 In the threshold model, the users decide to propagate a received piece of content only if a certain threshold of users has sent it to them.
 We differentiate two variants:
 
-* **Probability threshold:** the user decides to propagate a piece after more than a given proportion of the users have sent him the content.
+* **Proportion threshold:** the user decides to propagate a piece after more than a given proportion of the users have sent him the content.
 * **Count threshold:** the user decides to propagate a piece after more than a given number of the users have sent him the content.
 
 **Reference:** D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the spread of influence through a social network, KDD 2003, pp. 137–146 (2003).
@@ -203,22 +203,20 @@ Parameters
 For the probability threshold version, the arguments are the following ones:
 
 * :code:`numOwn`: the number of contents created by the user to propagate each iteration.
-* :code:`numRec`: the number of received contents to propagate each iteration.
 * :code:`threshold`: the minimum proportion of users who must send a user-generated content to the user before it can be propagated.
 
 and, for the count threshold version:
 
 * :code:`numOwn`: the number of contents created by the user to propagate each iteration.
-* :code:`numRec`: the number of received contents to propagate each iteration.
 * :code:`threshold`: the minimum number of users who must send a user-generated content to the user before it can be propagated.
 
 Configuration file
 ^^^^^^^^^^^^^^^^^^
-For the probability threshold version, the configuration is the following:
+For the proportion threshold version, the configuration is the following:
 
 .. code:: yaml
 
-  Threshold:
+  Proportion threshold:
     numOwn:
       type: int
       value: value

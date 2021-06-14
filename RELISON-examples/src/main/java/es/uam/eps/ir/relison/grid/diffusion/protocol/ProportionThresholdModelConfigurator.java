@@ -9,7 +9,7 @@
 package es.uam.eps.ir.relison.grid.diffusion.protocol;
 
 import es.uam.eps.ir.relison.diffusion.protocols.Protocol;
-import es.uam.eps.ir.relison.diffusion.protocols.ThresholdModelProtocol;
+import es.uam.eps.ir.relison.diffusion.protocols.ProportionThresholdModelProtocol;
 
 import java.io.Serializable;
 
@@ -23,9 +23,9 @@ import java.io.Serializable;
  * @param <I> type of the information pieces.
  * @param <F> type of the user and information pieces features.
  *
- * @see ThresholdModelProtocol
+ * @see ProportionThresholdModelProtocol
  */
-public class ThresholdModelConfigurator<U extends Serializable,I extends Serializable, F> implements ProtocolConfigurator<U,I, F>
+public class ProportionThresholdModelConfigurator<U extends Serializable,I extends Serializable, F> implements ProtocolConfigurator<U,I, F>
 {
     /**
      * Identifier for the number of own pieces to propagate each iteration
@@ -47,7 +47,7 @@ public class ThresholdModelConfigurator<U extends Serializable,I extends Seriali
         int numRec = params.getParams().getIntegerValue(NUMREC);
         double threshold = params.getParams().getDoubleValue(THRESHOLD);
         
-        return new ThresholdModelProtocol<>(numOwn, numRec, threshold);
+        return new ProportionThresholdModelProtocol<>(numOwn, numRec, threshold);
     }
     
 }

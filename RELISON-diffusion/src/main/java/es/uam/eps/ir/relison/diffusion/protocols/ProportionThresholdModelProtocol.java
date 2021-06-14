@@ -11,6 +11,7 @@ package es.uam.eps.ir.relison.diffusion.protocols;
 import es.uam.eps.ir.relison.diffusion.expiration.AllNotPropagatedExpirationMechanism;
 import es.uam.eps.ir.relison.diffusion.propagation.AllNeighborsPropagationMechanism;
 import es.uam.eps.ir.relison.diffusion.selections.LimitedProportionThresholdSelectionMechanism;
+import es.uam.eps.ir.relison.diffusion.selections.ProportionThresholdSelectionMechanism;
 import es.uam.eps.ir.relison.diffusion.sight.AllNotPropagatedSightMechanism;
 import es.uam.eps.ir.relison.diffusion.update.OlderUpdateMechanism;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
@@ -45,7 +46,7 @@ import java.io.Serializable;
  * @param <I> Type of the information pieces.
  * @param <F> Type of the parameters.
  */
-public class ThresholdModelProtocol<U extends Serializable,I extends Serializable, F> extends Protocol<U,I, F>
+public class ProportionThresholdModelProtocol<U extends Serializable,I extends Serializable, F> extends Protocol<U,I, F>
 {
     /**
      * Constructor.
@@ -53,9 +54,9 @@ public class ThresholdModelProtocol<U extends Serializable,I extends Serializabl
      * @param numRec    number of pieces to repropagate.
      * @param threshold threshold that has to be surpassed.
      */
-    public ThresholdModelProtocol(int numOwn, int numRec, double threshold) 
+    public ProportionThresholdModelProtocol(int numOwn, int numRec, double threshold)
     {
-        super(new LimitedProportionThresholdSelectionMechanism<>(numOwn, numRec, threshold, EdgeOrientation.OUT),
+        super(new ProportionThresholdSelectionMechanism<>(numOwn, threshold, EdgeOrientation.OUT),
               new AllNotPropagatedExpirationMechanism<>(),
               new OlderUpdateMechanism(),
               new AllNeighborsPropagationMechanism<>(EdgeOrientation.IN),

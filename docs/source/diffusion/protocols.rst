@@ -7,7 +7,7 @@ The RELISON framework allows the execution of many different information diffusi
 
    protocols/protocols
 
-However, in order to make the diffusion module configurable, it is also possible to define custom diffusion protocols, built from their fundamental elements, as described in :ref:`section<Simulation description>`. The framework already defines some of this parts, which can be found below:
+However, in order to make the diffusion module configurable, it is also possible to define custom diffusion protocols, built from their fundamental elements, as described in the Simulation description section. The framework already defines some of this parts, which can be found below:
 
 .. toctree::
    :maxdepth: 1
