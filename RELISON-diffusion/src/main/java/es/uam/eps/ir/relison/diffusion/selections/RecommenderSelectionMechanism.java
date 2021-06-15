@@ -79,6 +79,7 @@ public class RecommenderSelectionMechanism<U extends Serializable,I extends Seri
      * Constructor.
      * @param numOwn       number of own information pieces to propagate for each user and iteration.
      * @param numPropagate number of received information to propagate for each user and iteration.
+     * @param numRepr      number of already propagated pieces to propagate for each user and iteration.
      * @param prob         probability of chosing information to propagate that comes from recommended users.
      * @param orientation  it indicates the neighborhood that sends the information pieces.
      */
