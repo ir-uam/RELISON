@@ -42,7 +42,7 @@ public class TotalPropagatedStopCondition<U extends Serializable,I extends Seria
     @Override
     public boolean stop(int numIter, int numPropagated, int propagatingUsers, long newlyPropagated, long totalPropagated, Data<U, I, F> data, Long timestamp)
     {
-        return totalPropagated > this.limit || numPropagated == 0; 
+        return totalPropagated > this.limit;
     }
     
 }

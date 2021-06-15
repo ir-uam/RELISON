@@ -207,6 +207,12 @@ public abstract class AbstractFastGraph<V> implements FastGraph<V>, Serializable
     }
 
     @Override
+    public boolean updateEdgeType(V nodeA, V nodeB, int type)
+    {
+        return this.edges.updateEdgeType(this.vertices.object2idx(nodeA), this.vertices.object2idx(nodeB), type);
+    }
+
+    @Override
     public Stream<Weight<V, Double>> getIncidentNodesWeights(V node)
     {
         if (this.containsVertex(node))

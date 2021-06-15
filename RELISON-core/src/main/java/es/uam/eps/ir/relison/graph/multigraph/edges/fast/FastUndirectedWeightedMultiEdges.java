@@ -195,4 +195,28 @@ public class FastUndirectedWeightedMultiEdges extends FastMultiEdges implements 
         return false;
     }
 
+    @Override
+    public boolean updateEdgeType(int orig, int dest, int type, int idx)
+    {
+        if(this.containsEdge(orig, dest))
+        {
+            if(orig == dest)
+            {
+                List<Integer> weights = this.getEdgeTypes(orig, dest);
+                if (idx < 0 || idx >= weights.size()) return false;
+                weights.set(idx, type);
+                return true;
+            }
+            else
+            {
+                List<Integer> weightsA = this.getEdgeTypes(orig, dest);
+                List<Integer> weightsB = this.getEdgeTypes(dest, orig);
+                if (idx < 0 || idx >= weightsA.size()) return false;
+                weightsA.set(idx, type); weightsB.set(idx, type);
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

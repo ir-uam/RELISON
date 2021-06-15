@@ -96,6 +96,12 @@ public class FastDirectedWeightedEdges extends FastEdges implements DirectedEdge
     }
 
     @Override
+    public boolean updateEdgeType(int orig, int dest, int type)
+    {
+        return this.types.updatePair(orig, dest, type, false);
+    }
+
+    @Override
     public Stream<IdxPref> getNeighbourWeights(int node)
     {
         List<IdxPref> neighbors = new ArrayList<>();

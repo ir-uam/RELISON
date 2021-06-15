@@ -36,11 +36,11 @@ public class InformationFeatureSelectionFilterConfigurator<U extends Serializabl
     /**
      * Identifier for the name of the tag parameter.
      */
-    private final static String TAGNAME = "tagName";
+    private final static String TAGNAME = "feature";
     /**
      * Identifier for the file containing the tags to maintain.
      */
-    private final static String TAGFILE = "tagFile";
+    private final static String TAGFILE = "file";
     
     /**
      * Parameter parser, for parsing the tags.

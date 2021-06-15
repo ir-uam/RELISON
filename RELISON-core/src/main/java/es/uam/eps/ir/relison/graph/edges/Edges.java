@@ -292,6 +292,17 @@ public interface Edges
     boolean updateEdgeWeight(int orig, int dest, double weight);
 
     /**
+     * Modifies the weight of an edge.
+     *
+     * @param orig   Source node.
+     * @param dest   Incoming node.
+     * @param type The new weight of the edge.
+     *
+     * @return true if everything went OK, false if not, or the edge does not exist.
+     */
+    boolean updateEdgeType(int orig, int dest, int type);
+
+    /**
      * Obtains the number of edges in the graph.
      *
      * @return the number of edges in the graph.

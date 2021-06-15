@@ -93,9 +93,9 @@ public class FilterSelector<U extends Serializable,I extends Serializable, F>
         return switch (name)
         {
             case BASIC -> new BasicFilterConfigurator<>();
-            case TAG -> new ContainsInformationFeatureFilterConfigurator<>();
-            case TAGSEL -> new InformationFeatureSelectionFilterConfigurator<>(parser);
-            case NUMTWEETS -> new NumInformationPiecesFilterConfigurator<>();
+            case INFOFEAT -> new ContainsInformationFeatureFilterConfigurator<>();
+            case INFOFEATSEL -> new InformationFeatureSelectionFilterConfigurator<>(parser);
+            case NUMPIECES -> new NumInformationPiecesFilterConfigurator<>();
             case EMPTYTAG -> new EmptyFeatureFilterConfigurator<>(this.defaultValue);
             case CREATOR -> new WithCreatorFilterConfigurator<>();
             case RELEVANTEDGES -> new RelevantEdgesFilterConfigurator<>(this.testGraph);

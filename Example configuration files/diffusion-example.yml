@@ -1,8 +1,8 @@
 simulations:
 - filters:
     Creator:
-    Tag:
-      tagName:
+    Information feature:
+      feature:
         type: string
         value: hashtag
   protocol:

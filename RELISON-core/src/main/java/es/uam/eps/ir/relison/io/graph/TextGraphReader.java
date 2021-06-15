@@ -115,7 +115,7 @@ public class TextGraphReader<V> implements GraphReader<V>
         try
         {
             InputStream ios = new FileInputStream(file);
-            return this.read(ios, true, false);
+            return this.read(ios, weighted, false);
         }
         catch (IOException ioe)
         {

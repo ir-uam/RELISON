@@ -12,7 +12,7 @@ metrics:
       value: true
 filters:
   Creator:
-  Tag:
-    tagName:
+  Information feature:
+    feature:
       type: string
       value: hashtag

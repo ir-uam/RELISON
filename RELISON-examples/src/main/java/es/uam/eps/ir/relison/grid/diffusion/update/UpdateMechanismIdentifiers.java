@@ -18,7 +18,8 @@ package es.uam.eps.ir.relison.grid.diffusion.update;
 public class UpdateMechanismIdentifiers 
 {
     public final static String NEWEST = "Newest";
-    public final static String OLDER = "Older";
+    public final static String MERGER = "Merger";
+    public final static String OLDEST = "Oldest";
     
     /**
      * Prints the list of available update mechanisms
@@ -26,9 +27,10 @@ public class UpdateMechanismIdentifiers
     public static void printUpdateMechanismList()
     {
         System.out.println("Update Mechanisms:");
-        
+
+        System.out.println("\t" + MERGER);
         System.out.println("\t" + NEWEST);
-        System.out.println("\t" + OLDER);
+        System.out.println("\t" + OLDEST);
         
         System.out.println();
     }

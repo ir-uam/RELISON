@@ -12,7 +12,7 @@ import es.uam.eps.ir.relison.diffusion.expiration.InfiniteTimeExpirationMechanis
 import es.uam.eps.ir.relison.diffusion.propagation.AllNeighborsPropagationMechanism;
 import es.uam.eps.ir.relison.diffusion.selections.CountThresholdSelectionMechanism;
 import es.uam.eps.ir.relison.diffusion.sight.AllNotPropagatedSightMechanism;
-import es.uam.eps.ir.relison.diffusion.update.OlderUpdateMechanism;
+import es.uam.eps.ir.relison.diffusion.update.MergerUpdateMechanism;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 
 import java.io.Serializable;
@@ -54,7 +54,7 @@ public class CountThresholdModelProtocol<U extends Serializable,I extends Serial
     {
         super(new CountThresholdSelectionMechanism<>(numOwn, threshold),
               new InfiniteTimeExpirationMechanism<>(),
-              new OlderUpdateMechanism(),
+              new MergerUpdateMechanism(),
               new AllNeighborsPropagationMechanism<>(EdgeOrientation.IN),
               new AllNotPropagatedSightMechanism<>());
     }

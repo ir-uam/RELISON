@@ -387,15 +387,15 @@ For the loose version, the configuration is the following:
 
 .. code:: yaml
 
-  Loose timestamp-based:
-    numOwn:
-    
+  selection
+    name: Loose timestamp-based
 
 whereas, for the pure version, it is:
 
 .. code:: yaml
 
-  Pure timestamp-based:
+  selection
+    name: Pure timestamp-based
 
 Timestamp-ordered
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -301,4 +301,10 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
         this.graph.getVertices().stream().sorted().forEach(index::addObject);
         return index;
     }
+
+    @Override
+    public boolean updateEdgeType(U nodeA, U nodeB, int type)
+    {
+        throw new UnsupportedOperationException("Edges types cannot be updated in complementary graphs");
+    }
 }

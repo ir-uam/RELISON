@@ -18,13 +18,12 @@ public class FilterIdentifiers
 {
     // Non stop simulators (until there is no more propagation)
     public final static String BASIC = "Basic";
-    public final static String TAGSEL = "Tag Selection";
-    public final static String TAG = "Tag";
-    public final static String TAGCOMM = "Community Tag Selection";
-    public final static String NUMTWEETS = "NumTweets";
-    public final static String EMPTYTAG = "EmptyTag";
+    public final static String INFOFEATSEL = "Information feature selection";
+    public final static String INFOFEAT = "Information feature";
+    public final static String NUMPIECES = "Num. information pieces";
+    public final static String EMPTYTAG = "Empty feature";
     public final static String CREATOR = "Creator";
-    public final static String MINIMUMPIECES = "Minimum Pieces Feature";
+    public final static String MINIMUMPIECES = "Minimum information feature frequency";
     public final static String RELEVANTEDGES = "Relevant Edges";
     public final static String ONLYREPR = "Only Repropagated";
    
@@ -35,10 +34,9 @@ public class FilterIdentifiers
     {
         System.out.println("Filters:");
         System.out.println("\t" + BASIC);
-        System.out.println("\t" + TAGSEL);
-        System.out.println("\t" + TAG);
-        System.out.println("\t" + TAGCOMM);
-        System.out.println("\t" + NUMTWEETS);
+        System.out.println("\t" + INFOFEATSEL);
+        System.out.println("\t" + INFOFEAT);
+        System.out.println("\t" + NUMPIECES);
         System.out.println("\t" + EMPTYTAG);
         System.out.println("\t" + CREATOR);
         System.out.println("\t" + MINIMUMPIECES);

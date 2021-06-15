@@ -42,3 +42,8 @@ of the received contents which are actually read by the user. Any other piece is
 
 All the information pieces passing this filter are later included in the *received* list. However, it might happen that we received any of the contents in the past (as it is the case of the blue content in the figure). Some of the available meta-information of these user-generated contents might vary (for instance, we might have received it from different users). So, it is interesting to somehow combine this information in order to store it in the *received* list. This is done by what is called an **update mechanism**. The outcome of the update mechanism is then included in the *received list*.
 
+Use of timestamps
+^^^^^^^^^^^^^^^^^^^^^^
+When they are introduced in the simulator, each user-generated content has an specific timestamp. If we also have information about which contents have been forwarded by users different than their creator (e.g. retweets on Twitter, shared posts on Facebook), each forwarded post also comes with a timestamp. 
+
+The simulator takes, in the initial iteration, the smallest of these timestamps. Then, each iteration, the simulation increments this timestamp by taking the following available value, until no timestamp is available. These timestamps can be used in the simulation protocol, to define a stop condition, etc.

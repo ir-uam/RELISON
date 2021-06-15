@@ -12,8 +12,7 @@ import es.uam.eps.ir.relison.diffusion.update.UpdateMechanism;
 import es.uam.eps.ir.relison.grid.Parameters;
 import org.jooq.lambda.tuple.Tuple2;
 
-import static es.uam.eps.ir.relison.grid.diffusion.update.UpdateMechanismIdentifiers.NEWEST;
-import static es.uam.eps.ir.relison.grid.diffusion.update.UpdateMechanismIdentifiers.OLDER;
+import static es.uam.eps.ir.relison.grid.diffusion.update.UpdateMechanismIdentifiers.*;
 
 /**
  * Class that selects an individual update mechanism.
@@ -30,19 +29,15 @@ public class UpdateSelector
      */
     public Tuple2<String, UpdateMechanism> select(String name, Parameters params)
     {
-        UpdateConfigurator conf;
-        switch(name)
+        UpdateConfigurator conf = switch (name)
         {
-            case NEWEST:
-                conf = new NewestUpdateConfigurator();
-                break;
-            case OLDER:
-                conf = new OlderUpdateConfigurator();
-                break;
-            default:
-                return null;
-        }
-        
+            case NEWEST -> new NewestUpdateConfigurator();
+            case OLDEST -> new OldestUpdateConfigurator();
+            case MERGER -> new MergerUpdateConfigurator();
+            default -> null;
+        };
+
+        if(conf == null) return null;
         UpdateMechanism propagation = conf.configure(params);
         return new Tuple2<>(name, propagation);
     }

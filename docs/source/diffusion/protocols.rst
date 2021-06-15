@@ -17,3 +17,11 @@ However, in order to make the diffusion module configurable, it is also possible
    protocols/selection
    protocols/sight
    protocols/update
+
+In addition, it is necessary to provide, for each simulation, two additional elements: a set of filters to preprocess the input data for the simulations, and a stop condition, which determines when the simulation ends. We list them below:
+
+.. toctree::
+   :maxdepth: 1
+
+   protocols/stop
+   protocols/filters

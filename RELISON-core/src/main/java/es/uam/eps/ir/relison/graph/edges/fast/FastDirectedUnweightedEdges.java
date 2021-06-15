@@ -136,6 +136,12 @@ public class FastDirectedUnweightedEdges extends FastEdges implements DirectedEd
     }
 
     @Override
+    public boolean updateEdgeType(int orig, int dest, int type)
+    {
+        return this.types.updatePair(orig, dest, type, false);
+    }
+
+    @Override
     public boolean removeNode(int idx)
     {
         int toDel = 0;

@@ -24,6 +24,12 @@ or in the speed or diversity of the information diffusion).
 
 .. toctree::
    :maxdepth: 1
+   :caption: Network basics
+
+   basics/graph
+
+.. toctree::
+   :maxdepth: 1
    :caption: Social network analysis
 
    sna/introduction

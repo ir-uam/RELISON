@@ -8,8 +8,7 @@
  */
 package es.uam.eps.ir.relison.grid.diffusion.update;
 
-import es.uam.eps.ir.relison.diffusion.update.NewestUpdateMechanism;
-import es.uam.eps.ir.relison.diffusion.update.OlderUpdateMechanism;
+import es.uam.eps.ir.relison.diffusion.update.MergerUpdateMechanism;
 import es.uam.eps.ir.relison.diffusion.update.UpdateMechanism;
 import es.uam.eps.ir.relison.grid.Parameters;
 
@@ -19,14 +18,14 @@ import es.uam.eps.ir.relison.grid.Parameters;
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  * @author Pablo Castells (pablo.castells@uam.es)
  *
- * @see NewestUpdateMechanism
+ * @see MergerUpdateMechanism
  */
-public class OlderUpdateConfigurator implements UpdateConfigurator
+public class MergerUpdateConfigurator implements UpdateConfigurator
 {
     
     @Override
     public UpdateMechanism configure(Parameters params)
     {
-        return new OlderUpdateMechanism();
+        return new MergerUpdateMechanism();
     }
 }

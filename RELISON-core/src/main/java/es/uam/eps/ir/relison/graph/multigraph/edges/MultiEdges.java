@@ -333,4 +333,16 @@ public interface MultiEdges
      * @return true if everything went OK, false if not, or the edge does not exist.
      */
     boolean updateEdgeWeight(int orig, int dest, double weight, int idx);
+
+    /**
+     * Modifies the weight of an edge.
+     *
+     * @param orig   source node.
+     * @param dest   incoming node.
+     * @param idx    the number of the edge.
+     * @param type   the new type of the edge.
+     *
+     * @return true if everything went OK, false if not, or the edge does not exist.
+     */
+    boolean updateEdgeType(int orig, int dest, int type, int idx);
 }

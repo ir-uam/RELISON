@@ -500,6 +500,18 @@ public interface Graph<V> extends Serializable
     int getEdgeType(V nodeA, V nodeB);
 
     /**
+     * Updates the type of an edge.
+     *
+     * @param nodeA     The incident node.
+     * @param nodeB     The adjacent node.
+     * @param newType   The new type.
+     *
+     * @return true if everything goes OK, false if the edge does not exist
+     *         or something fails.
+     */
+    boolean updateEdgeType(V nodeA, V nodeB, int newType);
+
+    /**
      * Given a node, finds the types of the edges from the nodes u such that the edge (u to node) is in the graph.
      *
      * @param node The node.

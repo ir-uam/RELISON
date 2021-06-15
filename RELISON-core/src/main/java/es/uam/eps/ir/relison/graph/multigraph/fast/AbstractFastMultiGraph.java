@@ -383,6 +383,16 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
     }
 
     @Override
+    public boolean updateEdgeType(U orig, U dest, int type)
+    {
+        if(this.getNumEdges(orig, dest) == 1)
+        {
+            return this.edges.updateEdgeType(object2idx(orig), object2idx(dest), type, 0);
+        }
+        throw new UnsupportedOperationException("The edge to update was not specified.");
+    }
+
+    @Override
     public int object2idx(U u)
     {
         return this.vertices.object2idx(u);

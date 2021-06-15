@@ -36,58 +36,29 @@ public class SelectionSelector<U extends Serializable,I extends Serializable, F>
      */
     public Tuple2<String, SelectionMechanism<U,I, F>> select(String name, Parameters params)
     {
-        SelectionConfigurator<U,I, F> conf;
-        switch(name)
+        SelectionConfigurator<U,I, F> conf = switch (name)
         {
-            case ALLREALPROP:
-                conf = new AllRealPropagatedSelectionConfigurator<>();
-                break;
-            case PURERECBATCH:
-                conf = new BatchRecommenderSelectionConfigurator<>();
-                break;
-            case COUNTREALPROP:
-                conf = new CountRealPropagatedSelectionConfigurator<>();
-                break;
-            case COUNT:
-                conf = new CountSelectionConfigurator<>();
-                break;
-            case COUNTTHRESHOLD:
-                conf = new CountThresholdSelectionConfigurator<>();
-                break;
-            case ICM:
-                conf = new IndependentCascadeModelSelectionConfigurator<>();
-                break;
-            case LIMITEDCOUNTTHRESHOLD:
-                conf = new LimitedCountThresholdSelectionConfigurator<>();
-                break;
-            case LIMITEDPROPTHRESHOLD:
-                conf = new LimitedProportionThresholdSelectionConfigurator<>();
-                break;
-            case LOOSETIMESTAMP:
-                conf = new LooseTimestampBasedSelectionConfigurator<>();
-                break;
-            case ONLYOWN:
-                conf = new OnlyOwnSelectionConfigurator<>();
-                break;
-            case PROPORTIONTHRESHOLD:
-                conf = new ProportionThresholdSelectionConfigurator<>();
-                break;
-            case PUSHPULL:
-                conf = new PullPushSelectionConfigurator<>();
-                break;
-            case PUREREC:
-                conf = new PureRecommenderSelectionConfigurator<>();
-                break;
-            case REC:
-                conf = new RecommenderSelectionConfigurator<>();
-                break;
-            case TIMESTAMPORDERED:
-                conf = new TimestampOrderedSelectionConfigurator<>();
-                break;
-            default:
-                return null;
-        }
-        
+            case ALLREALPROP -> new AllRealPropagatedSelectionConfigurator<>();
+            case PURERECBATCH -> new BatchRecommenderSelectionConfigurator<>();
+            case COUNTREALPROP -> new CountRealPropagatedSelectionConfigurator<>();
+            case COUNT -> new CountSelectionConfigurator<>();
+            case COUNTTHRESHOLD -> new CountThresholdSelectionConfigurator<>();
+            case ICM -> new IndependentCascadeModelSelectionConfigurator<>();
+            case LIMITEDCOUNTTHRESHOLD -> new LimitedCountThresholdSelectionConfigurator<>();
+            case LIMITEDPROPTHRESHOLD -> new LimitedProportionThresholdSelectionConfigurator<>();
+            case LOOSETIMESTAMP -> new LooseTimestampBasedSelectionConfigurator<>();
+            case PURETIMESTAMP -> new PureTimestampBasedSelectionConfigurator<>();
+            case ONLYOWN -> new OnlyOwnSelectionConfigurator<>();
+            case PROPORTIONTHRESHOLD -> new ProportionThresholdSelectionConfigurator<>();
+            case PUSHPULL -> new PullPushSelectionConfigurator<>();
+            case PUREREC -> new PureRecommenderSelectionConfigurator<>();
+            case REC -> new RecommenderSelectionConfigurator<>();
+            case TIMESTAMPORDERED -> new TimestampOrderedSelectionConfigurator<>();
+            default -> null;
+        };
+
+        if(conf == null) return null;
+
         SelectionMechanism<U,I, F> selection = conf.configure(params);
         return new Tuple2<>(name, selection);
     }

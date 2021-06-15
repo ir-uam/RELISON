@@ -24,7 +24,7 @@ public class StopConditionIdentifiers
     public final static String TOTALPROP = "Total propagated";
     public final static String NOMORETIME = "No more timestamps";
     public final static String MAXTIME = "Max. timestamp";
-    public final static String NOMORETIMENORINFO = "No more timestamps nor info";
+    public final static String NOMORETIMENORINFO = "No more timestamps nor propagated";
    
     
     /**

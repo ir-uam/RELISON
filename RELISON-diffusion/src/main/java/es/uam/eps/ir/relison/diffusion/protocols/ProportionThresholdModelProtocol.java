@@ -10,10 +10,9 @@ package es.uam.eps.ir.relison.diffusion.protocols;
 
 import es.uam.eps.ir.relison.diffusion.expiration.AllNotPropagatedExpirationMechanism;
 import es.uam.eps.ir.relison.diffusion.propagation.AllNeighborsPropagationMechanism;
-import es.uam.eps.ir.relison.diffusion.selections.LimitedProportionThresholdSelectionMechanism;
 import es.uam.eps.ir.relison.diffusion.selections.ProportionThresholdSelectionMechanism;
 import es.uam.eps.ir.relison.diffusion.sight.AllNotPropagatedSightMechanism;
-import es.uam.eps.ir.relison.diffusion.update.OlderUpdateMechanism;
+import es.uam.eps.ir.relison.diffusion.update.MergerUpdateMechanism;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 
 import java.io.Serializable;
@@ -58,7 +57,7 @@ public class ProportionThresholdModelProtocol<U extends Serializable,I extends S
     {
         super(new ProportionThresholdSelectionMechanism<>(numOwn, threshold, EdgeOrientation.OUT),
               new AllNotPropagatedExpirationMechanism<>(),
-              new OlderUpdateMechanism(),
+              new MergerUpdateMechanism(),
               new AllNeighborsPropagationMechanism<>(EdgeOrientation.IN),
               new AllNotPropagatedSightMechanism<>());
     }

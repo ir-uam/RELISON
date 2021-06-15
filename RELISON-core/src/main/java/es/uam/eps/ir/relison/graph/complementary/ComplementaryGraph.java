@@ -348,6 +348,12 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     }
 
     @Override
+    public boolean updateEdgeType(U orig, U dest, int type)
+    {
+        throw new UnsupportedOperationException("Edges types cannot be updated in complementary graphs");
+    }
+
+    @Override
     public Stream<U> getIsolatedNodes()
     {
         return this.graph.getAllNodes().filter(x -> this.getNeighbourEdgesCount(x) == 0);

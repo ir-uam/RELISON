@@ -32,7 +32,7 @@ public class ContainsInformationFeatureFilterConfigurator<U extends Serializable
     /**
      * Identifier for the name of the tag field to consider.
      */
-    private final static String TAGNAME = "tagName";
+    private final static String TAGNAME = "feature";
     
     @Override
     public DataFilter<U, I, F> getFilter(Parameters fgr)

@@ -108,6 +108,19 @@ public class FastUndirectedWeightedEdges extends FastEdges implements Undirected
     }
 
     @Override
+    public boolean updateEdgeType(int orig, int dest, int type)
+    {
+        if (orig != dest)
+        {
+            return this.types.updatePair(orig, dest, type, false) && this.types.updatePair(dest, orig, type, false);
+        }
+        else
+        {
+            return this.types.updatePair(orig, dest, type, false);
+        }
+    }
+
+    @Override
     public boolean removeNode(int idx)
     {
         long toDel = this.getAdjacentCount(idx);

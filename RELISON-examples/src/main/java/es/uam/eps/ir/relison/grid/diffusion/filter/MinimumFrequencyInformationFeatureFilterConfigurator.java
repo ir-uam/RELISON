@@ -32,7 +32,7 @@ public class MinimumFrequencyInformationFeatureFilterConfigurator<U extends Seri
     /**
      * Identifier for the name of the tag field to consider.
      */
-    private final static String TAGNAME = "tagName";
+    private final static String TAGNAME = "feature";
     /**
      * Identifier for the minimum number of pieces which have to use the tag.
      */

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 Information Retrieval Group at Universidad Aut�noma
+ *  Copyright (C) 2021 Information Retrieval Group at Universidad Autónoma
  *  de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -36,37 +36,20 @@ public class SightSelector<U extends Serializable,I extends Serializable,F>
      */
     public Tuple2<String, SightMechanism<U,I, F>> select(String name, Parameters params)
     {
-        SightConfigurator<U,I,F> conf;
-        switch(name)
+        SightConfigurator<U,I,F> conf = switch (name)
         {
-            case SightMechanismIdentifiers.ALLRECOMMENDED:
-                conf = new AllRecommendedSightConfigurator<>();
-                break;
-            case SightMechanismIdentifiers.ALLSIGHT:
-                conf = new AllSightConfigurator<>();
-                break;
-            case SightMechanismIdentifiers.ALLTRAIN:
-                conf = new AllTrainSightConfigurator<>();
-                break;
-            case SightMechanismIdentifiers.COUNT:
-                conf = new CountSightConfigurator<>();
-                break;
-            case SightMechanismIdentifiers.ALLNOTDISCARDED:
-                conf = new AllNotDiscardedSightConfigurator<>();
-                break;
-            case SightMechanismIdentifiers.ALLNOTPROPAGATED:
-                conf = new AllNotPropagatedSightConfigurator<>();
-                break;
-            case SightMechanismIdentifiers.ALLNOTDISCARDEDNOTPROPAGATED:
-                conf = new AllNotDiscardedNorPropagatedSightConfigurator<>();
-                break;
-            case SightMechanismIdentifiers.RECOMMENDED:
-                conf = new RecommendedSightConfigurator<>();
-                break;
-            default:
-                return null;
-        }
-        
+            case SightMechanismIdentifiers.ALLRECOMMENDED -> new AllRecommendedSightConfigurator<>();
+            case SightMechanismIdentifiers.ALLSIGHT -> new AllSightConfigurator<>();
+            case SightMechanismIdentifiers.ALLTRAIN -> new AllTrainSightConfigurator<>();
+            case SightMechanismIdentifiers.COUNT -> new CountSightConfigurator<>();
+            case SightMechanismIdentifiers.ALLNOTDISCARDED -> new AllNotDiscardedSightConfigurator<>();
+            case SightMechanismIdentifiers.ALLNOTPROPAGATED -> new AllNotPropagatedSightConfigurator<>();
+            case SightMechanismIdentifiers.ALLNOTDISCARDEDNOTPROPAGATED -> new AllNotDiscardedNorPropagatedSightConfigurator<>();
+            case SightMechanismIdentifiers.RECOMMENDED -> new RecommendedSightConfigurator<>();
+            default -> null;
+        };
+
+        if(conf == null) return null;
         SightMechanism<U,I,F> propagation = conf.configure(params);
         return new Tuple2<>(name, propagation);
     }
