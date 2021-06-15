@@ -476,7 +476,7 @@ public abstract class AbstractFastGraph<V> implements FastGraph<V>, Serializable
     }
 
     @Override
-    public Stream<V> getNodesWithEdges(EdgeOrientation direction)
+    public Stream<V> getNodesWithNeighbors(EdgeOrientation direction)
     {
         switch (direction)
         {
@@ -521,49 +521,49 @@ public abstract class AbstractFastGraph<V> implements FastGraph<V>, Serializable
     }
 
     @Override
-    public Stream<V> getNodesWithAdjacentEdges()
+    public Stream<V> getNodesWithAdjacentNeighbors()
     {
-        return this.getNodesWithEdges(EdgeOrientation.OUT);
+        return this.getNodesWithNeighbors(EdgeOrientation.OUT);
     }
 
     @Override
-    public Stream<V> getNodesWithIncidentEdges()
+    public Stream<V> getNodesWithIncidentNeighbors()
     {
-        return this.getNodesWithEdges(EdgeOrientation.IN);
+        return this.getNodesWithNeighbors(EdgeOrientation.IN);
     }
 
     @Override
-    public Stream<V> getNodesWithEdges()
+    public Stream<V> getNodesWithNeighbors()
     {
-        return this.getNodesWithEdges(EdgeOrientation.UND);
+        return this.getNodesWithNeighbors(EdgeOrientation.UND);
     }
 
     @Override
-    public Stream<V> getNodesWithMutualEdges()
+    public Stream<V> getNodesWithMutualNeighbors()
     {
-        return this.getNodesWithEdges(EdgeOrientation.MUTUAL);
+        return this.getNodesWithNeighbors(EdgeOrientation.MUTUAL);
     }
 
     @Override
-    public boolean hasAdjacentEdges(V u)
+    public boolean hasAdjacentNeighbors(V u)
     {
         return this.edges.hasAdjacentEdges(this.object2idx(u));
     }
 
     @Override
-    public boolean hasIncidentEdges(V u)
+    public boolean hasIncidentNeighbors(V u)
     {
         return this.edges.hasIncidentEdges(this.object2idx(u));
     }
 
     @Override
-    public boolean hasEdges(V u)
+    public boolean hasNeighbors(V u)
     {
         return this.edges.hasEdges(this.object2idx(u));
     }
 
     @Override
-    public boolean hasMutualEdges(V u)
+    public boolean hasMutualNeighbors(V u)
     {
         return this.edges.hasMutualEdges(this.object2idx(u));
     }

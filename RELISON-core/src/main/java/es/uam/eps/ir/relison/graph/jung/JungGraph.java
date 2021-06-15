@@ -235,61 +235,61 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
     }
 
     @Override
-    public Stream<U> getNodesWithEdges(EdgeOrientation direction)
+    public Stream<U> getNodesWithNeighbors(EdgeOrientation direction)
     {
         return switch (direction)
         {
-            case OUT -> this.getNodesWithAdjacentEdges();
-            case IN -> this.getNodesWithIncidentEdges();
-            case UND -> this.getNodesWithEdges();
-            case MUTUAL -> this.getNodesWithMutualEdges();
+            case OUT -> this.getNodesWithAdjacentNeighbors();
+            case IN -> this.getNodesWithIncidentNeighbors();
+            case UND -> this.getNodesWithNeighbors();
+            case MUTUAL -> this.getNodesWithMutualNeighbors();
         };
     }
 
     @Override
-    public Stream<U> getNodesWithAdjacentEdges()
+    public Stream<U> getNodesWithAdjacentNeighbors()
     {
         return this.getAllNodes().filter(x -> this.graph.getSuccessorCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithIncidentEdges()
+    public Stream<U> getNodesWithIncidentNeighbors()
     {
         return this.getAllNodes().filter(x -> this.graph.getPredecessorCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithEdges()
+    public Stream<U> getNodesWithNeighbors()
     {
         return this.getAllNodes().filter(x -> this.graph.getNeighborCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithMutualEdges()
+    public Stream<U> getNodesWithMutualNeighbors()
     {
         return this.getAllNodes().filter(x -> this.getMutualNodesCount(x) > 0);
     }
 
     @Override
-    public boolean hasAdjacentEdges(U u)
+    public boolean hasAdjacentNeighbors(U u)
     {
         return this.graph.getSuccessorCount(u) > 0;
     }
 
     @Override
-    public boolean hasIncidentEdges(U u)
+    public boolean hasIncidentNeighbors(U u)
     {
         return this.graph.getPredecessorCount(u) > 0;
     }
 
     @Override
-    public boolean hasEdges(U u)
+    public boolean hasNeighbors(U u)
     {
         return this.graph.getNeighborCount(u) > 0;
     }
 
     @Override
-    public boolean hasMutualEdges(U u)
+    public boolean hasMutualNeighbors(U u)
     {
         return this.getMutualNodesCount(u) > 0;
     }

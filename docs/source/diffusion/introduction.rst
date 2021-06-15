@@ -10,6 +10,6 @@ Everything needed for the simulation of information diffusion is included in the
 
     <dependency>
       <groupId>es.uam.eps.ir</groupId>
-      <artifactId>Relison-diffusion</artifactId>
+      <artifactId>RELISON-diffusion</artifactId>
       <version>1.0.0</version>
     </dependency>

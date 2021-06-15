@@ -8,6 +8,6 @@ Community detection algorithms are included in the SNA module of the framework, 
 
     <dependency>
       <groupId>es.uam.eps.ir</groupId>
-      <artifactId>Relison-sna</artifactId>
+      <artifactId>RELISON-sna</artifactId>
       <version>1.0.0</version>
     </dependency>

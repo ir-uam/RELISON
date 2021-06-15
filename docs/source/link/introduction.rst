@@ -11,6 +11,6 @@ In order to use these functionalities, it is important to import the following p
 
     <dependency>
       <groupId>es.uam.eps.ir</groupId>
-      <artifactId>Relison-linkpred</artifactId>
+      <artifactId>RELISON-linkpred</artifactId>
       <version>1.0.0</version>
     </dependency>

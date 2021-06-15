@@ -3,6 +3,16 @@ Networks
 The RELISON library allows the creation, reading, writing and manipulation of networks. Mathematically, a network is modelled as a graph, 
 :math:`G = \langle \mathcal{U}, E \rangle`, where :math:`\mathcal{U}` is the set of users in the network, and :math:`E \in \mathcal{U}^2` is the set of links in the network. For each user :math:`u \in \mathcal{U}`, we define his neighborhood, :math:`\Gamma(u)` as the set of people in the network sharing a link with him.
 
+In order to use the basic graph structures, the following package must be included in the pom.xml file in your Maven project.
+
+.. code:: xml
+
+    <dependency>
+      <groupId>es.uam.eps.ir</groupId>
+      <artifactId>RELISON-core</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+
 Properties of a graph
 ======================
 The RELISON library allows different types of network, depending on its properties. We have to select three options:
@@ -137,7 +147,7 @@ We wanted to note here that this is the format available in the programs provide
 
 Pajek format
 ~~~~~~~~~~~~
-This format allows reading and writing networks in the Pajek format (more information `here <https://gephi.org/users/supported-graph-formats/pajek-net-format/>`_ ). These graphs have the following format (space separated):
+This format allows reading and writing networks in the Pajek format (more information in the following `link <https://gephi.org/users/supported-graph-formats/pajek-net-format/>`_ ). These graphs have the following format (space separated):
 
 .. code::
 
@@ -339,17 +349,311 @@ Also, we provide a method to remove all the edges between two nodes in the multi
 
 Accessing the properties of a network
 ======================================
+In addition to the methods for modifying the structure of a social network, RELISON also provides methods for accessing to the basic information of a network: the nodes in the network, his neighbors, the weights and types of the edges, etc. Here, we summarize how this can be done. 
+
+Users in the network
+~~~~~~~~~~~~~~~~~~~~~~
+The first element we explain how to access are the nodes in the network. In order to access the complete set of nodes, we can use the following method:
+
+.. code:: Java
+	
+	Stream<U> getAllNodes()
+
+**Returns**
+	* An stream object containing the identifiers of all the nodes in the network.
+
+If, instead of accessing to them, we just need to count them, we can use the following method of the graphs:
+
+.. code:: Java
+	
+	long getVertexCount()
+
+**Returns**
+	* The number of vertices (nodes, users) in the network graph.
+
+Edge properties
+~~~~~~~~~~~~~~~
+The next element we can access are the edges. If we know the endpoints of the edge, we can access their different properties. We differentiate four methods here:
+
+Edge existence
+^^^^^^^^^^^^^^
+The first method allows us to know if there is a link between two users. The method signature is:
+
+.. code:: Java
+	
+	boolean containsEdge(U orig, U dest)
+
+**Arguments**
+	* :code:`orig`: the first node.
+	* :code:`dest`: the second node.
+
+**Returns**
+	* true if there is (at least) an edge, false otherwise.
+
+In multigraphs, there is another method which allows us to obtain the number of edges between a pair of users:
+
+.. code:: Java
+	
+	int getNumEdges(U orig, U dest)
+
+**Arguments**
+	* :code:`orig`: the first node.
+	* :code:`dest`: the second node.
+
+**Returns**
+	* the number of edges between the two nodes.
+
+Edge weight
+^^^^^^^^^^^^
+We might want to access the weight of an edge. For this, in simple graphs, we use the following method:
+
+.. code:: Java
+
+	double getEdgeWeight(U orig, U dest)
+
+**Arguments**
+	* :code:`orig`: the first node.
+	* :code:`dest`: the second node.
+
+**Returns**
+	* the weight if it exists, :code:`NaN` otherwise.
+
+In the case of multigraphs, the previous method allows us to obtain the sum of all the edge weights. If we want to obtain the individual weights, we have another method:
+
+.. code:: Java
+
+	List<Double> getEdgeWeights(U orig, U dest)
+
+**Arguments**
+	* :code:`orig`: the first node.
+	* :code:`dest`: the second node.
+
+**Returns**
+	* a list containing all the edge weights if there is (at least) one edge between the users, null otherwise.
+
+Edge types
+^^^^^^^^^^^^
+We might want to access the type of an edge. For this, in simple graphs, we use the following method:
+
+.. code:: Java
+
+	int getEdgeWeight(U orig, U dest)
+
+**Arguments**
+	* :code:`orig`: the first node.
+	* :code:`dest`: the second node.
+
+**Returns**
+	* the type if it exists, -1 otherwise.
+
+In the case of multigraphs, we have another method, which allows us to retrieve the weights of all the edges:
+
+.. code:: Java
+
+	List<Integer> getEdgeTypes(U orig, U dest)
+
+**Arguments**
+	* :code:`orig`: the first node.
+	* :code:`dest`: the second node.
+
+**Returns**
+	* a list containing all the edge types if there is (at least) one edge between the users, null otherwise.
+
+Edge number
+^^^^^^^^^^^
+The last method just allows us to determine how many edges our network has:
+
+.. code:: Java
+
+	long getEdgeCount()
+
+**Returns**
+	* the number of edges in the network.
+
 Neighbors of a node
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+As accessing the edges in the network just by running over all the possible pairs of users and checking if the edge exists would be very slow, RELISON provides methods for accessing the neighborhood of a user. We explain them here.
+
+Existence of neighbors
+^^^^^^^^^^^^^^^^^^^^^^
+The first group of methods study whether a node has (or not) neighbors in the network. Although there are several methods for this, here we only explain the following one:
+
+.. code:: Java
+
+	boolean hasNeighbors(U u, EdgeOrientation orient)
+
+**Arguments**
+	* :code:`u`: the node to study.
+	* :code:`orient`: the orientation for selecting the neighbors (only useful in directed networks).
+
+	    * :code:`IN`: for identifying if the user has incoming neighbors.
+	    * :code:`OUT`: for identifying if the user has outgoing neighbors.
+	    * :code:`UND`: for identifying if the user has either incoming or outgoing neighbors.
+	    * :code:`MUTUAL`: for identifying if the user has neighbors who are both incoming and outgoing.
+
+**Returns**
+	* true if the node has neighbors, false otherwise.
+
+Count
+^^^^^^^^^^
+The second group of methods allows us to identify how many neighbors a user has. 
+
+.. code:: Java
+
+	int getNeighbourhoodSize(U u, EdgeOrientation orient)
+
+**Arguments**
+	* :code:`u`: the node to study.
+	* :code:`orient`: the orientation for selecting the neighbors (only useful in directed networks).
+
+	    * :code:`IN`: for retrieving the incoming neighbors.
+	    * :code:`OUT`: for retrieving the outgoing neighbors.
+	    * :code:`UND`: for retrieving either incoming or outgoing neighbors.
+	    * :code:`MUTUAL`: for retrieving the neighbors who are both incoming and outgoing.
+
+**Returns**
+	* the number of neighbors of the user.
+
+There is another method, that allows us to study the number of edges connected to a node. This value is the same as the previous one in the case of simple networks, but it changes when it comes to multigraphs:
+
+.. code:: Java
+
+	int degree(U u, EdgeOrientation orient)
+
+**Arguments**
+	* :code:`u`: the node to study.
+	* :code:`orient`: the orientation for selecting the neighbors (only useful in directed networks).
+
+	    * :code:`IN`: for retrieving the incoming neighbors.
+	    * :code:`OUT`: for retrieving the outgoing neighbors.
+	    * :code:`UND`: for retrieving either incoming or outgoing neighbors.
+	    * :code:`MUTUAL`: for retrieving the neighbors who are both incoming and outgoing.
+
+**Returns**
+	* the number of edges connected to the user (the degree), -1 if the user does not exist.
+
+
+Neighbors
+^^^^^^^^^^
+The third group of methods allows us to identify the actual neighbors of a user in the network. The method we introduce here is the following:
+
+.. code:: Java
+
+	Stream<U> get(U u, EdgeOrientation orient)
+
+**Arguments**
+	* :code:`u`: the node to study.
+	* :code:`orient`: the orientation for selecting the neighbors (only useful in directed networks).
+
+	    * :code:`IN`: for retrieving the incoming neighbors.
+	    * :code:`OUT`: for retrieving the outgoing neighbors.
+	    * :code:`UND`: for retrieving either incoming or outgoing neighbors.
+	    * :code:`MUTUAL`: for retrieving the neighbors who are both incoming and outgoing.
+
+**Returns**
+	* an stream containing the identifier of the networks.
+
+
 Weights
 ^^^^^^^^
+The fourth group of methods allows us to identify the weights of the nodes. We can use the following method:
+
+.. code:: Java
+
+	Stream<Weight<U, Double>> getNeighbourhoodWeights(U u, EdgeOrientation orient)
+
+**Arguments**
+	* :code:`u`: the node to study.
+	* :code:`orient`: the orientation for selecting the neighbors (only useful in directed networks).
+
+	    * :code:`IN`: for retrieving the incoming neighbors.
+	    * :code:`OUT`: for retrieving the outgoing neighbors.
+	    * :code:`UND`: for retrieving either incoming or outgoing neighbors.
+	    * :code:`MUTUAL`: for retrieving the neighbors who are both incoming and outgoing.
+
+**Returns**
+	* an stream containing (user, weight) pairs. In multigraphs, a pair is included for each edge.
+
+Additionally, in multigraphs, we can also use the following method:
+
+.. code:: Java
+
+	Stream<Weight<U, Double>> getNeighbourhoodWeightsLists(U u, EdgeOrientation orient)
+
+**Arguments**
+	* :code:`u`: the node to study.
+	* :code:`orient`: the orientation for selecting the neighbors (only useful in directed networks).
+
+	    * :code:`IN`: for retrieving the incoming neighbors.
+	    * :code:`OUT`: for retrieving the outgoing neighbors.
+	    * :code:`UND`: for retrieving either incoming or outgoing neighbors.
+	    * :code:`MUTUAL`: for retrieving the neighbors who are both incoming and outgoing.
+
+**Returns**
+	* an stream containing (user, list of weights) pairs.
 
 Edge types
 ^^^^^^^^^^
+The fifth and last group of methods allows us to identify the weights of the nodes. We can use the following method:
 
+.. code:: Java
+
+	Stream<Weight<U, Integer>> getNeighbourhoodTypes(U u, EdgeOrientation orient)
+
+**Arguments**
+	* :code:`u`: the node to study.
+	* :code:`orient`: the orientation for selecting the neighbors (only useful in directed networks).
+
+	    * :code:`IN`: for retrieving the incoming neighbors.
+	    * :code:`OUT`: for retrieving the outgoing neighbors.
+	    * :code:`UND`: for retrieving either incoming or outgoing neighbors.
+	    * :code:`MUTUAL`: for retrieving the neighbors who are both incoming and outgoing.
+
+**Returns**
+	* an stream containing (user, type) pairs. In multigraphs, a pair is included for each edge.
+
+Additionally, in multigraphs, we can also use the following method:
+
+.. code:: Java
+
+	Stream<Weight<U, Integer>> getNeighbourhoodTypesLists(U u, EdgeOrientation orient)
+
+**Arguments**
+	* :code:`u`: the node to study.
+	* :code:`orient`: the orientation for selecting the neighbors (only useful in directed networks).
+
+	    * :code:`IN`: for retrieving the incoming neighbors.
+	    * :code:`OUT`: for retrieving the outgoing neighbors.
+	    * :code:`UND`: for retrieving either incoming or outgoing neighbors.
+	    * :code:`MUTUAL`: for retrieving the neighbors who are both incoming and outgoing.
+
+**Returns**
+	* an stream containing (user, list of types) pairs.
 
 Adjacency matrix
 ~~~~~~~~~~~~~~~~
+In addition to the graph object, we can represent the network using the adjacency matrix of the network. This matrix has in the :math:`(u,v)` coordinate, the weight of the edge between nodes :math:`u` and :math:`v`. We can obtain this matrix using the following method:
 
+.. code:: Java
 
+	double[][] getAdjacencyMatrix(EdgeOrientation orient)
 
+**Arguments**
+	* :code:`orient`: the orientation for selecting the matrix (only useful in directed networks).
+
+	    * :code:`IN`: the :math:`(u,v)` coordinate contains the weight of the :math:`(v,u)` weight.
+	    * :code:`OUT`: the :math:`(u,v)` coordinate contains the weight of the :math:`(u,v)` weight (natural adjacency matrix)
+	    * :code:`UND`: the :math:`(u,v)` coordinate contains the :math:`w(u,v) + w(v,u)`.
+	    * :code:`MUTUAL`: the :math:`(u,v)` coordinate contains the :math:`w(u,v) + w(v,u)` value if both edges exist, 0 otherwise.
+
+**Returns**
+	* an array containing the matrix.
+
+We should note that the nodes in the network can be represented by any type of identifier (int, long, string, etc.). So, in order to map these identifiers to the indexes in the matrix, we can use the following method:
+
+.. code:: Java
+
+	Index<U> getAdjacencyMatrixMap()
+
+**Returns**
+	* an index, mapping user identifiers to indexes in the (0, numNodes-1) rank.

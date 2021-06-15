@@ -156,7 +156,7 @@ public interface DirectedGraph<V> extends Graph<V>
      */
     default Stream<V> getSources()
     {
-        return this.getNodesWithAdjacentEdges().filter(u -> !this.hasIncidentEdges(u));
+        return this.getNodesWithAdjacentNeighbors().filter(u -> !this.hasIncidentNeighbors(u));
     }
 
     /**
@@ -166,6 +166,6 @@ public interface DirectedGraph<V> extends Graph<V>
      */
     default Stream<V> getSinks()
     {
-        return this.getNodesWithIncidentEdges().filter(u -> !this.hasAdjacentEdges(u));
+        return this.getNodesWithIncidentNeighbors().filter(u -> !this.hasAdjacentNeighbors(u));
     }
 }

@@ -78,7 +78,7 @@ public class RandomGraphGenerator
             case GraphGenerationAlgorithms.COMPLETE ->
             {
                 ggen = new CompleteGraphGenerator<>();
-                ggen.configure(directed, numNodes, Generators.longgen);
+                ggen.configure(directed, numNodes, false, Generators.longgen);
             }
             case GraphGenerationAlgorithms.ERDOS ->
             {

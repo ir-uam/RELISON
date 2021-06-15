@@ -223,7 +223,7 @@ public class Adapters
             graph.getAllNodes().forEach(auxGraph::addNode);
 
             Index<U> index = graph.getAdjacencyMatrixMap();
-            graph.getNodesWithAdjacentEdges().forEach(u ->
+            graph.getNodesWithAdjacentNeighbors().forEach(u ->
             {
                 IntPredicate pred = filter.apply(u);
                 graph.getAdjacentNodes(u).filter(v -> pred.test(index.object2idx(v))).forEach(v ->

@@ -360,55 +360,55 @@ public abstract class ComplementaryGraph<U> implements Graph<U>
     }
 
     @Override
-    public Stream<U> getNodesWithEdges(EdgeOrientation direction)
+    public Stream<U> getNodesWithNeighbors(EdgeOrientation direction)
     {
         return this.graph.getAllNodes().filter(x -> this.getNeighbourhoodSize(x, direction) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithAdjacentEdges()
+    public Stream<U> getNodesWithAdjacentNeighbors()
     {
         return this.graph.getAllNodes().filter(x -> this.getAdjacentNodesCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithIncidentEdges()
+    public Stream<U> getNodesWithIncidentNeighbors()
     {
         return this.graph.getAllNodes().filter(x -> this.getIncidentNodesCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithEdges()
+    public Stream<U> getNodesWithNeighbors()
     {
         return this.graph.getAllNodes().filter(x -> this.getNeighbourNodesCount(x) > 0);
     }
 
     @Override
-    public Stream<U> getNodesWithMutualEdges()
+    public Stream<U> getNodesWithMutualNeighbors()
     {
         return this.graph.getAllNodes().filter(x -> this.getMutualNodesCount(x) > 0);
     }
 
     @Override
-    public boolean hasAdjacentEdges(U u)
+    public boolean hasAdjacentNeighbors(U u)
     {
         return this.getAdjacentNodesCount(u) > 0;
     }
 
     @Override
-    public boolean hasIncidentEdges(U u)
+    public boolean hasIncidentNeighbors(U u)
     {
         return this.getIncidentNodesCount(u) > 0;
     }
 
     @Override
-    public boolean hasEdges(U u)
+    public boolean hasNeighbors(U u)
     {
         return this.getNeighbourNodesCount(u) > 0;
     }
 
     @Override
-    public boolean hasMutualEdges(U u)
+    public boolean hasMutualNeighbors(U u)
     {
         return this.getMutualNodesCount(u) > 0;
     }

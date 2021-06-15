@@ -67,3 +67,10 @@ or in the speed or diversity of the information diffusion).
    diffusion/evaluation
    diffusion/protocols
    diffusion/metrics
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Graph generation
+
+   graphgen/introduction
+   graphgen/algorithms

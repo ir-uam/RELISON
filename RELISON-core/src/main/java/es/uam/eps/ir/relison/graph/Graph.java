@@ -366,7 +366,6 @@ public interface Graph<V> extends Serializable
      */
     int getMutualEdgesCount(V node);
 
-
     /**
      * Checks if a vertex exists in the graph.
      *
@@ -642,35 +641,35 @@ public interface Graph<V> extends Serializable
      *
      * @return the set of nodes with edges in the given direction.
      */
-    Stream<V> getNodesWithEdges(EdgeOrientation direction);
+    Stream<V> getNodesWithNeighbors(EdgeOrientation direction);
 
     /**
      * Obtains the set of nodes which have adjacent edges.
      *
      * @return the set of nodes which have adjacent edges.
      */
-    Stream<V> getNodesWithAdjacentEdges();
+    Stream<V> getNodesWithAdjacentNeighbors();
 
     /**
      * Obtains the set of nodes which have incident edges.
      *
      * @return the set of nodes which have incident edges.
      */
-    Stream<V> getNodesWithIncidentEdges();
+    Stream<V> getNodesWithIncidentNeighbors();
 
     /**
      * Obtains the set of nodes having either incident or adjacent edges.
      *
      * @return the set of nodes which have incident or adjacent edges.
      */
-    Stream<V> getNodesWithEdges();
+    Stream<V> getNodesWithNeighbors();
 
     /**
      * Obtains the set of nodes having mutual edges.
      *
      * @return the set of nodes which have mutual edges.
      */
-    Stream<V> getNodesWithMutualEdges();
+    Stream<V> getNodesWithMutualNeighbors();
 
     /**
      * Checks if the user has adjacent edges or not.
@@ -679,7 +678,7 @@ public interface Graph<V> extends Serializable
      *
      * @return true if the user has adjacent edges, false if it is a sink or isolated node.
      */
-    boolean hasAdjacentEdges(V u);
+    boolean hasAdjacentNeighbors(V u);
 
     /**
      * Checks if the user has incident edges or not.
@@ -688,7 +687,7 @@ public interface Graph<V> extends Serializable
      *
      * @return true if the user has incident edges, false if it is a source or isolated node.
      */
-    boolean hasIncidentEdges(V u);
+    boolean hasIncidentNeighbors(V u);
 
     /**
      * Checks if the user shares at least an edge with other user.
@@ -697,7 +696,7 @@ public interface Graph<V> extends Serializable
      *
      * @return true if the user is not isolated, false otherwise.
      */
-    boolean hasEdges(V u);
+    boolean hasNeighbors(V u);
 
     /**
      * Checks if the user has mutual edges.
@@ -706,7 +705,26 @@ public interface Graph<V> extends Serializable
      *
      * @return true if the user has mutual edges, false otherwise.
      */
-    boolean hasMutualEdges(V u);
+    boolean hasMutualNeighbors(V u);
+
+    /**
+     * Checks if the user has neighbors.
+     *
+     * @param u The user.
+     * @param orient the orientation of the neighborhood.
+     *
+     * @return true if the user has neighbors.
+     */
+    default boolean hasNeighbors(V u, EdgeOrientation orient)
+    {
+        return switch (orient)
+        {
+            case IN -> this.hasIncidentNeighbors(u);
+            case OUT -> this.hasAdjacentNeighbors(u);
+            case UND -> this.hasNeighbors(u);
+            case MUTUAL -> this.hasMutualNeighbors(u);
+        };
+    }
 
     /**
      * Complements the graph

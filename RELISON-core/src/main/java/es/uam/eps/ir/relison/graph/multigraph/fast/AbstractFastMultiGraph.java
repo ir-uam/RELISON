@@ -411,7 +411,7 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
     }
 
     @Override
-    public Stream<U> getNodesWithEdges(EdgeOrientation orient)
+    public Stream<U> getNodesWithNeighbors(EdgeOrientation orient)
     {
         return switch (orient)
         {
@@ -423,49 +423,49 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
     }
 
     @Override
-    public Stream<U> getNodesWithAdjacentEdges()
+    public Stream<U> getNodesWithAdjacentNeighbors()
     {
-        return this.getNodesWithEdges(EdgeOrientation.OUT);
+        return this.getNodesWithNeighbors(EdgeOrientation.OUT);
     }
 
     @Override
-    public Stream<U> getNodesWithIncidentEdges()
+    public Stream<U> getNodesWithIncidentNeighbors()
     {
-        return this.getNodesWithEdges(EdgeOrientation.IN);
+        return this.getNodesWithNeighbors(EdgeOrientation.IN);
     }
 
     @Override
-    public Stream<U> getNodesWithEdges()
+    public Stream<U> getNodesWithNeighbors()
     {
-        return this.getNodesWithEdges(EdgeOrientation.UND);
+        return this.getNodesWithNeighbors(EdgeOrientation.UND);
     }
 
     @Override
-    public Stream<U> getNodesWithMutualEdges()
+    public Stream<U> getNodesWithMutualNeighbors()
     {
-        return this.getNodesWithEdges(EdgeOrientation.MUTUAL);
+        return this.getNodesWithNeighbors(EdgeOrientation.MUTUAL);
     }
 
     @Override
-    public boolean hasAdjacentEdges(U u)
+    public boolean hasAdjacentNeighbors(U u)
     {
         return this.edges.hasAdjacentEdges(this.object2idx(u));
     }
 
     @Override
-    public boolean hasIncidentEdges(U u)
+    public boolean hasIncidentNeighbors(U u)
     {
         return this.edges.hasIncidentEdges(this.object2idx(u));
     }
 
     @Override
-    public boolean hasEdges(U u)
+    public boolean hasNeighbors(U u)
     {
         return this.edges.hasEdges(this.object2idx(u));
     }
 
     @Override
-    public boolean hasMutualEdges(U u)
+    public boolean hasMutualNeighbors(U u)
     {
         return this.edges.hasMutualEdges(this.object2idx(u));
     }

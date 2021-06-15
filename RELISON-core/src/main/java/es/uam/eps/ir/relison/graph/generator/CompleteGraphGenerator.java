@@ -37,7 +37,7 @@ public class CompleteGraphGenerator<U> implements GraphGenerator<U>
     /**
      * Indicates if autoloops are also allowed.
      */
-    private boolean autoloops;
+    private boolean selfloops;
     /**
      * True if the graph has already been configured, false if not.
      */
@@ -83,7 +83,7 @@ public class CompleteGraphGenerator<U> implements GraphGenerator<U>
         this.directed = directed;
         this.generator = generator;
         this.configured = true;
-        this.autoloops = false;
+        this.selfloops = false;
     }
 
     /**
@@ -99,7 +99,7 @@ public class CompleteGraphGenerator<U> implements GraphGenerator<U>
         this.numNodes = numNodes;
         this.directed = directed;
         this.generator = generator;
-        this.autoloops = autoloops;
+        this.selfloops = autoloops;
         this.configured = true;
     }
 
@@ -124,7 +124,7 @@ public class CompleteGraphGenerator<U> implements GraphGenerator<U>
 
         graph.getAllNodes().forEach(u -> graph.getAllNodes().forEach(v ->
                                                                      {
-                                                                         if (this.autoloops || !u.equals(v))
+                                                                         if (this.selfloops || !u.equals(v))
                                                                          {
                                                                              graph.addEdge(u, v);
                                                                          }

@@ -34,7 +34,7 @@ public class ContactRecommendationRelevanceModel<U> extends IdealRelevanceModel<
      */
     public ContactRecommendationRelevanceModel(boolean caching, Graph<U> testGraph)
     {
-        super(caching, testGraph.getNodesWithAdjacentEdges());
+        super(caching, testGraph.getNodesWithAdjacentNeighbors());
         this.testGraph = testGraph;
     }
 
