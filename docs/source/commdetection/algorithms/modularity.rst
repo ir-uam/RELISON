@@ -51,7 +51,7 @@ whereas the balanced variant has this one:
   Balanced FastGreedy:
     size:
       type: int
-      values: [1,10,100,1000]
+      value: 100
 
 the Gini weighted approach has the following:
 
@@ -60,7 +60,7 @@ the Gini weighted approach has the following:
   Gini weighted FastGreedy:
     lambda:
       type: double
-      values: [0.1,1,10,100]
+      value: 0.1
 
 and the size weighted variant:
 
@@ -90,6 +90,8 @@ To compute this metric, we call to the original implementation of the algorithm,
 
 **Reference:** M. Rosvall and C. Bergstrom. Maps of random walks on complex networks reveal community structure. Proceedings of the National Academy of Sciences 105(4), pp. 1118-1123 (2008)
 
+**NOTE:** As Infomap uses the original implementation (https://github.com/mapequation/infomap), at the moment, this method only works on Linux.
+
 Parameters
 ^^^^^^^^^^
 *  :code:`trials`: the number of iterations of the most external loop of the algorithm.
@@ -103,7 +105,7 @@ Configuration file
   Infomap:
     trials:
       type: int
-      values: [1,5,10]
+      value: 1
 
 Label propagation
 ~~~~~~~~~~~~~~~~~
@@ -143,7 +145,7 @@ Configuration file
     Louvain:
       threshold:
         type: double
-        values: [0.001,0.01,0.1,1]
+        value: 0.0001
 
 Spectral clustering
 ^^^^^^^^^^^^^^^^^^^
@@ -185,7 +187,7 @@ For the ratio cut version, the configuration file would look as:
     Ratio cut spectral clustering:
       k:
         type: int
-        values: [10,20,30]
+        value: 10
 
 and, for the normalized cut version:
 
@@ -194,4 +196,4 @@ and, for the normalized cut version:
     Normalized cut spectral clustering:
       k:
         type: int
-        values: [10,20,30]        
+        value: 10        

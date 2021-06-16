@@ -30,13 +30,8 @@ want to measure and analyze. This is a Yaml file with the following format:
       algorithm_name1:
         param_name1:
           type: int/double/boolean/string/long/orientation/object
-          values: [value1,value2,...,valueN] / value
-          range:
-          - start: startingValue
-            end: endingValue
-            step: stepValue
-          - start: ...
-          objects:
+          value: 
+          object:
             name_of_the_object:
               param_name1:
                 type: int/double/boolean/string/long/orientation/object

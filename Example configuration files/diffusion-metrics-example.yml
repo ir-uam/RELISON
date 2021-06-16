@@ -1,6 +1,6 @@
 metrics:
   Speed:
-  Global feature Gini:
+  Global feature Gini complement:
     feature:
       type: string
       value: hashtag

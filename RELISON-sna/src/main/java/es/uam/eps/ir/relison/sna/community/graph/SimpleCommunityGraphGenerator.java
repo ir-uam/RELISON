@@ -145,7 +145,7 @@ public class SimpleCommunityGraphGenerator<U> implements GraphGenerator<Integer>
                             int destComm = comm.getCommunity(dest.getIdx());
                             double oldVal = commGraph.getEdgeWeight(origComm, destComm);
 
-                            if (!EdgeWeight.isErrorValue(oldVal))
+                            if (EdgeWeight.isErrorValue(oldVal))
                             {
                                 commGraph.addEdge(origComm, destComm, dest.getValue());
                             }

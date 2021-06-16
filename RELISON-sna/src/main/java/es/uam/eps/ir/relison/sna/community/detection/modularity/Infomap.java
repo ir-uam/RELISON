@@ -78,17 +78,7 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
      */
     public Infomap(String exec, String temp, int numTrials, int seed)
     {
-        // Check if the path for the directed graph executable exists
-        File executable = new File(exec);
-        if (!executable.exists())
-        {
-            System.err.println("WARNING: The Infomap executable file for directed networks was not found. Source code can be downloaded from " + DOWNLOADLINK + ", where they also explicit the instructions for compiling it");
-            this.exec = null;
-        }
-        else
-        {
-            this.exec = exec;
-        }
+        this.exec = exec;
 
         this.temp = temp;
         this.numTrials = numTrials;
@@ -177,7 +167,12 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
                 assert stream != null;
                 stream = new BufferedInputStream(stream);
 
-                OutputStream out = new BufferedOutputStream(new FileOutputStream(temp + "Infomap"));
+                File outputfile = new File(temp + File.separator + "Infomap");
+                outputfile.setReadable(true, false);
+                outputfile.setWritable(true, false);
+                outputfile.setExecutable(true, false);
+
+                OutputStream out = new BufferedOutputStream(new FileOutputStream(outputfile));
 
                 byte[] buffer = new byte[1024];
                 int lengthRead;
@@ -186,8 +181,9 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
                     out.write(buffer, 0, lengthRead);
                     out.flush();
                 }
-                this.exec = temp + "Infomap";
+                this.exec = temp + File.separator + "Infomap";
                 modexec = true;
+                out.close();
             }
             catch (IOException e)
             {

@@ -18,6 +18,7 @@ import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.fast.FastUndirectedWeightedGraph;
 import es.uam.eps.ir.relison.graph.generator.exception.GeneratorBadConfiguredException;
 import es.uam.eps.ir.relison.graph.generator.exception.GeneratorNotConfiguredException;
+import es.uam.eps.ir.relison.sna.metrics.communities.graph.Modularity;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 
@@ -73,23 +74,6 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
     {
         Random rng = new Random(rngSeed);
         // Step 1: We transform the graph into an undirected graph (unless it is already undirected)
-        UndirectedGraph<U> auxGraph;
-        if(graph.isDirected())
-        {
-            auxGraph = new FastUndirectedWeightedGraph<>();
-            // To undirected graph
-            graph.getAllNodes().forEach(auxGraph::addNode);
-            Set<U> visited = new HashSet<>();
-            graph.getAllNodes().forEach(node ->
-            {
-                visited.add(node);
-                graph.getNeighbourhoodWeights(node, EdgeOrientation.UND).filter(neigh -> !visited.contains(neigh.getIdx())).forEach(neigh -> auxGraph.addEdge(node, neigh.getIdx(), neigh.getValue()));
-            });
-        }
-        else
-        {
-            auxGraph = (UndirectedGraph<U>) graph;
-        }
 
         List<U> users = new ArrayList<>();
         Map<U,Double> degrees = new Object2DoubleOpenHashMap<>();
@@ -97,17 +81,25 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
         Map<Integer, Set<U>> commToUser = new HashMap<>();
         Map<Integer, Double> sumIn = new HashMap<>();
         Map<Integer, Double> sumTot = new HashMap<>();
+
         // Step 2: Community assignments:
-        double m = auxGraph.getAllNodes().mapToDouble(u ->
+        double m = graph.getAllNodes().mapToDouble(u ->
         {
             users.add(u);
+            // Assign the node each own community
             int commIndex = userToComm.size();
             userToComm.put(u, commIndex);
             commToUser.put(commIndex, new HashSet<>());
             commToUser.get(commIndex).add(u);
-            double degreeU = auxGraph.getNeighbourhoodWeights(u, EdgeOrientation.UND).mapToDouble(Weight::getValue).sum();
+
+            // We do obtain the degree of the user:
+            double degreeU = graph.getNeighbourhoodWeights(u, EdgeOrientation.UND).mapToDouble(Weight::getValue).sum();
             degrees.put(u, degreeU);
-            sumIn.put(commIndex, 0.0);
+
+            // Then, the weight of the links inside the community is just the weight of a node to itself:
+            sumIn.put(commIndex, graph.containsEdge(u,u) ? graph.getEdgeWeight(u,u) : 0.0);
+
+            // and the total number of links towards the community is this:
             sumTot.put(commIndex, degreeU);
             return degreeU;
         }).sum();
@@ -128,12 +120,13 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
                 graph.getNeighbourhoodWeights(u, EdgeOrientation.UND).filter(v -> !v.equals(u)).forEach(v ->
                 {
                     int comm = userToComm.get(v.getIdx());
-                    degreeToInterior.addTo(comm, v.getValue());
+                    double val = degreeToInterior.get(comm);
+                    degreeToInterior.put(comm, val + v.getValue());
                     comms.add(comm);
                 });
 
                 double Qminus = Math.pow((sumTot.get(actualComm) + degrees.get(u))/m, 2.0);
-                Qminus -= (sumIn.get(actualComm) + 2*degreeToInterior.getOrDefault(actualComm, 0.0))/m;
+                Qminus -= (sumIn.get(actualComm) + 2*(degreeToInterior.containsKey(actualComm) ? degreeToInterior.get(actualComm) : 0.0))/m;
                 Qminus += sumIn.get(actualComm)/m;
                 Qminus -= (Math.pow(sumTot.get(actualComm)/m, 2.0));
 
@@ -148,7 +141,7 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
                     }
 
                     double Qsum = -Math.pow((sumTot.get(comm) + degrees.get(u))/m, 2.0);
-                    Qsum += (sumIn.get(comm) + 2*degreeToInterior.getOrDefault(comm, 0.0))/m;
+                    Qsum += (sumIn.get(comm) + 2*(degreeToInterior.containsKey(comm) ? degreeToInterior.get(comm) : 0.0))/m;
                     Qsum -= sumIn.get(comm)/m;
                     Qsum += (Math.pow(sumTot.get(comm)/m, 2.0));
 
@@ -170,8 +163,13 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
                 // Swap communities:
                 if(nextComm != actualComm)
                 {
-                    sumIn.put(nextComm, sumIn.get(nextComm) + degreeToInterior.get(nextComm));
+                    // We first update the number of edges inside nextComm and actualComm
+                    sumIn.put(nextComm, sumIn.get(nextComm) + degreeToInterior.get(nextComm) + graph.getEdgeWeight(u,u));
+                    sumIn.put(actualComm, sumIn.get(actualComm) - degreeToInterior.get(actualComm) - graph.getEdgeWeight(u,u));
+                    // We then update the sum of the weights of the edges of the community.
                     sumTot.put(nextComm, sumTot.get(nextComm) + degrees.get(u));
+                    sumTot.put(actualComm, sumTot.get(actualComm) - degrees.get(u));
+
                     userToComm.put(u, nextComm);
                     commToUser.get(actualComm).remove(u);
                     commToUser.get(nextComm).add(u);
@@ -191,13 +189,20 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
         });
 
         SimpleCommunityGraphGenerator<Integer> cgraphgen = new SimpleCommunityGraphGenerator<>();
-        cgraphgen.configure(auxGraph, initComms, false);
+        cgraphgen.configure(graph, initComms, false);
 
         try
         {
             Graph<Integer> condensed = cgraphgen.generate();
             Louvain<Integer> louvain = new Louvain<>(rngSeed, threshold);
+
+            if(initComms.getNumCommunities() == graph.getVertexCount())
+            {
+                return initComms;
+            }
+
             Communities<Integer> comms = louvain.detectCommunities(condensed);
+
             if(comms.getNumCommunities() == initComms.getNumCommunities())
             {
                 return initComms;
@@ -211,7 +216,13 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
                     int finalI = i;
                     comms.getUsers(i).forEach(auxComm -> initComms.getUsers(auxComm).forEach(u -> defComms.add(u, finalI)));
                 }
-                return defComms;
+
+                Modularity<U> modularity = new Modularity<>();
+                double actual = modularity.compute(graph, initComms);
+                double commmod = modularity.compute(graph, defComms);
+
+                if(actual > commmod) return initComms;
+                else return defComms;
             }
 
 
