@@ -28,12 +28,12 @@ The main contributors to this library are:
 
 ## Packages
 Up to date, the following packages have been published:
-- **Relison-core:** Basic graph definitions and generators.
-- **Relison-sna:** Social network analysis metrics and community detection.
-- **Relison-content:** Classes and definitions for user-generated contents in social networks.
-- **Relison-linkpred:** Link prediction and contact recommendation functionalities.
-- **Relison-diffusion:** Simulation of information diffusion dynamics.
-- **Relison-examples:** Examples showcasing the functionality of the library.
+- **RELISON-core:** Basic graph definitions and generators.
+- **RELISON-sna:** Social network analysis metrics and community detection.
+- **RELISON-content:** Classes and definitions for user-generated contents in social networks.
+- **RELISON-linkpred:** Link prediction and contact recommendation functionalities.
+- **RELISON-diffusion:** Simulation of information diffusion dynamics.
+- **RELISON-examples:** Examples showcasing the functionality of the library.
 
 ## System Requirements
 - **Java JDK:** Java 14 or above.
