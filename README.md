@@ -23,7 +23,7 @@ result of the research documented in several publications on contact recommendat
 This framework has been created by the [Information Retrieval Group](https://ir.ii.uam.es) at [Universidad Autónoma de Madrid](https://uam.es). 
 The main contributors to this library are:
 
-- Javier Sanz-Cruzado ([javier.sanz-cruzado@uam.es](mailto:javier.sanz-cruzado@uam.es))
+- Javier Sanz-Cruzado ([javier.sanz-cruzadopuig@glasgow.ac.uk](mailto:javier.sanz-cruzadopuig@glasgow.ac.uk))
 - Pablo Castells ([pablo.castells@uam.es](mailto:pablo.castells@uam.es))
 
 ## Packages
