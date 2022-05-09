@@ -26,6 +26,27 @@ The main contributors to this library are:
 - Javier Sanz-Cruzado ([javier.sanz-cruzadopuig@glasgow.ac.uk](mailto:javier.sanz-cruzadopuig@glasgow.ac.uk))
 - Pablo Castells ([pablo.castells@uam.es](mailto:pablo.castells@uam.es))
 
+## Citation
+If you find RELISON useful for your research or development, please, cite the following paper:
+
+**J. Sanz-Cruzado and Pablo Castells. 2022. RELISON: A Framework for Link Recommendation in Social Networks. SIGIR 2022: The 45th International ACM SIGIR Conference on Research and Development in Information Retrieval, Madrid, Spain, July 2022.** (link coming soon)
+
+Please, find below the BibTex for the publication
+
+```bibtex
+@inproceedings{SanzCruzado_Castells_2022,
+  author    = {Javier Sanz-Cruzado and
+               Pablo Castells},
+  title     = {{RELISON}: {A} {F}ramework for {L}ink {R}ecommendation in {S}ocial {N}etworks},
+  booktitle = {{SIGIR} 2022: The 45th International {ACM} {SIGIR} Conference on Research
+               and Development in Information Retrieval, Madrid, Spain, July
+               11-15, 2021},
+  publisher = {{ACM}},
+  year      = {2022}
+}
+
+```
+
 ## Packages
 Up to date, the following packages have been published:
 - **RELISON-core:** Basic graph definitions and generators.
