@@ -36,5 +36,36 @@
         <module>RELISON-diffusion</module>
     </modules>
 
+    <name>RELISON: A framework for REcommending LInks in SOcial Networks</name>
+    <description>RELISON is a framework for experimentation on the link recommendation task in social networks, which aims to identify those people in the network with whom a user might be interested to connect, interact or befriend. RELISON provides tools for executing and evaluating contact recommendation approaches, considering not only their accuracy, but also aspects like their novelty, diversity and the effects that such recommendations have on global properties of the networks (as changes in the structural properties or in the characteristics of the information arriving to the users). In order to measure these effects, RELISON also provides functionality for a) analyzing the structural properties of social networks, b) detecting clusters of users (communities) and c) simulating the diffusion of information in a social network. These functionalities can be used regardless of whether recommendations have been provided to the users.</description>
+    <url>https://ir-uam.github.io/RELISON/</url>
+
+    <licenses>
+        <license>
+            <name>Mozilla Public License Version 2.0</name>
+            <url>https://www.mozilla.org/en-US/MPL/</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Javier Sanz-Cruzado</name>
+            <email>javier.sanz-cruzadopuig@glasgow.ac.uk</email>
+            <organization>Information Retrieval Group, University of Glasgow</organization>
+            <organizationUrl>https://www.gla.ac.uk/schools/computing/research/researchsections/ida-section/informationretrieval</organizationUrl>
+        </developer>
+        <developer>
+            <name>Pablo Castells</name>
+            <email>pablo.castells@uam.es</email>
+            <organization>Information Retrieval Group, Universidad Autónoma de Madrid</organization>
+            <organizationUrl>http://ir.ii.uam.es/</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/ir-uam/RELISON.git</connection>
+        <developerConnection>scm:git:git://github.com/ir-uam/RELISON.git</developerConnection>
+        <url>https://github.com/ir-uam/RELISON/tree/master</url>
+    </scm>
 
 </project>
