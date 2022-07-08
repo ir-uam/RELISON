@@ -29,7 +29,7 @@ The main contributors to this library are:
 ## Citation
 If you find RELISON useful for your research or development, please, cite the following paper:
 
-```J. Sanz-Cruzado and Pablo Castells. 2022. RELISON: A Framework for Link Recommendation in Social Networks. SIGIR 2022: The 45th International ACM SIGIR Conference on Research and Development in Information Retrieval, Madrid, Spain, July 2022. DOI: [10.1145/3477495.3531730](https://dl.acm.org/doi/10.1145/3477495.3531730)```
+**J. Sanz-Cruzado and Pablo Castells. 2022. RELISON: A Framework for Link Recommendation in Social Networks. SIGIR 2022: The 45th International ACM SIGIR Conference on Research and Development in Information Retrieval, Madrid, Spain, July 2022. DOI: [10.1145/3477495.3531730](https://dl.acm.org/doi/10.1145/3477495.3531730)**
 
 Please, find below the BibTex for the publication
 
