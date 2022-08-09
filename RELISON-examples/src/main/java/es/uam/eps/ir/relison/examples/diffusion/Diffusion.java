@@ -26,7 +26,6 @@ import es.uam.eps.ir.relison.io.graph.TextMultiGraphReader;
 import es.uam.eps.ir.relison.utils.datatypes.Tuple2oo;
 import org.ranksys.formats.parsing.Parsers;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 

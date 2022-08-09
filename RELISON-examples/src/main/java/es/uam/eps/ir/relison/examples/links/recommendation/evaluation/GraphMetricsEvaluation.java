@@ -137,14 +137,7 @@ public class GraphMetricsEvaluation
             else if(args[i].equalsIgnoreCase("--prediction"))
             {
                 isPrediction = true;
-                if(args[++i].equalsIgnoreCase("user"))
-                {
-                    globalRank = false;
-                }
-                else
-                {
-                    globalRank = true;
-                }
+                globalRank = !args[++i].equalsIgnoreCase("user");
             }
         }
 

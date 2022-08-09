@@ -206,7 +206,7 @@ public class LinkPrediction
         long timea = System.currentTimeMillis();
 
         // Read the training graph.
-        TextGraphReader<Long> weightedReader = multigraph ? new TextGraphReader<>(directed, weighted, selfloops, "\t", Parsers.lp) : new TextGraphReader<>(directed, weighted, selfloops, "\t", Parsers.lp);
+        TextGraphReader<Long> weightedReader = multigraph ? new TextMultiGraphReader<>(directed, weighted, selfloops, "\t", Parsers.lp) : new TextGraphReader<>(directed, weighted, selfloops, "\t", Parsers.lp);
         FastGraph<Long> weightedGraph = (FastGraph<Long>) weightedReader.read(trainPath, weighted, readTypes);
         if (weightedGraph == null)
         {

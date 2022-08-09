@@ -35,7 +35,6 @@ import es.uam.eps.ir.relison.links.data.GraphIndex;
 import es.uam.eps.ir.relison.links.data.GraphSimpleFastPreferenceData;
 import es.uam.eps.ir.relison.links.data.letor.FeatureInformation;
 import es.uam.eps.ir.relison.links.data.letor.Instance;
-import es.uam.eps.ir.relison.links.data.letor.InstanceSet;
 import es.uam.eps.ir.relison.links.data.letor.io.InstanceSetReader;
 import es.uam.eps.ir.relison.links.data.letor.io.LETORInstanceReader;
 import es.uam.eps.ir.relison.links.recommendation.SocialFastFilters;
@@ -221,7 +220,6 @@ public class AblationExperimentExample
         /* STEP 1: Generate the training/validation/test sets for each different partition.*/
         long bb;
         long aa = System.currentTimeMillis();
-        int numFeats;
 
         // First, create the directories to store all the datasets.
         for (int i = 0; i < partitions.size(); ++i)
@@ -247,7 +245,7 @@ public class AblationExperimentExample
         System.out.println("Test features computed (" + (bb - aa) / 1000.0 + " s.)");
 
         // Read the training graph.
-        TextGraphReader<Long> weightedReader = multigraph ? new TextGraphReader<>(directed, false, selfloops, "\t", Parsers.lp) : new TextGraphReader<>(directed, false, selfloops, "\t", Parsers.lp);
+        TextGraphReader<Long> weightedReader = multigraph ? new TextMultiGraphReader<>(directed, false, selfloops, "\t", Parsers.lp) : new TextGraphReader<>(directed, false, selfloops, "\t", Parsers.lp);
         FastGraph<Long> trainGraph = (FastGraph<Long>) weightedReader.read(trainGraphFile, false, false);
         if (trainGraph == null)
         {
@@ -576,7 +574,6 @@ public class AblationExperimentExample
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file))))
         {
-            InstanceSet<Long> instanceSet;
             InstanceSetReader<Long> reader = new LETORInstanceReader<>(Parsers.lp, numFeats, Generators.longgen);
 
             for (int i = 0; i < numPartitions; ++i)

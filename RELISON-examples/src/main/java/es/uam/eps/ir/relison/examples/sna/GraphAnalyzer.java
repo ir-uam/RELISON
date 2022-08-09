@@ -85,6 +85,10 @@ public class GraphAnalyzer
             System.err.println("\tOptional parameters:");
             System.err.println("\t\t-communities commFile1,...,commFileN: a comma separated list of files containing communities.");
             System.err.println("\t\t--distances: include if we want to precompute distance metrics (recommended if any is used)");
+            System.err.println("\t\t--nodetype: by default, it assumes that nodes are long, but this might change. Formats:");
+            System.err.println("\t\t\tlong: the default value. Nodes are Long values.");
+            System.err.println("\t\t\tint: nodes are formatted as Integer values.");
+            System.err.println("\t\t\tstring: nodes are formatted as Strings (without separators)");
             return;
         }
 
@@ -101,7 +105,6 @@ public class GraphAnalyzer
 
         List<String> comms = new ArrayList<>();
         boolean precomputeDistances = false;
-
         // Optional arguments:
         for(int i = 7; i < args.length; ++i)
         {
@@ -119,6 +122,7 @@ public class GraphAnalyzer
 
         // We first read the network to analyze.
         long a = System.currentTimeMillis();
+
         GraphReader<Long> greader;
         if(multigraph)
         {
@@ -212,13 +216,13 @@ public class GraphAnalyzer
         vertexMetrics.forEach((metric, value) ->
         {
             System.out.println("Running " + metric);
-            Long a2 = System.currentTimeMillis();
+            long a2 = System.currentTimeMillis();
 
             VertexMetric<Long> vm = value.get();
 
             // Compute the individual values
             Map<Long, Double> values = vm.compute(graph);
-            Long b2 = System.currentTimeMillis();
+            long b2 = System.currentTimeMillis();
             System.out.println("Computed " + metric + " (" + (b2 - a2) + " ms.)");
 
             // Compute the average values for the metric
@@ -266,13 +270,13 @@ public class GraphAnalyzer
         edgeMetrics.forEach((metric, value) ->
         {
             System.out.println("Running " + metric);
-            Long a2 = System.currentTimeMillis();
+            long a2 = System.currentTimeMillis();
 
             PairMetric<Long> em = value.get();
 
             // Compute the individual values
             Map<Pair<Long>, Double> values = em.computeOnlyLinks(graph);
-            Long b2 = System.currentTimeMillis();
+            long b2 = System.currentTimeMillis();
             System.out.println("Computed " + metric + " (" + (b2 - a2) + " ms.)");
 
             // Compute the average values for the metric
@@ -319,12 +323,12 @@ public class GraphAnalyzer
         pairMetrics.forEach((metric, value) ->
         {
             System.out.println("Running " + metric);
-            Long a2 = System.currentTimeMillis();
+            long a2 = System.currentTimeMillis();
             PairMetric<Long> pm = value.get();
 
             // Compute the individual values
             Map<Pair<Long>, Double> values = pm.compute(graph);
-            Long b2 = System.currentTimeMillis();
+            long b2 = System.currentTimeMillis();
             System.out.println("Computed " + metric + " (" + (b2 - a2) + " ms.)");
 
             // Compute the average values for the metric
@@ -372,7 +376,7 @@ public class GraphAnalyzer
         indivcommMetrics.forEach((metric, value) ->
         {
             System.out.println("Running " + metric);
-            Long a2 = System.currentTimeMillis();
+            long a2 = System.currentTimeMillis();
             IndividualCommunityMetric<Long> icm = value.get();
 
             // Compute the metric values for each community detection algorithm
@@ -380,7 +384,7 @@ public class GraphAnalyzer
             {
                 // Compute the metric
                 Map<Integer, Double> values = icm.compute(graph, value1);
-                Long b2 = System.currentTimeMillis();
+                long b2 = System.currentTimeMillis();
                 System.out.println("Computed " + metric + " for communities " + key + " (" + (b2 - a2) + " ms.)");
 
                 // Find the average values.
@@ -395,7 +399,7 @@ public class GraphAnalyzer
                 System.out.println("Metric " + metric + " for community " + key + " done (" + (b2 - a2) + " ms.)");
             });
 
-            Long b3 = System.currentTimeMillis();
+            long b3 = System.currentTimeMillis();
             System.out.println("Metric  " + metric + " done (" + (b3 - a2) + " ms.)");
         });
         b = System.currentTimeMillis();
@@ -473,7 +477,7 @@ public class GraphAnalyzer
      * @param file      the route of the file.
      * @param values    the values of the vertex metric.
      */
-    static void printIndividualMetric(String file, Map<Long, Double> values) 
+    static void printIndividualMetric(String file, Map<Long, Double> values)
     {
         try(BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file))))
         {
@@ -523,10 +527,10 @@ public class GraphAnalyzer
      * @param file      the route of the file.
      * @param values    the values of the vertex metric.
      */
-    static void printPairMetric(String file, Map<Pair<Long>, Double> values) 
+    static void printPairMetric(String file, Map<Pair<Long>, Double> values)
     {
         // Comparator for ordering the pair of nodes.
-        Comparator<Pair<Long>> comparator = (Pair<Long> p1, Pair<Long> p2) -> 
+        Comparator<Pair<Long>> comparator = (Pair<Long> p1, Pair<Long> p2) ->
         {
             if(Objects.equals(p1.v1(), p2.v1()))
             {
