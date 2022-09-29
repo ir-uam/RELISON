@@ -11,6 +11,7 @@ package es.uam.eps.ir.relison.graph.multigraph;
 
 import es.uam.eps.ir.relison.graph.DirectedGraph;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
+import org.jooq.lambda.tuple.Tuple2;
 
 import java.util.stream.Stream;
 
@@ -24,6 +25,27 @@ import java.util.stream.Stream;
  */
 public interface DirectedMultiGraph<U> extends MultiGraph<U>, DirectedGraph<U>
 {
+    /**
+     * Gets the counts of neighbor edges between a node and its neighbors.
+     *
+     * @param node the node.
+     * @return a stream containing a) the neighbor node and b) the number of edges between source and destination.
+     */
+    default Stream<Tuple2<U, Integer>> getNeighbourNodesCounts(U node)
+    {
+        return this.getNeighbourNodes(node).map(v -> new Tuple2<>(v, this.getNumEdges(node, v) + this.getNumEdges(v, node)));
+    }
+
+    /**
+     * Gets the counts of mutual edges between a node and its neighbors.
+     * @param node the node.
+     * @return a stream containing a) the mutual node and b) the number of edges between source and destination.
+     */
+    default Stream<Tuple2<U, Integer>> getMutualNodesCounts(U node)
+    {
+        return this.getMutualNodes(node).map(v -> new Tuple2<>(v, this.getNumEdges(node,v) + this.getNumEdges(v, node)));
+    }
+
     @Override
     default Stream<Weights<U, Double>> getNeighbourhoodWeightsLists(U node, EdgeOrientation direction)
     {

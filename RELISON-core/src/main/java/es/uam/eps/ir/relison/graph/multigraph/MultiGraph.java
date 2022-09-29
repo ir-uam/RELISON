@@ -10,6 +10,7 @@ package es.uam.eps.ir.relison.graph.multigraph;
 
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
+import org.jooq.lambda.tuple.Tuple2;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -44,6 +45,40 @@ public interface MultiGraph<U> extends Graph<U>
      * @return The number of edges between the nodes.
      */
     List<Double> getEdgeWeights(U nodeA, U nodeB);
+
+    /**
+     * Gets the counts of adjacent edges between a node and its neighbors.
+     * @param node the node.
+     * @return a stream containing a) the adjacent node and b) the number of edges between source and destination.
+     */
+    default Stream<Tuple2<U, Integer>> getAdjacentNodesCounts(U node)
+    {
+        return this.getAdjacentNodes(node).map(v -> new Tuple2<>(v, this.getNumEdges(node, v)));
+    }
+
+    /**
+     * Gets the counts of incident edges between a node and its neighbors.
+     * @param node the node.
+     * @return a stream containing a) the incident node and b) the number of edges between source and destination.
+     */
+    default Stream<Tuple2<U, Integer>> getIncidentNodesCounts(U node)
+    {
+        return this.getIncidentNodes(node).map(v -> new Tuple2<>(v, this.getNumEdges(node, v)));
+    }
+
+    /**
+     * Gets the counts of neighbor edges between a node and its neighbors.
+     * @param node the node.
+     * @return a stream containing a) the neighbor node and b) the number of edges between source and destination.
+     */
+    Stream<Tuple2<U, Integer>> getNeighbourNodesCounts(U node);
+
+    /**
+     * Gets the counts of mutual edges between a node and its neighbors.
+     * @param node the node.
+     * @return a stream containing a) the mutual node and b) the number of edges between source and destination.
+     */
+    Stream<Tuple2<U, Integer>> getMutualNodesCounts(U node);
 
     /**
      * Gets the different weights for the edges of the incident nodes.
