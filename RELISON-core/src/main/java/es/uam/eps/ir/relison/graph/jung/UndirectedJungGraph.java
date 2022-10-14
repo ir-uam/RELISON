@@ -10,9 +10,12 @@ package es.uam.eps.ir.relison.graph.jung;
 
 import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import es.uam.eps.ir.relison.graph.UndirectedUnweightedGraph;
+import es.uam.eps.ir.relison.graph.edges.Edge;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.index.Index;
 import es.uam.eps.ir.relison.index.fast.FastIndex;
+
+import java.util.stream.Stream;
 
 /**
  * Undirected Graph Wrapper for <a href="http://jung.sourceforge.net/">JUNG</a>

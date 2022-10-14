@@ -10,6 +10,7 @@
 package es.uam.eps.ir.relison.graph.edges;
 
 import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
+import es.uam.eps.ir.relison.graph.edges.fast.FastEdge;
 
 import java.util.stream.Stream;
 
@@ -112,5 +113,42 @@ public interface UndirectedEdges extends Edges
     {
         return this.getNeighbourCount(node);
     }
+
+    @Override
+    default Stream<FastEdge> getAdjacentEdges(int idx)
+    {
+        return this.getNeighbourEdges(idx);
+    }
+
+    @Override
+    default Stream<FastEdge> getIncidentEdges(int idx)
+    {
+        return this.getNeighbourEdges(idx);
+    }
+
+    @Override
+    default Stream<FastEdge> getMutualEdges(int idx)
+    {
+        return this.getNeighbourEdges(idx);
+    }
+
+    @Override
+    default Stream<FastEdge> getNeighbourEdges(int idx)
+    {
+        return this.getAdjacentNodes(idx).map(vidx -> new FastEdge(idx, vidx, this.getEdgeWeight(idx, vidx), this.getEdgeType(idx, vidx)));
+    }
+
+    @Override
+    default Stream<FastEdge> getMutualAdjacentEdges(int idx)
+    {
+        return this.getNeighbourEdges(idx);
+    }
+
+    @Override
+    default Stream<FastEdge> getMutualIncidentEdges(int idx)
+    {
+        return this.getNeighbourEdges(idx);
+    }
+
 
 }

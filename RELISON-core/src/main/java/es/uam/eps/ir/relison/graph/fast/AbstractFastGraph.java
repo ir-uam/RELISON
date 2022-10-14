@@ -12,6 +12,7 @@ package es.uam.eps.ir.relison.graph.fast;
 import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.Weight;
+import es.uam.eps.ir.relison.graph.edges.Edge;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.edges.EdgeType;
 import es.uam.eps.ir.relison.graph.edges.Edges;
@@ -587,5 +588,41 @@ public abstract class AbstractFastGraph<V> implements FastGraph<V>, Serializable
     public Index<V> getAdjacencyMatrixMap()
     {
         return this.vertices;
+    }
+
+    @Override
+    public Stream<Edge<V>> getIncidentEdges(V node)
+    {
+        return this.edges.getIncidentEdges(this.object2idx(node)).map(edge -> new Edge<>(this.idx2object(edge.getOrigin()), this.idx2object(edge.getDest()), edge.getWeight(), edge.getType()));
+    }
+
+    @Override
+    public Stream<Edge<V>> getAdjacentEdges(V node)
+    {
+        return this.edges.getAdjacentEdges(this.object2idx(node)).map(edge -> new Edge<>(this.idx2object(edge.getOrigin()), this.idx2object(edge.getDest()), edge.getWeight(), edge.getType()));
+    }
+
+    @Override
+    public Stream<Edge<V>> getNeighbourEdges(V node)
+    {
+        return this.edges.getNeighbourEdges(this.object2idx(node)).map(edge -> new Edge<>(this.idx2object(edge.getOrigin()), this.idx2object(edge.getDest()), edge.getWeight(), edge.getType()));
+    }
+
+    @Override
+    public Stream<Edge<V>> getMutualEdges(V node)
+    {
+        return this.edges.getMutualEdges(this.object2idx(node)).map(edge -> new Edge<>(this.idx2object(edge.getOrigin()), this.idx2object(edge.getDest()), edge.getWeight(), edge.getType()));
+    }
+
+    @Override
+    public Stream<Edge<V>> getMutualAdjacentEdges(V node)
+    {
+        return this.edges.getMutualAdjacentEdges(this.object2idx(node)).map(edge -> new Edge<>(this.idx2object(edge.getOrigin()), this.idx2object(edge.getDest()), edge.getWeight(), edge.getType()));
+    }
+
+    @Override
+    public Stream<Edge<V>> getMutualIncidentEdges(V node)
+    {
+        return this.edges.getMutualIncidentEdges(this.object2idx(node)).map(edge -> new Edge<>(this.idx2object(edge.getOrigin()), this.idx2object(edge.getDest()), edge.getWeight(), edge.getType()));
     }
 }

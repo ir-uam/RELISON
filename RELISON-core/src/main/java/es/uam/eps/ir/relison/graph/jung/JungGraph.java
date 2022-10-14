@@ -11,8 +11,10 @@ package es.uam.eps.ir.relison.graph.jung;
 import edu.uci.ics.jung.graph.Graph;
 import es.uam.eps.ir.relison.graph.UnweightedGraph;
 import es.uam.eps.ir.relison.graph.Weight;
+import es.uam.eps.ir.relison.graph.edges.Edge;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.edges.EdgeType;
+import es.uam.eps.ir.relison.graph.edges.EdgeWeight;
 import es.uam.eps.ir.relison.graph.generator.ComplementaryGraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.GraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.exception.GeneratorBadConfiguredException;
@@ -306,5 +308,47 @@ public abstract class JungGraph<U> implements UnweightedGraph<U>
     public boolean updateEdgeType(U nodeA, U nodeB, int type)
     {
         throw new UnsupportedOperationException("Edges types cannot be updated in complementary graphs");
+    }
+
+    @Override
+    public Stream<Edge<U>> getIncidentEdges(U node)
+    {
+        return this.getIncidentNodes(node).map(v -> new Edge<>(v, node, EdgeWeight.getDefaultValue(), EdgeType.getDefaultValue()));
+    }
+
+    @Override
+    public Stream<Edge<U>> getAdjacentEdges(U node)
+    {
+        return this.getAdjacentNodes(node).map(v -> new Edge<>(node, v, EdgeWeight.getDefaultValue(), EdgeType.getDefaultValue()));
+    }
+
+    @Override
+    public Stream<Edge<U>> getNeighbourEdges(U node)
+    {
+        if(this.isDirected())
+            return Stream.concat(this.getAdjacentEdges(node), this.getIncidentEdges(node));
+        else
+            return this.getAdjacentEdges(node);
+    }
+
+    @Override
+    public Stream<Edge<U>> getMutualEdges(U node)
+    {
+        if(this.isDirected())
+            return Stream.concat(this.getMutualAdjacentEdges(node), this.getMutualIncidentEdges(node));
+        else
+            return this.getAdjacentEdges(node);
+    }
+
+    @Override
+    public Stream<Edge<U>> getMutualAdjacentEdges(U node)
+    {
+        return this.getMutualNodes(node).map(v -> new Edge<>(node, v, EdgeWeight.getDefaultValue(), EdgeType.getDefaultValue()));
+    }
+
+    @Override
+    public Stream<Edge<U>> getMutualIncidentEdges(U node)
+    {
+        return this.getMutualNodes(node).map(v -> new Edge<>(v, node, EdgeWeight.getDefaultValue(), EdgeType.getDefaultValue()));
     }
 }

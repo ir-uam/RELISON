@@ -65,6 +65,12 @@ public class FastDirectedWeightedMultiEdges extends FastMultiEdges implements Di
     }
 
     @Override
+    public Stream<MultiEdgeTypes> getNeighbourTypes(int node) {
+        throw new UnsupportedOperationException("Not supported");
+
+    }
+
+    @Override
     public Stream<MultiEdgeWeights> getIncidentWeights(int node)
     {
         return this.weights.getIdsFirst(node).map(weight -> new MultiEdgeWeights(weight.getIdx(), weight.getValue()));
@@ -225,5 +231,9 @@ public class FastDirectedWeightedMultiEdges extends FastMultiEdges implements Di
         }
         return false;
     }
-
+    @Override
+    public Stream<MultiEdgeTypes> getMutualTypes(int node)
+    {
+        throw new UnsupportedOperationException("Not supported");
+    }
 }

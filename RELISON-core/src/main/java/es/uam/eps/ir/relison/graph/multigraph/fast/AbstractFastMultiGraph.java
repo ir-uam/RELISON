@@ -12,13 +12,16 @@ package es.uam.eps.ir.relison.graph.multigraph.fast;
 import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.Weight;
+import es.uam.eps.ir.relison.graph.edges.Edge;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.edges.EdgeType;
 import es.uam.eps.ir.relison.graph.edges.EdgeWeight;
+import es.uam.eps.ir.relison.graph.multigraph.edges.MultiEdge;
 import es.uam.eps.ir.relison.graph.multigraph.Weights;
 import es.uam.eps.ir.relison.graph.multigraph.edges.MultiEdgeTypes;
 import es.uam.eps.ir.relison.graph.multigraph.edges.MultiEdgeWeights;
 import es.uam.eps.ir.relison.graph.multigraph.edges.MultiEdges;
+import es.uam.eps.ir.relison.graph.multigraph.edges.fast.FastMultiEdge;
 import es.uam.eps.ir.relison.index.Index;
 
 import java.io.Serializable;
@@ -672,5 +675,47 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
     public Index<U> getAdjacencyMatrixMap()
     {
         return this.vertices;
+    }
+
+    @Override
+    public Stream<Edge<U>> getIncidentEdges(U node)
+    {
+        return this.edges.getIncidentEdges(this.object2idx(node))
+            .map(edge -> new MultiEdge<>(idx2object(edge.getOrigin()), idx2object(edge.getDest()), edge.getWeight(), edge.getDest(), edge.getEdgeNum()));
+    }
+
+    @Override
+    public Stream<Edge<U>> getAdjacentEdges(U node)
+    {
+        return this.edges.getAdjacentEdges(this.object2idx(node))
+            .map(edge -> new MultiEdge<>(idx2object(edge.getOrigin()), idx2object(edge.getDest()), edge.getWeight(), edge.getDest(), edge.getEdgeNum()));
+    }
+
+    @Override
+    public Stream<Edge<U>> getNeighbourEdges(U node)
+    {
+        return this.edges.getNeighbourEdges(this.object2idx(node))
+            .map(edge -> new MultiEdge<>(idx2object(edge.getOrigin()), idx2object(edge.getDest()), edge.getWeight(), edge.getDest(), edge.getEdgeNum()));
+    }
+
+    @Override
+    public Stream<Edge<U>> getMutualEdges(U node)
+    {
+        return this.edges.getMutualEdges(this.object2idx(node))
+            .map(edge -> new MultiEdge<>(idx2object(edge.getOrigin()), idx2object(edge.getDest()), edge.getWeight(), edge.getDest(), edge.getEdgeNum()));
+    }
+
+    @Override
+    public Stream<Edge<U>> getMutualAdjacentEdges(U node)
+    {
+        return this.edges.getMutualAdjacentEdges(this.object2idx(node))
+                .map(edge -> new MultiEdge<>(idx2object(edge.getOrigin()), idx2object(edge.getDest()), edge.getWeight(), edge.getDest(), edge.getEdgeNum()));
+    }
+
+    @Override
+    public Stream<Edge<U>> getMutualIncidentEdges(U node)
+    {
+        return this.edges.getMutualIncidentEdges(this.object2idx(node))
+                .map(edge -> new MultiEdge<>(idx2object(edge.getOrigin()), idx2object(edge.getDest()), edge.getWeight(), edge.getDest(), edge.getEdgeNum()));
     }
 }

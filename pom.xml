@@ -26,7 +26,7 @@
     <groupId>es.uam.eps.ir</groupId>
     <artifactId>RELISON</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <modules>
         <module>RELISON-core</module>
         <module>RELISON-content</module>

@@ -8,6 +8,9 @@
  */
 package es.uam.eps.ir.relison.graph.multigraph.edges;
 
+import es.uam.eps.ir.relison.graph.edges.fast.FastEdge;
+import es.uam.eps.ir.relison.graph.multigraph.edges.fast.FastMultiEdge;
+
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -158,13 +161,49 @@ public interface MultiEdges
     Stream<MultiEdgeWeights> getNeighbourWeights(int node);
 
     /**
-     * Gets the weights of the neighbour edges of a node.
+     * Gets the weights of the mutual edges of a node.
      *
      * @param node The node.
      *
      * @return a sream containing all the edge types.
      */
     Stream<MultiEdgeWeights> getMutualWeights(int node);
+
+    /**
+     * Gets the weights of the adjacent mutual edges of a node.
+     *
+     * @param node The node.
+     *
+     * @return a stream containing all the edge weights.
+     */
+    Stream<MultiEdgeWeights> getMutualAdjacentWeights(int node);
+
+    /**
+     * Gets the weights of the incident mutual edges of a node.
+     *
+     * @param node The node.
+     *
+     * @return a stream containing all the edge weights.
+     */
+    Stream<MultiEdgeWeights> getMutualIncidentWeights(int node);
+
+    /**
+     * Gets the types of the adjacent mutual edges of a node.
+     *
+     * @param node The node.
+     *
+     * @return a stream containing all the edge types.
+     */
+    Stream<MultiEdgeTypes> getMutualAdjacentTypes(int node);
+
+    /**
+     * Gets the types of the incident mutual edges of a node.
+     *
+     * @param node The node.
+     *
+     * @return a stream containing all the edge types.
+     */
+    Stream<MultiEdgeTypes> getMutualIncidentTypes(int node);
 
     /**
      * Adds a user to the edges.
@@ -345,4 +384,11 @@ public interface MultiEdges
      * @return true if everything went OK, false if not, or the edge does not exist.
      */
     boolean updateEdgeType(int orig, int dest, int type, int idx);
+
+    Stream<FastMultiEdge> getAdjacentEdges(int idx);
+    Stream<FastMultiEdge> getIncidentEdges(int idx);
+    Stream<FastMultiEdge> getMutualEdges(int idx);
+    Stream<FastMultiEdge> getNeighbourEdges(int idx);
+    Stream<FastMultiEdge> getMutualAdjacentEdges(int idx);
+    Stream<FastMultiEdge> getMutualIncidentEdges(int idx);
 }

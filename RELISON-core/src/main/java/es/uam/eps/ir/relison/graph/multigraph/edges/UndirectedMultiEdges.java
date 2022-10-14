@@ -8,6 +8,11 @@
  */
 package es.uam.eps.ir.relison.graph.multigraph.edges;
 
+import es.uam.eps.ir.relison.graph.edges.fast.FastEdge;
+import es.uam.eps.ir.relison.graph.multigraph.edges.fast.FastMultiEdge;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -54,6 +59,30 @@ public interface UndirectedMultiEdges extends MultiEdges
         return this.getNeighbourTypes(node);
     }
 
+    @Override
+    default Stream<MultiEdgeWeights> getMutualAdjacentWeights(int node)
+    {
+        return this.getNeighbourWeights(node);
+    }
+
+    @Override
+    default Stream<MultiEdgeWeights> getMutualIncidentWeights(int node)
+    {
+        return this.getNeighbourWeights(node);
+    }
+
+    @Override
+    default Stream<MultiEdgeTypes> getMutualAdjacentTypes(int node)
+    {
+        return this.getNeighbourTypes(node);
+    }
+
+    @Override
+    default Stream<MultiEdgeTypes> getMutualIncidentTypes(int node)
+    {
+        return this.getNeighbourTypes(node);
+    }
+
     /*@Override
     default Stream<MultiEdgeWeights> getIncidentWeights(int node)
     {
@@ -95,5 +124,50 @@ public interface UndirectedMultiEdges extends MultiEdges
     default IntStream getNodesWithMutualEdges()
     {
         return this.getNodesWithEdges();
+    }
+
+    @Override
+    default Stream<FastMultiEdge> getAdjacentEdges(int idx)
+    {
+        return this.getNeighbourEdges(idx);
+    }
+
+    @Override
+    default Stream<FastMultiEdge> getIncidentEdges(int idx)
+    {
+        return this.getNeighbourEdges(idx);
+    }
+
+    @Override
+    default Stream<FastMultiEdge> getMutualEdges(int idx)
+    {
+        return this.getNeighbourEdges(idx);
+    }
+
+    @Override
+    default Stream<FastMultiEdge> getNeighbourEdges(int idx)
+    {
+        List<FastMultiEdge> fastEdges = new ArrayList<>();
+        this.getNeighbourNodes(idx).forEach(vidx ->
+        {
+            List<Double> weights = this.getEdgeWeights(idx, vidx);
+            List<Integer> types = this.getEdgeTypes(idx, vidx);
+
+            IntStream.range(0, weights.size()).forEach(i -> fastEdges.add(new FastMultiEdge(idx, vidx, weights.get(i), types.get(i), i)));
+        });
+
+        return fastEdges.stream();
+    }
+
+    @Override
+    default Stream<FastMultiEdge> getMutualAdjacentEdges(int idx)
+    {
+        return this.getNeighbourEdges(idx);
+    }
+
+    @Override
+    default Stream<FastMultiEdge> getMutualIncidentEdges(int idx)
+    {
+        return this.getNeighbourEdges(idx);
     }
 }

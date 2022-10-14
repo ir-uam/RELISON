@@ -9,8 +9,11 @@
  */
 package es.uam.eps.ir.relison.graph;
 
+import es.uam.eps.ir.relison.graph.edges.Edge;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -25,6 +28,26 @@ import java.util.stream.Stream;
  */
 public interface DirectedGraph<V> extends Graph<V>
 {
+    @Override
+    default Stream<Edge<V>> getAllEdges()
+    {
+        List<Edge<V>> edges = new ArrayList<>();
+        this.getAllNodes().forEach(node -> this.getAdjacentEdges(node).forEach(edges::add));
+        return edges.stream();
+    }
+
+    @Override
+    default Stream<Edge<V>> getEdges(V node, EdgeOrientation direction)
+    {
+        return switch (direction)
+        {
+            case OUT -> this.getAdjacentEdges(node);
+            case IN -> this.getIncidentEdges(node);
+            case UND -> this.getNeighbourEdges(node);
+            case MUTUAL -> this.getMutualEdges(node);
+        };
+    }
+
     @Override
     default Stream<V> getNeighbourhood(V node, EdgeOrientation direction)
     {

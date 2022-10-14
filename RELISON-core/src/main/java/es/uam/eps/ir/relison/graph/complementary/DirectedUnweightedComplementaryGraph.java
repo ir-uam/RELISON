@@ -11,6 +11,9 @@ package es.uam.eps.ir.relison.graph.complementary;
 import es.uam.eps.ir.relison.graph.DirectedGraph;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.UnweightedGraph;
+import es.uam.eps.ir.relison.graph.edges.Edge;
+
+import java.util.stream.Stream;
 
 /**
  * Directed unweighted complementary graph.

@@ -9,8 +9,16 @@
  */
 package es.uam.eps.ir.relison.graph;
 
+import es.uam.eps.ir.relison.graph.edges.Edge;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
+import es.uam.eps.ir.relison.utils.datatypes.Pair;
+import org.jooq.lambda.tuple.Tuple2;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -25,6 +33,35 @@ import java.util.stream.Stream;
  */
 public interface UndirectedGraph<V> extends Graph<V>
 {
+    @Override
+    default Stream<Edge<V>> getAllEdges()
+    {
+        List<Edge<V>> edges = new ArrayList<>();
+        Set<Pair<V>> visited = new HashSet<>();
+
+        Set<V> nodes = this.getAllNodes().collect(Collectors.toCollection(HashSet::new));
+        for(V node : nodes)
+        {
+            List<Edge<V>> auxEdges = this.getAdjacentEdges(node).collect(Collectors.toList());
+            for(Edge<V> edge : auxEdges)
+            {
+                if(!visited.contains(new Pair<>(edge.getDest(), edge.getOrigin())))
+                {
+                    visited.add(new Pair<>(edge.getOrigin(), edge.getDest()));
+                    edges.add(edge);
+                }
+            }
+        }
+
+        return edges.stream();
+    }
+
+    @Override
+    default Stream<Edge<V>> getEdges(V node, EdgeOrientation direction)
+    {
+        return this.getNeighbourEdges(node);
+    }
+
     /**
      * Given a node, finds all the nodes u such that the edge (u to node) is in the graph.
      *

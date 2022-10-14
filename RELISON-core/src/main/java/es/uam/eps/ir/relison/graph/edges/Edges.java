@@ -10,6 +10,7 @@
 package es.uam.eps.ir.relison.graph.edges;
 
 import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
+import es.uam.eps.ir.relison.graph.edges.fast.FastEdge;
 
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -379,5 +380,12 @@ public interface Edges
      * @return true if it has mutual edges, false otherwise.
      */
     boolean hasMutualEdges(int idx);
+
+    Stream<FastEdge> getAdjacentEdges(int idx);
+    Stream<FastEdge> getIncidentEdges(int idx);
+    Stream<FastEdge> getMutualEdges(int idx);
+    Stream<FastEdge> getNeighbourEdges(int idx);
+    Stream<FastEdge> getMutualAdjacentEdges(int idx);
+    Stream<FastEdge> getMutualIncidentEdges(int idx);
 
 }

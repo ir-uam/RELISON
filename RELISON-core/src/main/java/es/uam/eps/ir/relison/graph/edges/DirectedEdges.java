@@ -10,6 +10,7 @@
 package es.uam.eps.ir.relison.graph.edges;
 
 import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
+import es.uam.eps.ir.relison.graph.edges.fast.FastEdge;
 import es.uam.eps.ir.relison.index.IdxValue;
 import es.uam.eps.ir.relison.utils.listcombiner.OrderedListCombiner;
 
@@ -102,4 +103,42 @@ public interface DirectedEdges extends Edges
     {
         throw new UnsupportedOperationException("Not supported");
     }
+
+    @Override
+    default Stream<FastEdge> getAdjacentEdges(int idx)
+    {
+        return this.getAdjacentNodes(idx).map(vidx -> new FastEdge(idx, vidx, this.getEdgeWeight(idx, vidx), this.getEdgeType(idx, vidx)));
+    }
+
+    @Override
+    default Stream<FastEdge> getIncidentEdges(int idx)
+    {
+        return this.getIncidentNodes(idx).map(vidx -> new FastEdge(vidx, idx, this.getEdgeWeight(vidx, idx), this.getEdgeType(vidx, idx)));
+    }
+
+    @Override
+    default Stream<FastEdge> getMutualEdges(int idx)
+    {
+        return Stream.concat(this.getMutualAdjacentEdges(idx), this.getMutualIncidentEdges(idx));
+    }
+
+    @Override
+    default Stream<FastEdge> getNeighbourEdges(int idx)
+    {
+        return Stream.concat(this.getAdjacentEdges(idx), this.getIncidentEdges(idx));
+    }
+
+    @Override
+    default Stream<FastEdge> getMutualAdjacentEdges(int idx)
+    {
+        return this.getMutualNodes(idx).map(vidx -> new FastEdge(idx, vidx, this.getEdgeWeight(idx, vidx), this.getEdgeType(idx, vidx)));
+    }
+
+    @Override
+    default Stream<FastEdge> getMutualIncidentEdges(int idx)
+    {
+        return this.getMutualNodes(idx).map(vidx -> new FastEdge(vidx, idx, this.getEdgeWeight(vidx, idx), this.getEdgeType(vidx, idx)));
+    }
+
+
 }

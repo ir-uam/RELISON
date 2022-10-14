@@ -9,6 +9,7 @@
  */
 package es.uam.eps.ir.relison.graph;
 
+import es.uam.eps.ir.relison.graph.edges.Edge;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.edges.EdgeType;
 import es.uam.eps.ir.relison.graph.edges.EdgeWeight;
@@ -152,6 +153,22 @@ public interface Graph<V> extends Serializable
      * @return a stream of all the nodes in the graph.
      */
     Stream<V> getAllNodes();
+
+    Stream<Edge<V>> getAllEdges();
+
+    Stream<Edge<V>> getIncidentEdges(V node);
+
+    Stream<Edge<V>> getAdjacentEdges(V node);
+
+    Stream<Edge<V>> getNeighbourEdges(V node);
+
+    Stream<Edge<V>> getMutualEdges(V node);
+
+    Stream<Edge<V>> getMutualAdjacentEdges(V node);
+
+    Stream<Edge<V>> getMutualIncidentEdges(V node);
+
+    Stream<Edge<V>> getEdges(V node, EdgeOrientation orient);
 
     /**
      * Given a node, finds all the nodes u such that the edge (u to node) is in the graph.
