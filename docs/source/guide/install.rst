@@ -15,8 +15,28 @@ MAVEN
 ^^^^^^
 
 The recommended way to use RELISON is through Maven. This will allow you to automatically
-download all the necessary dependencies to work with this framework. In order to download 
-the sources and install the library in your Maven repository, you just have to execute
+download all the necessary dependencies to work with this framework. There are two ways to
+do this:
+
+Maven Central
+-------------
+A first option allows to download the project from Maven Central. In order to add the library
+to your project, just add the following dependency to the .pom file.
+
+.. code:: xml
+
+    <dependency>
+      <groupId>io.github.ir-uam</groupId>
+      <artifactId>RELISON-[module-name]</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+
+where [module-name] indicates the name of the module you want to import.
+
+Manual installation
+-------------------
+
+In order to download the sources and install the library in your Maven repository, you just have to execute
 the following command: 
 
 .. code:: bash
@@ -40,8 +60,8 @@ dependency as follows:
 .. code:: xml
 
     <dependency>
-      <groupId>es.uam.eps.ir</groupId>
-      <artifactId>Relison-[module-name]</artifactId>
+      <groupId>io.github.ir-uam</groupId>
+      <artifactId>RELISON-[module-name]</artifactId>
       <version>1.0.0</version>
     </dependency>
 
