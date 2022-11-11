@@ -17,8 +17,17 @@ package es.uam.eps.ir.relison.grid.diffusion.update;
  */
 public class UpdateMechanismIdentifiers 
 {
+    /**
+     * Identifier for the update mechanism that keeps the newest piece of information.
+     */
     public final static String NEWEST = "Newest";
+    /**
+     * Identifier for the update mechanism that merges the newest and the oldest piece of information.
+     */
     public final static String MERGER = "Merger";
+    /**
+     * Identifier for the update mechanism that merges the oldest piece of information.
+     */
     public final static String OLDEST = "Oldest";
     
     /**

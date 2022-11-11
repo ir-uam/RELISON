@@ -36,7 +36,7 @@ import java.util.stream.Stream;
 public class ExpandedNeighborOverlap<U> implements PairMetric<U>
 {
     /**
-     * True if we have to obtain the d2 neighbors of the origin user,
+     * True if we have to obtain the distance neighbors of the origin user,
      * false if we have to do it for the destination.
      */
     private final boolean origin;
@@ -262,6 +262,16 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
         }
     }
 
+    /**
+     * Generates a function for computing the extended neighbor overlap of all pairs
+     * taking as origin a given node. This function considers that we look for the
+     * distance two neighborhood of the origin node in the pair.
+     * @param graph the graph.
+     * @param u the origin user.
+     * @param uSel the orientation for the origin neighbor.
+     * @param vSel the orientation for the destination neighbor.
+     * @return a function for computing the extended neighbor overlap given a user.
+     */
     public Function<U, Double> computeIndividualOrig(Graph<U> graph, U u, EdgeOrientation uSel, EdgeOrientation vSel)
     {
         Object2DoubleOpenHashMap<U> map = new Object2DoubleOpenHashMap<>();
@@ -288,6 +298,16 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
         return v -> map.getOrDefault(v, map.defaultReturnValue());
     }
 
+    /**
+     * Generates a function for computing the extended neighbor overlap of all pairs
+     * taking as destination a given node. This function considers that we look for the
+     * distance two neighborhood of the destination node in the pair.
+     * @param graph the graph.
+     * @param u the origin user.
+     * @param uSel the orientation for the origin neighbor.
+     * @param vSel the orientation for the destination neighbor.
+     * @return a function for computing the extended neighbor overlap given a user.
+     */
     public Function<U, Double> computeIndividualDest(Graph<U> graph, U u, EdgeOrientation uSel, EdgeOrientation vSel)
     {
         Object2DoubleOpenHashMap<U> map = new Object2DoubleOpenHashMap<>();

@@ -16,13 +16,37 @@ package es.uam.eps.ir.relison.grid.diffusion.sight;
 public class SightMechanismIdentifiers 
 {
     // Non stop simulators (until there is no more propagation)
+    /**
+     * Identifier for seeing all the contents from recommended links.
+     */
     public final static String ALLRECOMMENDED = "All recommended";
+    /**
+     * Identifier for seeing all the contents.
+     */
     public final static String ALLSIGHT = "All sight";
+    /**
+     * Identifier for seeing all the contents not from recommended links.
+     */
     public final static String ALLTRAIN = "All train";
+    /**
+     * Identifier for seeing a limited amount of information pieces.
+     */
     public final static String COUNT = "Count";
+    /**
+     * Identifier for seeing all the not previously discarded contents.
+     */
     public final static String ALLNOTDISCARDED = "All not discarded";
+    /**
+     * Identifier for seeing all the not previously propagated contents.
+     */
     public final static String ALLNOTPROPAGATED = "All not propagated";
+    /**
+     * Identifier for seeing all the not previously discarded nor propagated contents.
+     */
     public final static String ALLNOTDISCARDEDNOTPROPAGATED = "All not discarded nor propagated";
+    /**
+     * Identifier for seeing contents from recommended links or not recommended links from certain probability.
+     */
     public final static String RECOMMENDED = "Recommended";
    
     

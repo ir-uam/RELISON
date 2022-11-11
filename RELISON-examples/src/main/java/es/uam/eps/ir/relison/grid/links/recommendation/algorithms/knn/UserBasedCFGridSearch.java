@@ -68,6 +68,10 @@ public class UserBasedCFGridSearch<U> implements AlgorithmGridSearch<U>
      */
     private final Parser<U> uParser;
 
+    /**
+     * Constructor.
+     * @param uParser user parser.
+     */
     public UserBasedCFGridSearch(Parser<U> uParser)
     {
         this.uParser = uParser;

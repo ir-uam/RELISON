@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static es.uam.eps.ir.relison.grid.links.recommendation.algorithms.AlgorithmIdentifiers.PERSPAGERANK;
+import static es.uam.eps.ir.relison.grid.links.recommendation.algorithms.AlgorithmIdentifiers.PAGERANK;
 
 /**
  * Grid search generator for PageRank algorithm.
@@ -46,7 +46,7 @@ public class PageRankGridSearch<U> implements AlgorithmGridSearch<U>
         Map<String, RecommendationAlgorithmFunction<U>> recs = new HashMap<>();
         
         List<Double> rs = grid.getDoubleValues(R);
-        rs.forEach(r -> recs.put(PERSPAGERANK + "_" + r, (graph, prefData) -> new PageRank<>(graph, r)));
+        rs.forEach(r -> recs.put(PAGERANK + "_" + r, (graph, prefData) -> new PageRank<>(graph, r)));
         return recs;   
     }
 
@@ -56,7 +56,7 @@ public class PageRankGridSearch<U> implements AlgorithmGridSearch<U>
         Map<String, Supplier<Recommender<U,U>>> recs = new HashMap<>();
         
         List<Double> rs = grid.getDoubleValues(R);
-        rs.forEach(r -> recs.put(PERSPAGERANK + "_" + r, () -> new PageRank<>(graph, r)));
+        rs.forEach(r -> recs.put(PAGERANK + "_" + r, () -> new PageRank<>(graph, r)));
         return recs;
     }
     

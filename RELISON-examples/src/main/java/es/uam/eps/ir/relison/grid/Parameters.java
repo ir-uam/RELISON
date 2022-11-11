@@ -90,7 +90,7 @@ public class Parameters
     }
 
     /**
-     * 
+     * Get the double values for different parameters.
      * @return Double values for the different parameters
      */
     public Map<String, Double> getDoubleValues()
@@ -99,7 +99,7 @@ public class Parameters
     }
 
     /**
-     * 
+     * Get the edge orientation values for different parameters.
      * @return Edge orientation values for the different parameters
      */
     public Map<String, EdgeOrientation> getOrientationValues()
@@ -108,7 +108,7 @@ public class Parameters
     }
 
     /**
-     * 
+     * Get the string values for different parameters.
      * @return String values for the different parameters
      */
     public Map<String, String> getStringValues()
@@ -117,7 +117,7 @@ public class Parameters
     }
 
     /**
-     * 
+     * Get the integer values for different parameters.
      * @return Integer values for the different parameters
      */
     public Map<String, Integer> getIntegerValues()
@@ -126,7 +126,7 @@ public class Parameters
     }
 
     /**
-     * 
+     * Get the boolean values for different parameters.
      * @return Boolean values for the different parameters.
      */
     public Map<String, Boolean> getBooleanValues()
@@ -135,14 +135,18 @@ public class Parameters
     }
     
     /**
-     * 
+     * Get the long values for different parameters.
      * @return Long values for the different parameters.
      */
     public Map<String, Long> getLongValues()
     {
         return longValues;
     }
-    
+
+    /**
+     * Get compound parameter values for different parameters.
+     * @return the complex parameter values for the different parameters.
+     */
     public Map<String, Tuple2oo<String, Parameters>> getParamValues()
     {
         return paramValues;

@@ -16,9 +16,24 @@ package es.uam.eps.ir.relison.examples.graphgen;
  */
 public class GraphGenerationAlgorithms
 {
+    /**
+     * Identifier for empty graph generators.
+     */
     public final static String EMPTY = "empty";
+    /**
+     * Identifier for complete graph generators.
+     */
     public final static String COMPLETE = "complete";
+    /**
+     * Identifier for random Erdos graph generators.
+     */
     public final static String ERDOS = "random";
+    /**
+     * Identifier for preferential attachment graph generators.
+     */
     public final static String BARABASI = "preferential-attachment";
+    /**
+     * Identifier for Watts-Strogatz graph generators.
+     */
     public final static String WATTS = "watts-strogatz";
 }

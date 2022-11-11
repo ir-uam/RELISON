@@ -16,15 +16,42 @@ package es.uam.eps.ir.relison.grid.diffusion.filter;
  */
 public class FilterIdentifiers 
 {
-    // Non stop simulators (until there is no more propagation)
+    /**
+     * Identifier for the basic filter (does nothing)
+     */
     public final static String BASIC = "Basic";
+    /**
+     * Identifier for the basic filter (does nothing)
+     */
     public final static String INFOFEATSEL = "Information feature selection";
+    /**
+     * Identifier that filters selected information features.
+     */
     public final static String INFOFEAT = "Information feature";
+    /**
+     * Identifier for the filter that indicates a maximum number of pieces that a single user might have.
+     */
     public final static String NUMPIECES = "Num. information pieces";
+    /**
+     * Identifier for the filter which adds a new feature for empty feature pieces.
+     */
     public final static String EMPTYTAG = "Empty feature";
+    /**
+     * Identifier for the basic filter which only keeps information pieces with creator.
+     */
     public final static String CREATOR = "Creator";
+
+    /**
+     * Identifier for the filter which removes those information features appearing less than a fixed number of times.
+     */
     public final static String MINIMUMPIECES = "Minimum information feature frequency";
+    /**
+     * Identifier for the filter which removes recommended but irrelevant edges from the graph.
+     */
     public final static String RELEVANTEDGES = "Relevant Edges";
+    /**
+     * Identifier for the filter that only keeps repropagated information by other users.
+     */
     public final static String ONLYREPR = "Only Repropagated";
    
     /**

@@ -18,9 +18,24 @@ package es.uam.eps.ir.relison.grid.links.prediction.metrics;
 public class LinkPredictionMetricIdentifiers
 {
     // Accuracy metrics:
+    /**
+     * Identifier for the precision metric.
+     */
     public final static String P = "Precision";
+    /**
+     * Identifier for the recall metric.
+     */
     public final static String R = "Recall";
+    /**
+     * Identifier for the area under the ROC curve metric.
+     */
     public final static String AUC = "AUC";
+    /**
+     * Identifier for the accuracy metric.
+     */
     public final static String ACCURACY = "Accuracy";
+    /**
+     * Identifier for the F1-score metric.
+     */
     public final static String F1SCORE = "F1-score";
 }

@@ -16,5 +16,12 @@ package es.uam.eps.ir.relison.grid.diffusion.protocol;
  */
 public enum ProtocolType 
 {
-    PRECONFIGURED, CUSTOM
+    /**
+     * Identifier for pre-configured diffusion protocols.
+     */
+    PRECONFIGURED,
+    /**
+     * Identifier for custom diffusion protocols.
+      */
+    CUSTOM
 }

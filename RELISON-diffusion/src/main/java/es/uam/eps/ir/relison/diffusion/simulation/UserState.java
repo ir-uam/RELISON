@@ -316,7 +316,11 @@ public abstract class UserState<U> implements Serializable, Cloneable
             this.updateAll(info);
         });
     }
-    
+
+    /**
+     * Discards part of the received information.
+     * @param information the information to discard.
+     */
     public void discardReceivedInformation(Stream<Integer> information)
     {
         List<Integer> list = information.collect(Collectors.toCollection(ArrayList::new));

@@ -37,6 +37,11 @@ public class LuceneFreqVectorIterator implements Iterator<TermFreq>
      */
     long pointer;
 
+    /**
+     * Constructor
+     * @param t terms
+     * @throws IOException if something goes wrong
+     */
     public LuceneFreqVectorIterator(Terms t) throws IOException
     {
         terms = t.iterator();

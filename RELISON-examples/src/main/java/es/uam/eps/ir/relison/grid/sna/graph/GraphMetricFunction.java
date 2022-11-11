@@ -22,5 +22,10 @@ import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 @FunctionalInterface
 public interface GraphMetricFunction<U> 
 {
+    /**
+     * Function for retrieving a global graph metric.
+     * @param dc a distance calculator.
+     * @return the configured graph metric.
+     */
     GraphMetric<U> apply(DistanceCalculator<U> dc);
 }

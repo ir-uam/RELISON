@@ -18,17 +18,48 @@ package es.uam.eps.ir.relison.grid.links.recommendation.metrics;
 public class RecommMetricIdentifiers
 {
     // Accuracy metrics:
+    /**
+     * Identifier for the precision metric.
+     */
     public final static String P = "Precision";
+    /**
+     * Identifier for the recall metric.
+     */
     public final static String R = "Recall";
+    /**
+     * Identifier for the nDCG metric.
+     */
     public final static String NDCG = "nDCG";
+    /**
+     * Identifier for the mean average precision metric (MAP)
+     */
     public final static String MAP = "MAP";
-
+    /**
+     * Identifier for the intra-list distance metric (ILD)
+     */
     public final static String ILD = "ILD";
+    /**
+     * Identifier for the long-tail novelty metric (LTN)
+     */
     public final static String LTN = "LTN";
+    /**
+     * Identifier for the unexpectedness metric.
+     */
     public final static String UNEXP = "Unexpectedness";
+    /**
+     * Identifier for the mean prediction distance.
+     */
     public final static String MPD = "Mean prediction distance";
+    /**
+     * Identifier for the predicted Gini complement.
+     */
     public final static String PGC = "Predicted Gini complement";
-
+    /**
+     * Identifier for the community recall.
+     */
     public final static String CRECALL = "Community recall";
+    /**
+     * Identifier for the ERR-IA metric
+     */
     public final static String ERRIA = "ERRIA";
 }

@@ -51,6 +51,11 @@ public class FastUndirectedWeightedMultiGraph<U> extends AbstractFastMultiGraph<
         super(new FastIndex<>(), new FastUndirectedWeightedMultiEdges());
     }
 
+    /**
+     * Builds the matrix for the MTJ framework.
+     * @param direction orientation of the edges.
+     * @return the matrix.
+     */
     public Matrix getAdjacencyMatrixMTJ(EdgeOrientation direction)
     {
         Matrix matrix = new LinkedSparseMatrix(Long.valueOf(this.getVertexCount()).intValue(), Long.valueOf(this.getVertexCount()).intValue());

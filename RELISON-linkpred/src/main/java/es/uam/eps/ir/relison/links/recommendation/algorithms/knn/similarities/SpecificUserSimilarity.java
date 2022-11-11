@@ -22,6 +22,11 @@ import es.uam.eps.ir.ranksys.nn.user.sim.UserSimilarity;
  */
 public class SpecificUserSimilarity<U> extends UserSimilarity<U>
 {
+    /**
+     * Constructor.
+     * @param uIndex user index.
+     * @param sim    similarity function.
+     */
     public SpecificUserSimilarity(FastUserIndex<U> uIndex, Similarity sim)
     {
         super(uIndex, sim);

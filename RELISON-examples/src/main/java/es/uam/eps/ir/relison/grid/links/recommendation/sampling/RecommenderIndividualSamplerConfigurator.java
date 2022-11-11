@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Information Retrieval Group at Universidad Aut�noma
+ * Copyright (C) 2022 Information Retrieval Group at Universidad Autónoma
  * de Madrid, http://ir.ii.uam.es
  * 
  *  This Source Code Form is subject to the terms of the Mozilla Public
@@ -27,7 +27,8 @@ import java.util.function.Supplier;
 /**
  * Class for configuring distance two individual samplers.
  * 
- * @author Javier Sanz-Cruzado Puig
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzadopuig@glasgow.ac.uk)
+ * @author Pablo Castells (pablo.castells@uam.es)
  * 
  * @param <U> Type of the users.
  */
@@ -41,9 +42,15 @@ public class RecommenderIndividualSamplerConfigurator<U> implements IndividualSa
      * Identifier for the cutoff of the recommendation.
      */
     private final static String K = "k";
-    
+    /**
+     * Grid selector for the algorithms.
+     */
     private final AlgorithmGridSelector<U> gridSelector;
-    
+
+    /**
+     * Constructor.
+     * @param uParser user parser.
+     */
     public RecommenderIndividualSamplerConfigurator(Parser<U> uParser)
     {
         this.gridSelector = new AlgorithmGridSelector<>(uParser);

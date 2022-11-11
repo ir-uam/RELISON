@@ -56,6 +56,12 @@ public class MonteCarloGiniCollection
         this.totalFreq = 0;
     }
 
+    /**
+     * Constructor. Considers no limit to the maximum income per individual in the population.
+     *
+     * @param populationSize  the population size.
+     * @param numMC           Number of MonteCarlo samples.
+     */
     public MonteCarloGiniCollection(int populationSize, int numMC)
     {
         this(populationSize, 0, numMC);
@@ -131,6 +137,10 @@ public class MonteCarloGiniCollection
         return opt.isPresent() ? opt.getAsDouble() : Double.NaN;
     }
 
+    /**
+     * Update the MonteCarlo Gini collection with a fixed number of elements.
+     * @param newElems the number of new elements.
+     */
     public void update(int newElems)
     {
         this.totalFreq += newElems;

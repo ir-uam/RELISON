@@ -23,9 +23,10 @@ import java.util.Map;
  * Reads a file containing the community structure.
  * <p>
  * File structure:
+ * </p>
  * <p>
  * node community
- * <p>
+ * </p>
  *
  * @param <U> type of the users
  *

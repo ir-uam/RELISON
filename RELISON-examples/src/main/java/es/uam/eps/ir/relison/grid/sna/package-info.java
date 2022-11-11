@@ -10,6 +10,6 @@
 /**
  * Classes and interfaces for configuration files for social network analysis. In particular, 
  * configuration files for the different metrics to execute.
- * @see es.uam.eps.ir.relison.metrics
+ * @see es.uam.eps.ir.relison.sna.metrics
  */
 package es.uam.eps.ir.relison.grid.sna;

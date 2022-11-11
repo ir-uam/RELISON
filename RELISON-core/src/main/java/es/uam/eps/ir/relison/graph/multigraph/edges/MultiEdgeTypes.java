@@ -56,7 +56,11 @@ public class MultiEdgeTypes extends IdxValue<List<Integer>>
         return null;
     }
 
-
+    /**
+     * Obtains the default value for the types of a multi-edge
+     * @param length the number of edges in the multi-edge.
+     * @return a list containing the default value for every edge between two nodes.
+     */
     public static List<Integer> getDefaultValue(int length)
     {
         List<Integer> list = new ArrayList<>();

@@ -17,12 +17,34 @@ package es.uam.eps.ir.relison.grid.diffusion.propagation;
 public class PropagationMechanismIdentifiers 
 {
     // Non stop simulators (until there is no more propagation)
+
+    /**
+     * Identifier for the propagation mechanism to all neighbors.
+     */
     public final static String ALLNEIGHS = "All neighbors";
+    /**
+     * Identifier for the propagation mechanism to all recommended neighbors.
+     */
     public final static String ALLRECNEIGHS = "All recommended neighbors";
+    /**
+     * Identifier for the propagation mechanism related to the push-pull protocol.
+     */
     public final static String PUSHPULL = "Push-pull";
+    /**
+     * Identifier for the propagation mechanism related to the push protocol.
+     */
     public final static String PUSH = "Push";
+    /**
+     * Identifier for the propagation mechanism related to the pull protocol.
+     */
     public final static String PULL = "Pull";
+    /**
+     * Identifier for the propagation mechanism related to the push-pull protocol, to use only recommended links.
+     */
     public final static String PUSHPULLPUREREC = "Push-pull pure recommended";
+    /**
+     * Identifier for the propagation mechanism related to the push-pull protocol, prioritizing recommended links.
+     */
     public final static String PUSHPULLREC = "Push-pull recommended";
     
     /**

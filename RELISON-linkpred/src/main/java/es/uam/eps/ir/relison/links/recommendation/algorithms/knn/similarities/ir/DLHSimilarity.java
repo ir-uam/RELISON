@@ -27,7 +27,13 @@ import java.util.Optional;
  * @see DLH
  */
 public class DLHSimilarity extends TerrierIRSimilarity
-{    
+{
+    /**
+     * Constructor.
+     * @param graph the training graph.
+     * @param uSel orientation selection for the target node.
+     * @param vSel orientation selection for the destination node.
+     */
     public DLHSimilarity(FastGraph<?> graph, EdgeOrientation uSel, EdgeOrientation vSel)
     {
         super(graph, uSel, vSel);

@@ -17,12 +17,32 @@ package es.uam.eps.ir.relison.grid.diffusion.expiration;
  */
 public class ExpirationMechanismIdentifiers 
 {
-    // Non stop simulators (until there is no more propagation)
+    /**
+     * Identifier of the non-expiration mechanism for information pieces.
+     */
     public final static String INFINITETIME = "Infinite time";
+    /**
+     * Identifier of the expiration mechanism for information pieces that expires all the not propagated pieces.
+     */
     public final static String ALLNOTPROP = "All not propagated";
+    /**
+     * Identifier of the expiration mechanism for information pieces that expires them after a while (fixed)
+     */
     public final static String TIMED = "Timed";
+    /**
+     * Identifier of the expiration mechanism for information pieces where they have an exponential probability
+     * of decaying.
+     */
     public final static String EXPDECAY = "Exponential decay";
+    /**
+     * Identifier of the expiration mechanism for information pieces for all pieces which have not propagated in
+     * real life scenarios.
+     */
     public final static String ALLNOTREALPROP = "All not real propagated";
+    /**
+     * Identifier of the expiration mechanism for information pieces for all pieces which have not propagated in
+     * real life scenarios, and expires those propagated after the corresponding timestamp.
+     */
     public final static String ALLNOTREALPROPTIMESTAMP = "All not real propagated timestamp";
    
     

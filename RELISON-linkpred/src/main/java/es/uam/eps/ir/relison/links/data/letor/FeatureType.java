@@ -19,7 +19,14 @@ package es.uam.eps.ir.relison.links.data.letor;
  */
 public enum FeatureType 
 {
-    CONTINUOUS, NOMINAL;
+    /**
+     * Constant for defining a continuous type of feature.
+     */
+    CONTINUOUS,
+    /**
+     * Constant for defining a nominal (discrete) type of feature.
+     */
+    NOMINAL;
     
     /**
      * Converts a String into a feature type.

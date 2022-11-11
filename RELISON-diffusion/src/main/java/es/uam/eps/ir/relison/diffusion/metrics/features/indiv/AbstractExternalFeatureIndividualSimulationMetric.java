@@ -127,6 +127,9 @@ public abstract class AbstractExternalFeatureIndividualSimulationMetric<U extend
         return parameters;
     }
 
+    /**
+     * Clears all the information pieces features of all users.
+     */
     protected void clearOwnFeatures()
     {
         this.ownFeats.clear();

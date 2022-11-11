@@ -17,24 +17,63 @@ package es.uam.eps.ir.relison.grid.community;
 public class CommunityDetectionIdentifiers 
 {
     // Connectedness
+    /**
+     * Identifier of the strongly connected components community detection approach.
+     */
     public final static String SCC = "Strongly connected components";
+    /**
+     * Identifier of the weakly connected components community detection approach.
+     */
     public final static String WCC = "Weakly Connected Components";
     
     // Modularity optimizing community detection algorithms
+    /**
+     * Identifier of the FastGreedy community detection approach.
+     */
     public final static String FASTGREEDY = "FastGreedy";
+    /**
+     * Identifier of the Louvain community detection approach.
+     */
     public final static String LOUVAIN = "Louvain";
+    /**
+     * Identifier of the InfoMap community detection approach.
+     */
     public final static String INFOMAP = "Infomap";
+    /**
+     * Identifier of the Label Propagation community detection approach.
+     */
     public final static String LABELPROP = "Label propagation";
 
     // Community detection algorithms using edge metrics
+    /**
+     * Identifier of the Girvan-Newman community detection approach.
+     */
     public final static String GIRVANNEWMAN = "Girvan Newman";
+    /**
+     * Identifier of the edge betweenness-based community detection approach.
+     */
     public final static String EDGEBETWENNESS = "Edge betweenness";
     
     // Balanced community detection algorithms
+    /**
+     * Identifier of the Balanced FastGreedy community detection approach.
+     */
     public final static String BALANCEDFASTGREEDY = "Balanced FastGreedy";
+    /**
+     * Identifier of the Size-weighted FastGreedy community detection approach.
+     */
     public final static String SIZEWEIGHTEDFASTGREEDY = "Size Weighted FastGreedy";
+    /**
+     * Identifier of the Gini-weighted FastGreedy community detection approach.
+     */
     public final static String GINIWEIGHTEDFASTGREEDY = "Gini Weighted FastGreedy";
+    /**
+     * Identifier of the Ratio Cut Spectral Clustering community detection approach.
+     */
     public final static String RATIOCUTSPECTRAL = "Ratio cut spectral clustering";
+    /**
+     * Identifier of the Normalized Cut Spectral Clustering community detection approach.
+     */
     public final static String NORMALIZEDCUTSPECTRAL = "Normalized cut spectral clustering";
     
     /**

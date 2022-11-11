@@ -64,6 +64,14 @@ public class TerrierIndex
      */
     public final static String NODEID = "nodeId";
 
+    /**
+     * Constructor.
+     * @param graph     the social network graph.
+     * @param qSel      orientation for "query" users.
+     * @param dSel      orientation for the "document" users.
+     * @param memIndex  memory index.
+     * @param queries   a set of queries (indexed by node id)
+     */
     public TerrierIndex(FastGraph<?> graph, EdgeOrientation qSel, EdgeOrientation dSel, MemoryIndex memIndex, Map<Integer, String> queries)
     {
         this.graph = graph;

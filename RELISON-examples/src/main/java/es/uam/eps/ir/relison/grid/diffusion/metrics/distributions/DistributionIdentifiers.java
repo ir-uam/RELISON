@@ -15,10 +15,25 @@ package es.uam.eps.ir.relison.grid.diffusion.metrics.distributions;
  */
 public class DistributionIdentifiers 
 {
+    /**
+     * Identifiers for the information features.
+     */
     public final static String INFOFEATS = "Information features";
+    /**
+     * Identifiers for the user features.
+     */
     public final static String USERFEATS = "User features";
+    /**
+     * Identifiers for the information.
+     */
     public final static String INFORMATION = "Information";
+    /**
+     * Identifiers for the mixed features.
+     */
     public final static String MIXEDFEATS = "Mixed features";
+    /**
+     * Identifiers for the users.
+     */
     public final static String USERS = "Users";
     
     /**

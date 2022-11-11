@@ -114,6 +114,12 @@ public abstract class SpectralClustering<U> implements CommunityDetectionAlgorit
         return comms;
     }
 
+    /**
+     * Computes the Laplacian matrix of a graph, given the degree and adjacency matrices.
+     * @param degree the degree matrix of a graph
+     * @param adjacency the adjacency matrix of a graph.
+     * @return the Laplacian matrix.
+     */
     protected abstract DoubleMatrix2D laplacian(DoubleMatrix2D degree, DoubleMatrix2D adjacency);
 
 

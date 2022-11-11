@@ -17,10 +17,26 @@ package es.uam.eps.ir.relison.grid.links.recommendation.sampling;
 public class IndividualSamplingAlgorithmIdentifiers 
 {
     // Random selection
+    /**
+     * Identifier for the sampling algorithm that takes all nodes.
+     */
     public final static String ALL = "All";
+    /**
+     * Identifier for the sampling algorithm that takes all nodes at distance two from the target.
+     */
     public final static String DISTANCETWO = "Distance two";
+    /**
+     * Identifier for the sampling algorithm that takes all nodes at distance two from the target based on link
+     * prediction.
+     */
     public final static String DISTANCETWOLP = "Distance two link prediction";
+    /**
+     * Identifier for the sampling algorithm that takes the top-k nodes at link prediction.
+     */
     public final static String LINKPRED = "Link prediction";
+    /**
+     * Identifier for the sampling algorithm that the top-k recommended nodes.
+     */
     public final static String RECOMMENDER = "Recommender";
     
     /**

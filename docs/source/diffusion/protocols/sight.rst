@@ -3,13 +3,14 @@ Sight mechanisms
 Once some information pieces have been received, users do not pay the same attention to all of them: they just read some of them, who they might be interested in. This mechanism models this: it allows to select which information pieces are observed by the user. We provide the following sight mechanisms in RELISON:
 
 
-* `All`
+* `All`_
 * `All not discarded`_
 * `All not propagated`_
 * `All not discarded nor propagated`_
 * `All recommended`_
 * `All train`_
 * `Count`_
+* `Recommended`_
 
 All
 ~~~~
@@ -108,7 +109,6 @@ Configuration file
         type: orientation
         value: IN/OUT/UND/MUTUAL
 
-
 Count
 ~~~~~~
 Each user sees, at most, a pre-determined number of the received information pieces.
@@ -129,7 +129,7 @@ Configuration file
         value: number_of_pieces
 
 Recommended
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
 This mechanism defines two probabilities: a probability for seeing pieces coming from recommended links and a probability for seeing pieces coming from the rest of the users.
 
 Parameters

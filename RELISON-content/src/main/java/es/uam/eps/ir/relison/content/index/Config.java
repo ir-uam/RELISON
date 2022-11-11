@@ -15,10 +15,13 @@ package es.uam.eps.ir.relison.content.index;
  */
 public class Config
 {
-    public static String NORMS_FILE = "/docnorms.dat";
+    /**
+     * Route to the paths file
+     */
     public static String PATHS_FILE = "/docpaths.dat";
-    public static String INDEX_FILE = "/serialindex.dat";
-    public static String DICTIONARY_FILE = "/dictionary.dat";
+    /**
+     * Route to the postings file
+     */
     public static String POSTINGS_FILE = "/postings.dat";
-    public static String GRAPH_FILE = "/webgraph.dat";
+
 }

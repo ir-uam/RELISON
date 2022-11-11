@@ -16,8 +16,17 @@ package es.uam.eps.ir.relison.grid.sna.comm.indiv;
  */
 public class IndividualCommunityMetricIdentifiers 
 {
+    /**
+     * Identifier for the community degree metric.
+     */
     public static final String COMMDEGREE = "Degree";
+    /**
+     * Identifier for the community size metric.
+     */
     public static final String COMMSIZE = "Size";
+    /**
+     * Identifier for the volume metric.
+     */
     public static final String VOLUME = "Volume";
     
 }

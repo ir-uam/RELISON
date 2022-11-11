@@ -1,3 +1,12 @@
+/*
+ *  Copyright (C) 2022 Information Retrieval Group at Universidad Autónoma
+ *  de Madrid, http://ir.ii.uam.es / Terrier Team at University of Glasgow,
+ *  http://http://terrierteam.dcs.gla.ac.uk
+ *
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package es.uam.eps.ir.relison.links.linkprediction.io;
 
 import es.uam.eps.ir.relison.links.linkprediction.Prediction;
@@ -11,11 +20,30 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * Format for writing the link predictions. This format writes tuples in the format
+ * <p>
+ * origin_node, destination_node, score
+ * </p>
+ *
+ * @param <U> type of the users.
+ *
+ * @author Javier Sanz-Cruzado (javier.sanz-cruzadopuig@glasgow.ac.uk)
+ * @author Pablo Castells (pablo.castells@uam.es)
+ */
 public class TuplesLinkPredictionFormat<U> implements LinkPredictionFormat<U>
 {
-
+    /**
+     * Function for setting triplets into text.
+     */
     private final Function3<U,U,Double, String> tupleWriter;
+    /**
+     * Function for transforming a read tuple into a ((node1, node2), value) triplet.
+     */
     private final Function<String, Tuple2od<Pair<U>>> tupleReader;
+    /**
+     * True if we want to sort the tuples by decreasing score, false otherwise.
+     */
     private final boolean sortByDecreasingScore;
 
     /**
@@ -32,7 +60,7 @@ public class TuplesLinkPredictionFormat<U> implements LinkPredictionFormat<U>
      * Constructor.
      * @param tupleWriter tuple writer.
      * @param tupleReader tuple reader.
-     * @param sortByDecreasingScore read tuples by decreasing score?
+     * @param sortByDecreasingScore true if we want to sort the tuples by decreasing score, false otherwise.
      */
     public TuplesLinkPredictionFormat(Function3<U,U,Double,String> tupleWriter, Function<String, Tuple2od<Pair<U>>> tupleReader, boolean sortByDecreasingScore)
     {

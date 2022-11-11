@@ -22,9 +22,10 @@ import java.util.stream.Collectors;
  * Writes a community file.
  * <p>
  * File structure:
+ * </p>
  * <p>
  * node community
- * <p>
+ * </p>
  *
  * @param <U> type of the users.
  *

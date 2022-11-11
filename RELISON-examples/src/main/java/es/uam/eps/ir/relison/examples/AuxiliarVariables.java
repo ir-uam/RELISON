@@ -15,6 +15,12 @@ package es.uam.eps.ir.relison.examples;
  */
 public class AuxiliarVariables
 {
+    /**
+     * String representation of true values.
+     */
     public static String TRUE = "true";
+    /**
+     * String representation of false values.
+     */
     public static String FALSE = "false";
 }

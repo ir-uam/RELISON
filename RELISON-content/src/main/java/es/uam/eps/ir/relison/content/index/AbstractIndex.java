@@ -74,14 +74,4 @@ public abstract class AbstractIndex<C> implements Index<C>
             backward.put(user, uidx);
         }
     }
-
-    /*public void loadNorms(String indexFolder) throws FileNotFoundException {
-        File f = new File(indexFolder + "/" + Config.NORMS_FILE);
-        if (!f.exists()) return;
-        Scanner scn = new Scanner(f);
-        docNorms = new double[numDocs()];
-        for (int docID = 0; docID < docNorms.length; docID++)
-            docNorms[docID] = Double.parseDouble(scn.nextLine());
-        scn.close();
-    }*/
 }

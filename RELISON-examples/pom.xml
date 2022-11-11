@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>RELISON</artifactId>
-        <groupId>es.uam.eps.ir</groupId>
+        <groupId>io.github.ir-uam</groupId>
         <version>1.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -38,7 +38,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>14</source>
-                    <target>14</target>
+                    <target>14 </target>
                 </configuration>
             </plugin>
         </plugins>

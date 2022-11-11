@@ -18,12 +18,33 @@ package es.uam.eps.ir.relison.grid.diffusion.stop;
 public class StopConditionIdentifiers 
 {
     // Non stop simulators (until there is no more propagation)
+    /**
+     * Identifier for stopping simulation when no more new pieces are created.
+     */
     public final static String NOMORENEW = "No more new";
+    /**
+     * Identifier for stopping simulation when no pieces are propagated.
+     */
     public final static String NOMOREPROP = "No more propagated";
+    /**
+     * Identifier for stopping simulation after a fixed number of iterations.
+     */
     public final static String NUMITER = "Num. iter";
+    /**
+     * Identifier for stopping simulation after a total number of pieces has been propagated.
+     */
     public final static String TOTALPROP = "Total propagated";
+    /**
+     * Identifier for stopping simulation when no more timestamps are available.
+     */
     public final static String NOMORETIME = "No more timestamps";
+    /**
+     * Identifier for stopping simulation when a maximum timestamp is reached.
+     */
     public final static String MAXTIME = "Max. timestamp";
+    /**
+     * Identifier for stopping simulation when no more timestamps are available or no information is propagated.
+     */
     public final static String NOMORETIMENORINFO = "No more timestamps nor propagated";
    
     

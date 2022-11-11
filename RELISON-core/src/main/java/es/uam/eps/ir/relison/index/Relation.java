@@ -127,6 +127,12 @@ public interface Relation<W>
      */
     W getValue(int firstIdx, int secondIdx);
 
+    /**
+     * Returns whether there is a relation between two objects.
+     * @param firstIdx  Identifier of the first object.
+     * @param secondIdx Identifier of the second object
+     * @return true if it exists, false otherwise.
+     */
     boolean containsPair(int firstIdx, int secondIdx);
 
     /**
