@@ -68,7 +68,21 @@ Up to date, the following packages have been published:
 
 ## Instalation
 In order to install this framework, you need to have Maven [http://maven.apache.org](http://maven.apache.org) installed 
-on your system. Then, download the files into a directory. If you want to obtain a .jar containing all the packages,
+on your system. Then, you have two different options:
+
+### Option A: Maven Central:
+
+In order to use the library, you only need to import the package you are interested to use in your project from Maven Central.
+To do this, add the following dependence to your POM:
+```
+    <artifactId>RELISON-[package-name]</artifactId>
+    <groupId>io.github.ir-uam</groupId>
+    <version>1.0.0</version>
+```
+
+### Option B: Manual installation
+
+First, download the files into a directory. If you want to obtain a .jar containing all the packages,
 go to the Relison-examples directory and execute the following command:
 ```
 mvn compile assembly::single
@@ -83,7 +97,7 @@ Once it is installed in your Maven library, you can import the package you are i
 adding the following dependence.
 ```
     <artifactId>RELISON-[package-name]</artifactId>
-    <groupId>es.uam.eps.ir</groupId>
+    <groupId>io.github.ir-uam</groupId>
     <version>1.0.0</version>
 ```
 We plan to add the library to Maven Central in the future, but, as of now, it is not available there. 
