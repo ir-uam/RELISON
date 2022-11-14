@@ -1,7 +1,7 @@
 RELISON: A framework for REcommending LInks in SOcial Networks
 =======================================================================================
 
-.. figure:: ./img/relison-logo.png
+.. figure:: ./img/relison-logo-small.png
    :alt: RELISON logo
 
 RELISON is a comprehensive framework for social network analysis and recommendation in Java. This framework
