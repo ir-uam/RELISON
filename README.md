@@ -2,13 +2,14 @@
 [![GitHub license](https://img.shields.io/badge/license-MPL--2.0-orange)](https://www.mozilla.org/en-US/MPL/)
 [![Documentation Status](https://readthedocs.org/projects/relison/badge/?version=latest)](https://relison.readthedocs.io/en/latest/?badge=latest)
 
+<p align="center">
+    <img alt="RELISON logo" src="docs/source/img/relison-full-logo.png" title="RELISON logo" />
+</p>
+
+
 [Main page](https://ir-uam.github.io/RELISON) | [Documentation](https://relison.readthedocs.io) | [Javadoc](https://ir-uam.github.io/RELISON/javadoc) | [Twitter](https://twitter.com/RELISON_IR)
 
-# RELISON
-<p align="center">
-    <img alt="RELISON logo" height="150" src="docs/source/img/relison-logo.png" title="RELISON logo" width="150"/>
-</p>
-RELISON (/rɪˈlaɪʃ(ə)n/) is a framework for experimentation on the link recommendation task in social networks, which aims to identify 
+RELISON (/rɪˈlaɪʃ(ə)n/) is a Java framework for experimentation on the link recommendation task in social networks, which aims to identify 
 those people in the network with whom a user might be interested to connect, interact or befriend.  RELISON provides 
 tools for executing and evaluating contact recommendation approaches, considering not only their accuracy, but also aspects 
 like their novelty, diversity and the effects that such recommendations have on global properties of the networks 
