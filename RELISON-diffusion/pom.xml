@@ -5,7 +5,7 @@
     <parent>
         <artifactId>RELISON</artifactId>
         <groupId>io.github.ir-uam</groupId>
-        <version>1.0.0</version>
+        <version>1.0.1-snapshot</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
