@@ -62,7 +62,7 @@ public class ComplementaryLocalClusteringCoefficientGridSearch<U> implements Ver
         List<EdgeOrientation> vSels = grid.getOrientationValues(VSEL);
         List<EdgeOrientation> wSels = grid.getOrientationValues(WSEL);
 
-        wSels.forEach(vSel ->
+        vSels.forEach(vSel ->
             wSels.forEach(wSel ->
                 metrics.put(VertexMetricIdentifiers.COMPLLOCALCLUSTCOEF + "_" + vSel + "_" + wSel, (distCalc) ->
                     new ComplementaryLocalClusteringCoefficient<>(vSel, wSel))));

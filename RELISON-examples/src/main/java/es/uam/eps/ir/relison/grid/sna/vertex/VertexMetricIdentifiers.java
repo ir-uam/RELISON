@@ -95,5 +95,8 @@ public class VertexMetricIdentifiers
      * Identifier for the Katz centrality.
      */
     public final static String KATZ = "Katz";
-
+    /**
+     * Identifier for the friends of friends metric (neighbors at distance 2)
+     */
+    public final static String FOAF = "FOAF";
 }

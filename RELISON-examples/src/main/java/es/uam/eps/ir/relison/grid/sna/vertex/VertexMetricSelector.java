@@ -63,6 +63,7 @@ public class VertexMetricSelector<U>
             case CORENESS -> new CorenessGridSearch<>();
             case KATZ -> new KatzCentralityGridSearch<>();
             case EIGEN -> new EigenvectorCentralityGridSearch<>();
+            case FOAF -> new Distance2DegreeGridSearch<>();
             default -> null;
         };
     }
