@@ -7,7 +7,7 @@
 </p>
 
 
-[Main page](https://ir-uam.github.io/RELISON) | [Documentation](https://relison.readthedocs.io) | [Javadoc](https://ir-uam.github.io/RELISON/javadoc) | [Twitter](https://twitter.com/RELISON_IR)
+[Main page](https://ir-uam.github.io/RELISON) | [Documentation](https://relison.readthedocs.io) | [Javadoc](https://ir-uam.github.io/RELISON/javadoc) | [Twitter](https://twitter.com/RELISON_IR) | [Docker](https://hub.docker.com/repository/docker/javiersanzcruza/relison)
 
 RELISON (/rɪˈlaɪʃ(ə)n/) is a Java framework for experimentation on the link recommendation task in social networks, which aims to identify 
 those people in the network with whom a user might be interested to connect, interact or befriend.  RELISON provides 
