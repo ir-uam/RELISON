@@ -11,6 +11,31 @@ It requires Java version 14 or later.
 Install from source
 ~~~~~~~~~~~~~~~~~~~~
 
+EXECUTABLE
+^^^^^^^^^^
+If you want to use the default command line programs, we recommend to download the JAR file containing all the dependencies.
+This file is available from the following link:
+
+https://github.com/ir-uam/RELISON/releases/download/v1.0.0-maven/relison.jar
+
+You can download it with the following command:
+
+.. code:: bash
+
+    curl –L https://github.com/ir-uam/RELISON/releases/download/v1.0.0-maven/relison.jar --output relison.jar
+
+Then, you can use any of the available programs by executing the following line on your terminal:
+
+.. code:: bash
+
+    java [VM_OPTIONS] -jar relison.jar PROGRAM_CODE [arguments]
+    
+where
+
+- [VM_OPTIONS] represent the list of configuration parameters for the Java virtual machine.
+- PROGRAM_CODE is the name of the program to execute.
+- [arguments] are the list of arguments of program.
+
 MAVEN
 ^^^^^^
 
@@ -33,45 +58,12 @@ to your project, just add the following dependency to the .pom file.
 
 where [module-name] indicates the name of the module you want to import.
 
-Manual installation
--------------------
-
-In order to download the sources and install the library in your Maven repository, you just have to execute
-the following command: 
-
-.. code:: bash
-	
-	git clone https://github.com/JavierSanzCruza/RELISON
-	cd RELISON
-	mvn install
-
-Afterwards, if you just want to use the main programs provided with the code, you have to 
-compile the examples package. For this, do the following:
-
-.. code:: bash
-
-	cd Relison-examples
-	mvn clean compile assembly:single
-
-This will create an executable JAR which can be used to access any of the provided programs.
-If, instead, you want to integrate a RELISON module in your project, you will need to add it as a
-dependency as follows:
-
-.. code:: xml
-
-    <dependency>
-      <groupId>io.github.ir-uam</groupId>
-      <artifactId>RELISON-[module-name]</artifactId>
-      <version>1.0.0</version>
-    </dependency>
-
-where [module-name] indicates the name of the module you want to import.
-
 JAVA
 ^^^^^
 
-In case you do not want to use Maven, you just need to compile the library into JAR files. In order 
-to do that, the following libraries (and their dependencies) are needed:
+In case you do not want to use Maven, you just need to compile the library into JAR files, or obtain them from Maven Central: https://search.maven.org/search?q=RELISON%20io.github.ir-uam
+
+In addition, you might need to obtain the following libraries (and their dependencies):
 
 * FastUtil v.8.5.2. (https://fastutil.di.unimi.it/)
 * Matrix Toolkits Java v.1.0.4. (https://github.com/fommil/matrix-toolkits-java)
