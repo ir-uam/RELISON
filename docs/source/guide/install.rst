@@ -11,7 +11,15 @@ It requires Java version 14 or later.
 Install from source
 ~~~~~~~~~~~~~~~~~~~~
 
-EXECUTABLE
+There are many ways you can install and use RELISON on your system. We provide information here on
+how to do this:
+
+* `Executable`_
+* `Docker`_
+* `Maven`_
+* `Java`_
+
+Executable
 ^^^^^^^^^^
 If you want to use the default command line programs, we recommend to download the JAR file containing all the dependencies.
 This file is available from the following link:
@@ -36,7 +44,21 @@ where
 - PROGRAM_CODE is the name of the program to execute.
 - [arguments] are the list of arguments of program.
 
-MAVEN
+
+Docker
+^^^^^^
+A Dockerized version of the command line RELISON program is available on Docker Hub. In order to run a container,
+execute the following two docker commands:
+
+.. code:: bash
+
+    docker pull javiersanzcruza/relison:latest
+    docker run -p 8888:8888 javiersanzcruza/relison:latest
+
+This will create a Docker container with a Jupyter notebook acessible from http://localhost:8888.
+The executable .jar for RELISON will be available on the /tmp/notebooks/RELISON/ directory.
+
+Maven
 ^^^^^^
 
 The recommended way to use RELISON is through Maven. This will allow you to automatically
@@ -58,7 +80,7 @@ to your project, just add the following dependency to the .pom file.
 
 where [module-name] indicates the name of the module you want to import.
 
-JAVA
+Java
 ^^^^^
 
 In case you do not want to use Maven, you just need to compile the library into JAR files, or obtain them from Maven Central: https://search.maven.org/search?q=RELISON%20io.github.ir-uam
