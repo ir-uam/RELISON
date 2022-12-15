@@ -11,6 +11,6 @@ Contact
 ========
 Questions? Please contact
 
-* Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
+* Javier Sanz-Cruzado (javier.sanz-cruzadopuig@glasgow.ac.uk)
 * Pablo Castells (pablo.castells@uam.es)
 
