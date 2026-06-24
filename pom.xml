@@ -97,6 +97,7 @@
         <module>RELISON-linkpred</module>
         <module>RELISON-diffusion</module>
         <module>RELISON-examples</module>
+        <module>RELISON-gui</module>
     </modules>
 
     <name>RELISON: A framework for REcommending LInks in SOcial Networks</name>

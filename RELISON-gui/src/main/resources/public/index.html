@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>RELISON</title>
+    <link rel="icon" type="image/png" href="img/relison-logo.png"/>
+    <link rel="stylesheet" href="style.css"/>
+    <!-- graphology (graph model) + graphology-library (layouts/metrics helpers) + sigma (rendering). -->
+    <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/graphology-library@0.7.0/dist/graphology-library.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
+</head>
+<body>
+<header id="topbar">
+    <img id="logo" src="img/relison-full-logo.png" alt="RELISON"/>
+    <span id="status" class="status"></span>
+    <button id="theme-toggle" class="icon-btn" title="Toggle light/dark">🌙</button>
+</header>
+
+<nav id="tabbar">
+    <button class="tab active" data-tab="network">Network</button>
+    <button class="tab" data-tab="tables">Nodes &amp; Edges</button>
+    <button class="tab" data-tab="metrics">Metrics</button>
+    <button class="tab" data-tab="paths">Paths</button>
+</nav>
+
+<main id="layout">
+    <!-- LEFT: data, layout, appearance, editing -->
+    <aside id="left" class="panel">
+        <section class="block">
+            <h2>Import network</h2>
+            <label class="field">
+                <span>Edge list file</span>
+                <input type="file" id="file-input"/>
+            </label>
+            <div class="checks">
+                <label><input type="checkbox" id="opt-directed" checked/> Directed</label>
+                <label><input type="checkbox" id="opt-weighted"/> Weighted</label>
+                <label><input type="checkbox" id="opt-multigraph"/> Multigraph</label>
+                <label><input type="checkbox" id="opt-selfloops"/> Self-loops</label>
+            </div>
+            <button id="btn-load" class="primary">Load</button>
+            <table class="kv" id="overview">
+                <tr><td>Nodes</td><td id="ov-nodes">–</td></tr>
+                <tr><td>Edges</td><td id="ov-edges">–</td></tr>
+                <tr><td>Type</td><td id="ov-type">–</td></tr>
+            </table>
+        </section>
+
+        <section class="block">
+            <h2>Layout</h2>
+            <button id="btn-layout">Start ForceAtlas2</button>
+            <button id="btn-reset-layout">Reset (circular)</button>
+            <div class="params">
+                <label><span>Scaling</span><input type="number" id="layout-scaling" step="0.1" value="1"/></label>
+                <label><span>Gravity</span><input type="number" id="layout-gravity" step="0.1" value="1"/></label>
+                <label><span>Speed</span><input type="number" id="layout-speed" step="0.1" value="1"/></label>
+            </div>
+        </section>
+
+        <section class="block">
+            <h2>Export</h2>
+            <button id="btn-export-png">Export network (PNG)</button>
+            <button id="btn-export-gexf">Export graph (GEXF)</button>
+        </section>
+
+        <section class="block">
+            <h2>Appearance</h2>
+            <label class="field">
+                <span>Size nodes by</span>
+                <select id="size-by"><option value="">— degree (default) —</option></select>
+            </label>
+            <label class="field">
+                <span>Color nodes by</span>
+                <select id="color-by"><option value="">— none —</option></select>
+            </label>
+            <label class="field">
+                <span>Node colour range</span>
+                <span class="colorrange">
+                    <input type="color" id="node-color-low" value="#4f9dff"/>
+                    <span>→</span>
+                    <input type="color" id="node-color-high" value="#ff5b5b"/>
+                </span>
+            </label>
+
+            <hr class="sep"/>
+
+            <label class="field">
+                <span>Thicken edges by</span>
+                <select id="edge-size-by"><option value="">— uniform —</option></select>
+            </label>
+            <label class="field">
+                <span>Edge colour</span>
+                <select id="edge-color-mode">
+                    <option value="default">Default</option>
+                    <option value="single">Single colour</option>
+                    <option value="endpoints">Average of endpoints</option>
+                </select>
+            </label>
+            <label class="field" id="edge-color-single-field" hidden>
+                <span>Edge colour value</span>
+                <input type="color" id="edge-color-single" value="#888888"/>
+            </label>
+        </section>
+
+        <section class="block">
+            <h2>Edit mode</h2>
+            <label><input type="checkbox" id="edit-mode"/> Enable editing</label>
+            <p class="muted" id="edit-help" hidden>
+                Click empty space to add a node. Click a node then another to add an edge.
+                Select a node and press Delete to remove it.
+            </p>
+        </section>
+    </aside>
+
+    <!-- CENTER: tabbed content -->
+    <section id="content">
+        <!-- TAB 1: network plot -->
+        <div class="tabpane active" id="pane-network">
+            <div id="sigma-container"></div>
+            <div id="empty-hint">Load an edge list to begin.</div>
+        </div>
+
+        <!-- TAB 2: node & edge tables -->
+        <div class="tabpane" id="pane-tables">
+            <nav id="tablesubtabbar">
+                <button class="tablesubtab active" data-tablesubtab="nodes">Nodes</button>
+                <button class="tablesubtab" data-tablesubtab="edges">Edges</button>
+            </nav>
+
+            <div class="tablesubpane active" id="tablesubpane-nodes">
+                <div class="toolbar">
+                    <input type="text" id="add-node-id" placeholder="node id (blank = auto)"/>
+                    <button id="btn-add-node">Add node</button>
+                    <button id="btn-export-nodes">Export CSV</button>
+                    <button id="btn-clear-nodes-filters">Clear filters</button>
+                </div>
+                <div class="scroll-table tall"><table id="nodes-table" class="data"></table></div>
+                <div class="pagination" id="pager-nodes"></div>
+            </div>
+
+            <div class="tablesubpane" id="tablesubpane-edges">
+                <div class="toolbar">
+                    <input type="text" id="add-edge-source" placeholder="source (type to search)"/>
+                    <input type="text" id="add-edge-target" placeholder="target (type to search)"/>
+                    <input type="number" id="add-edge-weight" step="any" placeholder="weight" value="1"/>
+                    <button id="btn-add-edge">Add edge</button>
+                    <button id="btn-export-edges">Export CSV</button>
+                    <button id="btn-clear-edges-filters">Clear filters</button>
+                </div>
+                <div class="scroll-table tall"><table id="edges-table" class="data"></table></div>
+                <div class="pagination" id="pager-edges"></div>
+            </div>
+
+        </div>
+
+        <!-- TAB 3: computed metrics -->
+        <div class="tabpane" id="pane-metrics">
+            <nav id="subtabbar">
+                <button class="subtab active" data-subtab="global">Global</button>
+                <button class="subtab" data-subtab="nodes">Node metrics</button>
+                <button class="subtab" data-subtab="edges">Edge metrics</button>
+                <button class="subtab" data-subtab="pairs">Node-pair metrics</button>
+                <button class="subtab" data-subtab="comm">Community metrics</button>
+            </nav>
+
+            <div class="subpane active" id="subpane-global">
+                <h2>Global metrics</h2>
+                <div class="toolbar"><button id="btn-export-global">Export CSV</button></div>
+                <table class="kv wide" id="global-metrics-table"></table>
+                <p class="muted">Run graph metrics or community metrics from the right panel to populate this table.</p>
+            </div>
+
+            <div class="subpane" id="subpane-nodes">
+                <h2>Node metric averages</h2>
+                <div class="toolbar"><button id="btn-export-node-averages">Export CSV</button></div>
+                <table class="kv wide" id="node-averages-table"></table>
+                <h2>Node metric distribution</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="node-chart-metric"></select></label>
+                    <label>Sort by <select id="node-chart-sort"></select></label>
+                </div>
+                <div class="chart-area"><canvas id="node-chart"></canvas><div class="chart-tip" id="node-chart-tip" hidden></div></div>
+            </div>
+
+            <div class="subpane" id="subpane-edges">
+                <h2>Edge metric averages</h2>
+                <div class="toolbar"><button id="btn-export-edge-averages">Export CSV</button></div>
+                <table class="kv wide" id="edge-averages-table"></table>
+                <h2>Edge metric distribution</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="edge-chart-metric"></select></label>
+                    <label>Sort by <select id="edge-chart-sort"></select></label>
+                </div>
+                <div class="chart-area"><canvas id="edge-chart"></canvas><div class="chart-tip" id="edge-chart-tip" hidden></div></div>
+            </div>
+
+            <div class="subpane" id="subpane-pairs">
+                <h2>Node-pair metric averages</h2>
+                <div class="toolbar"><button id="btn-export-pair-averages">Export CSV</button></div>
+                <table class="kv wide" id="pair-averages-table"></table>
+                <p class="muted">Computed over all node pairs. Enable “All node pairs” in the Pair metrics panel and run a metric.</p>
+                <h2>Node-pair metric distribution</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="pair-chart-metric"></select></label>
+                </div>
+                <div class="chart-area"><canvas id="pair-chart"></canvas><div class="chart-tip" id="pair-chart-tip" hidden></div></div>
+                <p class="muted" id="pair-chart-note"></p>
+            </div>
+
+            <div class="subpane" id="subpane-comm">
+                <h2>Per-community metric averages</h2>
+                <div class="toolbar"><button id="btn-export-comm-averages">Export CSV</button></div>
+                <table class="kv wide" id="comm-averages-table"></table>
+                <p class="muted">Detect a partition, then run a per-community metric from the Communities panel.</p>
+                <h2>Per-community metric distribution</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="comm-chart-metric"></select></label>
+                    <label>Sort by <select id="comm-chart-sort"></select></label>
+                </div>
+                <div class="chart-area"><canvas id="comm-chart"></canvas><div class="chart-tip" id="comm-chart-tip" hidden></div></div>
+            </div>
+        </div>
+
+        <!-- TAB 4: shortest paths -->
+        <div class="tabpane" id="pane-paths">
+            <div class="paths-controls">
+                <label>Source <input type="text" id="path-source" placeholder="type to search node"/></label>
+                <label>Target <input type="text" id="path-target" placeholder="type to search node"/></label>
+                <label>Display
+                    <select id="path-display">
+                        <option value="highlight">Highlight (dim rest)</option>
+                        <option value="only">Show only</option>
+                    </select>
+                </label>
+                <button id="btn-find-paths">Find shortest paths</button>
+                <button id="btn-highlight-all-paths">Show all</button>
+                <button id="btn-clear-path-hl">Clear</button>
+            </div>
+            <p class="muted" id="path-summary">Pick a source and a target, then find their shortest paths.</p>
+            <div class="scroll-table tall"><table id="paths-table" class="data"></table></div>
+        </div>
+    </section>
+
+    <!-- RIGHT: selection + metric runners -->
+    <aside id="right" class="panel">
+        <section class="block" id="selection-block">
+            <h2>Selection</h2>
+            <label class="field">
+                <span>Node</span>
+                <input type="text" id="select-node-input" placeholder="type or click a node"/>
+            </label>
+            <label class="field">
+                <span>View mode</span>
+                <select id="select-mode">
+                    <option value="highlight">Highlight node</option>
+                    <option value="ego-highlight">Highlight ego-network</option>
+                    <option value="ego-only">Show only ego-network</option>
+                    <option value="community-highlight">Highlight community</option>
+                    <option value="community-only">Show only community</option>
+                    <option value="none">None (no emphasis)</option>
+                </select>
+            </label>
+            <label class="field" id="select-partition-field" hidden>
+                <span>Community partition</span>
+                <select id="select-partition"></select>
+            </label>
+            <table class="kv" id="node-info-table"><tr><td class="muted" colspan="2">No node selected.</td></tr></table>
+            <button id="btn-clear-selection">Clear selection</button>
+        </section>
+
+        <section class="block right-metric">
+            <h2>Vertex metrics</h2>
+            <select id="vertex-metric"></select>
+            <div class="params" id="vertex-params"></div>
+            <button id="btn-vertex">Run</button>
+            <p class="muted" id="vertex-result"></p>
+        </section>
+
+        <section class="block right-metric">
+            <h2>Graph metrics</h2>
+            <select id="graph-metric"></select>
+            <div class="params" id="graph-params"></div>
+            <button id="btn-graph">Run</button>
+        </section>
+
+        <section class="block right-metric">
+            <h2>Pair metrics</h2>
+            <select id="pair-metric"></select>
+            <div class="params" id="pair-params"></div>
+            <label class="inline-check"><input type="checkbox" id="pair-allpairs"/> All node pairs (not just edges)</label>
+            <button id="btn-pair">Run</button>
+            <p class="muted" id="pair-result"></p>
+        </section>
+
+        <section class="block right-metric">
+            <h2>Communities</h2>
+            <select id="community-algo"></select>
+            <div class="params" id="community-params"></div>
+            <button id="btn-community">Detect</button>
+            <p class="muted" id="community-result"></p>
+            <button id="btn-community-metrics" disabled>Global community metrics</button>
+            <hr class="sep"/>
+            <span class="sublabel">Per-community metric</span>
+            <label class="field">
+                <span>Partition</span>
+                <select id="indiv-comm-partition"></select>
+            </label>
+            <select id="indiv-comm-metric"></select>
+            <div class="params" id="indiv-comm-params"></div>
+            <button id="btn-indiv-comm" disabled>Run per-community metric</button>
+        </section>
+    </aside>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
