@@ -56,6 +56,11 @@ public final class MetricCatalog
         vertex(VertexMetricIdentifiers.LENGTH, "Length", Param.orientation("orientation", "Orientation", "OUT"));
         vertex(VertexMetricIdentifiers.FD, "Free discovery", Param.orientation("orient", "Orientation", "OUT"));
         vertex(VertexMetricIdentifiers.PAGERANK, "PageRank", Param.real("r", "Damping (r)", 0.85));
+        vertex(VertexMetricIdentifiers.COMPLDEGREE, "Complementary degree", Param.orientation("orientation", "Orientation", "OUT"));
+        vertex(VertexMetricIdentifiers.COMPLINVDEGREE, "Complementary inverse degree", Param.orientation("orientation", "Orientation", "OUT"));
+        vertex(VertexMetricIdentifiers.COMPLLOCALCLUSTCOEF, "Complementary local clustering coefficient",
+                Param.orientation("vSel", "First neighbours", "IN"), Param.orientation("wSel", "Second neighbours", "OUT"));
+        vertex(VertexMetricIdentifiers.COMPLPAGERANK, "Complementary PageRank", Param.real("r", "Damping (r)", 0.85));
         vertex(VertexMetricIdentifiers.KATZ, "Katz centrality",
                 Param.orientation("orientation", "Orientation", "OUT"), Param.real("alpha", "Alpha", 0.1));
         vertex(VertexMetricIdentifiers.HITS, "HITS", Param.bool("mode", "Authority (off = hub)", true));
@@ -71,6 +76,8 @@ public final class MetricCatalog
         graph(GraphMetricIdentifiers.DENSITY, "Density");
         graph(GraphMetricIdentifiers.CLUSTCOEF, "Clustering coefficient",
                 Param.orientation("uSel", "First neighbours", "IN"), Param.orientation("vSel", "Second neighbours", "OUT"));
+        graph(GraphMetricIdentifiers.CLUSTCOEFCOMPL, "Clustering coefficient complement",
+                Param.orientation("uSel", "First neighbours", "IN"), Param.orientation("vSel", "Second neighbours", "OUT"));
         graph(GraphMetricIdentifiers.RECIPROCITYRATE, "Reciprocity");
         graph(GraphMetricIdentifiers.DEGREEGINI, "Degree Gini complement", Param.orientation("orientation", "Orientation", "OUT"));
         graph(GraphMetricIdentifiers.DEGREEASSORT, "Degree assortativity", Param.orientation("orientation", "Orientation", "OUT"));
@@ -78,9 +85,15 @@ public final class MetricCatalog
                 Param.orientation("uSel", "Source neighbours", "OUT"), Param.orientation("vSel", "Target neighbours", "IN"));
         graph(GraphMetricIdentifiers.ASL, "Average shortest path length",
                 Param.choice("mode", "Mode", "Non infinite distances", List.of("Non infinite distances", "Components")));
+        graph(GraphMetricIdentifiers.ARSL, "Average reciprocal shortest path length");
         graph(GraphMetricIdentifiers.DIAMETER, "Diameter");
+        graph(GraphMetricIdentifiers.RECIPRDIAMETER, "Reciprocal diameter");
         graph(GraphMetricIdentifiers.RADIUS, "Radius");
+        graph(GraphMetricIdentifiers.RECIPRAVGECCENTRICITY, "Reciprocal average eccentricity");
         graph(GraphMetricIdentifiers.INFINITEDIST, "Infinite distances");
+        graph(GraphMetricIdentifiers.INTEREDGEGINI, "Inter-edge Gini complement");
+        graph(GraphMetricIdentifiers.COMPLETEEDGEGINI, "Complete edge Gini complement");
+        graph(GraphMetricIdentifiers.SEMICOMPLETEEDGEGINI, "Semi-complete edge Gini complement");
     }
 
     private MetricCatalog()

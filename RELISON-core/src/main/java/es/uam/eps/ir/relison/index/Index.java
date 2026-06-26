@@ -71,4 +71,19 @@ public interface Index<I> extends ReducedIndex<I>
      * @return the index of the removed object, -1 if it did not exist.
      */
     int removeObject(I i);
+
+    /**
+     * Replaces an object by another one, keeping the same identifier (so any index-based structures, such as the
+     * edges of a graph, remain valid).
+     *
+     * @param oldObj the object to replace.
+     * @param newObj the new object.
+     *
+     * @return the (unchanged) identifier of the object, or -1 if {@code oldObj} is absent or {@code newObj} already
+     *         exists.
+     */
+    default int renameObject(I oldObj, I newObj)
+    {
+        throw new UnsupportedOperationException("Renaming objects is not allowed");
+    }
 }

@@ -12,6 +12,8 @@ package es.uam.eps.ir.relison.graph.multigraph.fast;
 import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.Weight;
+import es.uam.eps.ir.relison.graph.attributes.AttributeStore;
+import es.uam.eps.ir.relison.graph.attributes.AttributeType;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.edges.EdgeType;
 import es.uam.eps.ir.relison.graph.edges.EdgeWeight;
@@ -23,7 +25,9 @@ import es.uam.eps.ir.relison.index.Index;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -45,6 +49,16 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
      * Edges in the network
      */
     protected final MultiEdges edges;
+    /**
+     * Store of node attributes, keyed by the vertex. Lazily created on first use.
+     */
+    private AttributeStore<U> nodeAttributes;
+    /**
+     * Store of edge attributes, keyed by the stable identifier of each parallel edge (see
+     * {@link #getEdgeIds(Object, Object)}), so every parallel edge between a pair of nodes carries its own values.
+     * Lazily created.
+     */
+    private AttributeStore<Long> edgeAttributes;
 
     /**
      * Constructor
@@ -291,6 +305,13 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
     public long getVertexCount()
     {
         return this.vertices.numObjects();
+    }
+
+    @Override
+    public List<Long> getEdgeIds(U nodeA, U nodeB)
+    {
+        if (!this.containsVertex(nodeA) || !this.containsVertex(nodeB)) return java.util.Collections.emptyList();
+        return this.edges.getEdgeIds(this.object2idx(nodeA), this.object2idx(nodeB));
     }
 
     @Override
@@ -636,24 +657,195 @@ public abstract class AbstractFastMultiGraph<U> implements FastMultiGraph<U>, Se
     @Override
     public boolean removeEdge(U nodeA, U nodeB, int idx)
     {
-        return this.edges.removeEdge(this.object2idx(nodeA), this.object2idx(nodeB), idx);
+        // Capture the stable id of the parallel edge before removal, since positions shift afterwards.
+        Long id = null;
+        if (this.edgeAttributes != null)
+        {
+            List<Long> ids = this.getEdgeIds(nodeA, nodeB);
+            if (idx >= 0 && idx < ids.size()) id = ids.get(idx);
+        }
+        boolean removed = this.edges.removeEdge(this.object2idx(nodeA), this.object2idx(nodeB), idx);
+        if (removed && id != null) this.edgeAttributes.removeKey(id);
+        return removed;
     }
 
     @Override
     public boolean removeEdges(U nodeA, U nodeB)
     {
-        return this.edges.removeEdges(this.object2idx(nodeA), this.object2idx(nodeB));
+        List<Long> ids = this.edgeAttributes == null ? null : new ArrayList<>(this.getEdgeIds(nodeA, nodeB));
+        boolean removed = this.edges.removeEdges(this.object2idx(nodeA), this.object2idx(nodeB));
+        if (removed && ids != null) for (Long id : ids) this.edgeAttributes.removeKey(id);
+        return removed;
     }
 
     @Override
     public boolean removeNode(U node)
     {
+        // Gather the ids of every edge incident to the node before it (and its edges) disappear.
+        Set<Long> touched = this.edgeAttributes == null ? null : this.edgeIdsTouching(node);
         int uidx = this.vertices.object2idx(node);
         if(this.edges.removeNode(uidx))
         {
-            return this.vertices.removeObject(node) >= 0;
+            boolean removed = this.vertices.removeObject(node) >= 0;
+            if (removed)
+            {
+                if (this.nodeAttributes != null) this.nodeAttributes.removeKey(node);
+                if (touched != null) for (Long id : touched) this.edgeAttributes.removeKey(id);
+            }
+            return removed;
         }
         return false;
+    }
+
+    /** Collects the stable ids of every edge (in either direction) incident to a node. */
+    private Set<Long> edgeIdsTouching(U node)
+    {
+        Set<Long> ids = new HashSet<>();
+        this.getNeighbourNodes(node).forEach(n ->
+        {
+            ids.addAll(this.getEdgeIds(node, n));
+            ids.addAll(this.getEdgeIds(n, node));
+        });
+        return ids;
+    }
+
+    @Override
+    public boolean renameNode(U oldNode, U newNode)
+    {
+        if (oldNode.equals(newNode)) return true;
+        // Edges and edge attributes are keyed by index / stable id, so only the node-attribute keys need remapping.
+        if (this.vertices.renameObject(oldNode, newNode) < 0) return false;
+        if (this.nodeAttributes != null) this.nodeAttributes.remapKeys(k -> k.equals(oldNode) ? newNode : k);
+        return true;
+    }
+
+    /* ------------------------------ attributes ------------------------------ */
+
+    /**
+     * Returns the node attribute store, creating it on first use.
+     * @return the node attribute store.
+     */
+    private AttributeStore<U> nodeAttr()
+    {
+        if (this.nodeAttributes == null) this.nodeAttributes = new AttributeStore<>();
+        return this.nodeAttributes;
+    }
+
+    /**
+     * Returns the edge attribute store, creating it on first use.
+     * @return the edge attribute store.
+     */
+    private AttributeStore<Long> edgeAttr()
+    {
+        if (this.edgeAttributes == null) this.edgeAttributes = new AttributeStore<>();
+        return this.edgeAttributes;
+    }
+
+    @Override
+    public void defineNodeAttribute(String name, AttributeType type)
+    {
+        this.nodeAttr().define(name, type);
+    }
+
+    @Override
+    public boolean setNodeAttribute(U node, String name, Object value)
+    {
+        if (!this.containsVertex(node)) return false;
+        return this.nodeAttr().set(node, name, value);
+    }
+
+    @Override
+    public Object getNodeAttribute(U node, String name)
+    {
+        return this.nodeAttributes == null ? null : this.nodeAttributes.get(node, name);
+    }
+
+    @Override
+    public Stream<String> getNodeAttributeNames()
+    {
+        return this.nodeAttr().names();
+    }
+
+    @Override
+    public AttributeType getNodeAttributeType(String name)
+    {
+        return this.nodeAttr().type(name);
+    }
+
+    @Override
+    public Stream<Weight<U, Object>> getNodeAttributes(String name)
+    {
+        if (this.nodeAttributes == null) return Stream.empty();
+        return this.getAllNodes()
+                .map(n -> new Weight<>(n, this.nodeAttributes.get(n, name)))
+                .filter(w -> w.getValue() != null);
+    }
+
+    @Override
+    public boolean removeNodeAttribute(String name)
+    {
+        return this.nodeAttributes != null && this.nodeAttributes.undefine(name);
+    }
+
+    @Override
+    public void defineEdgeAttribute(String name, AttributeType type)
+    {
+        this.edgeAttr().define(name, type);
+    }
+
+    @Override
+    public boolean setEdgeAttribute(U nodeA, U nodeB, String name, Object value)
+    {
+        // Without a parallel-edge index, apply the value to every parallel edge between the pair.
+        List<Long> ids = this.getEdgeIds(nodeA, nodeB);
+        if (ids.isEmpty()) return false;
+        boolean ok = true;
+        for (Long id : ids) ok &= this.edgeAttr().set(id, name, value);
+        return ok;
+    }
+
+    @Override
+    public boolean setEdgeAttribute(U nodeA, U nodeB, int idx, String name, Object value)
+    {
+        List<Long> ids = this.getEdgeIds(nodeA, nodeB);
+        if (idx < 0 || idx >= ids.size()) return false;
+        return this.edgeAttr().set(ids.get(idx), name, value);
+    }
+
+    @Override
+    public Object getEdgeAttribute(U nodeA, U nodeB, String name)
+    {
+        // Without a parallel-edge index, return the value of the first parallel edge.
+        if (this.edgeAttributes == null) return null;
+        List<Long> ids = this.getEdgeIds(nodeA, nodeB);
+        return ids.isEmpty() ? null : this.edgeAttributes.get(ids.get(0), name);
+    }
+
+    @Override
+    public Object getEdgeAttribute(U nodeA, U nodeB, int idx, String name)
+    {
+        if (this.edgeAttributes == null) return null;
+        List<Long> ids = this.getEdgeIds(nodeA, nodeB);
+        if (idx < 0 || idx >= ids.size()) return null;
+        return this.edgeAttributes.get(ids.get(idx), name);
+    }
+
+    @Override
+    public Stream<String> getEdgeAttributeNames()
+    {
+        return this.edgeAttr().names();
+    }
+
+    @Override
+    public AttributeType getEdgeAttributeType(String name)
+    {
+        return this.edgeAttr().type(name);
+    }
+
+    @Override
+    public boolean removeEdgeAttribute(String name)
+    {
+        return this.edgeAttributes != null && this.edgeAttributes.undefine(name);
     }
 
     @Override

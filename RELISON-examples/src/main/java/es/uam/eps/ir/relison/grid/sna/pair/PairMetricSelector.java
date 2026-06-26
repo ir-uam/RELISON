@@ -61,6 +61,8 @@ public class PairMetricSelector<U>
             case PairMetricIdentifiers.EFOAF -> new ExpandedFOAFGridSearch<>();
             case PairMetricIdentifiers.EFOAFCOUNT -> new ExpandedFOAFCountGridSearch<>();
             case PairMetricIdentifiers.PREFATTACH -> new PreferentialAttachmentGridSearch<>();
+            case PairMetricIdentifiers.WEIGHT -> new EdgeWeightGridSearch<>();
+            case PairMetricIdentifiers.WEAKNESS -> new WeaknessGridSearch<>();
             default -> null;
         };
     }

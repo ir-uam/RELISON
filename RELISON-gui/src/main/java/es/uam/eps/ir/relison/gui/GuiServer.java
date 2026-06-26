@@ -52,6 +52,7 @@ public class GuiServer
         CommunityController communityController = new CommunityController(store);
         EditController editController = new EditController(store);
         PathController pathController = new PathController(store);
+        AttributeController attributeController = new AttributeController(store);
 
         Javalin app = Javalin.create(config ->
         {
@@ -85,9 +86,18 @@ public class GuiServer
 
         // Graph editing.
         app.post("/api/graph/{id}/node", editController::addNode);
+        app.post("/api/graph/{id}/node/rename", editController::renameNode);
         app.delete("/api/graph/{id}/node/{node}", editController::removeNode);
         app.post("/api/graph/{id}/edge", editController::addEdge);
         app.delete("/api/graph/{id}/edge", editController::removeEdge);
+
+        // Node / edge attributes.
+        app.post("/api/graph/{id}/attributes/nodes", attributeController::uploadNodes);
+        app.post("/api/graph/{id}/attributes/edges", attributeController::uploadEdges);
+        app.post("/api/graph/{id}/attributes/define", attributeController::define);
+        app.post("/api/graph/{id}/attributes/remove", attributeController::remove);
+        app.post("/api/graph/{id}/attributes/node", attributeController::setNode);
+        app.post("/api/graph/{id}/attributes/edge", attributeController::setEdge);
 
         app.exception(Exception.class, (e, ctx) ->
         {

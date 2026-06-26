@@ -30,11 +30,24 @@ public final class PairMetricCatalog
         pair(PairMetricIdentifiers.WEIGHT, "Edge weight");
         pair(PairMetricIdentifiers.RECIP, "Reciprocity");
         pair(PairMetricIdentifiers.DISTANCE, "Distance");
+        pair(PairMetricIdentifiers.DISTANCEWITHOUTLINK, "Distance without link");
+        pair(PairMetricIdentifiers.RECIPROCALSPL, "Reciprocal shortest path length");
         pair(PairMetricIdentifiers.GEODESICS, "Geodesics");
         pair(PairMetricIdentifiers.FOAF, "Neighbour overlap (FOAF)", neighbourParams());
+        pair(PairMetricIdentifiers.COMPLFOAF, "Complementary neighbour overlap", neighbourParams());
+        pair(PairMetricIdentifiers.WFOAF, "Weighted neighbour overlap", neighbourParams());
+        pair(PairMetricIdentifiers.WFOAFLOG, "Log-weighted neighbour overlap", neighbourParams());
+        pair(PairMetricIdentifiers.EFOAF, "Expanded common neighbours", expandedParams());
+        pair(PairMetricIdentifiers.EFOAFCOUNT, "Expanded common neighbours count", expandedParams());
         pair(PairMetricIdentifiers.PREFATTACH, "Preferential attachment", neighbourParams());
         pair(PairMetricIdentifiers.EMBEDEDNESS, "Embeddedness", neighbourParams());
+        pair(PairMetricIdentifiers.COMPLEMBEDEDNESS, "Complementary embeddedness");
         pair(PairMetricIdentifiers.WEAKNESS, "Weakness", neighbourParams());
+        pair(PairMetricIdentifiers.CCINCREASE, "Clustering coefficient increment");
+        pair(PairMetricIdentifiers.SHRINKINGASL, "Shrinking ASL");
+        pair(PairMetricIdentifiers.SHRINKINGDIAM, "Shrinking diameter");
+        pair(PairMetricIdentifiers.SHRINKINGASLNEIGH, "Shrinking neighbours ASL", neighbourParams());
+        pair(PairMetricIdentifiers.SHRINKINGDIAMNEIGH, "Shrinking neighbours diameter", neighbourParams());
         pair(PairMetricIdentifiers.BETWEENNESS, "Edge betweenness", List.of(Param.bool("normalize", "Normalize", true)));
     }
 
@@ -64,5 +77,14 @@ public final class PairMetricCatalog
         return List.of(
                 Param.orientation("uSel", "Source neighbours", "OUT"),
                 Param.orientation("vSel", "Target neighbours", "IN"));
+    }
+
+    /** The neighbourhood parameters plus the {@code origin} flag of the expanded-neighbour metrics. */
+    private static List<Param> expandedParams()
+    {
+        return List.of(
+                Param.orientation("uSel", "Source neighbours", "OUT"),
+                Param.orientation("vSel", "Target neighbours", "IN"),
+                Param.bool("origin", "Include endpoints", true));
     }
 }

@@ -90,6 +90,7 @@ public class GraphController
         response.put("graphId", id);
         response.put("stats", GraphSerializer.stats(session));
         response.put("graph", GraphSerializer.toGraphology(session));
+        response.put("schema", GraphSerializer.schema(session));
         ctx.json(response);
     }
 
@@ -109,6 +110,7 @@ public class GraphController
         response.put("graphId", session.getId());
         response.put("stats", GraphSerializer.stats(session));
         response.put("graph", GraphSerializer.toGraphology(session));
+        response.put("schema", GraphSerializer.schema(session));
         ctx.json(response);
     }
 

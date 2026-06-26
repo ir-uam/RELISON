@@ -36,7 +36,7 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
      */
     public FastDirectedUnweightedMultiEdges()
     {
-        super(new FastWeightedAutoRelation<>(), new FastWeightedAutoRelation<>());
+        super(new FastWeightedAutoRelation<>(), new FastWeightedAutoRelation<>(), new FastWeightedAutoRelation<>());
     }
 
     @Override
@@ -75,7 +75,11 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
             List<Integer> typeList = this.types.getValue(orig, dest);
             typeList.add(type);
 
-            failed = this.weights.updatePair(orig, dest, weightList) && this.types.updatePair(orig, dest, typeList);
+            List<Long> idList = this.ids.getValue(orig, dest);
+            idList.add(this.nextId());
+
+            failed = this.weights.updatePair(orig, dest, weightList) && this.types.updatePair(orig, dest, typeList)
+                    && this.ids.updatePair(orig, dest, idList);
         }
         else
         {
@@ -85,7 +89,11 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
             List<Integer> typeList = new ArrayList<>();
             typeList.add(type);
 
-            failed = this.weights.addRelation(orig, dest, weightList) && this.types.addRelation(orig, dest, typeList);
+            List<Long> idList = new ArrayList<>();
+            idList.add(this.nextId());
+
+            failed = this.weights.addRelation(orig, dest, weightList) && this.types.addRelation(orig, dest, typeList)
+                    && this.ids.addRelation(orig, dest, idList);
         }
 
         if (failed)
@@ -147,12 +155,14 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
         {
             List<Double> weightList = this.weights.getValue(orig, dest);
             List<Integer> typeList = this.types.getValue(orig, dest);
+            List<Long> idList = this.ids.getValue(orig, dest);
             if (idx < 0 || idx >= weightList.size()) return false;
             weightList.remove(idx);
             typeList.remove(idx);
+            idList.remove(idx);
             this.numEdges--;
             if (weightList.isEmpty())
-                return this.weights.removePair(orig, dest) && this.types.removePair(orig, dest);
+                return this.weights.removePair(orig, dest) && this.types.removePair(orig, dest) && this.ids.removePair(orig, dest);
             else return true;
         }
         return false;
@@ -167,7 +177,7 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
             toDel -= this.getNumEdges(idx, idx);
         }
         toDel += this.getAdjacentCount(idx) + this.getIncidentCount(idx);
-        if (this.weights.remove(idx) && this.types.remove(idx))
+        if (this.weights.remove(idx) && this.types.remove(idx) && this.ids.remove(idx))
         {
             this.numEdges -= toDel;
             return true;
@@ -179,7 +189,7 @@ public class FastDirectedUnweightedMultiEdges extends FastMultiEdges implements 
     public boolean removeEdges(int orig, int dest)
     {
         int numRemoved = this.getNumEdges(orig, dest);
-        if (this.weights.removePair(orig, dest) && this.types.removePair(orig, dest))
+        if (this.weights.removePair(orig, dest) && this.types.removePair(orig, dest) && this.ids.removePair(orig, dest))
         {
             this.numEdges-= numRemoved;
             return true;

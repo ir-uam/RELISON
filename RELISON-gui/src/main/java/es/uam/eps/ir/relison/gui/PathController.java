@@ -99,7 +99,9 @@ public class PathController
         response.put("source", source);
         response.put("target", target);
 
-        Integer length = source.equals(target) ? 0 : dist.get(target);
+        // Note: keep both branches as Integer. A `? 0 : dist.get(target)` would type the expression as int and
+        // unbox dist.get(target), throwing an NPE when the target is unreachable instead of reporting "no path".
+        Integer length = source.equals(target) ? Integer.valueOf(0) : dist.get(target);
         if (length == null)
         {
             response.put("length", -1);

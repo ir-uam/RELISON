@@ -9,8 +9,10 @@
 package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.graph.multigraph.MultiGraph;
 import io.javalin.http.Context;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -63,6 +65,24 @@ public class EditController
     }
 
     /**
+     * Handles {@code POST /api/graph/{id}/node/rename}: changes a node's identifier, keeping its edges and
+     * attributes. Caches are invalidated because previously-computed results were keyed by the old identifier.
+     * @param ctx the request context, with body {@code {old, new}}.
+     */
+    public void renameNode(Context ctx)
+    {
+        GraphSession session = session(ctx);
+        if (session == null) return;
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        String oldId = parseNode(ctx, body.get("old"));
+        String newId = parseNode(ctx, body.get("new"));
+        if (oldId == null || newId == null) return;
+
+        boolean renamed = session.getGraph().renameNode(oldId, newId);
+        finish(ctx, session, renamed, "Could not rename the node (it may not exist, or the new id is already taken).");
+    }
+
+    /**
      * Handles {@code POST /api/graph/{id}/edge}: adds an edge (creating the endpoints if needed).
      * @param ctx the request context, with body {@code {source, target, weight?}}.
      */
@@ -93,7 +113,21 @@ public class EditController
         String target = parseNode(ctx, body.get("target"));
         if (source == null || target == null) return;
 
-        boolean removed = session.getGraph().removeEdge(source, target);
+        Graph<String> graph = session.getGraph();
+        boolean removed;
+        // For a multigraph, an edge id removes one specific parallel edge; otherwise remove the pair.
+        String edgeId = body.get("edgeId") == null ? null : String.valueOf(body.get("edgeId")).trim();
+        if (edgeId != null && !edgeId.isEmpty() && graph instanceof MultiGraph)
+        {
+            MultiGraph<String> mg = (MultiGraph<String>) graph;
+            List<Long> ids = mg.getEdgeIds(source, target);
+            int idx = ids.indexOf(Long.parseLong(edgeId));
+            removed = idx >= 0 && mg.removeEdge(source, target, idx);
+        }
+        else
+        {
+            removed = graph.removeEdge(source, target);
+        }
         finish(ctx, session, removed, "Edge does not exist.");
     }
 

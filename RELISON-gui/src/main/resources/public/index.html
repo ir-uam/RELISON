@@ -4,7 +4,8 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>RELISON</title>
-    <link rel="icon" type="image/png" href="img/relison-logo.png"/>
+    <link rel="icon" type="image/svg+xml" href="img/relison-favicon.svg"/>
+    <link rel="icon" type="image/png" sizes="any" href="img/relison-logo.png"/>
     <link rel="stylesheet" href="style.css"/>
     <!-- graphology (graph model) + graphology-library (layouts/metrics helpers) + sigma (rendering). -->
     <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
@@ -19,35 +20,16 @@
 </header>
 
 <nav id="tabbar">
-    <button class="tab active" data-tab="network">Network</button>
+    <button class="tab active" data-tab="import">Import</button>
+    <button class="tab" data-tab="network">Network</button>
     <button class="tab" data-tab="tables">Nodes &amp; Edges</button>
     <button class="tab" data-tab="metrics">Metrics</button>
     <button class="tab" data-tab="paths">Paths</button>
 </nav>
 
 <main id="layout">
-    <!-- LEFT: data, layout, appearance, editing -->
+    <!-- LEFT: layout & visualization (Network tab only) -->
     <aside id="left" class="panel">
-        <section class="block">
-            <h2>Import network</h2>
-            <label class="field">
-                <span>Edge list file</span>
-                <input type="file" id="file-input"/>
-            </label>
-            <div class="checks">
-                <label><input type="checkbox" id="opt-directed" checked/> Directed</label>
-                <label><input type="checkbox" id="opt-weighted"/> Weighted</label>
-                <label><input type="checkbox" id="opt-multigraph"/> Multigraph</label>
-                <label><input type="checkbox" id="opt-selfloops"/> Self-loops</label>
-            </div>
-            <button id="btn-load" class="primary">Load</button>
-            <table class="kv" id="overview">
-                <tr><td>Nodes</td><td id="ov-nodes">–</td></tr>
-                <tr><td>Edges</td><td id="ov-edges">–</td></tr>
-                <tr><td>Type</td><td id="ov-type">–</td></tr>
-            </table>
-        </section>
-
         <section class="block">
             <h2>Layout</h2>
             <button id="btn-layout">Start ForceAtlas2</button>
@@ -60,38 +42,41 @@
         </section>
 
         <section class="block">
-            <h2>Export</h2>
-            <button id="btn-export-png">Export network (PNG)</button>
-            <button id="btn-export-gexf">Export graph (GEXF)</button>
-        </section>
-
-        <section class="block">
-            <h2>Appearance</h2>
+            <h2>Nodes</h2>
             <label class="field">
-                <span>Size nodes by</span>
+                <span>Size by</span>
                 <select id="size-by"><option value="">— degree (default) —</option></select>
             </label>
+            <div class="params">
+                <label><span>Min size</span><input type="number" id="node-size-min" step="0.5" min="0" value="2"/></label>
+                <label><span>Max size</span><input type="number" id="node-size-max" step="0.5" min="0" value="14"/></label>
+            </div>
             <label class="field">
-                <span>Color nodes by</span>
+                <span>Colour by</span>
                 <select id="color-by"><option value="">— none —</option></select>
             </label>
             <label class="field">
-                <span>Node colour range</span>
+                <span>Colour range</span>
                 <span class="colorrange">
                     <input type="color" id="node-color-low" value="#4f9dff"/>
                     <span>→</span>
                     <input type="color" id="node-color-high" value="#ff5b5b"/>
                 </span>
             </label>
+        </section>
 
-            <hr class="sep"/>
-
+        <section class="block">
+            <h2>Edges</h2>
             <label class="field">
-                <span>Thicken edges by</span>
+                <span>Thickness by</span>
                 <select id="edge-size-by"><option value="">— uniform —</option></select>
             </label>
+            <div class="params">
+                <label><span>Min thickness</span><input type="number" id="edge-size-min" step="0.5" min="0" value="0.5"/></label>
+                <label><span>Max thickness</span><input type="number" id="edge-size-max" step="0.5" min="0" value="6"/></label>
+            </div>
             <label class="field">
-                <span>Edge colour</span>
+                <span>Colour</span>
                 <select id="edge-color-mode">
                     <option value="default">Default</option>
                     <option value="single">Single colour</option>
@@ -99,9 +84,53 @@
                 </select>
             </label>
             <label class="field" id="edge-color-single-field" hidden>
-                <span>Edge colour value</span>
+                <span>Colour value</span>
                 <input type="color" id="edge-color-single" value="#888888"/>
             </label>
+        </section>
+
+        <section class="block">
+            <h2>Labels</h2>
+            <span class="sublabel">Node labels</span>
+            <label class="inline-check"><input type="checkbox" id="node-label-show" checked/> Show node labels</label>
+            <div class="params">
+                <label><span>Size</span><input type="number" id="node-label-size" step="1" min="1" value="12"/></label>
+                <label><span>Colour</span><input type="color" id="node-label-color" value="#e6e6e6"/></label>
+                <label><span>Font</span>
+                    <select id="node-label-font">
+                        <option value="sans-serif">Sans-serif</option>
+                        <option value="serif">Serif</option>
+                        <option value="monospace">Monospace</option>
+                        <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                        <option value="Georgia, serif">Georgia</option>
+                    </select>
+                </label>
+            </div>
+            <label class="inline-check"><input type="checkbox" id="node-label-prop"/> Proportional to node size</label>
+            <hr class="sep"/>
+            <span class="sublabel">Edge labels</span>
+            <label class="inline-check"><input type="checkbox" id="edge-label-show"/> Show edge labels</label>
+            <div class="params">
+                <label><span>Size</span><input type="number" id="edge-label-size" step="1" min="1" value="9"/></label>
+                <label><span>Colour</span><input type="color" id="edge-label-color" value="#e6e6e6"/></label>
+                <label><span>Font</span>
+                    <select id="edge-label-font">
+                        <option value="sans-serif">Sans-serif</option>
+                        <option value="serif">Serif</option>
+                        <option value="monospace">Monospace</option>
+                        <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                        <option value="Georgia, serif">Georgia</option>
+                    </select>
+                </label>
+            </div>
+            <label class="inline-check"><input type="checkbox" id="edge-label-prop"/> Proportional to thickness</label>
+            <p class="muted">Labels come from a <code>label</code> attribute when present (node ids are used otherwise).</p>
+        </section>
+
+        <section class="block">
+            <h2>Export</h2>
+            <button id="btn-export-png">Export network (PNG)</button>
+            <button id="btn-export-gexf">Export graph (GEXF)</button>
         </section>
 
         <section class="block">
@@ -116,10 +145,39 @@
 
     <!-- CENTER: tabbed content -->
     <section id="content">
+        <!-- TAB 0: import -->
+        <div class="tabpane active" id="pane-import">
+            <div class="import-card">
+                <img class="import-logo" src="img/relison-full-logo.png" alt="RELISON"/>
+                <h2>Import network</h2>
+                <label class="field">
+                    <span>Edge list file</span>
+                    <input type="file" id="file-input"/>
+                </label>
+                <div class="checks">
+                    <label><input type="checkbox" id="opt-directed" checked/> Directed</label>
+                    <label><input type="checkbox" id="opt-weighted"/> Weighted</label>
+                    <label><input type="checkbox" id="opt-multigraph"/> Multigraph</label>
+                    <label><input type="checkbox" id="opt-selfloops"/> Self-loops</label>
+                </div>
+                <button id="btn-load" class="primary">Load network</button>
+                <table class="kv" id="overview">
+                    <tr><td>Nodes</td><td id="ov-nodes">–</td></tr>
+                    <tr><td>Edges</td><td id="ov-edges">–</td></tr>
+                    <tr><td>Type</td><td id="ov-type">–</td></tr>
+                </table>
+            </div>
+        </div>
+
         <!-- TAB 1: network plot -->
-        <div class="tabpane active" id="pane-network">
+        <div class="tabpane" id="pane-network">
             <div id="sigma-container"></div>
             <div id="empty-hint">Load an edge list to begin.</div>
+            <div id="canvas-tools">
+                <button id="btn-zoom-in" class="canvas-btn" title="Zoom in">+</button>
+                <button id="btn-zoom-out" class="canvas-btn" title="Zoom out">−</button>
+                <button id="btn-zoom-fit" class="canvas-btn" title="Fit graph to view">⤢</button>
+            </div>
         </div>
 
         <!-- TAB 2: node & edge tables -->
@@ -131,24 +189,64 @@
 
             <div class="tablesubpane active" id="tablesubpane-nodes">
                 <div class="toolbar">
-                    <input type="text" id="add-node-id" placeholder="node id (blank = auto)"/>
-                    <button id="btn-add-node">Add node</button>
+                    <button id="btn-node-add-toggle">Add node</button>
+                    <button id="btn-node-col-toggle">Add column</button>
                     <button id="btn-export-nodes">Export CSV</button>
+                    <button id="btn-import-nodes-csv">Import CSV</button>
                     <button id="btn-clear-nodes-filters">Clear filters</button>
                 </div>
+                <div class="toolbar subrow" id="nodes-addrow" hidden>
+                    <span class="addgroup" id="nodes-add-main" hidden>
+                        <input type="text" id="add-node-id" placeholder="node id (blank = auto)"/>
+                        <button id="btn-add-node" class="primary">Add node</button>
+                    </span>
+                    <span class="addgroup" id="nodes-add-col" hidden>
+                        <input type="text" id="add-node-attr-name" placeholder="attribute name"/>
+                        <select id="add-node-attr-type">
+                            <option value="string">string</option>
+                            <option value="int">int</option>
+                            <option value="long">long</option>
+                            <option value="double">double</option>
+                            <option value="bool">bool</option>
+                            <option value="categorical">categorical</option>
+                        </select>
+                        <button id="btn-add-node-attr" class="primary">Add column</button>
+                    </span>
+                </div>
+                <input type="file" id="node-csv-file" hidden/>
                 <div class="scroll-table tall"><table id="nodes-table" class="data"></table></div>
                 <div class="pagination" id="pager-nodes"></div>
             </div>
 
             <div class="tablesubpane" id="tablesubpane-edges">
                 <div class="toolbar">
-                    <input type="text" id="add-edge-source" placeholder="source (type to search)"/>
-                    <input type="text" id="add-edge-target" placeholder="target (type to search)"/>
-                    <input type="number" id="add-edge-weight" step="any" placeholder="weight" value="1"/>
-                    <button id="btn-add-edge">Add edge</button>
+                    <button id="btn-edge-add-toggle">Add edge</button>
+                    <button id="btn-edge-col-toggle">Add column</button>
                     <button id="btn-export-edges">Export CSV</button>
+                    <button id="btn-import-edges-csv">Import CSV</button>
                     <button id="btn-clear-edges-filters">Clear filters</button>
                 </div>
+                <div class="toolbar subrow" id="edges-addrow" hidden>
+                    <span class="addgroup" id="edges-add-main" hidden>
+                        <input type="text" id="add-edge-source" placeholder="source (type to search)"/>
+                        <input type="text" id="add-edge-target" placeholder="target (type to search)"/>
+                        <input type="number" id="add-edge-weight" step="any" placeholder="weight" value="1"/>
+                        <button id="btn-add-edge" class="primary">Add edge</button>
+                    </span>
+                    <span class="addgroup" id="edges-add-col" hidden>
+                        <input type="text" id="add-edge-attr-name" placeholder="attribute name"/>
+                        <select id="add-edge-attr-type">
+                            <option value="string">string</option>
+                            <option value="int">int</option>
+                            <option value="long">long</option>
+                            <option value="double">double</option>
+                            <option value="bool">bool</option>
+                            <option value="categorical">categorical</option>
+                        </select>
+                        <button id="btn-add-edge-attr" class="primary">Add column</button>
+                    </span>
+                </div>
+                <input type="file" id="edge-csv-file" hidden/>
                 <div class="scroll-table tall"><table id="edges-table" class="data"></table></div>
                 <div class="pagination" id="pager-edges"></div>
             </div>

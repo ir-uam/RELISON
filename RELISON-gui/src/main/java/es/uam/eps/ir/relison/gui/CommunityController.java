@@ -19,6 +19,7 @@ import es.uam.eps.ir.relison.sna.metrics.CommunityMetric;
 import es.uam.eps.ir.relison.sna.metrics.IndividualCommunityMetric;
 import io.javalin.http.Context;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,16 +37,59 @@ public class CommunityController
     /** Temporary directory required by some detection algorithms (e.g. Infomap). */
     private final String tempFolder = System.getProperty("java.io.tmpdir");
 
-    /** Curated set of global community metrics exposed by the GUI, as {identifier -> label}. */
-    private static final Map<String, String> GLOBAL_METRICS = new LinkedHashMap<>();
+    /**
+     * Global community metrics exposed by the GUI, each carrying the default parameters used to compute it. They are
+     * all computed together over the stored partition; the degree/edge Gini variants need an orientation and/or a
+     * self-loop flag, so each definition provides sensible defaults via {@link Grids#build(List, Map)}.
+     */
+    private static final List<MetricCatalog.MetricDef> GLOBAL_METRICS = new ArrayList<>();
 
     static
     {
-        GLOBAL_METRICS.put(GlobalCommunityMetricIdentifiers.NUMCOMMS, "Number of communities");
-        GLOBAL_METRICS.put(GlobalCommunityMetricIdentifiers.MODULARITY, "Modularity");
-        GLOBAL_METRICS.put(GlobalCommunityMetricIdentifiers.COMMSIZEGINI, "Community size Gini");
-        GLOBAL_METRICS.put(GlobalCommunityMetricIdentifiers.WEAKTIES, "Weak ties");
-        GLOBAL_METRICS.put(GlobalCommunityMetricIdentifiers.INTERCOMMUNITYEDGEGINI, "Inter-community edge Gini complement");
+        // Parameter-free summaries.
+        global(GlobalCommunityMetricIdentifiers.NUMCOMMS, "Number of communities");
+        global(GlobalCommunityMetricIdentifiers.MODULARITY, "Modularity");
+        global(GlobalCommunityMetricIdentifiers.MODULARITYCOMPL, "Modularity complement");
+        global(GlobalCommunityMetricIdentifiers.COMMSIZEGINI, "Community size Gini");
+        global(GlobalCommunityMetricIdentifiers.COMMDESTSIZE, "Destination community size");
+        global(GlobalCommunityMetricIdentifiers.WEAKTIES, "Weak ties");
+
+        // Degree Gini (need an orientation; the "complete" variants also count node self-loops).
+        global(GlobalCommunityMetricIdentifiers.INTERCOMMUNITYDEGREEGINI, "Inter-community degree Gini", orientation());
+        global(GlobalCommunityMetricIdentifiers.SIZENORMINTERCOMMUNITYDEGREEGINI, "Size-normalized inter-community degree Gini", orientation());
+        global(GlobalCommunityMetricIdentifiers.COMPLETECOMMUNITYDEGREEGINI, "Complete community degree Gini", orientation(), autoloops());
+        global(GlobalCommunityMetricIdentifiers.SIZENORMCOMPLETECOMMUNITYDEGREEGINI, "Size-normalized complete community degree Gini", orientation(), autoloops());
+
+        // Edge Gini (the "complete"/"semi-complete" variants optionally count self-loops).
+        global(GlobalCommunityMetricIdentifiers.INTERCOMMUNITYEDGEGINI, "Inter-community edge Gini complement");
+        global(GlobalCommunityMetricIdentifiers.COMPLETECOMMUNITYEDGEGINI, "Complete community edge Gini complement", selfloops());
+        global(GlobalCommunityMetricIdentifiers.SEMICOMPLETECOMMUNITYEDGEGINI, "Semi-complete community edge Gini complement", selfloops());
+        global(GlobalCommunityMetricIdentifiers.SIZENORMINTERCOMMUNITYEDGEGINI, "Size-normalized inter-community edge Gini");
+        global(GlobalCommunityMetricIdentifiers.SIZENORMCOMPLETECOMMUNITYEDGEGINI, "Size-normalized complete community edge Gini", autoloops());
+        global(GlobalCommunityMetricIdentifiers.SIZENORMSEMICOMPLETECOMMUNITYEDGEGINI, "Size-normalized semi-complete community edge Gini", autoloops());
+        global(GlobalCommunityMetricIdentifiers.DICEINTERCOMMUNITYEDGEGINI, "Dice inter-community edge Gini");
+        global(GlobalCommunityMetricIdentifiers.DICECOMPLETECOMMUNITYEDGEGINI, "Dice complete community edge Gini", autoloops());
+        global(GlobalCommunityMetricIdentifiers.DICESEMICOMPLETECOMMUNITYEDGEGINI, "Dice semi-complete community edge Gini", autoloops());
+    }
+
+    private static void global(String id, String label, Param... params)
+    {
+        GLOBAL_METRICS.add(new MetricCatalog.MetricDef(id, label, List.of(params)));
+    }
+
+    private static Param orientation()
+    {
+        return Param.orientation("orientation", "Orientation", "OUT");
+    }
+
+    private static Param autoloops()
+    {
+        return Param.bool("autoloops", "Count self-loops", true);
+    }
+
+    private static Param selfloops()
+    {
+        return Param.bool("selfloops", "Count self-loops", true);
     }
 
     public CommunityController(GraphStore store)
@@ -131,21 +175,21 @@ public class CommunityController
         }
 
         GlobalCommunityMetricSelector<String> selector = new GlobalCommunityMetricSelector<>();
-        List<Map<String, Object>> results = new java.util.ArrayList<>();
-        for (Map.Entry<String, String> entry : GLOBAL_METRICS.entrySet())
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (MetricCatalog.MetricDef def : GLOBAL_METRICS)
         {
-            Map<String, Supplier<CommunityMetric<String>>> metrics =
-                    selector.getMetrics(entry.getKey(), new Grid());
+            Grid grid = Grids.build(def.params, null); // all-defaults grid for this metric
+            Map<String, Supplier<CommunityMetric<String>>> metrics = selector.getMetrics(def.id, grid);
             if (metrics == null || metrics.isEmpty()) continue;
             try
             {
                 CommunityMetric<String> metric = metrics.values().iterator().next().get();
                 double value = metric.compute(session.getGraph(), communities);
-                results.add(Map.of("metric", entry.getKey(), "label", entry.getValue(), "value", value));
+                results.add(Map.of("metric", def.id, "label", def.label, "value", value));
             }
             catch (Exception e)
             {
-                results.add(Map.of("metric", entry.getKey(), "label", entry.getValue(), "error", String.valueOf(e)));
+                results.add(Map.of("metric", def.id, "label", def.label, "error", String.valueOf(e)));
             }
         }
 

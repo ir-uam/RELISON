@@ -9,6 +9,7 @@
  */
 package es.uam.eps.ir.relison.graph;
 
+import es.uam.eps.ir.relison.graph.attributes.AttributeType;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.edges.EdgeType;
 import es.uam.eps.ir.relison.graph.edges.EdgeWeight;
@@ -131,6 +132,20 @@ public interface Graph<V> extends Serializable
     default boolean removeNode(V node)
     {
         throw new UnsupportedOperationException("Deleting nodes is not allowed");
+    }
+
+    /**
+     * Renames a node, i.e. changes its identifier while keeping all of its edges and attributes. The structure of
+     * the graph is unaffected (degrees, distances, etc. are preserved).
+     *
+     * @param oldNode the current identifier of the node.
+     * @param newNode the new identifier.
+     *
+     * @return true if the node was renamed, false if {@code oldNode} does not exist or {@code newNode} already does.
+     */
+    default boolean renameNode(V oldNode, V newNode)
+    {
+        throw new UnsupportedOperationException("Renaming nodes is not allowed");
     }
 
     /**
@@ -733,4 +748,149 @@ public interface Graph<V> extends Serializable
      */
     Graph<V> complement();
 
+    /* --------------------------------------------------------------------- */
+    /* Node and edge attributes.                                             */
+    /*                                                                       */
+    /* Attributes are named, typed values attached to nodes or edges, beyond */
+    /* the edge weight and type the model already provides. They are an      */
+    /* optional capability: by default the graph does not support them and   */
+    /* these methods throw, following the same convention as removeNode /    */
+    /* removeEdge. The fast graph implementations override them.             */
+    /* --------------------------------------------------------------------- */
+
+    /**
+     * Declares a node attribute (or changes the type of an existing one). Existing values are kept.
+     * @param name the attribute name.
+     * @param type the attribute type.
+     */
+    default void defineNodeAttribute(String name, AttributeType type)
+    {
+        throw new UnsupportedOperationException("Node attributes are not supported by this graph.");
+    }
+
+    /**
+     * Sets the value of a node attribute. A {@code null} value clears it.
+     * @param node  the node.
+     * @param name  the attribute name (must have been declared with {@link #defineNodeAttribute}).
+     * @param value the value, or {@code null} to clear it.
+     * @return true if the value was set, false if the node or the attribute does not exist.
+     */
+    default boolean setNodeAttribute(V node, String name, Object value)
+    {
+        throw new UnsupportedOperationException("Node attributes are not supported by this graph.");
+    }
+
+    /**
+     * Obtains the value of a node attribute.
+     * @param node the node.
+     * @param name the attribute name.
+     * @return the value, or {@code null} if unset (or unsupported).
+     */
+    default Object getNodeAttribute(V node, String name)
+    {
+        throw new UnsupportedOperationException("Node attributes are not supported by this graph.");
+    }
+
+    /**
+     * Obtains the declared node attribute names, in declaration order.
+     * @return a stream of attribute names.
+     */
+    default Stream<String> getNodeAttributeNames()
+    {
+        throw new UnsupportedOperationException("Node attributes are not supported by this graph.");
+    }
+
+    /**
+     * Obtains the type of a node attribute.
+     * @param name the attribute name.
+     * @return the type, or {@code null} if the attribute is not declared.
+     */
+    default AttributeType getNodeAttributeType(String name)
+    {
+        throw new UnsupportedOperationException("Node attributes are not supported by this graph.");
+    }
+
+    /**
+     * Obtains the (node, value) pairs of a node attribute, for the nodes that have a value set.
+     * @param name the attribute name.
+     * @return a stream of node/value pairs.
+     */
+    default Stream<Weight<V, Object>> getNodeAttributes(String name)
+    {
+        throw new UnsupportedOperationException("Node attributes are not supported by this graph.");
+    }
+
+    /**
+     * Removes a node attribute and all of its values.
+     * @param name the attribute name.
+     * @return true if the attribute existed, false otherwise.
+     */
+    default boolean removeNodeAttribute(String name)
+    {
+        throw new UnsupportedOperationException("Node attributes are not supported by this graph.");
+    }
+
+    /**
+     * Declares an edge attribute (or changes the type of an existing one). Existing values are kept.
+     * @param name the attribute name.
+     * @param type the attribute type.
+     */
+    default void defineEdgeAttribute(String name, AttributeType type)
+    {
+        throw new UnsupportedOperationException("Edge attributes are not supported by this graph.");
+    }
+
+    /**
+     * Sets the value of an edge attribute. A {@code null} value clears it.
+     * @param nodeA the incident node.
+     * @param nodeB the adjacent node.
+     * @param name  the attribute name (must have been declared with {@link #defineEdgeAttribute}).
+     * @param value the value, or {@code null} to clear it.
+     * @return true if the value was set, false if the edge or the attribute does not exist.
+     */
+    default boolean setEdgeAttribute(V nodeA, V nodeB, String name, Object value)
+    {
+        throw new UnsupportedOperationException("Edge attributes are not supported by this graph.");
+    }
+
+    /**
+     * Obtains the value of an edge attribute.
+     * @param nodeA the incident node.
+     * @param nodeB the adjacent node.
+     * @param name  the attribute name.
+     * @return the value, or {@code null} if unset (or unsupported).
+     */
+    default Object getEdgeAttribute(V nodeA, V nodeB, String name)
+    {
+        throw new UnsupportedOperationException("Edge attributes are not supported by this graph.");
+    }
+
+    /**
+     * Obtains the declared edge attribute names, in declaration order.
+     * @return a stream of attribute names.
+     */
+    default Stream<String> getEdgeAttributeNames()
+    {
+        throw new UnsupportedOperationException("Edge attributes are not supported by this graph.");
+    }
+
+    /**
+     * Obtains the type of an edge attribute.
+     * @param name the attribute name.
+     * @return the type, or {@code null} if the attribute is not declared.
+     */
+    default AttributeType getEdgeAttributeType(String name)
+    {
+        throw new UnsupportedOperationException("Edge attributes are not supported by this graph.");
+    }
+
+    /**
+     * Removes an edge attribute and all of its values.
+     * @param name the attribute name.
+     * @return true if the attribute existed, false otherwise.
+     */
+    default boolean removeEdgeAttribute(String name)
+    {
+        throw new UnsupportedOperationException("Edge attributes are not supported by this graph.");
+    }
 }

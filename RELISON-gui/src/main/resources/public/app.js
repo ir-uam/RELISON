@@ -42,16 +42,45 @@ const state = {
     commMetricData: {},    // per-community: label -> { algorithm, values: { comm(string): value } }
     commMetricOrder: [],   // per-community metric labels, in computation order
 
-    activeTab: "network",
+    activeTab: "import",
     activeSubtab: "global",
     activeTableSubtab: "nodes",
+    // Label rendering options (mirrors the Labels controls in the left panel).
+    labelOpts: {
+        nodeShow: true, nodeSize: 12, nodeProp: false, nodeColor: "#e6e6e6", nodeFont: "sans-serif",
+        edgeShow: false, edgeSize: 9, edgeProp: false, edgeColor: "#e6e6e6", edgeFont: "sans-serif",
+    },
     tables: {
         nodes: { sort: { col: "id", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
         edges: { sort: { col: "source", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
     },
     catalog: null,
     defs: { vertex: {}, graph: {}, pair: {}, community: {}, communityIndividual: {} },
+    attrSchema: { node: [], edge: [] },   // user-defined attributes: [{name,type,numeric}]
 };
+
+/* --------------------------- attribute helpers ---------------------- */
+
+function nodeAttrDefs() { return (state.attrSchema && state.attrSchema.node) || []; }
+function edgeAttrDefs() { return (state.attrSchema && state.attrSchema.edge) || []; }
+function nodeAttrIsNumeric(name) { const d = nodeAttrDefs().find((x) => x.name === name); return !!(d && d.numeric); }
+
+// Value of a node/edge attribute (attributes are nested under the graphology "attrs" attribute).
+function nodeAttrVal(node, name) {
+    const a = state.graph && state.graph.hasNode(node) ? state.graph.getNodeAttribute(node, "attrs") : null;
+    return a ? a[name] : undefined;
+}
+function edgeAttrVal(edge, name) {
+    const a = state.graph ? state.graph.getEdgeAttribute(edge, "attrs") : null;
+    return a ? a[name] : undefined;
+}
+// Map node -> value for a node attribute (only nodes that have a value).
+function nodeAttrValues(name) {
+    const v = {};
+    if (!state.graph) return v;
+    state.graph.forEachNode((n) => { const x = nodeAttrVal(n, name); if (x !== undefined && x !== null) v[n] = x; });
+    return v;
+}
 
 /* ------------------------------ helpers ----------------------------- */
 
@@ -88,6 +117,12 @@ function jsonBody(obj) {
 
 function pairKey(s, t) {
     return s + "|" + t;
+}
+
+// Reads a numeric input by id, falling back to a default when blank or invalid.
+function numInput(id, def) {
+    const v = parseFloat($(id).value);
+    return Number.isFinite(v) ? v : def;
 }
 
 // Converts a {key: value} object's values to numbers.
@@ -128,6 +163,7 @@ async function loadGraph() {
         state.graphId = data.graphId;
         state.directed = data.stats.directed;
         state.weighted = data.stats.weighted;
+        state.attrSchema = data.schema || { node: [], edge: [] };
         resetResults();
         resetTableViews();
         clearSelection();
@@ -143,6 +179,8 @@ async function loadGraph() {
         $("path-summary").textContent = "Pick a source and a target, then find their shortest paths.";
         switchTab("network");          // ensure the (sized) network pane is visible before rendering
         renderGraph(data.graph);
+        rebuildAppearanceOptions();    // surface any imported attributes in the appearance menus
+        applyAppearance();
         updateOverview(data.stats);
         if (state.renderer) state.renderer.refresh();
         refreshAfterCompute();
@@ -197,13 +235,17 @@ function renderGraph(serialized) {
     $("empty-hint").style.display = "none";
     state.renderer = new SigmaClass(graph, $("sigma-container"), {
         defaultEdgeType: state.directed ? "arrow" : "line",
-        renderEdgeLabels: false,
+        renderLabels: state.labelOpts.nodeShow,
+        renderEdgeLabels: state.labelOpts.edgeShow,
+        labelRenderer: drawNodeLabel,
+        edgeLabelRenderer: drawEdgeLabel,
         labelDensity: 0.5,
         labelRenderedSizeThreshold: 8,
         // The container can be momentarily hidden (zero-size) if a graph is loaded from another tab;
         // tolerate it and refresh once the Network tab becomes visible.
         allowInvalidContainer: true,
     });
+    syncLabelOpts();
 
     state.renderer.on("clickNode", ({ node }) => {
         if ($("edit-mode").checked) handleEditNodeClick(node);
@@ -250,22 +292,32 @@ function rebuildAppearanceOptions() {
     const sizeCurrent = sizeSelect.value;
     sizeSelect.innerHTML = '<option value="">— degree (default) —</option>';
     for (const name of metricNames) sizeSelect.appendChild(option(name, name));
-    sizeSelect.value = metricNames.includes(sizeCurrent) ? sizeCurrent : "";
+    // Numeric node attributes can also drive node size.
+    for (const d of nodeAttrDefs()) if (d.numeric) sizeSelect.appendChild(option("attr:" + d.name, "attr: " + d.name));
+    restoreSelect(sizeSelect, sizeCurrent);
 
     const colorSelect = $("color-by");
     const colorCurrent = colorSelect.value;
     colorSelect.innerHTML = '<option value="">— none —</option>';
     for (const name of metricNames) colorSelect.appendChild(option("metric:" + name, name));
     for (const algo of communityNames) colorSelect.appendChild(option("community:" + algo, "community: " + algo));
-    const values = Array.from(colorSelect.options).map((o) => o.value);
-    colorSelect.value = values.includes(colorCurrent) ? colorCurrent : "";
+    // Node attributes: numeric ones use the colour ramp, the rest are coloured categorically.
+    for (const d of nodeAttrDefs()) colorSelect.appendChild(option((d.numeric ? "attr:" : "attrcat:") + d.name, "attr: " + d.name));
+    restoreSelect(colorSelect, colorCurrent);
 
-    // Edge thickness: uniform + each computed edge (link) metric.
+    // Edge thickness: uniform + each computed edge (link) metric + numeric edge attributes.
     const edgeSizeSelect = $("edge-size-by");
     const edgeCurrent = edgeSizeSelect.value;
     edgeSizeSelect.innerHTML = '<option value="">— uniform —</option>';
     for (const name of state.pairOrder) edgeSizeSelect.appendChild(option(name, name));
-    edgeSizeSelect.value = state.pairOrder.includes(edgeCurrent) ? edgeCurrent : "";
+    for (const d of edgeAttrDefs()) if (d.numeric) edgeSizeSelect.appendChild(option("eattr:" + d.name, "attr: " + d.name));
+    restoreSelect(edgeSizeSelect, edgeCurrent);
+}
+
+// Restores a select's value if the option still exists, otherwise falls back to the first (default) option.
+function restoreSelect(select, value) {
+    const exists = Array.from(select.options).some((o) => o.value === value);
+    select.value = exists ? value : "";
 }
 
 function degreeValues() {
@@ -279,7 +331,10 @@ function applyAppearance() {
     if (!graph) return;
 
     const sizeBy = $("size-by").value;
-    const sizeValues = sizeBy ? (state.metricData[sizeBy] || {}) : degreeValues();
+    let sizeValues;
+    if (!sizeBy) sizeValues = degreeValues();
+    else if (sizeBy.startsWith("attr:")) sizeValues = numericMap(nodeAttrValues(sizeBy.slice(5)));
+    else sizeValues = state.metricData[sizeBy] || {};
     let min = Infinity, max = -Infinity;
     for (const n of graph.nodes()) {
         const val = sizeValues[n] ?? 0;
@@ -287,14 +342,19 @@ function applyAppearance() {
         if (val > max) max = val;
     }
     const span = (max - min) || 1;
-    graph.forEachNode((n) => graph.setNodeAttribute(n, "size", 2 + 12 * (((sizeValues[n] ?? 0) - min) / span)));
+    const minSize = numInput("node-size-min", 2), maxSize = numInput("node-size-max", 14);
+    const sizeRange = Math.max(0, maxSize - minSize);
+    graph.forEachNode((n) => graph.setNodeAttribute(n, "size", minSize + sizeRange * (((sizeValues[n] ?? 0) - min) / span)));
 
     const colorSel = $("color-by").value;
     if (!colorSel) graph.forEachNode((n) => graph.setNodeAttribute(n, "color", "#4f9dff"));
     else if (colorSel.startsWith("community:")) colorByCommunity(colorSel.slice("community:".length));
     else if (colorSel.startsWith("metric:")) colorByMetric(colorSel.slice("metric:".length));
+    else if (colorSel.startsWith("attrcat:")) colorByNodeCategorical(colorSel.slice("attrcat:".length));
+    else if (colorSel.startsWith("attr:")) colorByNodeAttr(colorSel.slice("attr:".length));
 
     applyEdgeAppearance();
+    applyLabels();
 
     if (state.renderer) state.renderer.refresh();
 }
@@ -319,15 +379,59 @@ function colorByCommunity(algo) {
     graph.forEachNode((n) => graph.setNodeAttribute(n, "color", categorical(data[n] ?? 0)));
 }
 
+// Colours nodes by a numeric attribute, using the configured low→high colour ramp.
+function colorByNodeAttr(name) {
+    const graph = state.graph;
+    const values = nodeAttrValues(name);
+    const low = $("node-color-low").value, high = $("node-color-high").value;
+    let min = Infinity, max = -Infinity;
+    for (const n of graph.nodes()) {
+        const v = Number(values[n]);
+        if (!Number.isNaN(v)) { if (v < min) min = v; if (v > max) max = v; }
+    }
+    if (min === Infinity) { min = 0; max = 1; }
+    const span = (max - min) || 1;
+    graph.forEachNode((n) => {
+        const v = Number(values[n]);
+        graph.setNodeAttribute(n, "color", Number.isNaN(v) ? "#888888" : lerpHex(low, high, (v - min) / span));
+    });
+}
+
+// Colours nodes by a categorical/textual attribute: one distinct colour per value.
+function colorByNodeCategorical(name) {
+    const graph = state.graph;
+    const values = nodeAttrValues(name);
+    const cats = new Map();
+    let next = 0;
+    graph.forEachNode((n) => {
+        const key = values[n];
+        if (key === undefined || key === null) return;
+        if (!cats.has(String(key))) cats.set(String(key), next++);
+    });
+    graph.forEachNode((n) => {
+        const key = values[n];
+        graph.setNodeAttribute(n, "color", (key === undefined || key === null) ? "#888888" : categorical(cats.get(String(key))));
+    });
+}
+
 // Edge thickness (by a computed link metric) and colour (uniform default / single / average of endpoints).
 function applyEdgeAppearance() {
     const graph = state.graph;
     const sizeBy = $("edge-size-by").value;
-    const sizeData = sizeBy ? (state.pairData[sizeBy] || {}) : null;
+    // Thickness can come from a computed link metric or a numeric edge attribute.
+    const edgeAttrName = sizeBy.startsWith("eattr:") ? sizeBy.slice("eattr:".length) : null;
+    const sizeData = (sizeBy && !edgeAttrName) ? (state.pairData[sizeBy] || {}) : null;
+    const sizing = sizeBy !== "";
+    const edgeVal = (edge, s, t) => {
+        if (edgeAttrName) { const v = Number(edgeAttrVal(edge, edgeAttrName)); return Number.isNaN(v) ? undefined : v; }
+        if (sizeData) return sizeData[pairKey(s, t)];
+        return undefined;
+    };
+
     let min = Infinity, max = -Infinity;
-    if (sizeData) {
+    if (sizing) {
         graph.forEachEdge((e, a, s, t) => {
-            const v = sizeData[pairKey(s, t)];
+            const v = edgeVal(e, s, t);
             if (v === undefined) return;
             if (v < min) min = v;
             if (v > max) max = v;
@@ -338,13 +442,15 @@ function applyEdgeAppearance() {
     const mode = $("edge-color-mode").value;
     const single = $("edge-color-single").value;
     const defColor = "#888888";
+    const minW = numInput("edge-size-min", 0.5), maxW = numInput("edge-size-max", 6);
+    const wRange = Math.max(0, maxW - minW);
 
     graph.forEachEdge((edge, attr, s, t) => {
-        if (sizeData) {
-            const v = sizeData[pairKey(s, t)];
-            graph.setEdgeAttribute(edge, "size", v === undefined ? 0.5 : 0.5 + 5.5 * ((v - min) / span));
+        if (sizing) {
+            const v = edgeVal(edge, s, t);
+            graph.setEdgeAttribute(edge, "size", v === undefined ? minW : minW + wRange * ((v - min) / span));
         } else {
-            graph.setEdgeAttribute(edge, "size", 1);
+            graph.setEdgeAttribute(edge, "size", minW > 0 ? minW : 1);
         }
 
         if (mode === "single") graph.setEdgeAttribute(edge, "color", single);
@@ -374,6 +480,86 @@ function categorical(i) {
     const { r, g, b } = hslToRgb((i * 137.508) % 360, 0.65, 0.55);
     return `rgb(${r},${g},${b})`;
 }
+
+/* ------------------------------ labels ------------------------------ */
+
+// Sets the graphology label of every node/edge from a "label" attribute when present (node ids are the fallback;
+// edges have no label unless a "label" attribute provides one). Sigma renders these via the custom drawers below.
+function applyLabels() {
+    const g = state.graph;
+    if (!g) return;
+    const nodeHasLabel = nodeAttrDefs().some((d) => d.name === "label");
+    g.forEachNode((n) => {
+        const lbl = nodeHasLabel ? nodeAttrVal(n, "label") : null;
+        g.setNodeAttribute(n, "label", (lbl !== undefined && lbl !== null && lbl !== "") ? String(lbl) : n);
+    });
+    const edgeHasLabel = edgeAttrDefs().some((d) => d.name === "label");
+    g.forEachEdge((e) => {
+        const lbl = edgeHasLabel ? edgeAttrVal(e, "label") : null;
+        g.setEdgeAttribute(e, "label", (lbl !== undefined && lbl !== null && lbl !== "") ? String(lbl) : "");
+    });
+}
+
+// Reads the label controls into state and pushes the show/hide flags to the renderer.
+function syncLabelOpts() {
+    const o = state.labelOpts;
+    o.nodeShow = $("node-label-show").checked;
+    o.nodeSize = numInput("node-label-size", 12);
+    o.nodeProp = $("node-label-prop").checked;
+    o.nodeColor = $("node-label-color").value;
+    o.nodeFont = $("node-label-font").value;
+    o.edgeShow = $("edge-label-show").checked;
+    o.edgeSize = numInput("edge-label-size", 9);
+    o.edgeProp = $("edge-label-prop").checked;
+    o.edgeColor = $("edge-label-color").value;
+    o.edgeFont = $("edge-label-font").value;
+    if (state.renderer) {
+        state.renderer.setSetting("renderLabels", o.nodeShow);
+        state.renderer.setSetting("renderEdgeLabels", o.edgeShow);
+        // Mirror to the built-in settings too, as a fallback for the fixed-size case.
+        state.renderer.setSetting("labelSize", o.nodeSize);
+        state.renderer.setSetting("edgeLabelSize", o.edgeSize);
+        state.renderer.setSetting("labelColor", { color: o.nodeColor });
+        state.renderer.setSetting("edgeLabelColor", { color: o.edgeColor });
+        state.renderer.setSetting("labelFont", o.nodeFont);
+        state.renderer.setSetting("edgeLabelFont", o.edgeFont);
+        state.renderer.refresh();
+    }
+}
+
+function labelTextColor() {
+    return document.body.classList.contains("light") ? "#1c1d20" : "#e6e6e6";
+}
+
+// Custom node label drawer: font size is either fixed or proportional to the node's rendered size.
+function drawNodeLabel(context, data, settings) {
+    if (!data.label) return;
+    const o = state.labelOpts;
+    const fontSize = o.nodeProp ? Math.max(6, data.size * (o.nodeSize / 8)) : o.nodeSize;
+    context.fillStyle = o.nodeColor || labelTextColor();
+    context.font = `${fontSize}px ${o.nodeFont || "sans-serif"}`;
+    context.fillText(data.label, data.x + data.size + 3, data.y + fontSize / 3);
+}
+
+// Custom edge label drawer: drawn at the edge midpoint, size fixed or proportional to the edge thickness.
+function drawEdgeLabel(context, data, sourceData, targetData, settings) {
+    if (!data.label) return;
+    const o = state.labelOpts;
+    const fontSize = o.edgeProp ? Math.max(5, (data.size || 1) * (o.edgeSize / 2)) : o.edgeSize;
+    const x = (sourceData.x + targetData.x) / 2;
+    const y = (sourceData.y + targetData.y) / 2;
+    context.fillStyle = o.edgeColor || labelTextColor();
+    context.font = `${fontSize}px ${o.edgeFont || "sans-serif"}`;
+    context.textAlign = "center";
+    context.fillText(data.label, x, y);
+    context.textAlign = "left";
+}
+
+/* --------------------------- canvas tools --------------------------- */
+
+function zoomIn() { if (state.renderer) state.renderer.getCamera().animatedZoom(); }
+function zoomOut() { if (state.renderer) state.renderer.getCamera().animatedUnzoom(); }
+function zoomFit() { if (state.renderer) state.renderer.getCamera().animatedReset(); }
 
 /* ----------------------------- selection ---------------------------- */
 
@@ -411,6 +597,10 @@ function renderNodeInfo(node) {
     for (const algo of Object.keys(state.communityData)) {
         const c = state.communityData[algo][node];
         if (c !== undefined) rows.push(["community · " + algo, c]);
+    }
+    for (const d of nodeAttrDefs()) {
+        const v = nodeAttrVal(node, d.name);
+        if (v !== undefined && v !== null) rows.push(["attr · " + d.name, fmt(v)]);
     }
     for (const [k, v] of rows) {
         const tr = document.createElement("tr");
@@ -1059,11 +1249,39 @@ function ensureNode(id) {
 
 async function editDeleteNode(node) {
     try {
-        const res = await api("/api/graph/" + state.graphId + "/node/" + node, { method: "DELETE" });
+        const res = await api("/api/graph/" + state.graphId + "/node/" + encodeURIComponent(node), { method: "DELETE" });
         if (state.graph.hasNode(node)) state.graph.dropNode(node);
         onGraphEdited(res.stats);
         setStatus("Removed node " + node + ".");
     } catch (e) { setStatus(e.message, "error"); }
+}
+
+// Removes a single edge (a specific parallel edge for multigraphs, identified by its graphology key).
+async function editRemoveEdge(source, target, edgeId) {
+    try {
+        const body = { source, target };
+        if (edgeId != null) body.edgeId = edgeId;
+        const res = await api("/api/graph/" + state.graphId + "/edge",
+            { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        if (edgeId != null && state.graph.hasEdge(edgeId)) state.graph.dropEdge(edgeId);
+        else if (state.graph.hasEdge(source, target)) state.graph.dropEdge(source, target);
+        onGraphEdited(res.stats);
+        setStatus("Removed edge " + source + " → " + target + ".");
+    } catch (e) { setStatus(e.message, "error"); }
+}
+
+// Row remove handlers (with a confirmation, since removal is destructive).
+function removeNodeFromTable(id) {
+    if (!window.confirm('Remove node "' + id + '" and its edges?')) return;
+    if (state.selectedNode === id) clearSelection();
+    editDeleteNode(id);
+}
+
+function removeEdgeFromTable(edgeId) {
+    const g = state.graph;
+    const s = g.source(edgeId), t = g.target(edgeId);
+    if (!window.confirm("Remove edge " + s + " → " + t + "?")) return;
+    editRemoveEdge(s, t, edgeId);
 }
 
 function onGraphEdited(stats) {
@@ -1086,19 +1304,33 @@ function onGraphEdited(stats) {
 function switchTab(tab) {
     state.activeTab = tab;
     document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+    $("pane-import").classList.toggle("active", tab === "import");
     $("pane-network").classList.toggle("active", tab === "network");
     $("pane-tables").classList.toggle("active", tab === "tables");
     $("pane-metrics").classList.toggle("active", tab === "metrics");
     $("pane-paths").classList.toggle("active", tab === "paths");
 
-    // Right panel content depends on the tab: Selection on Network, metric runners on Metrics, nothing on Tables.
-    $("selection-block").style.display = tab === "network" ? "" : "none";
-    document.querySelectorAll(".right-metric").forEach((s) => { s.style.display = tab === "metrics" ? "" : "none"; });
+    updatePanels(tab);
 
     if (tab === "network" && state.renderer) setTimeout(() => state.renderer.refresh(), 0);
     if (tab === "tables") renderTable(state.activeTableSubtab);
     if (tab === "metrics") renderMetricsDashboard();
     if (tab === "paths" && state.selectedNode && !$("path-source").value) $("path-source").value = state.selectedNode;
+}
+
+// Shows/hides the side panels per tab and resizes the layout grid accordingly:
+// import → no panels; network → left (layout/visualization) + right (selection); metrics → right (runners);
+// tables/paths → no panels (full-width content).
+function updatePanels(tab) {
+    const showLeft = tab === "network";
+    const showRight = tab === "network" || tab === "metrics";
+    $("left").style.display = showLeft ? "" : "none";
+    $("right").style.display = showRight ? "" : "none";
+    const cols = [showLeft ? "270px" : null, "1fr", showRight ? "300px" : null].filter(Boolean).join(" ");
+    $("layout").style.gridTemplateColumns = cols;
+
+    $("selection-block").style.display = tab === "network" ? "" : "none";
+    document.querySelectorAll(".right-metric").forEach((s) => { s.style.display = tab === "metrics" ? "" : "none"; });
 }
 
 function switchSubtab(sub) {
@@ -1132,42 +1364,52 @@ function refreshAfterCompute() {
 /* ---------------------------- table models -------------------------- */
 
 function nodeColumns() {
-    const cols = [{ key: "id", label: "id" }, { key: "degree", label: "degree" }];
-    if (state.directed) {
-        cols.push({ key: "indeg", label: "in-degree" });
-        cols.push({ key: "outdeg", label: "out-degree" });
-    }
+    // Degree / in-/out-degree are not computed by default; run the DEGREE vertex metric to add them as columns.
+    const cols = [{ key: "id", label: "id" }];
+    // Attribute columns come before the computed metric / community columns.
+    nodeAttrDefs().forEach((d) => cols.push({ key: "a:" + d.name, label: d.name }));
     state.metricOrder.forEach((m) => cols.push({ key: "m:" + m, label: m }));
     Object.keys(state.communityData).forEach((a) => cols.push({ key: "c:" + a, label: "comm:" + a }));
+    cols.push({ key: "_act", label: "" });   // trailing remove-row column
     return cols;
 }
 
 function nodeRowValue(node, key) {
-    const g = state.graph;
-    if (key === "id") return Number(node);
-    if (key === "degree") return g.degree(node);
-    if (key === "indeg") return g.inDegree(node);
-    if (key === "outdeg") return g.outDegree(node);
+    if (key === "id") return idValue(node);
     if (key.startsWith("m:")) return state.metricData[key.slice(2)]?.[node];
     if (key.startsWith("c:")) return state.communityData[key.slice(2)]?.[node];
+    if (key.startsWith("a:")) return nodeAttrVal(node, key.slice(2));
     return undefined;
 }
 
 function edgeColumns() {
     const cols = [{ key: "source", label: "source" }, { key: "target", label: "target" }];
+    // For multigraphs, expose each parallel edge's stable id so the rows can be told apart.
+    if (state.graph && state.graph.multi) cols.push({ key: "edgeid", label: "edge id" });
     if (state.weighted) cols.push({ key: "weight", label: "weight" });
+    // Attribute columns come before the computed pair-metric columns.
+    edgeAttrDefs().forEach((d) => cols.push({ key: "ea:" + d.name, label: d.name }));
     state.pairOrder.forEach((m) => cols.push({ key: "p:" + m, label: m }));
+    cols.push({ key: "_act", label: "" });   // trailing remove-row column
     return cols;
 }
 
 function edgeRowValue(edge, key) {
     const g = state.graph;
     const s = g.source(edge), t = g.target(edge);
-    if (key === "source") return Number(s);
-    if (key === "target") return Number(t);
+    if (key === "source") return idValue(s);
+    if (key === "target") return idValue(t);
+    if (key === "edgeid") return idValue(edge);
     if (key === "weight") return g.getEdgeAttribute(edge, "weight");
     if (key.startsWith("p:")) return state.pairData[key.slice(2)]?.[pairKey(s, t)];
+    if (key.startsWith("ea:")) return edgeAttrVal(edge, key.slice(3));
     return undefined;
+}
+
+// Node ids are arbitrary strings: sort them numerically when they look like numbers, lexicographically otherwise.
+function idValue(id) {
+    const n = Number(id);
+    return (id !== "" && !Number.isNaN(n)) ? n : id;
 }
 
 const TABLE_IDS = { nodes: "nodes-table", edges: "edges-table" };
@@ -1276,6 +1518,7 @@ function buildHeader(key, cols) {
     const sortRow = document.createElement("tr");
     cols.forEach((c) => {
         const th = document.createElement("th");
+        if (c.key === "_act") { th.className = "act-th"; sortRow.appendChild(th); return; }
         th.className = "sort-th";
         th.dataset.col = c.key;
         th.dataset.label = c.label;
@@ -1294,6 +1537,7 @@ function buildHeader(key, cols) {
     filterRow.className = "filter-row";
     cols.forEach((c) => {
         const th = document.createElement("th");
+        if (c.key === "_act") { filterRow.appendChild(th); return; }   // no filter on the actions column
         const wrap = document.createElement("div");
         wrap.className = "colfilter";
         const sel = document.createElement("select");
@@ -1307,6 +1551,17 @@ function buildHeader(key, cols) {
         sel.addEventListener("change", apply);
         inp.addEventListener("input", apply);
         wrap.append(sel, inp);
+        // Attribute columns get a remove (✕) control in the header.
+        const isAttr = (key === "nodes" && c.key.startsWith("a:")) || (key === "edges" && c.key.startsWith("ea:"));
+        if (isAttr) {
+            const rm = document.createElement("button");
+            rm.textContent = "✕";
+            rm.className = "col-remove";
+            rm.title = "Remove attribute column";
+            const name = c.key.slice(c.key.indexOf(":") + 1);
+            rm.addEventListener("click", () => removeAttrColumn(key === "nodes" ? "node" : "edge", name));
+            wrap.appendChild(rm);
+        }
         th.appendChild(wrap);
         filterRow.appendChild(th);
     });
@@ -1342,8 +1597,22 @@ function renderBody(key) {
         const tr = document.createElement("tr");
         for (const c of model.cols) {
             const td = document.createElement("td");
+            if (c.key === "_act") {
+                const rm = document.createElement("button");
+                rm.className = "row-remove";
+                rm.textContent = "✕";
+                rm.title = key === "nodes" ? "Remove node" : "Remove edge";
+                rm.addEventListener("click", () => (key === "nodes" ? removeNodeFromTable(id) : removeEdgeFromTable(id)));
+                td.appendChild(rm);
+                tr.appendChild(td);
+                continue;
+            }
             const v = model.val(id, c.key);
             td.textContent = v === undefined || v === null ? "" : fmt(v);
+            // The node id is renamable; attribute columns (a:/ea:) are editable; metric/intrinsic columns are not.
+            if (key === "nodes" && c.key === "id") makeEditableCell(td, "Click to rename", (cell) => commitRename(id, cell));
+            else if (key === "nodes" && c.key.startsWith("a:")) makeAttrEditable(td, "nodes", id, c.key.slice(2));
+            else if (key === "edges" && c.key.startsWith("ea:")) makeAttrEditable(td, "edges", id, c.key.slice(3));
             tr.appendChild(td);
         }
         tbody.appendChild(tr);
@@ -1367,6 +1636,154 @@ function clearFilters(key) {
     state.tables[key].page = 0;
     renderTable(key);
     applyReducers();
+}
+
+/* -------------------------- inline attribute editing -------------------- */
+
+// Makes a table cell editable: commit on Enter/blur (via the callback), revert on Escape.
+function makeEditableCell(td, title, commit) {
+    td.contentEditable = "true";
+    td.classList.add("editable");
+    td.title = title;
+    td.addEventListener("focus", () => { td.dataset.orig = td.textContent; });
+    td.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); td.blur(); }
+        else if (e.key === "Escape") { e.preventDefault(); td.textContent = td.dataset.orig || ""; td.blur(); }
+    });
+    td.addEventListener("blur", () => commit(td));
+}
+
+function makeAttrEditable(td, kind, id, name) {
+    makeEditableCell(td, "Click to edit", () => commitAttrEdit(kind, id, name, td));
+}
+
+// Renames a node: persists on the server, then reloads the graph (preserving positions). Already-computed results
+// are re-keyed (old id → new id) so the metric columns and appearance survive the rename.
+async function commitRename(oldId, td) {
+    const newId = td.textContent.trim();
+    if (!newId || newId === oldId) { td.textContent = oldId; return; }
+    if (state.graph.hasNode(newId)) { setStatus("Node " + newId + " already exists.", "error"); td.textContent = oldId; return; }
+    try {
+        const pos = {};
+        state.graph.forEachNode((n, a) => { pos[n] = { x: a.x, y: a.y }; });
+        pos[newId] = pos[oldId];
+        delete pos[oldId];
+
+        await api("/api/graph/" + state.graphId + "/node/rename", jsonBody({ old: oldId, new: newId }));
+        rekeyComputedData(oldId, newId);
+        const data = await api("/api/graph/" + state.graphId);          // reload with the new id
+        state.attrSchema = data.schema || state.attrSchema;
+        if (state.selectedNode === oldId) { state.selectedNode = newId; state.selection.node = newId; }
+
+        renderGraph(data.graph);
+        state.graph.forEachNode((n) => { if (pos[n]) { state.graph.setNodeAttribute(n, "x", pos[n].x); state.graph.setNodeAttribute(n, "y", pos[n].y); } });
+        if (data.stats) { $("ov-nodes").textContent = data.stats.nodes; $("ov-edges").textContent = data.stats.edges; }
+        state.pathFocus = null;
+
+        rebuildAppearanceOptions();
+        applyAppearance();
+        refreshAfterCompute();
+        applyReducers();
+        if (state.renderer) state.renderer.refresh();
+        if (state.selectedNode === newId) { $("select-node-input").value = newId; renderNodeInfo(newId); }
+        setStatus("Renamed " + oldId + " → " + newId + ".");
+    } catch (e) {
+        setStatus(e.message, "error");
+        td.textContent = oldId;
+    }
+}
+
+// Rewrites computed-result keys after a node rename so previously-computed values are kept.
+function rekeyComputedData(oldId, newId) {
+    const renameNodeKey = (m) => {
+        if (m && Object.prototype.hasOwnProperty.call(m, oldId)) { m[newId] = m[oldId]; delete m[oldId]; }
+    };
+    state.metricOrder.forEach((label) => renameNodeKey(state.metricData[label]));      // vertex metrics
+    Object.keys(state.communityData).forEach((algo) => renameNodeKey(state.communityData[algo]));  // community colours
+    // Pair/edge metric maps are keyed by "source|target".
+    state.pairOrder.forEach((label) => {
+        const m = state.pairData[label];
+        if (!m) return;
+        for (const k of Object.keys(m)) {
+            const i = k.indexOf("|");
+            const s = k.slice(0, i), t = k.slice(i + 1);
+            if (s !== oldId && t !== oldId) continue;
+            const nk = (s === oldId ? newId : s) + "|" + (t === oldId ? newId : t);
+            if (nk !== k) { m[nk] = m[k]; delete m[k]; }
+        }
+    });
+}
+
+/* --------------------- add / remove attribute columns ------------------- */
+
+async function addAttrColumn(target) {
+    if (!requireGraph()) return;
+    const nameId = target === "edge" ? "add-edge-attr-name" : "add-node-attr-name";
+    const typeId = target === "edge" ? "add-edge-attr-type" : "add-node-attr-type";
+    const name = $(nameId).value.trim();
+    if (!name) { setStatus("Enter an attribute name.", "error"); return; }
+    try {
+        const res = await api("/api/graph/" + state.graphId + "/attributes/define",
+            jsonBody({ target, name, type: $(typeId).value }));
+        state.attrSchema = res.schema || state.attrSchema;
+        $(nameId).value = "";
+        state.tables.nodes.headerSig = null;
+        state.tables.edges.headerSig = null;
+        rebuildAppearanceOptions();
+        renderTable(state.activeTableSubtab);
+        setStatus("Added attribute " + name + ".");
+    } catch (e) { setStatus(e.message, "error"); }
+}
+
+async function removeAttrColumn(target, name) {
+    if (!window.confirm('Remove attribute "' + name + '"? This deletes its values.')) return;
+    try {
+        const res = await api("/api/graph/" + state.graphId + "/attributes/remove", jsonBody({ target, name }));
+        state.attrSchema = res.schema || state.attrSchema;
+        state.tables.nodes.headerSig = null;
+        state.tables.edges.headerSig = null;
+        rebuildAppearanceOptions();
+        applyAppearance();
+        renderTable(state.activeTableSubtab);
+        setStatus("Removed attribute " + name + ".");
+    } catch (e) { setStatus(e.message, "error"); }
+}
+
+// Parses an edited value to match the attribute's declared type and writes it into an "attrs" object
+// (an empty value clears the attribute).
+function applyLocalAttr(attrs, name, raw, defs) {
+    if (raw === "") { delete attrs[name]; return; }
+    const d = defs.find((x) => x.name === name);
+    if (d && d.numeric) { const n = Number(raw); attrs[name] = Number.isNaN(n) ? raw : n; }
+    else if (d && d.type === "bool") { attrs[name] = /^(true|1|yes|y|t)$/i.test(raw); }
+    else attrs[name] = raw;
+}
+
+// Commits an edited attribute cell to the server and updates the live graph (and appearance).
+async function commitAttrEdit(kind, id, name, td) {
+    const raw = td.textContent.trim();
+    if (td.dataset.orig !== undefined && raw === td.dataset.orig.trim()) return; // unchanged
+    const g = state.graph;
+    const value = raw === "" ? null : raw;
+    try {
+        if (kind === "nodes") {
+            await api("/api/graph/" + state.graphId + "/attributes/node", jsonBody({ node: id, name, value }));
+            const attrs = Object.assign({}, g.getNodeAttribute(id, "attrs") || {});
+            applyLocalAttr(attrs, name, raw, nodeAttrDefs());
+            g.setNodeAttribute(id, "attrs", attrs);
+        } else {
+            const s = g.source(id), t = g.target(id);
+            await api("/api/graph/" + state.graphId + "/attributes/edge", jsonBody({ source: s, target: t, edgeId: id, name, value }));
+            const attrs = Object.assign({}, g.getEdgeAttribute(id, "attrs") || {});
+            applyLocalAttr(attrs, name, raw, edgeAttrDefs());
+            g.setEdgeAttribute(id, "attrs", attrs);
+        }
+        applyAppearance();   // the edited attribute may drive size / colour / labels
+        setStatus("Updated " + name + ".");
+    } catch (e) {
+        setStatus(e.message, "error");
+        td.textContent = td.dataset.orig || "";   // revert on failure
+    }
 }
 
 /* ----------------------------- pagination -------------------------- */
@@ -1741,7 +2158,8 @@ function download(filename, content, mime) {
 function exportTableCsv(key, filename) {
     if (!state.graph) return;
     const { model, ids } = tableRows(key);
-    download(filename, buildCsv(model.cols, ids, model.val), "text/csv");
+    const cols = model.cols.filter((c) => c.key !== "_act");   // drop the actions column from the export
+    download(filename, buildCsv(cols, ids, model.val), "text/csv");
 }
 
 function exportNodesCsv() { exportTableCsv("nodes", "nodes.csv"); }
@@ -1937,12 +2355,84 @@ async function addEdgeFromTable() {
     editAddEdge(source, target, weight);
 }
 
+/* ---------------------------- attributes ---------------------------- */
+
+// Uploads a node/edge attribute (TSV/CSV) file and merges the result in place (preserving the layout).
+async function uploadAttributeFile(kind, file) {
+    if (!requireGraph()) return;
+    if (!file) { setStatus("Choose an attribute file first.", "error"); return; }
+    const form = new FormData();
+    form.append("file", file);
+    setStatus("Importing " + kind + " attributes…", "busy");
+    try {
+        const res = await api("/api/graph/" + state.graphId + "/attributes/" + kind, { method: "POST", body: form });
+        state.attrSchema = res.schema || state.attrSchema;
+        mergeAttributes(res.graph);            // patch values in place so the layout is preserved
+        state.tables.nodes.headerSig = null;
+        state.tables.edges.headerSig = null;
+        rebuildAppearanceOptions();
+        applyAppearance();
+        refreshAfterCompute();
+        if (state.selectedNode != null) renderNodeInfo(state.selectedNode);
+        const defs = kind === "edges" ? edgeAttrDefs() : nodeAttrDefs();
+        setStatus("Imported " + defs.length + " " + kind.slice(0, -1) + " attribute(s).");
+    } catch (e) {
+        setStatus(e.message, "error");
+    }
+}
+
+// Toolbar "Add …"/"Add column" toggles: reveal the second row with the relevant fields (or hide if re-clicked).
+function toggleAddGroup(prefix, group) {
+    const row = $(prefix + "-addrow");
+    const next = (row.dataset.mode || "") === group ? "" : group;
+    row.dataset.mode = next;
+    row.hidden = next === "";
+    $(prefix + "-add-main").hidden = next !== "main";
+    $(prefix + "-add-col").hidden = next !== "col";
+    const focusId = next === "col"
+        ? (prefix === "edges" ? "add-edge-attr-name" : "add-node-attr-name")
+        : (prefix === "edges" ? "add-edge-source" : "add-node-id");
+    if (next) { const el = $(focusId); if (el) el.focus(); }
+}
+
+// Copies the attribute values from a freshly-serialized graph onto the live graph, keyed by node/edge identity,
+// so imported attributes appear without re-importing the graph (which would reset node positions).
+function mergeAttributes(serialized) {
+    const g = state.graph;
+    if (!g || !serialized) return;
+    (serialized.nodes || []).forEach((nd) => {
+        if (g.hasNode(nd.key)) g.setNodeAttribute(nd.key, "attrs", (nd.attributes && nd.attributes.attrs) || {});
+    });
+    (serialized.edges || []).forEach((ed) => {
+        const attrs = (ed.attributes && ed.attributes.attrs) || {};
+        // Multigraph edges carry a stable key, so each parallel edge is matched individually.
+        if (ed.key !== undefined && g.hasEdge(ed.key)) { g.setEdgeAttribute(ed.key, "attrs", attrs); return; }
+        if (!g.hasEdge(ed.source, ed.target)) return;
+        let e;
+        try { e = g.edge(ed.source, ed.target); }
+        catch (_) { const es = g.edges(ed.source, ed.target); e = es && es[0]; }
+        if (e !== undefined) g.setEdgeAttribute(e, "attrs", attrs);
+    });
+}
+
 /* ------------------------------- theme ------------------------------ */
+
+// Swaps the topbar + import logos to the dark-mode artwork when in dark theme, falling back to the light logo if
+// the dark file is not present (so a missing asset never shows a broken image).
+function applyLogo(dark) {
+    const light = "img/relison-full-logo.png";
+    const src = dark ? "img/relison-full-logo-dark.png" : light;
+    document.querySelectorAll("#logo, .import-logo").forEach((img) => {
+        img.onerror = () => { img.onerror = null; img.src = light; };
+        img.src = src;
+    });
+}
 
 function applyTheme(theme) {
     const light = theme === "light";
     document.body.classList.toggle("light", light);
     $("theme-toggle").textContent = light ? "☀️" : "🌙";
+    applyLogo(!light);
     try { localStorage.setItem("relison-theme", theme); } catch (e) { /* ignore */ }
     // Charts are drawn imperatively, so re-render the visible one with the new palette.
     if (state.activeTab === "metrics") {
@@ -1963,6 +2453,15 @@ function toggleTheme() {
     applyTheme(saved);
 })();
 
+// Default label colours to a readable value for the current theme (white-ish on dark, dark on light).
+(function initLabelColors() {
+    const def = document.body.classList.contains("light") ? "#1c1d20" : "#e6e6e6";
+    $("node-label-color").value = def;
+    $("edge-label-color").value = def;
+    state.labelOpts.nodeColor = def;
+    state.labelOpts.edgeColor = def;
+})();
+
 /* ------------------------------- wiring ----------------------------- */
 
 $("btn-load").addEventListener("click", loadGraph);
@@ -1978,6 +2477,13 @@ $("edge-color-mode").addEventListener("change", (e) => {
     applyAppearance();
 });
 $("edge-color-single").addEventListener("input", applyAppearance);
+["node-size-min", "node-size-max", "edge-size-min", "edge-size-max"].forEach((id) => $(id).addEventListener("input", applyAppearance));
+["node-label-show", "node-label-size", "node-label-prop", "node-label-color", "node-label-font",
+ "edge-label-show", "edge-label-size", "edge-label-prop", "edge-label-color", "edge-label-font"]
+    .forEach((id) => $(id).addEventListener("input", syncLabelOpts));
+$("btn-zoom-in").addEventListener("click", zoomIn);
+$("btn-zoom-out").addEventListener("click", zoomOut);
+$("btn-zoom-fit").addEventListener("click", zoomFit);
 $("btn-vertex").addEventListener("click", runVertexMetric);
 $("btn-graph").addEventListener("click", runGraphMetric);
 $("btn-pair").addEventListener("click", runPairMetric);
@@ -2022,6 +2528,20 @@ $("btn-export-pair-averages").addEventListener("click", exportPairAveragesCsv);
 $("btn-export-comm-averages").addEventListener("click", () => exportCommAveragesCsv());
 $("btn-add-node").addEventListener("click", addNodeFromTable);
 $("btn-add-edge").addEventListener("click", addEdgeFromTable);
+$("btn-add-node-attr").addEventListener("click", () => addAttrColumn("node"));
+$("btn-add-edge-attr").addEventListener("click", () => addAttrColumn("edge"));
+
+// Toolbar "Add …" / "Add column" toggles (reveal the second row).
+$("btn-node-add-toggle").addEventListener("click", () => toggleAddGroup("nodes", "main"));
+$("btn-node-col-toggle").addEventListener("click", () => toggleAddGroup("nodes", "col"));
+$("btn-edge-add-toggle").addEventListener("click", () => toggleAddGroup("edges", "main"));
+$("btn-edge-col-toggle").addEventListener("click", () => toggleAddGroup("edges", "col"));
+
+// Import CSV from the table toolbars (reuses the attribute upload).
+$("btn-import-nodes-csv").addEventListener("click", () => $("node-csv-file").click());
+$("btn-import-edges-csv").addEventListener("click", () => $("edge-csv-file").click());
+$("node-csv-file").addEventListener("change", (e) => { uploadAttributeFile("nodes", e.target.files[0]); e.target.value = ""; });
+$("edge-csv-file").addEventListener("change", (e) => { uploadAttributeFile("edges", e.target.files[0]); e.target.value = ""; });
 
 $("btn-clear-nodes-filters").addEventListener("click", () => clearFilters("nodes"));
 $("btn-clear-edges-filters").addEventListener("click", () => clearFilters("edges"));
@@ -2048,5 +2568,5 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
-switchTab(state.activeTab); // set initial right-panel visibility for the default (Network) tab
+switchTab(state.activeTab); // start on the Import tab with the side panels hidden
 loadCatalog();

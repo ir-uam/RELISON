@@ -28,7 +28,7 @@ import es.uam.eps.ir.relison.grid.links.recommendation.rerankers.swap.graph.comm
 import es.uam.eps.ir.relison.grid.links.recommendation.rerankers.swap.graph.comms.gini.degree.InterCommunityDegreeGiniRerankerGridSearch;
 import es.uam.eps.ir.relison.grid.links.recommendation.rerankers.swap.graph.comms.gini.degree.InterCommunityOuterDegreeGiniRerankerGridSearch;
 import es.uam.eps.ir.relison.grid.links.recommendation.rerankers.swap.graph.comms.gini.degree.sizenorm.SizeNormCompleteCommunityDegreeGiniRerankerGridSearch;
-import es.uam.eps.ir.relison.grid.links.recommendation.rerankers.swap.graph.comms.gini.degree.sizenorm.SizeNormCompleteCommunityOuterDegreeGiniRerankerGridSearch;
+import es.uam.eps.ir.relison.grid.links.recommendation.rerankers.swap.graph.comms.gini.degree.sizenorm.SizeNormInterCommunityOuterDegreeGiniRerankerGridSearch;
 import es.uam.eps.ir.relison.grid.links.recommendation.rerankers.swap.graph.comms.gini.degree.sizenorm.SizeNormInterCommunityDegreeGiniRerankerGridSearch;
 import es.uam.eps.ir.relison.grid.links.recommendation.rerankers.swap.graph.comms.gini.degree.sizenorm.SizeNormInterCommunityOuterDegreeGiniRerankerGridSearch;
 import es.uam.eps.ir.relison.grid.links.recommendation.rerankers.swap.graph.comms.gini.edge.*;
@@ -231,7 +231,6 @@ public class RerankerGridSelector<U>
             case SNICDEGREEGINI -> new SizeNormInterCommunityDegreeGiniRerankerGridSearch<>();
             case OUTERSNICDEGREEGINI -> new SizeNormInterCommunityOuterDegreeGiniRerankerGridSearch<>();
             case SNCDEGREEGINI -> new SizeNormCompleteCommunityDegreeGiniRerankerGridSearch<>();
-            case OUTERSNCDEGREEGINI -> new SizeNormCompleteCommunityOuterDegreeGiniRerankerGridSearch<>();
             case ICEDGEGINI -> new InterCommunityEdgeGiniRerankerGridSearch<>();
             case OUTERICEDGEGINI -> new InterCommunityOuterEdgeGiniRerankerGridSearch<>();
             case CEDGEGINI -> new CompleteCommunityEdgeGiniRerankerGridSearch<>();
@@ -245,7 +244,6 @@ public class RerankerGridSelector<U>
             case SNCEDGEGINI -> new SizeNormCompleteCommunityEdgeGiniRerankerGridSearch<>();
             case OUTERSNCEDGEGINI -> new SizeNormCompleteCommunityOuterEdgeGiniRerankerGridSearch<>();
             case SNSCEDGEGINI -> new SizeNormSemiCompleteCommunityEdgeGiniRerankerGridSearch<>();
-            case OUTERSNSCEDGEGINI -> new SizeNormSemiCompleteCommunityOuterEdgeGiniRerankerGridSearch<>();
             default -> null;
         };
     }

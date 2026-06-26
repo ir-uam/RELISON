@@ -93,6 +93,21 @@ public interface MultiGraph<U> extends Graph<U>
     List<Integer> getEdgeTypes(U nodeA, U nodeB);
 
     /**
+     * Gets the stable identifiers of the parallel edges between two nodes, aligned with {@link #getEdgeWeights} and
+     * {@link #getEdgeTypes}. These identifiers remain valid for a parallel edge even when other parallel edges
+     * between the same pair are removed, so they can be used to attach external per-edge data.
+     *
+     * @param nodeA The first node of the pair.
+     * @param nodeB The second node of the pair.
+     *
+     * @return the list of stable edge identifiers, or an empty list if the edge does not exist.
+     */
+    default List<Long> getEdgeIds(U nodeA, U nodeB)
+    {
+        return java.util.Collections.emptyList();
+    }
+
+    /**
      * Gets the different weights for the edges of the incident nodes.
      *
      * @param node The node to study
@@ -134,6 +149,40 @@ public interface MultiGraph<U> extends Graph<U>
     default boolean isMultigraph()
     {
         return true;
+    }
+
+    /**
+     * Sets the value of an attribute on a specific parallel edge between two nodes, identified by its index among
+     * the parallel edges (the same index used by {@link #removeEdge(Object, Object, int)} and aligned with
+     * {@link #getEdgeIds}). A {@code null} value clears it.
+     *
+     * @param nodeA the incident node.
+     * @param nodeB the adjacent node.
+     * @param idx   the index of the parallel edge.
+     * @param name  the attribute name (must have been declared with {@link #defineEdgeAttribute}).
+     * @param value the value, or {@code null} to clear it.
+     *
+     * @return true if the value was set, false if the parallel edge or the attribute does not exist.
+     */
+    default boolean setEdgeAttribute(U nodeA, U nodeB, int idx, String name, Object value)
+    {
+        throw new UnsupportedOperationException("Per-parallel-edge attributes are not supported by this graph.");
+    }
+
+    /**
+     * Obtains the value of an attribute on a specific parallel edge between two nodes, identified by its index among
+     * the parallel edges.
+     *
+     * @param nodeA the incident node.
+     * @param nodeB the adjacent node.
+     * @param idx   the index of the parallel edge.
+     * @param name  the attribute name.
+     *
+     * @return the value, or {@code null} if unset.
+     */
+    default Object getEdgeAttribute(U nodeA, U nodeB, int idx, String name)
+    {
+        throw new UnsupportedOperationException("Per-parallel-edge attributes are not supported by this graph.");
     }
 
     /**

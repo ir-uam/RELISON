@@ -61,6 +61,18 @@ public interface MultiEdges
     List<Integer> getEdgeTypes(int orig, int dest);
 
     /**
+     * Gets the stable identifiers of the parallel edges between two nodes, aligned with {@link #getEdgeWeights} and
+     * {@link #getEdgeTypes} (i.e. position {@code i} of all three lists describes the same parallel edge). Unlike the
+     * positional index, these identifiers do not change when other parallel edges between the pair are removed.
+     *
+     * @param orig The origin endpoint.
+     * @param dest The destiny endpoint.
+     *
+     * @return the list of stable edge identifiers, or an empty list if the edge does not exist.
+     */
+    List<Long> getEdgeIds(int orig, int dest);
+
+    /**
      * Gets the incoming neighbourhood of a node.
      *
      * @param node The node.

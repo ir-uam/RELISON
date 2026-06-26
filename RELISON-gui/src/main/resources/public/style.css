@@ -8,6 +8,7 @@
     --accent: #4f9dff;
     --accent-2: #2d7d46;
     --canvas-bg: #18191c;
+    --topbar-bg: #2b2d31;
     --topbar-h: 64px;
     --tabbar-h: 38px;
 }
@@ -20,6 +21,7 @@ body.light {
     --text: #1c1d20;
     --muted: #5f6469;
     --canvas-bg: #ffffff;
+    --topbar-bg: #ffffff;
 }
 
 * { box-sizing: border-box; }
@@ -39,12 +41,12 @@ html, body {
     gap: 14px;
     height: var(--topbar-h);
     padding: 6px 16px;
-    background: #fff;
+    background: var(--topbar-bg);
     border-bottom: 1px solid var(--border);
 }
 #logo { height: 46px; width: auto; display: block; }
-.status { margin-left: auto; color: #555; font-size: 12px; }
-.icon-btn { width: auto; margin: 0; padding: 4px 10px; font-size: 16px; line-height: 1; background: #f0f1f3; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; }
+.status { margin-left: auto; color: var(--muted); font-size: 12px; }
+.icon-btn { width: auto; margin: 0; padding: 4px 10px; font-size: 16px; line-height: 1; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
 .icon-btn:hover { border-color: var(--accent); }
 .status.error { color: #d23; }
 .status.busy { color: #2667c7; }
@@ -91,6 +93,7 @@ html, body {
 .params label > span { white-space: nowrap; }
 .params select, .params input[type="number"] { width: 130px; }
 .params input[type="checkbox"] { width: auto; }
+.params input[type="color"] { width: 44px; height: 26px; padding: 0; cursor: pointer; }
 #right select { margin-bottom: 6px; }
 
 .block { padding: 12px 14px; border-bottom: 1px solid var(--border); }
@@ -139,6 +142,34 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 #pane-network { background: var(--canvas-bg); }
 #sigma-container { position: absolute; inset: 0; }
+
+/* Import landing pane: a single centered card, no side panels. */
+#pane-import { overflow: auto; background: var(--bg); }
+#pane-import.active { display: flex; align-items: flex-start; justify-content: center; }
+.import-card {
+    width: 460px;
+    max-width: 92%;
+    margin: 40px 0;
+    padding: 28px 30px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+.import-logo { display: block; max-width: 280px; height: auto; margin: 0 auto 20px; }
+.import-card h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
+.import-card .field { margin-bottom: 12px; }
+.import-card #overview { margin-top: 12px; }
+
+/* Floating canvas controls (zoom / fit). */
+#canvas-tools { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
+.canvas-btn {
+    width: 34px; height: 34px; margin: 0; padding: 0;
+    font-size: 18px; line-height: 1; text-align: center;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+.canvas-btn:hover { border-color: var(--accent); }
 #empty-hint {
     position: absolute;
     inset: 0;
@@ -169,6 +200,19 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .toolbar input[type="text"], .toolbar input[type="number"] { width: 130px; }
 .toolbar button { width: auto; margin-bottom: 0; }
 .toolbar .filter { margin-left: auto; width: 180px; }
+.toolbar.subrow { margin-top: -2px; padding: 6px 8px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; }
+.addgroup { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.addgroup input[type="text"], .addgroup input[type="number"] { width: 150px; }
+.addgroup select { width: auto; }
+
+/* Per-row remove button in the tables' actions column. */
+table.data .row-remove {
+    width: auto; margin: 0; padding: 1px 7px; font-size: 11px; line-height: 1.3;
+    background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; cursor: pointer;
+}
+table.data .row-remove:hover { color: #fff; background: #c0392b; border-color: #c0392b; }
+table.data th.act-th { width: 1%; }
+table.data td:last-child { text-align: center; }
 
 .pagination { display: flex; gap: 8px; align-items: center; padding: 8px 0 0; flex: 0 0 auto; flex-wrap: wrap; }
 .pagination button { width: auto; margin: 0; padding: 4px 10px; }
@@ -196,12 +240,20 @@ table.data thead th {
 table.data thead th.sort-th { cursor: pointer; }
 table.data thead th.sort-th:hover { color: var(--text); }
 table.data tbody tr:hover { background: rgba(79,157,255,0.08); }
+table.data td.editable { cursor: text; }
+table.data td.editable:hover { outline: 1px dashed var(--accent); outline-offset: -1px; }
+table.data td.editable:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--panel-2); }
 
 /* Per-column filter row inside the header */
 table.data thead tr.filter-row th { padding: 3px 4px; background: var(--panel-2); top: 24px; }
 table.data thead tr.filter-row .colfilter { display: flex; gap: 3px; }
 table.data thead tr.filter-row select { width: auto; flex: 0 0 auto; padding: 2px; font-size: 11px; }
 table.data thead tr.filter-row input { width: 100%; min-width: 60px; padding: 2px 4px; font-size: 11px; }
+table.data thead tr.filter-row .col-remove {
+    width: auto; flex: 0 0 auto; margin: 0; padding: 2px 5px; font-size: 10px; line-height: 1;
+    background: transparent; border: 1px solid var(--border); border-radius: 3px; color: var(--muted); cursor: pointer;
+}
+table.data thead tr.filter-row .col-remove:hover { color: #fff; background: #c0392b; border-color: #c0392b; }
 
 /* Paths pane */
 #pane-paths { display: none; flex-direction: column; padding: 14px; }

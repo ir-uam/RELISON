@@ -35,20 +35,40 @@ public abstract class FastMultiEdges implements MultiEdges
      */
     protected final AutoRelation<List<Integer>> types;
     /**
+     * Relation for storing the stable identifiers of the parallel edges, aligned (by position) with the weight and
+     * type lists. Unlike the positional index, these identifiers survive the removal of other parallel edges.
+     */
+    protected final AutoRelation<List<Long>> ids;
+    /**
      * Number of edges.
      */
     protected long numEdges = 0L;
+    /**
+     * Counter handing out the next stable edge identifier. Monotonically increasing; identifiers are never reused.
+     */
+    protected long nextId = 0L;
 
     /**
      * Constructor.
      *
      * @param weights The weights of the edges.
      * @param types   The types of the edges
+     * @param ids     The stable identifiers of the edges.
      */
-    public FastMultiEdges(AutoRelation<List<Double>> weights, AutoRelation<List<Integer>> types)
+    public FastMultiEdges(AutoRelation<List<Double>> weights, AutoRelation<List<Integer>> types, AutoRelation<List<Long>> ids)
     {
         this.weights = weights;
         this.types = types;
+        this.ids = ids;
+    }
+
+    /**
+     * Hands out the next stable edge identifier.
+     * @return a fresh, never-reused edge identifier.
+     */
+    protected long nextId()
+    {
+        return this.nextId++;
     }
 
     @Override
@@ -75,9 +95,16 @@ public abstract class FastMultiEdges implements MultiEdges
     }
 
     @Override
+    public List<Long> getEdgeIds(int orig, int dest)
+    {
+        List<Long> value = this.ids.getValue(orig, dest);
+        return value == null ? new java.util.ArrayList<>() : value;
+    }
+
+    @Override
     public boolean addUser(int node)
     {
-        return this.weights.addFirstItem(node) && this.types.addFirstItem(node);
+        return this.weights.addFirstItem(node) && this.types.addFirstItem(node) && this.ids.addFirstItem(node);
     }
 
     @Override

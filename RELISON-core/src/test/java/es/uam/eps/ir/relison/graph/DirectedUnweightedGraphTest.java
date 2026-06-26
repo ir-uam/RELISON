@@ -383,15 +383,25 @@ public class DirectedUnweightedGraphTest
         // Check if the links are mutual
         assertEquals(graph.getEdgeCount(), numPref + numMutualPref);
 
+        // Guard the random sampling: the generated data may contain no mutual (or no non-mutual) edges, in which
+        // case nextInt(0) would throw "bound must be positive".
+        int mutualCount = numMutualPref;
+        int nonMutualCount = numPref - numMutualPref;
         IntStream.range(0, rnd.nextInt(1000)).forEach(i ->
                                                       {
-                                                          int mutual = rnd.nextInt(numMutualPref);
-                                                          assertTrue(graph.isMutual(mutualPrefs.get(mutual).v1, mutualPrefs.get(mutual).v2));
-                                                          assertTrue(graph.isMutual(mutualPrefs.get(mutual).v2, mutualPrefs.get(mutual).v1));
-                                                          int nonmutual = rnd.nextInt(numPref - numMutualPref);
-                                                          assertTrue(graph.containsEdge(nonMutualPrefs.get(nonmutual).v1, nonMutualPrefs.get(nonmutual).v2));
-                                                          assertFalse(graph.isMutual(nonMutualPrefs.get(nonmutual).v1, nonMutualPrefs.get(nonmutual).v2));
-                                                          assertFalse(graph.isMutual(nonMutualPrefs.get(nonmutual).v2, nonMutualPrefs.get(nonmutual).v1));
+                                                          if (mutualCount > 0)
+                                                          {
+                                                              int mutual = rnd.nextInt(mutualCount);
+                                                              assertTrue(graph.isMutual(mutualPrefs.get(mutual).v1, mutualPrefs.get(mutual).v2));
+                                                              assertTrue(graph.isMutual(mutualPrefs.get(mutual).v2, mutualPrefs.get(mutual).v1));
+                                                          }
+                                                          if (nonMutualCount > 0)
+                                                          {
+                                                              int nonmutual = rnd.nextInt(nonMutualCount);
+                                                              assertTrue(graph.containsEdge(nonMutualPrefs.get(nonmutual).v1, nonMutualPrefs.get(nonmutual).v2));
+                                                              assertFalse(graph.isMutual(nonMutualPrefs.get(nonmutual).v1, nonMutualPrefs.get(nonmutual).v2));
+                                                              assertFalse(graph.isMutual(nonMutualPrefs.get(nonmutual).v2, nonMutualPrefs.get(nonmutual).v1));
+                                                          }
                                                       });
 
         mutuals.keySet().forEach(key -> assertEquals(graph.getMutualNodesCount(key), mutuals.get(key).intValue()));

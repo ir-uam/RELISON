@@ -12,6 +12,8 @@ package es.uam.eps.ir.relison.graph.fast;
 import es.uam.eps.ir.ranksys.fast.preference.IdxPref;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.Weight;
+import es.uam.eps.ir.relison.graph.attributes.AttributeStore;
+import es.uam.eps.ir.relison.graph.attributes.AttributeType;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.edges.EdgeType;
 import es.uam.eps.ir.relison.graph.edges.Edges;
@@ -22,6 +24,8 @@ import es.uam.eps.ir.relison.graph.generator.exception.GeneratorNotConfiguredExc
 import es.uam.eps.ir.relison.index.Index;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -45,6 +49,15 @@ public abstract class AbstractFastGraph<V> implements FastGraph<V>, Serializable
      * Edges in the network.
      */
     protected final Edges edges;
+    /**
+     * Store of node attributes, keyed by the vertex. Lazily created on first use (it may be {@code null} for
+     * graphs that never use attributes, including those deserialized from streams written before attributes existed).
+     */
+    private AttributeStore<V> nodeAttributes;
+    /**
+     * Store of edge attributes, keyed by a normalised (incident, adjacent) pair of vertices. Lazily created.
+     */
+    private AttributeStore<List<V>> edgeAttributes;
 
     /**
      * Constructor.
@@ -367,7 +380,12 @@ public abstract class AbstractFastGraph<V> implements FastGraph<V>, Serializable
     {
         int origIdx = this.vertices.object2idx(orig);
         int destIdx = this.vertices.object2idx(dest);
-        return this.edges.removeEdge(origIdx, destIdx);
+        boolean removed = this.edges.removeEdge(origIdx, destIdx);
+        if (removed && this.edgeAttributes != null)
+        {
+            this.edgeAttributes.removeKey(this.edgeKey(orig, dest));
+        }
+        return removed;
     }
 
     @Override
@@ -376,9 +394,154 @@ public abstract class AbstractFastGraph<V> implements FastGraph<V>, Serializable
         int uidx = this.vertices.object2idx(u);
         if (this.edges.removeNode(uidx))
         {
-            return this.vertices.removeObject(u) >= 0;
+            boolean removed = this.vertices.removeObject(u) >= 0;
+            if (removed)
+            {
+                if (this.nodeAttributes != null) this.nodeAttributes.removeKey(u);
+                if (this.edgeAttributes != null) this.edgeAttributes.removeKeysMatching(key -> key.contains(u));
+            }
+            return removed;
         }
         return false;
+    }
+
+    @Override
+    public boolean renameNode(V oldNode, V newNode)
+    {
+        if (oldNode.equals(newNode)) return true;
+        // Swap the object at the same index: every index-based edge stays valid; only attribute keys need remapping.
+        if (this.vertices.renameObject(oldNode, newNode) < 0) return false;
+        if (this.nodeAttributes != null) this.nodeAttributes.remapKeys(k -> k.equals(oldNode) ? newNode : k);
+        if (this.edgeAttributes != null)
+        {
+            this.edgeAttributes.remapKeys(key -> key.contains(oldNode)
+                    ? key.stream().map(x -> x.equals(oldNode) ? newNode : x).collect(java.util.stream.Collectors.toList())
+                    : key);
+        }
+        return true;
+    }
+
+    /* ------------------------------ attributes ------------------------------ */
+
+    /**
+     * Returns the node attribute store, creating it on first use.
+     * @return the node attribute store.
+     */
+    private AttributeStore<V> nodeAttr()
+    {
+        if (this.nodeAttributes == null) this.nodeAttributes = new AttributeStore<>();
+        return this.nodeAttributes;
+    }
+
+    /**
+     * Returns the edge attribute store, creating it on first use.
+     * @return the edge attribute store.
+     */
+    private AttributeStore<List<V>> edgeAttr()
+    {
+        if (this.edgeAttributes == null) this.edgeAttributes = new AttributeStore<>();
+        return this.edgeAttributes;
+    }
+
+    /**
+     * Builds the canonical key for an edge. For undirected graphs the endpoints are ordered by their vertex index so
+     * that (a,b) and (b,a) map to the same key; for directed graphs the order is preserved.
+     * @param a the incident node.
+     * @param b the adjacent node.
+     * @return the canonical edge key.
+     */
+    private List<V> edgeKey(V a, V b)
+    {
+        if (!this.isDirected() && this.vertices.object2idx(a) > this.vertices.object2idx(b))
+        {
+            V tmp = a;
+            a = b;
+            b = tmp;
+        }
+        return Arrays.asList(a, b);
+    }
+
+    @Override
+    public void defineNodeAttribute(String name, AttributeType type)
+    {
+        this.nodeAttr().define(name, type);
+    }
+
+    @Override
+    public boolean setNodeAttribute(V node, String name, Object value)
+    {
+        if (!this.containsVertex(node)) return false;
+        return this.nodeAttr().set(node, name, value);
+    }
+
+    @Override
+    public Object getNodeAttribute(V node, String name)
+    {
+        return this.nodeAttributes == null ? null : this.nodeAttributes.get(node, name);
+    }
+
+    @Override
+    public Stream<String> getNodeAttributeNames()
+    {
+        return this.nodeAttr().names();
+    }
+
+    @Override
+    public AttributeType getNodeAttributeType(String name)
+    {
+        return this.nodeAttr().type(name);
+    }
+
+    @Override
+    public Stream<Weight<V, Object>> getNodeAttributes(String name)
+    {
+        if (this.nodeAttributes == null) return Stream.empty();
+        return this.getAllNodes()
+                .map(n -> new Weight<>(n, this.nodeAttributes.get(n, name)))
+                .filter(w -> w.getValue() != null);
+    }
+
+    @Override
+    public boolean removeNodeAttribute(String name)
+    {
+        return this.nodeAttributes != null && this.nodeAttributes.undefine(name);
+    }
+
+    @Override
+    public void defineEdgeAttribute(String name, AttributeType type)
+    {
+        this.edgeAttr().define(name, type);
+    }
+
+    @Override
+    public boolean setEdgeAttribute(V nodeA, V nodeB, String name, Object value)
+    {
+        if (!this.containsEdge(nodeA, nodeB)) return false;
+        return this.edgeAttr().set(this.edgeKey(nodeA, nodeB), name, value);
+    }
+
+    @Override
+    public Object getEdgeAttribute(V nodeA, V nodeB, String name)
+    {
+        return this.edgeAttributes == null ? null : this.edgeAttributes.get(this.edgeKey(nodeA, nodeB), name);
+    }
+
+    @Override
+    public Stream<String> getEdgeAttributeNames()
+    {
+        return this.edgeAttr().names();
+    }
+
+    @Override
+    public AttributeType getEdgeAttributeType(String name)
+    {
+        return this.edgeAttr().type(name);
+    }
+
+    @Override
+    public boolean removeEdgeAttribute(String name)
+    {
+        return this.edgeAttributes != null && this.edgeAttributes.undefine(name);
     }
 
     @Override

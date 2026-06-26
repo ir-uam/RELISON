@@ -121,6 +121,20 @@ public class FastIndex<T> implements Index<T>
     }
 
     @Override
+    public int renameObject(T oldObj, T newObj)
+    {
+        int idx = t2imap.getInt(oldObj);
+        if (idx == -1 || t2imap.containsKey(newObj))
+        {
+            return -1;
+        }
+        t2imap.removeInt(oldObj);
+        t2imap.put(newObj, idx);
+        i2tmap.set(idx, newObj);
+        return idx;
+    }
+
+    @Override
     public IntStream getAllObjectsIds()
     {
         return IntStream.range(0, this.numObjects());

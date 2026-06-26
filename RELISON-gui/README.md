@@ -49,6 +49,12 @@ Load an edge list (e.g. the repository's `data/train.txt`, directed + weighted) 
 - Node identifiers can be arbitrary tokens (numeric or textual): they are read as strings (`Parsers.sp`), so no
   node-type configuration is needed. The node-id fields in the UI are searchable selectors — start typing an id to
   filter the matches.
+- Node and edge **attributes** can be imported from tab-separated sidecar files whose header declares the schema as
+  `name:type` columns (types: `int`, `long`, `double`, `bool`, `string`, `categorical`), e.g.
+  `id<TAB>age:int<TAB>country:categorical` for nodes and `source<TAB>target<TAB>since:long` for edges. Imported
+  attributes appear as table columns, can be filtered, and can drive node size / colour (numeric → ramp,
+  categorical → distinct colours) and edge thickness. For multigraphs, consecutive rows for the same
+  `source<TAB>target` map to that pair's parallel edges in order (one row per parallel edge).
 - Distance-based metrics (closeness, betweenness, eccentricity, ASL, diameter, …) trigger an all-pairs distance
   computation that is cached and shared per session; the first such metric on a large network may take a while.
 - `Infomap` requires an external binary and the spectral algorithms need extra numeric libraries; they are listed
