@@ -16,6 +16,7 @@
 <header id="topbar">
     <img id="logo" src="img/relison-full-logo.png" alt="RELISON"/>
     <span id="status" class="status"></span>
+    <a id="docs-link" class="icon-btn" href="https://relison.readthedocs.io" target="_blank" rel="noopener" title="Documentation">❓</a>
     <button id="theme-toggle" class="icon-btn" title="Toggle light/dark">🌙</button>
 </header>
 
@@ -25,6 +26,8 @@
     <button class="tab" data-tab="tables">Nodes &amp; Edges</button>
     <button class="tab" data-tab="metrics">Metrics</button>
     <button class="tab" data-tab="paths">Paths</button>
+    <button class="tab" data-tab="recommend" id="tab-recommend">Recommendation</button>
+    <button class="tab" data-tab="diffusion" id="tab-diffusion">Diffusion</button>
 </nav>
 
 <main id="layout">
@@ -32,13 +35,31 @@
     <aside id="left" class="panel">
         <section class="block">
             <h2>Layout</h2>
-            <button id="btn-layout">Start ForceAtlas2</button>
+            <label class="field">
+                <span>Algorithm</span>
+                <select id="layout-type">
+                    <option value="forceatlas2">ForceAtlas2 (animated)</option>
+                    <option value="force">Force-directed (animated)</option>
+                    <option value="circular">Circular</option>
+                    <option value="circlepack">Circle packing</option>
+                    <option value="random">Random</option>
+                </select>
+            </label>
+            <label class="field" id="circlepack-group-field" hidden>
+                <span>Group by</span>
+                <select id="circlepack-group"><option value="">— none —</option></select>
+            </label>
+            <button id="btn-layout">Start layout</button>
+            <button id="btn-noverlap">Remove overlaps</button>
             <button id="btn-reset-layout">Reset (circular)</button>
-            <div class="params">
+            <div class="params" id="layout-params">
                 <label><span>Scaling</span><input type="number" id="layout-scaling" step="0.1" value="1"/></label>
                 <label><span>Gravity</span><input type="number" id="layout-gravity" step="0.1" value="1"/></label>
                 <label><span>Speed</span><input type="number" id="layout-speed" step="0.1" value="1"/></label>
             </div>
+            <p class="muted" id="layout-params-hint">Scaling / gravity / speed tune the ForceAtlas2 layout.</p>
+            <label class="inline-check"><input type="checkbox" id="drag-nodes"/> Drag nodes (move positions)</label>
+            <p class="muted">When on, click and drag a node to reposition it; the canvas no longer pans.</p>
         </section>
 
         <section class="block">
@@ -63,6 +84,13 @@
                     <input type="color" id="node-color-high" value="#ff5b5b"/>
                 </span>
             </label>
+            <p class="muted">Categorical colourings (communities, text attributes) show an editable legend on the canvas.</p>
+            <hr class="sep"/>
+            <label class="inline-check"><input type="checkbox" id="node-border-on"/> Node borders</label>
+            <div class="params" id="node-border-params" hidden>
+                <label><span>Colour</span><input type="color" id="node-border-color" value="#1b1c1f"/></label>
+                <label><span>Width</span><input type="number" id="node-border-width" step="0.5" min="0.5" value="1.5"/></label>
+            </div>
         </section>
 
         <section class="block">
@@ -87,6 +115,16 @@
                 <span>Colour value</span>
                 <input type="color" id="edge-color-single" value="#888888"/>
             </label>
+            <div id="rec-edge-block" hidden>
+                <hr class="sep"/>
+                <span class="sublabel">Recommended edges</span>
+                <label class="inline-check"><input type="checkbox" id="rec-edge-show" checked/> Show recommended links</label>
+                <label class="inline-check"><input type="checkbox" id="rec-edge-diff" checked/> Differentiate (dashed)</label>
+                <label class="field">
+                    <span>Colour</span>
+                    <input type="color" id="rec-edge-color" value="#28c76f"/>
+                </label>
+            </div>
         </section>
 
         <section class="block">
@@ -172,6 +210,8 @@
         <!-- TAB 1: network plot -->
         <div class="tabpane" id="pane-network">
             <div id="sigma-container"></div>
+            <canvas id="rec-overlay"></canvas>
+            <div id="node-legend" class="node-legend" hidden></div>
             <div id="empty-hint">Load an edge list to begin.</div>
             <div id="canvas-tools">
                 <button id="btn-zoom-in" class="canvas-btn" title="Zoom in">+</button>
@@ -278,8 +318,18 @@
                 <div class="chart-controls">
                     <label>Metric <select id="node-chart-metric"></select></label>
                     <label>Sort by <select id="node-chart-sort"></select></label>
+                    <button class="chart-dl" data-canvas="node-chart" data-file="node-metric-distribution.png">⬇ Download PNG</button>
                 </div>
                 <div class="chart-area"><canvas id="node-chart"></canvas><div class="chart-tip" id="node-chart-tip" hidden></div></div>
+                <div class="rec-scatter-block" id="node-scatter-block" hidden>
+                    <h2>Original vs recommendation</h2>
+                    <div class="chart-controls">
+                        <label>Metric <select id="node-scatter-metric"></select></label>
+                        <label>Recommendation <select id="node-scatter-rec"></select></label>
+                        <button class="chart-dl" data-canvas="node-scatter" data-file="node-original-vs-recommendation.png">⬇ Download PNG</button>
+                    </div>
+                    <div class="chart-area"><canvas id="node-scatter"></canvas><div class="chart-tip" id="node-scatter-tip" hidden></div></div>
+                </div>
             </div>
 
             <div class="subpane" id="subpane-edges">
@@ -290,8 +340,18 @@
                 <div class="chart-controls">
                     <label>Metric <select id="edge-chart-metric"></select></label>
                     <label>Sort by <select id="edge-chart-sort"></select></label>
+                    <button class="chart-dl" data-canvas="edge-chart" data-file="edge-metric-distribution.png">⬇ Download PNG</button>
                 </div>
                 <div class="chart-area"><canvas id="edge-chart"></canvas><div class="chart-tip" id="edge-chart-tip" hidden></div></div>
+                <div class="rec-scatter-block" id="edge-scatter-block" hidden>
+                    <h2>Original vs recommendation</h2>
+                    <div class="chart-controls">
+                        <label>Metric <select id="edge-scatter-metric"></select></label>
+                        <label>Recommendation <select id="edge-scatter-rec"></select></label>
+                        <button class="chart-dl" data-canvas="edge-scatter" data-file="edge-original-vs-recommendation.png">⬇ Download PNG</button>
+                    </div>
+                    <div class="chart-area"><canvas id="edge-scatter"></canvas><div class="chart-tip" id="edge-scatter-tip" hidden></div></div>
+                </div>
             </div>
 
             <div class="subpane" id="subpane-pairs">
@@ -302,6 +362,7 @@
                 <h2>Node-pair metric distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="pair-chart-metric"></select></label>
+                    <button class="chart-dl" data-canvas="pair-chart" data-file="node-pair-metric-distribution.png">⬇ Download PNG</button>
                 </div>
                 <div class="chart-area"><canvas id="pair-chart"></canvas><div class="chart-tip" id="pair-chart-tip" hidden></div></div>
                 <p class="muted" id="pair-chart-note"></p>
@@ -316,8 +377,18 @@
                 <div class="chart-controls">
                     <label>Metric <select id="comm-chart-metric"></select></label>
                     <label>Sort by <select id="comm-chart-sort"></select></label>
+                    <button class="chart-dl" data-canvas="comm-chart" data-file="community-metric-distribution.png">⬇ Download PNG</button>
                 </div>
                 <div class="chart-area"><canvas id="comm-chart"></canvas><div class="chart-tip" id="comm-chart-tip" hidden></div></div>
+                <div class="rec-scatter-block" id="comm-scatter-block" hidden>
+                    <h2>Original vs recommendation</h2>
+                    <div class="chart-controls">
+                        <label>Metric <select id="comm-scatter-metric"></select></label>
+                        <label>Recommendation <select id="comm-scatter-rec"></select></label>
+                        <button class="chart-dl" data-canvas="comm-scatter" data-file="community-original-vs-recommendation.png">⬇ Download PNG</button>
+                    </div>
+                    <div class="chart-area"><canvas id="comm-scatter"></canvas><div class="chart-tip" id="comm-scatter-tip" hidden></div></div>
+                </div>
             </div>
         </div>
 
@@ -332,12 +403,163 @@
                         <option value="only">Show only</option>
                     </select>
                 </label>
+                <label class="rec-include-field" id="path-graph-field" hidden>Graph
+                    <select id="path-graph">
+                        <option value="original">Original</option>
+                        <option value="rec">With recommendation</option>
+                    </select>
+                </label>
                 <button id="btn-find-paths">Find shortest paths</button>
                 <button id="btn-highlight-all-paths">Show all</button>
                 <button id="btn-clear-path-hl">Clear</button>
             </div>
             <p class="muted" id="path-summary">Pick a source and a target, then find their shortest paths.</p>
             <div class="scroll-table tall"><table id="paths-table" class="data"></table></div>
+        </div>
+
+        <!-- TAB 5: link recommendation / prediction -->
+        <div class="tabpane" id="pane-recommend">
+            <div class="rec-card">
+                <h2>Link recommendation / prediction</h2>
+                <label class="field">
+                    <span>Task</span>
+                    <select id="rec-mode">
+                        <option value="recommendation">Link recommendation (top-k per node)</option>
+                        <option value="prediction">Link prediction (top-n total)</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Algorithm</span>
+                    <select id="rec-algo"></select>
+                </label>
+                <div class="params" id="rec-params"></div>
+                <label class="field">
+                    <span id="rec-cutoff-label">Links per node</span>
+                    <input type="number" id="rec-cutoff" min="1" step="1" value="10"/>
+                </label>
+                <label class="inline-check"><input type="checkbox" id="rec-reciprocal"/> Allow reciprocal links</label>
+                <div class="toolbar">
+                    <button id="btn-rec-apply" class="primary">Apply</button>
+                    <button id="btn-rec-reset">Reset results</button>
+                </div>
+                <p class="muted" id="rec-status">No recommendation applied.</p>
+                <div class="toolbar"><button id="btn-clear-rec-filters">Clear filters</button></div>
+                <div class="scroll-table tall"><table id="rec-edges-table" class="data"></table></div>
+                <div class="pagination" id="pager-rec"></div>
+            </div>
+        </div>
+
+        <!-- TAB 6: information diffusion -->
+        <div class="tabpane" id="pane-diffusion">
+            <div class="diff-layout">
+                <aside class="diff-config">
+                    <section class="block">
+                        <h2>Protocol</h2>
+                        <label class="field"><span>Type</span>
+                            <select id="diff-protocol-type">
+                                <option value="preset">Preset</option>
+                                <option value="custom">Custom (mechanisms)</option>
+                            </select>
+                        </label>
+                        <div id="diff-preset-wrap">
+                            <select id="diff-protocol"></select>
+                            <div class="params" id="diff-protocol-params"></div>
+                        </div>
+                        <div id="diff-custom-wrap" hidden>
+                            <span class="sublabel">Selection</span>
+                            <select id="diff-selection"></select><div class="params" id="diff-selection-params"></div>
+                            <span class="sublabel">Expiration</span>
+                            <select id="diff-expiration"></select><div class="params" id="diff-expiration-params"></div>
+                            <span class="sublabel">Propagation</span>
+                            <select id="diff-propagation"></select><div class="params" id="diff-propagation-params"></div>
+                            <span class="sublabel">Update</span>
+                            <select id="diff-update"></select><div class="params" id="diff-update-params"></div>
+                            <span class="sublabel">Sight</span>
+                            <select id="diff-sight"></select><div class="params" id="diff-sight-params"></div>
+                        </div>
+                    </section>
+                    <section class="block">
+                        <h2>Stop condition</h2>
+                        <select id="diff-stop"></select>
+                        <div class="params" id="diff-stop-params"></div>
+                    </section>
+                    <section class="block">
+                        <h2>Metrics</h2>
+                        <select id="diff-metrics" multiple size="6"></select>
+                        <p class="muted">Selected metrics are plotted in the "Metrics" subtab of the canvas.</p>
+                    </section>
+                    <section class="block">
+                        <button id="btn-diff-run" class="primary">Run simulation</button>
+                        <button id="btn-diff-clear">Clear</button>
+                        <p class="muted" id="diff-status">No simulation run yet.</p>
+                    </section>
+                </aside>
+
+                <section class="diff-center">
+                    <nav class="diff-subtabbar">
+                        <button class="diffsubtab active" data-diffsubtab="pieces">Information pieces</button>
+                        <button class="diffsubtab" data-diffsubtab="graph">Graph</button>
+                        <button class="diffsubtab" data-diffsubtab="metrics">Metrics</button>
+                    </nav>
+                    <div class="diff-views">
+                        <div class="diff-view" id="diff-view-graph">
+                            <div id="diff-sigma-container"></div>
+                            <canvas id="diff-overlay"></canvas>
+                            <div id="diff-legend" class="diff-legend" hidden></div>
+                            <div id="diff-empty-hint">Configure and run a simulation to begin.</div>
+                            <div class="diff-timebar" id="diff-timebar" hidden>
+                                <button id="diff-step-back" class="canvas-btn" title="Step back">◀</button>
+                                <button id="diff-play" class="canvas-btn" title="Play / pause">▶</button>
+                                <button id="diff-step-fwd" class="canvas-btn" title="Step forward">▶▶</button>
+                                <input type="range" id="diff-slider" min="0" max="0" value="0"/>
+                                <span id="diff-iter-label" class="pageinfo">iteration 0</span>
+                            </div>
+                        </div>
+                        <div class="diff-view" id="diff-view-metrics">
+                            <div class="diffmetrics-pane">
+                                <div class="chart-controls">
+                                    <label>Metric <select id="diffmetric-select"></select></label>
+                                    <button id="btn-diffmetric-png" class="chart-dl">⬇ Download PNG</button>
+                                    <button id="btn-diffmetric-csv" class="chart-dl">⬇ Download CSV</button>
+                                </div>
+                                <p class="muted" id="diffmetrics-hint">Run a simulation (with metrics selected) to see plots over iterations.</p>
+                                <div id="diffmetrics-charts"></div>
+                            </div>
+                        </div>
+                        <div class="diff-view active" id="diff-view-pieces">
+                            <div class="diff-pieces-pane">
+                                <div class="toolbar">
+                                    <button id="btn-diff-piece-add">Add piece</button>
+                                    <span class="addgroup">
+                                        <button id="btn-diff-piece-gen">Generate from graph</button>
+                                        <input type="number" id="diff-piece-seed" min="1" step="1" value="1" title="Pieces created per node"/>
+                                        <span class="muted">per node</span>
+                                    </span>
+                                    <button id="btn-diff-piece-upload">Upload CSV</button>
+                                    <button id="btn-diff-piece-download">Download CSV</button>
+                                    <button id="btn-diff-piece-clear">Clear</button>
+                                    <input type="file" id="diff-piece-file" accept=".csv,.tsv,.txt" hidden/>
+                                </div>
+                                <p class="muted" id="diff-pieces-summary"></p>
+                                <div class="scroll-table tall"><table id="diff-pieces-table" class="data"></table></div>
+                                <div class="pagination" id="diff-pieces-pager"></div>
+                                <p class="muted">Each piece is created by a node of the graph at a given timestamp. When at least one piece is
+                                    defined here, it replaces the automatic seeding for the simulation. CSV columns: <code>id, creator, timestamp</code>.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <aside class="diff-state">
+                    <section class="block">
+                        <h2>Node at iteration</h2>
+                        <label class="field"><span>Node</span>
+                            <input type="text" id="diff-node-input" placeholder="type or click a node"/></label>
+                        <p class="muted" id="diff-state-hint">Click a node on the canvas.</p>
+                        <div id="diff-cats"></div>
+                    </section>
+                </aside>
+            </div>
         </div>
     </section>
 
@@ -372,6 +594,7 @@
             <h2>Vertex metrics</h2>
             <select id="vertex-metric"></select>
             <div class="params" id="vertex-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="vertex-rec"/> Include active recommendation</label>
             <button id="btn-vertex">Run</button>
             <p class="muted" id="vertex-result"></p>
         </section>
@@ -380,6 +603,7 @@
             <h2>Graph metrics</h2>
             <select id="graph-metric"></select>
             <div class="params" id="graph-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="graph-rec"/> Include active recommendation</label>
             <button id="btn-graph">Run</button>
         </section>
 
@@ -388,6 +612,7 @@
             <select id="pair-metric"></select>
             <div class="params" id="pair-params"></div>
             <label class="inline-check"><input type="checkbox" id="pair-allpairs"/> All node pairs (not just edges)</label>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="pair-rec"/> Include active recommendation</label>
             <button id="btn-pair">Run</button>
             <p class="muted" id="pair-result"></p>
         </section>
@@ -398,7 +623,16 @@
             <div class="params" id="community-params"></div>
             <button id="btn-community">Detect</button>
             <p class="muted" id="community-result"></p>
-            <button id="btn-community-metrics" disabled>Global community metrics</button>
+            <hr class="sep"/>
+            <span class="sublabel">Global community metric</span>
+            <label class="field">
+                <span>Partition</span>
+                <select id="global-comm-partition"></select>
+            </label>
+            <select id="global-comm-metric"></select>
+            <div class="params" id="global-comm-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="global-comm-rec"/> Include active recommendation</label>
+            <button id="btn-global-comm" disabled>Run global community metric</button>
             <hr class="sep"/>
             <span class="sublabel">Per-community metric</span>
             <label class="field">
@@ -407,6 +641,7 @@
             </label>
             <select id="indiv-comm-metric"></select>
             <div class="params" id="indiv-comm-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="comm-rec"/> Include active recommendation</label>
             <button id="btn-indiv-comm" disabled>Run per-community metric</button>
         </section>
     </aside>

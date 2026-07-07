@@ -10,18 +10,16 @@ package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.grid.Grid;
 import es.uam.eps.ir.relison.grid.community.CommunityDetectionSelector;
-import es.uam.eps.ir.relison.grid.sna.comm.global.GlobalCommunityMetricIdentifiers;
 import es.uam.eps.ir.relison.grid.sna.comm.global.GlobalCommunityMetricSelector;
 import es.uam.eps.ir.relison.grid.sna.comm.indiv.IndividualCommunityMetricSelector;
 import es.uam.eps.ir.relison.sna.community.Communities;
+import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.metrics.CommunityMetric;
 import es.uam.eps.ir.relison.sna.metrics.IndividualCommunityMetric;
 import io.javalin.http.Context;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -36,61 +34,6 @@ public class CommunityController
     private final GraphStore store;
     /** Temporary directory required by some detection algorithms (e.g. Infomap). */
     private final String tempFolder = System.getProperty("java.io.tmpdir");
-
-    /**
-     * Global community metrics exposed by the GUI, each carrying the default parameters used to compute it. They are
-     * all computed together over the stored partition; the degree/edge Gini variants need an orientation and/or a
-     * self-loop flag, so each definition provides sensible defaults via {@link Grids#build(List, Map)}.
-     */
-    private static final List<MetricCatalog.MetricDef> GLOBAL_METRICS = new ArrayList<>();
-
-    static
-    {
-        // Parameter-free summaries.
-        global(GlobalCommunityMetricIdentifiers.NUMCOMMS, "Number of communities");
-        global(GlobalCommunityMetricIdentifiers.MODULARITY, "Modularity");
-        global(GlobalCommunityMetricIdentifiers.MODULARITYCOMPL, "Modularity complement");
-        global(GlobalCommunityMetricIdentifiers.COMMSIZEGINI, "Community size Gini");
-        global(GlobalCommunityMetricIdentifiers.COMMDESTSIZE, "Destination community size");
-        global(GlobalCommunityMetricIdentifiers.WEAKTIES, "Weak ties");
-
-        // Degree Gini (need an orientation; the "complete" variants also count node self-loops).
-        global(GlobalCommunityMetricIdentifiers.INTERCOMMUNITYDEGREEGINI, "Inter-community degree Gini", orientation());
-        global(GlobalCommunityMetricIdentifiers.SIZENORMINTERCOMMUNITYDEGREEGINI, "Size-normalized inter-community degree Gini", orientation());
-        global(GlobalCommunityMetricIdentifiers.COMPLETECOMMUNITYDEGREEGINI, "Complete community degree Gini", orientation(), autoloops());
-        global(GlobalCommunityMetricIdentifiers.SIZENORMCOMPLETECOMMUNITYDEGREEGINI, "Size-normalized complete community degree Gini", orientation(), autoloops());
-
-        // Edge Gini (the "complete"/"semi-complete" variants optionally count self-loops).
-        global(GlobalCommunityMetricIdentifiers.INTERCOMMUNITYEDGEGINI, "Inter-community edge Gini complement");
-        global(GlobalCommunityMetricIdentifiers.COMPLETECOMMUNITYEDGEGINI, "Complete community edge Gini complement", selfloops());
-        global(GlobalCommunityMetricIdentifiers.SEMICOMPLETECOMMUNITYEDGEGINI, "Semi-complete community edge Gini complement", selfloops());
-        global(GlobalCommunityMetricIdentifiers.SIZENORMINTERCOMMUNITYEDGEGINI, "Size-normalized inter-community edge Gini");
-        global(GlobalCommunityMetricIdentifiers.SIZENORMCOMPLETECOMMUNITYEDGEGINI, "Size-normalized complete community edge Gini", autoloops());
-        global(GlobalCommunityMetricIdentifiers.SIZENORMSEMICOMPLETECOMMUNITYEDGEGINI, "Size-normalized semi-complete community edge Gini", autoloops());
-        global(GlobalCommunityMetricIdentifiers.DICEINTERCOMMUNITYEDGEGINI, "Dice inter-community edge Gini");
-        global(GlobalCommunityMetricIdentifiers.DICECOMPLETECOMMUNITYEDGEGINI, "Dice complete community edge Gini", autoloops());
-        global(GlobalCommunityMetricIdentifiers.DICESEMICOMPLETECOMMUNITYEDGEGINI, "Dice semi-complete community edge Gini", autoloops());
-    }
-
-    private static void global(String id, String label, Param... params)
-    {
-        GLOBAL_METRICS.add(new MetricCatalog.MetricDef(id, label, List.of(params)));
-    }
-
-    private static Param orientation()
-    {
-        return Param.orientation("orientation", "Orientation", "OUT");
-    }
-
-    private static Param autoloops()
-    {
-        return Param.bool("autoloops", "Count self-loops", true);
-    }
-
-    private static Param selfloops()
-    {
-        return Param.bool("selfloops", "Count self-loops", true);
-    }
 
     public CommunityController(GraphStore store)
     {
@@ -156,47 +99,52 @@ public class CommunityController
     }
 
     /**
-     * Handles {@code POST /api/communities/metrics}: computes the curated global community metrics over a stored
-     * partition.
-     * @param ctx the request context, with body {@code {graphId, algorithm}} (the partition to evaluate).
+     * Handles {@code POST /api/communities/global}: computes a single global community metric over a stored partition,
+     * with its own parameters and optionally over the recommendation-augmented graph.
+     * @param ctx the request context, with body {@code {graphId, algorithm, metric, params, withRecommendation?}}.
      */
-    public void metrics(Context ctx)
+    public void globalMetric(Context ctx)
     {
         Map<?, ?> body = ctx.bodyAsClass(Map.class);
         GraphSession session = requireSession(ctx, body);
         if (session == null) return;
 
-        String algorithmId = String.valueOf(body.get("algorithm"));
-        Communities<String> communities = session.getCommunities().get(algorithmId);
+        String algorithm = String.valueOf(body.get("algorithm"));
+        Communities<String> communities = session.getCommunities().get(algorithm);
         if (communities == null)
         {
-            ctx.status(400).json(Map.of("error", "No detected partition for " + algorithmId + ". Run detection first."));
+            ctx.status(400).json(Map.of("error", "No detected partition for " + algorithm + ". Run detection first."));
             return;
         }
 
-        GlobalCommunityMetricSelector<String> selector = new GlobalCommunityMetricSelector<>();
-        List<Map<String, Object>> results = new ArrayList<>();
-        for (MetricCatalog.MetricDef def : GLOBAL_METRICS)
+        String metricId = String.valueOf(body.get("metric"));
+        MetricCatalog.MetricDef def = CommunityCatalog.globalMetrics().get(metricId);
+        if (def == null)
         {
-            Grid grid = Grids.build(def.params, null); // all-defaults grid for this metric
-            Map<String, Supplier<CommunityMetric<String>>> metrics = selector.getMetrics(def.id, grid);
-            if (metrics == null || metrics.isEmpty()) continue;
-            try
-            {
-                CommunityMetric<String> metric = metrics.values().iterator().next().get();
-                double value = metric.compute(session.getGraph(), communities);
-                results.add(Map.of("metric", def.id, "label", def.label, "value", value));
-            }
-            catch (Exception e)
-            {
-                results.add(Map.of("metric", def.id, "label", def.label, "error", String.valueOf(e)));
-            }
+            ctx.status(400).json(Map.of("error", "Unknown global community metric: " + metricId));
+            return;
         }
 
+        Grid grid = Grids.build(def.params, MetricController.paramsOf(body));
+        GlobalCommunityMetricSelector<String> selector = new GlobalCommunityMetricSelector<>();
+        Map<String, Supplier<CommunityMetric<String>>> metrics = selector.getMetrics(metricId, grid);
+        if (metrics == null || metrics.isEmpty())
+        {
+            ctx.status(400).json(Map.of("error", "Metric " + metricId + " could not be configured."));
+            return;
+        }
+
+        boolean withRec = MetricController.useRecommendation(body, session);
+        Graph<String> graph = withRec ? session.getAugmentedGraph() : session.getGraph();
+        CommunityMetric<String> metric = metrics.values().iterator().next().get();
+        double value = metric.compute(graph, communities);
+
         Map<String, Object> response = new LinkedHashMap<>();
-        response.put("algorithm", algorithmId);
-        response.put("numCommunities", communities.getNumCommunities());
-        response.put("metrics", results);
+        response.put("metric", metricId);
+        response.put("label", def.label + Grids.suffix(def.params, MetricController.paramsOf(body)));
+        response.put("algorithm", algorithm);
+        response.put("value", value);
+        response.put("recommendation", withRec ? session.getActiveRecommendationKey() : null);
         ctx.json(response);
     }
 
@@ -235,8 +183,11 @@ public class CommunityController
             return;
         }
 
+        boolean withRec = MetricController.useRecommendation(body, session);
+        Graph<String> graph = withRec ? session.getAugmentedGraph() : session.getGraph();
+
         IndividualCommunityMetric<String> metric = metrics.values().iterator().next().get();
-        Map<Integer, Double> values = metric.compute(session.getGraph(), communities);
+        Map<Integer, Double> values = metric.compute(graph, communities);
 
         Map<String, Double> out = new LinkedHashMap<>();
         values.forEach((comm, value) -> out.put(Integer.toString(comm), value));
@@ -248,6 +199,7 @@ public class CommunityController
         response.put("algorithm", algorithm);
         response.put("values", out);
         response.put("average", average);
+        response.put("recommendation", withRec ? session.getActiveRecommendationKey() : null);
         ctx.json(response);
     }
 

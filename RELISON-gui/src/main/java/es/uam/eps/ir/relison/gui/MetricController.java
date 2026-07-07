@@ -17,6 +17,7 @@ import es.uam.eps.ir.relison.grid.sna.vertex.VertexMetricSelector;
 import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
 import es.uam.eps.ir.relison.sna.metrics.PairMetric;
 import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
+import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
 import io.javalin.http.Context;
 
@@ -73,10 +74,14 @@ public class MetricController
             return;
         }
 
+        boolean withRec = useRecommendation(body, session);
+        Graph<String> graph = withRec ? session.getAugmentedGraph() : session.getGraph();
+        DistanceCalculator<String> dc = withRec ? session.getAugmentedDistanceCalculator() : session.getDistanceCalculator();
+
         Grid grid = Grids.build(def.params, paramsOf(body));
         VertexMetricSelector<String> selector = new VertexMetricSelector<>();
         Map<String, Supplier<VertexMetric<String>>> metrics =
-                selector.getMetrics(metricId, grid, session.getDistanceCalculator());
+                selector.getMetrics(metricId, grid, dc);
         if (metrics == null || metrics.isEmpty())
         {
             ctx.status(400).json(Map.of("error", "Metric " + metricId + " could not be configured."));
@@ -84,7 +89,7 @@ public class MetricController
         }
 
         VertexMetric<String> metric = metrics.values().iterator().next().get();
-        Map<String, Double> values = metric.compute(session.getGraph());
+        Map<String, Double> values = metric.compute(graph);
 
         Map<String, Double> out = new LinkedHashMap<>();
         values.forEach(out::put);
@@ -95,6 +100,7 @@ public class MetricController
         response.put("label", def.label + Grids.suffix(def.params, paramsOf(body)));
         response.put("values", out);
         response.put("average", average);
+        response.put("recommendation", withRec ? session.getActiveRecommendationKey() : null);
         ctx.json(response);
     }
 
@@ -116,10 +122,14 @@ public class MetricController
             return;
         }
 
+        boolean withRec = useRecommendation(body, session);
+        Graph<String> graph = withRec ? session.getAugmentedGraph() : session.getGraph();
+        DistanceCalculator<String> dc = withRec ? session.getAugmentedDistanceCalculator() : session.getDistanceCalculator();
+
         Grid grid = Grids.build(def.params, paramsOf(body));
         GraphMetricSelector<String> selector = new GraphMetricSelector<>();
         Map<String, Supplier<GraphMetric<String>>> metrics =
-                selector.getMetrics(metricId, grid, session.getDistanceCalculator());
+                selector.getMetrics(metricId, grid, dc);
         if (metrics == null || metrics.isEmpty())
         {
             ctx.status(400).json(Map.of("error", "Metric " + metricId + " could not be configured."));
@@ -127,12 +137,13 @@ public class MetricController
         }
 
         GraphMetric<String> metric = metrics.values().iterator().next().get();
-        double value = metric.compute(session.getGraph());
+        double value = metric.compute(graph);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("metric", metricId);
         response.put("label", def.label + Grids.suffix(def.params, paramsOf(body)));
         response.put("value", value);
+        response.put("recommendation", withRec ? session.getActiveRecommendationKey() : null);
         ctx.json(response);
     }
 
@@ -159,11 +170,15 @@ public class MetricController
         }
 
         boolean onlyLinks = !Boolean.FALSE.equals(body.get("onlyLinks"));
+        boolean withRec = useRecommendation(body, session);
+        Graph<String> graph = withRec ? session.getAugmentedGraph() : session.getGraph();
+        DistanceCalculator<String> dc = withRec ? session.getAugmentedDistanceCalculator() : session.getDistanceCalculator();
+        String recKey = withRec ? session.getActiveRecommendationKey() : null;
 
         Grid grid = Grids.build(def.params, paramsOf(body));
         PairMetricSelector<String> selector = new PairMetricSelector<>();
         Map<String, Supplier<PairMetric<String>>> metrics =
-                selector.getMetrics(metricId, grid, session.getDistanceCalculator());
+                selector.getMetrics(metricId, grid, dc);
         if (metrics == null || metrics.isEmpty())
         {
             ctx.status(400).json(Map.of("error", "Metric " + metricId + " could not be configured."));
@@ -175,18 +190,18 @@ public class MetricController
 
         if (onlyLinks)
         {
-            pairLinks(ctx, session, metricId, label, metric);
+            pairLinks(ctx, session, graph, recKey, metricId, label, metric);
         }
         else
         {
-            pairAggregate(ctx, session, metricId, label, metric);
+            pairAggregate(ctx, session, graph, recKey, metricId, label, metric);
         }
     }
 
     /** Returns the full per-link values (bounded by the number of edges). */
-    private void pairLinks(Context ctx, GraphSession session, String metricId, String label, PairMetric<String> metric)
+    private void pairLinks(Context ctx, GraphSession session, Graph<String> graph, String recKey, String metricId, String label, PairMetric<String> metric)
     {
-        Map<Pair<String>, Double> values = metric.computeOnlyLinks(session.getGraph());
+        Map<Pair<String>, Double> values = metric.computeOnlyLinks(graph);
         List<Map<String, Object>> out = new ArrayList<>();
         values.forEach((pair, value) ->
         {
@@ -205,6 +220,7 @@ public class MetricController
         response.put("count", out.size());
         response.put("values", out);
         response.put("average", average);
+        response.put("recommendation", recKey);
         ctx.json(response);
     }
 
@@ -230,9 +246,8 @@ public class MetricController
      * min/max and a histogram. Distance-based metrics are always enumerated exactly (their values are already
      * cached); other metrics are enumerated exactly when small and sampled when large.
      */
-    private void pairAggregate(Context ctx, GraphSession session, String metricId, String label, PairMetric<String> metric)
+    private void pairAggregate(Context ctx, GraphSession session, Graph<String> graph, String recKey, String metricId, String label, PairMetric<String> metric)
     {
-        Graph<String> graph = session.getGraph();
         boolean directed = session.isDirected();
         List<String> nodes = new ArrayList<>();
         graph.getAllNodes().forEach(nodes::add);
@@ -306,6 +321,7 @@ public class MetricController
         response.put("min", finite > 0 ? min : 0.0);
         response.put("max", finite > 0 ? max : 0.0);
         response.put("histogram", histogram);
+        response.put("recommendation", recKey);
         ctx.json(response);
     }
 
@@ -356,6 +372,18 @@ public class MetricController
     {
         Object params = body.get("params");
         return params instanceof Map ? (Map<?, ?>) params : null;
+    }
+
+    /**
+     * Determines whether a metric should be computed over the graph augmented with the active recommendation:
+     * only when the request asks for it ({@code withRecommendation:true}) and a recommendation is currently overlaid.
+     * @param body    the parsed request body.
+     * @param session the resolved session.
+     * @return {@code true} to compute over the augmented graph.
+     */
+    static boolean useRecommendation(Map<?, ?> body, GraphSession session)
+    {
+        return Boolean.TRUE.equals(body.get("withRecommendation")) && session.getActiveRecommendation() != null;
     }
 
     private GraphSession requireSession(Context ctx, Map<?, ?> body)

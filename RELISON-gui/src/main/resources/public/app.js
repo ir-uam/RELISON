@@ -24,6 +24,7 @@ const state = {
     fa2Running: false,
     fa2Raf: null,
     layoutTemp: 50,
+    dragNodes: false,     // when on, dragging a node repositions it instead of panning the canvas
     selectedNode: null,
     editFirstNode: null,
     selection: { node: null, mode: "highlight", partition: null },
@@ -42,6 +43,40 @@ const state = {
     commMetricData: {},    // per-community: label -> { algorithm, values: { comm(string): value } }
     commMetricOrder: [],   // per-community metric labels, in computation order
 
+    multigraph: false,     // the loaded network allows parallel edges (recommendation tab disabled)
+    // Node-colour legend + per-category colour overrides for the main display panel.
+    colorLegend: null,     // { type:"none"|"numeric"|"categorical", title, ... } describing the current node colouring
+    catColors: {},         // colour overrides for categorical colourings: colorKey -> { categoryValue -> hex }
+    nodeBorder: { on: false, color: "#1b1c1f", width: 1.5 },   // optional node borders drawn on the overlay
+    // Recommendation / link-prediction overlay (only one model is shown at a time).
+    rec: {
+        active: null,      // key of the model currently overlaid, or null
+        models: {},        // key -> { label, mode, cutoff, edges:[{source,target,score}] }
+        diff: true,        // differentiate recommended edges (dashed) in the visualization
+        show: true,        // show the overlay (can be toggled off without removing the model)
+        color: "#28c76f",  // colour of the recommended edges
+        tableEdges: [],    // edges shown in the recommendation table (kept for study even after the overlay is cleared)
+    },
+    // Metrics recomputed over the augmented graph, keyed by family -> metric label -> rec key -> values.
+    recMetricData: { vertex: {}, graph: {}, pair: {}, nodePair: {}, comm: {} },
+
+    // Information-diffusion simulation.
+    diffusion: {
+        loaded: false,     // catalog loaded
+        subview: "pieces", // active center subtab: "pieces" | "graph" | "metrics"
+        pieces: [],        // uploaded/edited information pieces: [{ id, creator, timestamp }] (empty = seed synthetically)
+        piecesPage: 0,     // current page of the (paginated) pieces table
+        piecesPageSize: 200,
+        piecesSaved: true, // whether the current pieces are persisted on the session
+        result: null,      // latest run: { numIterations, iterations:[{propagating,newlyInformed}], metrics:[{id,label,values}] }
+        runs: [],          // accumulated runs for overlaid metric plots: [{ label, numIterations, metrics:[{id,label,values}] }]
+        iteration: 0,
+        graph: null,       // graphology copy rendered in the diffusion canvas
+        renderer: null,    // its sigma renderer
+        selectedNode: null,
+        playing: null,     // setInterval handle when playing
+    },
+
     activeTab: "import",
     activeSubtab: "global",
     activeTableSubtab: "nodes",
@@ -53,9 +88,10 @@ const state = {
     tables: {
         nodes: { sort: { col: "id", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
         edges: { sort: { col: "source", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
+        rec: { sort: { col: "score", dir: -1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
     },
     catalog: null,
-    defs: { vertex: {}, graph: {}, pair: {}, community: {}, communityIndividual: {} },
+    defs: { vertex: {}, graph: {}, pair: {}, community: {}, communityIndividual: {}, recommendation: {} },
     attrSchema: { node: [], edge: [] },   // user-defined attributes: [{name,type,numeric}]
 };
 
@@ -163,14 +199,25 @@ async function loadGraph() {
         state.graphId = data.graphId;
         state.directed = data.stats.directed;
         state.weighted = data.stats.weighted;
+        state.multigraph = $("opt-multigraph").checked;
         state.attrSchema = data.schema || { node: [], edge: [] };
         resetResults();
+        resetRecommendation();
+        resetDiffusion();
+        // Pieces reference nodes of the old graph; start fresh on the new (empty) session.
+        if (piecesSaveTimer) { clearTimeout(piecesSaveTimer); piecesSaveTimer = null; }
+        state.diffusion.pieces = [];
+        state.diffusion.piecesPage = 0;
+        state.diffusion.piecesSaved = true;
+        renderPiecesTable();
+        updateRecTabAvailability();
         resetTableViews();
         clearSelection();
-        $("btn-community-metrics").disabled = true;
+        $("btn-global-comm").disabled = true;
         $("btn-indiv-comm").disabled = true;
         $("community-result").textContent = "";
         $("indiv-comm-partition").innerHTML = "";
+        $("global-comm-partition").innerHTML = "";
         state.pathFocus = null;
         state.lastPaths = [];
         $("paths-table").innerHTML = "";
@@ -203,6 +250,7 @@ function resetResults() {
     state.communityData = {};
     state.commMetricData = {};
     state.commMetricOrder = [];
+    state.recMetricData = { vertex: {}, graph: {}, pair: {}, nodePair: {}, comm: {} };
 }
 
 // Clears table filters/paging on a fresh load (sort defaults kept).
@@ -247,6 +295,10 @@ function renderGraph(serialized) {
     });
     syncLabelOpts();
 
+    // Repaint the recommended-edge overlay after sigma renders. Debounced (and cleared during the gesture) so
+    // panning/zooming a large overlay stays smooth and the dashed lines never lag behind the moving graph.
+    state.renderer.on("afterRender", scheduleRecOverlay);
+
     state.renderer.on("clickNode", ({ node }) => {
         if ($("edit-mode").checked) handleEditNodeClick(node);
         else selectNode(node);
@@ -259,6 +311,32 @@ function renderGraph(serialized) {
             clearSelection();
         }
     });
+
+    // Node dragging (only when the "Drag nodes" control is on): reposition a node instead of panning the canvas.
+    let draggedNode = null;
+    state.renderer.on("downNode", ({ node }) => {
+        if (!state.dragNodes) return;
+        draggedNode = node;
+        graph.setNodeAttribute(node, "highlighted", true);
+        // Freeze the auto-fit bounding box so moving a node out of bounds doesn't make the camera jump.
+        if (!state.renderer.getCustomBBox()) state.renderer.setCustomBBox(state.renderer.getBBox());
+    });
+    const captor = state.renderer.getMouseCaptor();
+    captor.on("mousemovebody", (e) => {
+        if (!draggedNode) return;
+        const pos = state.renderer.viewportToGraph(e);
+        graph.setNodeAttribute(draggedNode, "x", pos.x);
+        graph.setNodeAttribute(draggedNode, "y", pos.y);
+        // Stop sigma (and the browser) from also panning/selecting while dragging.
+        e.preventSigmaDefault();
+        e.original.preventDefault();
+        e.original.stopPropagation();
+    });
+    const endDrag = () => {
+        if (draggedNode) graph.removeNodeAttribute(draggedNode, "highlighted");
+        draggedNode = null;
+    };
+    captor.on("mouseup", endDrag);
 }
 
 function handleEditNodeClick(node) {
@@ -312,6 +390,8 @@ function rebuildAppearanceOptions() {
     for (const name of state.pairOrder) edgeSizeSelect.appendChild(option(name, name));
     for (const d of edgeAttrDefs()) if (d.numeric) edgeSizeSelect.appendChild(option("eattr:" + d.name, "attr: " + d.name));
     restoreSelect(edgeSizeSelect, edgeCurrent);
+
+    rebuildLayoutGroupOptions();   // keep the circle-packing "Group by" options in sync with communities/attributes
 }
 
 // Restores a select's value if the option still exists, otherwise falls back to the first (default) option.
@@ -347,7 +427,7 @@ function applyAppearance() {
     graph.forEachNode((n) => graph.setNodeAttribute(n, "size", minSize + sizeRange * (((sizeValues[n] ?? 0) - min) / span)));
 
     const colorSel = $("color-by").value;
-    if (!colorSel) graph.forEachNode((n) => graph.setNodeAttribute(n, "color", "#4f9dff"));
+    if (!colorSel) { graph.forEachNode((n) => graph.setNodeAttribute(n, "color", "#4f9dff")); state.colorLegend = { type: "none" }; }
     else if (colorSel.startsWith("community:")) colorByCommunity(colorSel.slice("community:".length));
     else if (colorSel.startsWith("metric:")) colorByMetric(colorSel.slice("metric:".length));
     else if (colorSel.startsWith("attrcat:")) colorByNodeCategorical(colorSel.slice("attrcat:".length));
@@ -355,8 +435,9 @@ function applyAppearance() {
 
     applyEdgeAppearance();
     applyLabels();
+    buildNodeLegend();
 
-    if (state.renderer) state.renderer.refresh();
+    if (state.renderer) { state.renderer.refresh(); drawRecOverlay(); }
 }
 
 function colorByMetric(metricName) {
@@ -371,12 +452,11 @@ function colorByMetric(metricName) {
     }
     const span = (max - min) || 1;
     graph.forEachNode((n) => graph.setNodeAttribute(n, "color", lerpHex(low, high, ((values[n] ?? 0) - min) / span)));
+    state.colorLegend = { type: "numeric", title: metricName, low, high, min, max };
 }
 
 function colorByCommunity(algo) {
-    const graph = state.graph;
-    const data = state.communityData[algo] || {};
-    graph.forEachNode((n) => graph.setNodeAttribute(n, "color", categorical(data[n] ?? 0)));
+    applyCategorical("community:" + algo, state.communityData[algo] || {}, "community: " + algo);
 }
 
 // Colours nodes by a numeric attribute, using the configured low→high colour ramp.
@@ -395,23 +475,42 @@ function colorByNodeAttr(name) {
         const v = Number(values[n]);
         graph.setNodeAttribute(n, "color", Number.isNaN(v) ? "#888888" : lerpHex(low, high, (v - min) / span));
     });
+    state.colorLegend = { type: "numeric", title: "attr: " + name, low, high, min, max };
 }
 
 // Colours nodes by a categorical/textual attribute: one distinct colour per value.
 function colorByNodeCategorical(name) {
+    applyCategorical("attrcat:" + name, nodeAttrValues(name), "attr: " + name);
+}
+
+// Shared categorical colouring: assigns one colour per distinct value (honouring per-category user overrides in
+// state.catColors[colorKey]) and records the value→colour mapping in state.colorLegend for the legend.
+function applyCategorical(colorKey, values, title) {
     const graph = state.graph;
-    const values = nodeAttrValues(name);
-    const cats = new Map();
-    let next = 0;
+    const order = [];
+    const seen = new Set();
     graph.forEachNode((n) => {
         const key = values[n];
         if (key === undefined || key === null) return;
-        if (!cats.has(String(key))) cats.set(String(key), next++);
+        const s = String(key);
+        if (!seen.has(s)) { seen.add(s); order.push(s); }
     });
+    const overrides = state.catColors[colorKey] || {};
+    const colorOf = {};
+    order.forEach((cat, i) => { colorOf[cat] = overrides[cat] || categoricalHex(i); });
+
+    let hasMissing = false;
     graph.forEachNode((n) => {
         const key = values[n];
-        graph.setNodeAttribute(n, "color", (key === undefined || key === null) ? "#888888" : categorical(cats.get(String(key))));
+        if (key === undefined || key === null) { hasMissing = true; graph.setNodeAttribute(n, "color", "#888888"); }
+        else graph.setNodeAttribute(n, "color", colorOf[String(key)]);
     });
+
+    state.colorLegend = {
+        type: "categorical", colorKey, title,
+        entries: order.map((cat) => ({ value: cat, color: colorOf[cat] })),
+        hasMissing,
+    };
 }
 
 // Edge thickness (by a computed link metric) and colour (uniform default / single / average of endpoints).
@@ -481,6 +580,88 @@ function categorical(i) {
     return `rgb(${r},${g},${b})`;
 }
 
+// Same distinct-colour sequence as categorical(), but as a #rrggbb string so it can seed <input type="color">.
+function categoricalHex(i) {
+    const { r, g, b } = hslToRgb((i * 137.508) % 360, 0.65, 0.55);
+    const h = (v) => v.toString(16).padStart(2, "0");
+    return "#" + h(r) + h(g) + h(b);
+}
+
+// Coerces any colour string (hex / rgb() / named) to #rrggbb for <input type="color">.
+function toHexColor(c) {
+    if (typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c)) return c;
+    const rgb = colorToRgb(c);
+    if (!rgb) return "#888888";
+    const h = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+    return "#" + h(rgb.r) + h(rgb.g) + h(rgb.b);
+}
+
+// Renders the node-colour legend overlaid on the display panel from state.colorLegend. Categorical legends expose a
+// colour picker per category (writing to state.catColors and re-applying); numeric legends show a gradient + range.
+function buildNodeLegend() {
+    const el = $("node-legend");
+    if (!el) return;
+    const lg = state.colorLegend;
+    if (!lg || lg.type === "none") { el.hidden = true; el.innerHTML = ""; return; }
+    el.innerHTML = "";
+
+    const title = document.createElement("div");
+    title.className = "legend-title";
+    title.textContent = lg.title || "Node colour";
+    el.appendChild(title);
+
+    if (lg.type === "numeric") {
+        const bar = document.createElement("div");
+        bar.className = "legend-gradient";
+        bar.style.background = "linear-gradient(to right, " + lg.low + ", " + lg.high + ")";
+        el.appendChild(bar);
+        const scale = document.createElement("div");
+        scale.className = "legend-scale";
+        const lo = document.createElement("span"); lo.textContent = fmt(lg.min);
+        const hi = document.createElement("span"); hi.textContent = fmt(lg.max);
+        scale.appendChild(lo); scale.appendChild(hi);
+        el.appendChild(scale);
+    } else {
+        const list = document.createElement("div");
+        list.className = "legend-list";
+        for (const entry of lg.entries) {
+            list.appendChild(legendCategoryRow(lg.colorKey, entry.value, entry.color, true));
+        }
+        if (lg.hasMissing) list.appendChild(legendCategoryRow(null, "(none)", "#888888", false));
+        el.appendChild(list);
+    }
+    el.hidden = false;
+}
+
+// One legend row: an editable colour swatch (for real categories) + the category label.
+function legendCategoryRow(colorKey, value, color, editable) {
+    const row = document.createElement("div");
+    row.className = "legend-row";
+    if (editable) {
+        const sw = document.createElement("input");
+        sw.type = "color";
+        sw.className = "legend-swatch-input";
+        sw.value = toHexColor(color);
+        sw.title = "Colour for " + value;
+        sw.addEventListener("input", () => {
+            if (!state.catColors[colorKey]) state.catColors[colorKey] = {};
+            state.catColors[colorKey][value] = sw.value;
+            applyAppearance();
+        });
+        row.appendChild(sw);
+    } else {
+        const sw = document.createElement("span");
+        sw.className = "legend-swatch";
+        sw.style.background = color;
+        row.appendChild(sw);
+    }
+    const lab = document.createElement("span");
+    lab.className = "legend-label";
+    lab.textContent = value;
+    row.appendChild(lab);
+    return row;
+}
+
 /* ------------------------------ labels ------------------------------ */
 
 // Sets the graphology label of every node/edge from a "label" attribute when present (node ids are the fallback;
@@ -532,28 +713,35 @@ function labelTextColor() {
 }
 
 // Custom node label drawer: font size is either fixed or proportional to the node's rendered size.
-function drawNodeLabel(context, data, settings) {
+// The colour is a parameter so the diffusion canvas can reuse the same geometry with its own (fixed) label colour.
+function drawNodeLabelWith(context, data, color) {
     if (!data.label) return;
     const o = state.labelOpts;
     const fontSize = o.nodeProp ? Math.max(6, data.size * (o.nodeSize / 8)) : o.nodeSize;
-    context.fillStyle = o.nodeColor || labelTextColor();
+    context.fillStyle = color;
     context.font = `${fontSize}px ${o.nodeFont || "sans-serif"}`;
     context.fillText(data.label, data.x + data.size + 3, data.y + fontSize / 3);
 }
+function drawNodeLabel(context, data) { drawNodeLabelWith(context, data, state.labelOpts.nodeColor || labelTextColor()); }
+// Diffusion canvas: same label geometry as the main plot, but its own (theme-default) colour — label colour is
+// deliberately not mirrored from the main plot.
+function drawDiffNodeLabel(context, data) { drawNodeLabelWith(context, data, labelTextColor()); }
 
 // Custom edge label drawer: drawn at the edge midpoint, size fixed or proportional to the edge thickness.
-function drawEdgeLabel(context, data, sourceData, targetData, settings) {
+function drawEdgeLabelWith(context, data, sourceData, targetData, color) {
     if (!data.label) return;
     const o = state.labelOpts;
     const fontSize = o.edgeProp ? Math.max(5, (data.size || 1) * (o.edgeSize / 2)) : o.edgeSize;
     const x = (sourceData.x + targetData.x) / 2;
     const y = (sourceData.y + targetData.y) / 2;
-    context.fillStyle = o.edgeColor || labelTextColor();
+    context.fillStyle = color;
     context.font = `${fontSize}px ${o.edgeFont || "sans-serif"}`;
     context.textAlign = "center";
     context.fillText(data.label, x, y);
     context.textAlign = "left";
 }
+function drawEdgeLabel(context, data, sourceData, targetData) { drawEdgeLabelWith(context, data, sourceData, targetData, state.labelOpts.edgeColor || labelTextColor()); }
+function drawDiffEdgeLabel(context, data, sourceData, targetData) { drawEdgeLabelWith(context, data, sourceData, targetData, labelTextColor()); }
 
 /* --------------------------- canvas tools --------------------------- */
 
@@ -699,7 +887,23 @@ function attachNodeCombo(input) {
     let items = [];
     let active = -1;
 
-    function close() { list.hidden = true; active = -1; }
+    // The dropdown is positioned with fixed coordinates (from the input's viewport rect) so it is never clipped when
+    // the input lives inside a scrollable container (e.g. the information-pieces table).
+    function position() {
+        const r = input.getBoundingClientRect();
+        list.style.position = "fixed";
+        list.style.top = (r.bottom + 2) + "px";
+        list.style.left = r.left + "px";
+        list.style.minWidth = r.width + "px";
+    }
+    function onAncestorScroll(e) { if (e.target === list || list.contains(e.target)) return; close(); }
+
+    function close() {
+        list.hidden = true;
+        active = -1;
+        window.removeEventListener("scroll", onAncestorScroll, true);
+        window.removeEventListener("resize", close);
+    }
 
     function compute() {
         const q = input.value.trim().toLowerCase();
@@ -729,6 +933,9 @@ function attachNodeCombo(input) {
             list.appendChild(li);
         });
         list.hidden = false;
+        position();
+        window.addEventListener("scroll", onAncestorScroll, true);
+        window.addEventListener("resize", close);
         if (active >= 0 && list.children[active]) list.children[active].scrollIntoView({ block: "nearest" });
     }
 
@@ -757,36 +964,63 @@ function attachNodeCombo(input) {
 
 // Upgrades every node-id input into a searchable selector. Safe to call repeatedly (each input is wired once).
 function initNodeCombos() {
-    ["select-node-input", "path-source", "path-target", "add-edge-source", "add-edge-target"]
+    ["select-node-input", "path-source", "path-target", "add-edge-source", "add-edge-target", "diff-node-input"]
         .forEach((id) => attachNodeCombo($(id)));
 }
 
 /* ------------------------------ layout ------------------------------ */
 
-function startLayout() {
-    if (!state.graph) { setStatus("Load a network first.", "error"); return; }
-    if (state.fa2Running) { stopLayout(); return; }
+// Layouts that run continuously (animated) vs. one-shot layouts that are applied once.
+const ITERATIVE_LAYOUTS = new Set(["forceatlas2", "force"]);
 
-    const useFA2 = FA2 && typeof FA2.assign === "function";
-    let settings = null;
-    if (useFA2) {
+function currentLayoutType() {
+    const sel = $("layout-type");
+    return sel ? sel.value : "forceatlas2";
+}
+
+// Keeps the layout button label in sync with the selected algorithm / running state.
+function updateLayoutButton() {
+    if (state.fa2Running) { $("btn-layout").textContent = "Stop layout"; return; }
+    $("btn-layout").textContent = ITERATIVE_LAYOUTS.has(currentLayoutType()) ? "Start layout" : "Apply layout";
+}
+
+// Button handler: toggles animated layouts, or applies a static layout once.
+function onLayoutButton() {
+    if (!state.graph) { setStatus("Load a network first.", "error"); return; }
+    const type = currentLayoutType();
+    if (ITERATIVE_LAYOUTS.has(type)) {
+        if (state.fa2Running) { stopLayout(); return; }
+        startIterativeLayout(type);
+    } else {
+        applyStaticLayout(type);
+    }
+}
+
+// Starts an animated force layout (ForceAtlas2 or graphology's force layout), falling back to the built-in stepper.
+function startIterativeLayout(type) {
+    let stepFn;
+    if (type === "force" && lib.layoutForce && typeof lib.layoutForce.assign === "function") {
+        stepFn = () => lib.layoutForce.assign(state.graph, { maxIterations: 1 });
+    } else if (FA2 && typeof FA2.assign === "function") {
+        let settings;
         try { settings = FA2.inferSettings ? FA2.inferSettings(state.graph) : {}; }
         catch (e) { console.warn("inferSettings failed, using defaults", e); settings = {}; }
         const lp = layoutParams();
         settings.scalingRatio = (settings.scalingRatio || 1) * lp.scaling;
         settings.gravity = lp.gravity;
         settings.slowDown = 1 / Math.max(0.1, lp.speed);
+        stepFn = () => FA2.assign(state.graph, { iterations: 1, settings });
+    } else {
+        stepFn = builtinForceStep;
     }
-    console.log("Layout engine:", useFA2 ? "graphology ForceAtlas2" : "built-in force-directed");
 
     state.fa2Running = true;
     state.layoutTemp = 50;
-    $("btn-layout").textContent = "Stop ForceAtlas2";
+    updateLayoutButton();
 
     const step = () => {
         try {
-            if (useFA2) FA2.assign(state.graph, { iterations: 1, settings });
-            else builtinForceStep();
+            stepFn();
         } catch (e) {
             console.error("Layout error", e);
             setStatus("Layout error: " + e.message, "error");
@@ -797,6 +1031,157 @@ function startLayout() {
         if (state.fa2Running) state.fa2Raf = requestAnimationFrame(step);
     };
     step();
+}
+
+// Applies a one-shot geometric layout (circular / circle packing / random). These are computed natively (they are
+// trivial and dependency-free), so they work regardless of what the graphology UMD bundle exposes. Circle packing can
+// group nodes by a community partition or a node attribute.
+function applyStaticLayout(type) {
+    stopLayout();
+    const g = state.graph;
+    try {
+        if (type === "circular") nativeCircular(g);
+        else if (type === "random") nativeRandom(g);
+        else if (type === "circlepack") nativeCirclepack(g, $("circlepack-group") ? $("circlepack-group").value : "");
+        else { setStatus("Unknown layout: " + type, "error"); return; }
+    } catch (e) {
+        setStatus("Layout failed: " + e.message, "error");
+        return;
+    }
+    if (state.renderer) state.renderer.refresh();
+    drawRecOverlay();
+    setStatus(type + " layout applied.");
+}
+
+// Places nodes evenly on a circle whose radius grows with the node count.
+function nativeCircular(g) {
+    const nodes = g.nodes(), n = nodes.length;
+    const R = Math.max(50, n * 8);
+    nodes.forEach((nd, i) => {
+        const a = (2 * Math.PI * i) / Math.max(1, n);
+        g.setNodeAttribute(nd, "x", Math.cos(a) * R);
+        g.setNodeAttribute(nd, "y", Math.sin(a) * R);
+    });
+}
+
+// Scatters nodes uniformly in a square sized to the node count.
+function nativeRandom(g) {
+    const nodes = g.nodes();
+    const S = Math.max(100, Math.sqrt(nodes.length) * 60);
+    nodes.forEach((nd) => {
+        g.setNodeAttribute(nd, "x", (Math.random() - 0.5) * S);
+        g.setNodeAttribute(nd, "y", (Math.random() - 0.5) * S);
+    });
+}
+
+// Lays out a set of nodes around (cx, cy) in a sunflower/phyllotaxis spiral (a compact, even disc).
+function placeCluster(nodes, cx, cy, g) {
+    const golden = Math.PI * (3 - Math.sqrt(5)), spacing = 12;
+    nodes.forEach((nd, i) => {
+        const r = spacing * Math.sqrt(i + 0.5), a = i * golden;
+        g.setNodeAttribute(nd, "x", cx + r * Math.cos(a));
+        g.setNodeAttribute(nd, "y", cy + r * Math.sin(a));
+    });
+}
+
+// Packs nodes into a disc; when a grouping is chosen, each group becomes its own disc arranged on a ring.
+function nativeCirclepack(g, groupBy) {
+    const nodes = g.nodes();
+    if (!groupBy) { placeCluster(nodes, 0, 0, g); return; }
+    const groups = new Map();
+    nodes.forEach((nd) => {
+        const k = String(nodeGroupKey(groupBy, nd) ?? "?");
+        if (!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(nd);
+    });
+    const keys = [...groups.keys()], m = keys.length;
+    const ringR = Math.max(150, 40 * m, 14 * Math.sqrt(nodes.length));
+    keys.forEach((k, gi) => {
+        const a = (2 * Math.PI * gi) / Math.max(1, m);
+        placeCluster(groups.get(k), Math.cos(a) * ringR, Math.sin(a) * ringR, g);
+    });
+}
+
+// Spreads overlapping nodes apart: nudges pairs closer than (size-based) min distance until they no longer overlap.
+function nativeNoverlap(g) {
+    const nodes = g.nodes(), n = nodes.length;
+    if (!n) return;
+    const xs = [], ys = [], rs = [];
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    nodes.forEach((nd, i) => {
+        const x = g.getNodeAttribute(nd, "x") || 0, y = g.getNodeAttribute(nd, "y") || 0;
+        xs[i] = x; ys[i] = y; rs[i] = g.getNodeAttribute(nd, "size") || 3;
+        if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
+    });
+    // Map node "size" units into position units so collisions are meaningful at the current layout scale.
+    const w = Math.max(1, maxX - minX), h = Math.max(1, maxY - minY);
+    const avgSize = rs.reduce((a, b) => a + b, 0) / n || 1;
+    const cell = Math.sqrt((w * h) / n);
+    const scale = (cell * 0.6) / avgSize;
+    const margin = cell * 0.1;
+    const iterations = n > 1500 ? 20 : 60;
+    for (let it = 0; it < iterations; it++) {
+        let moved = false;
+        for (let i = 0; i < n; i++) {
+            for (let j = i + 1; j < n; j++) {
+                let dx = xs[j] - xs[i], dy = ys[j] - ys[i], d = Math.hypot(dx, dy);
+                const need = (rs[i] + rs[j]) * scale + margin;
+                if (d < need) {
+                    if (d < 1e-6) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; d = Math.hypot(dx, dy) || 1; }
+                    const push = (need - d) / 2, ux = dx / d, uy = dy / d;
+                    xs[i] -= ux * push; ys[i] -= uy * push; xs[j] += ux * push; ys[j] += uy * push;
+                    moved = true;
+                }
+            }
+        }
+        if (!moved) break;
+    }
+    nodes.forEach((nd, i) => { g.setNodeAttribute(nd, "x", xs[i]); g.setNodeAttribute(nd, "y", ys[i]); });
+}
+
+// Resolves the grouping key of a node for circle packing (a community id or a node-attribute value).
+function nodeGroupKey(spec, node) {
+    if (spec.startsWith("community:")) { const a = state.communityData[spec.slice("community:".length)]; return a ? a[node] : undefined; }
+    if (spec.startsWith("attr:")) return nodeAttrVal(node, spec.slice("attr:".length));
+    return undefined;
+}
+
+// Populates the circle-packing "Group by" selector with the detected partitions and node attributes.
+function rebuildLayoutGroupOptions() {
+    const sel = $("circlepack-group");
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— none —</option>';
+    Object.keys(state.communityData).forEach((a) => sel.appendChild(option("community:" + a, "community: " + a)));
+    nodeAttrDefs().forEach((d) => sel.appendChild(option("attr:" + d.name, "attr: " + d.name)));
+    restoreSelect(sel, current);
+}
+
+// Shows only the controls relevant to the selected layout: the FA2 tuning parameters and the circle-packing grouping.
+function updateLayoutTypeUI() {
+    const type = currentLayoutType();
+    toggleHidden("layout-params", type !== "forceatlas2");
+    toggleHidden("layout-params-hint", type !== "forceatlas2");
+    toggleHidden("circlepack-group-field", type !== "circlepack");
+}
+
+// Spreads overlapping nodes apart. Uses graphology-layout-noverlap when the bundle exposes it, otherwise a native pass.
+function removeOverlaps() {
+    if (!state.graph) { setStatus("Load a network first.", "error"); return; }
+    const NOV = lib.layoutNoverlap || window.graphologyLayoutNoverlap;
+    let ok = false;
+    try {
+        if (NOV && typeof NOV.assign === "function") {
+            NOV.assign(state.graph, { maxIterations: 60, settings: { margin: 5, ratio: 1 } });
+            ok = true;
+        }
+    } catch (e) {
+        console.warn("Bundled noverlap failed, using native fallback.", e);
+    }
+    if (!ok) nativeNoverlap(state.graph);
+    if (state.renderer) state.renderer.refresh();
+    drawRecOverlay();
+    setStatus("Removed node overlaps.");
 }
 
 function layoutParams() {
@@ -865,7 +1250,7 @@ function stopLayout() {
     state.fa2Running = false;
     if (state.fa2Raf) cancelAnimationFrame(state.fa2Raf);
     state.fa2Raf = null;
-    $("btn-layout").textContent = "Start ForceAtlas2";
+    updateLayoutButton();
 }
 
 function resetLayout() {
@@ -891,17 +1276,20 @@ async function loadCatalog() {
         state.defs = {
             vertex: indexById(cat.vertex), graph: indexById(cat.graph), pair: indexById(cat.pair),
             community: indexById(cat.community), communityIndividual: indexById(cat.communityIndividual),
+            communityGlobal: indexById(cat.communityGlobal),
         };
         fillSelect("vertex-metric", cat.vertex);
         fillSelect("graph-metric", cat.graph);
         fillSelect("pair-metric", cat.pair);
         fillCommunitySelect("community-algo", cat.community);
         fillSelect("indiv-comm-metric", cat.communityIndividual);
+        fillSelect("global-comm-metric", cat.communityGlobal);
         renderParams("vertex-params", "vertex", $("vertex-metric").value);
         renderParams("graph-params", "graph", $("graph-metric").value);
         renderParams("pair-params", "pair", $("pair-metric").value);
         renderParams("community-params", "community", $("community-algo").value);
         renderParams("indiv-comm-params", "communityIndividual", $("indiv-comm-metric").value);
+        renderParams("global-comm-params", "communityGlobal", $("global-comm-metric").value);
     } catch (e) {
         setStatus("Could not load metric catalog: " + e.message, "error");
     }
@@ -953,6 +1341,10 @@ function renderParams(containerId, family, metricId) {
             input = document.createElement("input");
             input.type = "checkbox";
             input.checked = !!p.default;
+        } else if (p.type === "string") {
+            input = document.createElement("input");
+            input.type = "text";
+            input.value = p.default == null ? "" : p.default;
         } else {
             input = document.createElement("input");
             input.type = "number";
@@ -1000,6 +1392,13 @@ async function runVertexMetric() {
         $("color-by").value = "metric:" + res.label;
         applyAppearance();
         $("vertex-result").textContent = res.label + " — avg " + fmt(res.average);
+        if (state.rec.active && $("vertex-rec").checked) {
+            try {
+                const r2 = await api("/api/metrics/vertex", jsonBody(
+                    { graphId: state.graphId, metric, params: collectParams("vertex-params"), withRecommendation: true }));
+                storeRecMetric("vertex", res.label, numericMap(r2.values));
+            } catch (e) { /* recommendation metric is optional */ }
+        }
         refreshAfterCompute();
         setStatus("Computed " + res.label + ".");
     } catch (e) {
@@ -1018,6 +1417,13 @@ async function runGraphMetric() {
         const res = await api("/api/metrics/graph",
             jsonBody({ graphId: state.graphId, metric, params: collectParams("graph-params") }));
         state.graphMetrics[res.label] = res.value;
+        if (state.rec.active && $("graph-rec").checked) {
+            try {
+                const r2 = await api("/api/metrics/graph", jsonBody(
+                    { graphId: state.graphId, metric, params: collectParams("graph-params"), withRecommendation: true }));
+                storeRecMetric("graph", res.label, r2.value);
+            } catch (e) { /* recommendation metric is optional */ }
+        }
         refreshAfterCompute();
         setStatus("Computed " + res.label + " = " + fmt(res.value));
     } catch (e) {
@@ -1054,6 +1460,22 @@ async function runPairMetric() {
             rebuildAppearanceOptions(); // expose the new metric in "Thicken edges by"
             $("pair-result").textContent = res.label + " — " + res.count + " links, avg " + fmt(res.average);
         }
+        if (state.rec.active && $("pair-rec").checked) {
+            try {
+                const r2 = await api("/api/metrics/pair", jsonBody(
+                    { graphId: state.graphId, metric, onlyLinks, params: collectParams("pair-params"), withRecommendation: true }));
+                if (allPairs) {
+                    storeRecMetric("nodePair", res.label, r2);
+                } else {
+                    const map = {};
+                    r2.values.forEach((e) => {
+                        map[pairKey(e.source, e.target)] = Number(e.value);
+                        if (!state.directed) map[pairKey(e.target, e.source)] = Number(e.value);
+                    });
+                    storeRecMetric("pair", res.label, map);
+                }
+            } catch (e) { /* recommendation metric is optional */ }
+        }
         refreshAfterCompute();
         setStatus("Computed " + res.label + ".");
     } catch (e) {
@@ -1078,12 +1500,13 @@ async function detectCommunity() {
         $("color-by").value = "community:" + res.algorithm;
         applyAppearance();
         $("community-result").textContent = res.label + " — " + res.numCommunities + " communities";
-        $("btn-community-metrics").disabled = false;
-        $("btn-community-metrics").dataset.algo = res.algorithm;
+        $("btn-global-comm").disabled = false;
         $("btn-indiv-comm").disabled = false;
         const algos = Object.keys(state.communityData);
         setSelectOptions("indiv-comm-partition", algos, algos);
         $("indiv-comm-partition").value = res.algorithm;
+        setSelectOptions("global-comm-partition", algos, algos);
+        $("global-comm-partition").value = res.algorithm;
         updatePartitionField();
         applyReducers();
         refreshAfterCompute();
@@ -1095,20 +1518,31 @@ async function detectCommunity() {
     }
 }
 
-async function runCommunityMetrics() {
+async function runGlobalCommMetric() {
     if (!requireGraph()) return;
-    const algorithm = $("btn-community-metrics").dataset.algo;
-    if (!algorithm) return;
-    setStatus("Computing community metrics…", "busy");
+    const algorithm = $("global-comm-partition").value;
+    if (!algorithm || !state.communityData[algorithm]) { setStatus("Detect a partition first.", "error"); return; }
+    const metric = $("global-comm-metric").value;
+    setStatus("Computing global " + metric + "…", "busy");
+    $("btn-global-comm").disabled = true;
     try {
-        const res = await api("/api/communities/metrics", jsonBody({ graphId: state.graphId, algorithm }));
-        res.metrics.forEach((m) => {
-            if (!m.error) state.graphMetrics[m.label + " (" + algorithm + ")"] = m.value;
-        });
+        const res = await api("/api/communities/global",
+            jsonBody({ graphId: state.graphId, algorithm, metric, params: collectParams("global-comm-params") }));
+        const label = res.label + " (" + algorithm + ")";
+        state.graphMetrics[label] = res.value;
+        if (state.rec.active && $("global-comm-rec").checked) {
+            try {
+                const r2 = await api("/api/communities/global", jsonBody(
+                    { graphId: state.graphId, algorithm, metric, params: collectParams("global-comm-params"), withRecommendation: true }));
+                storeRecMetric("graph", label, r2.value);
+            } catch (e) { /* recommendation metric is optional */ }
+        }
         refreshAfterCompute();
-        setStatus("Community metrics done.");
+        setStatus("Computed " + label + " = " + fmt(res.value));
     } catch (e) {
         setStatus(e.message, "error");
+    } finally {
+        $("btn-global-comm").disabled = false;
     }
 }
 
@@ -1125,6 +1559,13 @@ async function runIndividualCommMetric() {
         const label = res.label + " · " + algorithm;
         if (!state.commMetricOrder.includes(label)) state.commMetricOrder.push(label);
         state.commMetricData[label] = { algorithm, values: numericMap(res.values) };
+        if (state.rec.active && $("comm-rec").checked) {
+            try {
+                const r2 = await api("/api/communities/individual", jsonBody(
+                    { graphId: state.graphId, algorithm, metric, params: collectParams("indiv-comm-params"), withRecommendation: true }));
+                storeRecMetric("comm", label, numericMap(r2.values));
+            } catch (e) { /* recommendation metric is optional */ }
+        }
         refreshAfterCompute();
         setStatus("Computed " + res.label + " over " + algorithm + " — avg " + fmt(res.average) + ".");
     } catch (e) {
@@ -1141,10 +1582,11 @@ async function findPaths() {
     const source = $("path-source").value.trim();
     const target = $("path-target").value.trim();
     if (!source || !target) { setStatus("Enter both source and target.", "error"); return; }
+    const withRecommendation = !!(state.rec.active && $("path-graph") && $("path-graph").value === "rec");
     setStatus("Finding shortest paths…", "busy");
     $("btn-find-paths").disabled = true;
     try {
-        const res = await api("/api/paths", jsonBody({ graphId: state.graphId, source, target }));
+        const res = await api("/api/paths", jsonBody({ graphId: state.graphId, source, target, withRecommendation }));
         state.lastPaths = res.paths || [];
         if (res.length < 0) {
             $("path-summary").textContent = "No path from " + source + " to " + target + ".";
@@ -1218,6 +1660,7 @@ function setEditMode(on) {
 
 async function editAddNodeAt(coords) {
     if (!requireGraph() || !state.graph) return;
+    if (!confirmClears("Adding a node")) return;
     let id = state.graph.order;
     while (state.graph.hasNode(String(id))) id++;
     try {
@@ -1229,6 +1672,7 @@ async function editAddNodeAt(coords) {
 }
 
 async function editAddEdge(source, target, weight) {
+    if (!confirmClears("Adding an edge")) return;
     const w = weight == null ? 1.0 : weight;
     try {
         const res = await api("/api/graph/" + state.graphId + "/edge", jsonBody({ source, target, weight: w }));
@@ -1272,7 +1716,7 @@ async function editRemoveEdge(source, target, edgeId) {
 
 // Row remove handlers (with a confirmation, since removal is destructive).
 function removeNodeFromTable(id) {
-    if (!window.confirm('Remove node "' + id + '" and its edges?')) return;
+    if (!window.confirm('Remove node "' + id + '" and its edges?' + pendingClearsSuffix())) return;
     if (state.selectedNode === id) clearSelection();
     editDeleteNode(id);
 }
@@ -1280,17 +1724,42 @@ function removeNodeFromTable(id) {
 function removeEdgeFromTable(edgeId) {
     const g = state.graph;
     const s = g.source(edgeId), t = g.target(edgeId);
-    if (!window.confirm("Remove edge " + s + " → " + t + "?")) return;
+    if (!window.confirm("Remove edge " + s + " → " + t + "?" + pendingClearsSuffix())) return;
     editRemoveEdge(s, t, edgeId);
 }
 
+// The computed state a graph edit (or reload) would discard, as a human-readable list.
+function pendingClearsList() {
+    const bits = [];
+    if (state.metricOrder.length || state.pairOrder.length || state.commMetricOrder.length || Object.keys(state.graphMetrics).length) bits.push("computed metrics");
+    if (Object.keys(state.communityData).length) bits.push("detected communities");
+    if (Object.keys(state.rec.models).length || (state.rec.tableEdges && state.rec.tableEdges.length)) bits.push("recommendations");
+    if (diffusionHasResults()) bits.push("diffusion results");
+    return bits;
+}
+
+// A trailing sentence describing what an action will also clear, or "" if nothing.
+function pendingClearsSuffix() {
+    const bits = pendingClearsList();
+    return bits.length ? " This will also clear the " + bits.join(", ") + "." : "";
+}
+
+// Confirms an action that will discard computed state; prompts only when there is something to clear.
+function confirmClears(action) {
+    const bits = pendingClearsList();
+    if (!bits.length) return true;
+    return window.confirm(action + " will clear the " + bits.join(", ") + ". Continue?");
+}
+
 function onGraphEdited(stats) {
-    // Server cleared its caches, so all computed results are stale.
+    // Server cleared its caches, so all computed results (and any recommendation overlay) are stale.
     resetResults();
+    resetRecommendation();
+    resetDiffusion();
     rebuildAppearanceOptions();
     applyAppearance();
     if (stats) { $("ov-nodes").textContent = stats.nodes; $("ov-edges").textContent = stats.edges; }
-    $("btn-community-metrics").disabled = true;
+    $("btn-global-comm").disabled = true;
     $("btn-indiv-comm").disabled = true;
     state.pathFocus = null;
     if (state.selectedNode != null && !state.graph.hasNode(state.selectedNode)) clearSelection();
@@ -1309,13 +1778,33 @@ function switchTab(tab) {
     $("pane-tables").classList.toggle("active", tab === "tables");
     $("pane-metrics").classList.toggle("active", tab === "metrics");
     $("pane-paths").classList.toggle("active", tab === "paths");
+    $("pane-recommend").classList.toggle("active", tab === "recommend");
+    $("pane-diffusion").classList.toggle("active", tab === "diffusion");
 
     updatePanels(tab);
 
-    if (tab === "network" && state.renderer) setTimeout(() => state.renderer.refresh(), 0);
+    if (tab === "network" && state.renderer) setTimeout(() => { state.renderer.refresh(); drawRecOverlay(); }, 0);
     if (tab === "tables") renderTable(state.activeTableSubtab);
     if (tab === "metrics") renderMetricsDashboard();
     if (tab === "paths" && state.selectedNode && !$("path-source").value) $("path-source").value = state.selectedNode;
+    if (tab === "recommend") { loadRecCatalog(); renderTable("rec"); }
+    if (tab === "diffusion") enterDiffusionTab();
+}
+
+// Switches between the Graph and Metrics subtabs in the Diffusion tab's center panel.
+function switchDiffSubtab(sub) {
+    state.diffusion.subview = sub;
+    document.querySelectorAll(".diffsubtab").forEach((b) => b.classList.toggle("active", b.dataset.diffsubtab === sub));
+    $("diff-view-graph").classList.toggle("active", sub === "graph");
+    $("diff-view-metrics").classList.toggle("active", sub === "metrics");
+    $("diff-view-pieces").classList.toggle("active", sub === "pieces");
+    if (sub === "graph") {
+        if (state.diffusion.renderer) setTimeout(() => { state.diffusion.renderer.refresh(); drawDiffOverlay(); }, 0);
+    } else if (sub === "metrics") {
+        renderDiffMetrics();
+    } else if (sub === "pieces") {
+        renderPiecesTable();
+    }
 }
 
 // Shows/hides the side panels per tab and resizes the layout grid accordingly:
@@ -1333,6 +1822,16 @@ function updatePanels(tab) {
     document.querySelectorAll(".right-metric").forEach((s) => { s.style.display = tab === "metrics" ? "" : "none"; });
 }
 
+// Disables the Recommendation tab for multigraphs (recommenders need a simple FastGraph); switches away if needed.
+function updateRecTabAvailability() {
+    const btn = $("tab-recommend");
+    if (!btn) return;
+    btn.disabled = state.multigraph;
+    btn.classList.toggle("disabled", state.multigraph);
+    btn.title = state.multigraph ? "Recommendation is not available for multigraphs." : "";
+    if (state.multigraph && state.activeTab === "recommend") switchTab("network");
+}
+
 function switchSubtab(sub) {
     state.activeSubtab = sub;
     document.querySelectorAll(".subtab").forEach((b) => b.classList.toggle("active", b.dataset.subtab === sub));
@@ -1341,10 +1840,10 @@ function switchSubtab(sub) {
     $("subpane-edges").classList.toggle("active", sub === "edges");
     $("subpane-pairs").classList.toggle("active", sub === "pairs");
     $("subpane-comm").classList.toggle("active", sub === "comm");
-    if (sub === "nodes") drawNodeChart();
-    if (sub === "edges") drawEdgeChart();
+    if (sub === "nodes") { drawNodeChart(); drawNodeScatter(); }
+    if (sub === "edges") { drawEdgeChart(); drawEdgeScatter(); }
     if (sub === "pairs") drawPairChart();
-    if (sub === "comm") drawCommChart();
+    if (sub === "comm") { drawCommChart(); drawCommScatter(); }
 }
 
 function switchTableSubtab(sub) {
@@ -1412,10 +1911,18 @@ function idValue(id) {
     return (id !== "" && !Number.isNaN(n)) ? n : id;
 }
 
-const TABLE_IDS = { nodes: "nodes-table", edges: "edges-table" };
+const TABLE_IDS = { nodes: "nodes-table", edges: "edges-table", rec: "rec-edges-table" };
 
 function tableModel(key) {
     if (key === "nodes") return { cols: nodeColumns(), ids: state.graph ? state.graph.nodes() : [], val: nodeRowValue };
+    if (key === "rec") {
+        const edges = state.rec.tableEdges || [];
+        return {
+            cols: [{ key: "source", label: "source" }, { key: "target", label: "target" }, { key: "score", label: "score" }, { key: "_act", label: "" }],
+            ids: edges.map((_, i) => i),
+            val: (i, k) => { const e = edges[i]; if (!e) return undefined; return k === "score" ? e.score : idValue(e[k]); },
+        };
+    }
     return { cols: edgeColumns(), ids: state.graph ? state.graph.edges() : [], val: edgeRowValue };
 }
 
@@ -1481,8 +1988,8 @@ function tableRows(key) {
     let ids = Array.from(m.ids);
     if (filters.length) ids = ids.filter((id) => rowPasses(m.val, id, filters));
 
-    // "Show only" selection modes (ego-only / community-only) also restrict the tables.
-    const focus = selectionFocus();
+    // "Show only" selection modes (ego-only / community-only) also restrict the node/edge tables (not the rec table).
+    const focus = (key === "nodes" || key === "edges") ? selectionFocus() : null;
     if (focus && focus.only) {
         const g = state.graph;
         ids = key === "nodes"
@@ -1598,12 +2105,21 @@ function renderBody(key) {
         for (const c of model.cols) {
             const td = document.createElement("td");
             if (c.key === "_act") {
-                const rm = document.createElement("button");
-                rm.className = "row-remove";
-                rm.textContent = "✕";
-                rm.title = key === "nodes" ? "Remove node" : "Remove edge";
-                rm.addEventListener("click", () => (key === "nodes" ? removeNodeFromTable(id) : removeEdgeFromTable(id)));
-                td.appendChild(rm);
+                if (key === "rec") {
+                    const add = document.createElement("button");
+                    add.className = "row-add";
+                    add.textContent = "+ Add";
+                    add.title = "Add this link to the graph";
+                    add.addEventListener("click", () => addRecLinkFromTable(id));
+                    td.appendChild(add);
+                } else {
+                    const rm = document.createElement("button");
+                    rm.className = "row-remove";
+                    rm.textContent = "✕";
+                    rm.title = key === "nodes" ? "Remove node" : "Remove edge";
+                    rm.addEventListener("click", () => (key === "nodes" ? removeNodeFromTable(id) : removeEdgeFromTable(id)));
+                    td.appendChild(rm);
+                }
                 tr.appendChild(td);
                 continue;
             }
@@ -1878,50 +2394,51 @@ function applyReducers() {
 
 function renderMetricsDashboard() {
     renderGlobalTable();
-    renderAverages("node-averages-table", state.metricOrder, state.metricData);
-    renderAverages("edge-averages-table", state.pairOrder, state.pairData);
+    renderAverages("node-averages-table", state.metricOrder, state.metricData, "vertex");
+    renderAverages("edge-averages-table", state.pairOrder, state.pairData, "pair");
     renderPairAverages();
     renderCommAverages();
     syncChartSelectors();
-    if (state.activeSubtab === "nodes") drawNodeChart();
-    if (state.activeSubtab === "edges") drawEdgeChart();
+    updateScatterBlocks();
+    if (state.activeSubtab === "nodes") { drawNodeChart(); drawNodeScatter(); }
+    if (state.activeSubtab === "edges") { drawEdgeChart(); drawEdgeScatter(); }
     if (state.activeSubtab === "pairs") drawPairChart();
-    if (state.activeSubtab === "comm") drawCommChart();
+    if (state.activeSubtab === "comm") { drawCommChart(); drawCommScatter(); }
 }
 
-// Per-community averages come from each stored metric's value map.
+// Per-community averages come from each stored metric's value map, plus one column per recommendation.
 function renderCommAverages() {
-    const table = $("comm-averages-table");
-    table.innerHTML = "";
-    for (const label of state.commMetricOrder) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${label}</td><td>${fmt(average(state.commMetricData[label].values))}</td>`;
-        table.appendChild(tr);
-    }
+    const recKeys = recColumnKeys("comm");
+    const rows = state.commMetricOrder.map((label) => ({
+        label,
+        original: average(state.commMetricData[label].values),
+        rec: recKeys.map((k) => { const m = state.recMetricData.comm?.[label]?.[k]; return m ? average(m) : undefined; }),
+    }));
+    buildAverageTable("comm-averages-table", rows, recKeys);
 }
 
 // Node-pair averages come from the streamed aggregate (one summary object per metric), not a per-pair map.
 function renderPairAverages() {
-    const table = $("pair-averages-table");
-    table.innerHTML = "";
-    for (const label of state.nodePairOrder) {
+    const recKeys = recColumnKeys("nodePair");
+    const rows = state.nodePairOrder.map((label) => {
         const agg = state.nodePairAgg[label];
-        const note = agg.estimated ? " (estimated)" : "";
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${label}${note}</td><td>${fmt(agg.average)}</td>`;
-        table.appendChild(tr);
-    }
+        return {
+            label: label + (agg.estimated ? " (estimated)" : ""),
+            original: agg.average,
+            rec: recKeys.map((k) => state.recMetricData.nodePair?.[label]?.[k]?.average),
+        };
+    });
+    buildAverageTable("pair-averages-table", rows, recKeys);
 }
 
 function renderGlobalTable() {
-    const table = $("global-metrics-table");
-    table.innerHTML = "";
-    const keys = Object.keys(state.graphMetrics);
-    for (const k of keys) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${k}</td><td>${fmt(state.graphMetrics[k])}</td>`;
-        table.appendChild(tr);
-    }
+    const recKeys = recColumnKeys("graph");
+    const rows = Object.keys(state.graphMetrics).map((k) => ({
+        label: k,
+        original: state.graphMetrics[k],
+        rec: recKeys.map((rk) => state.recMetricData.graph?.[k]?.[rk]),
+    }));
+    buildAverageTable("global-metrics-table", rows, recKeys);
 }
 
 function average(values) {
@@ -1930,14 +2447,54 @@ function average(values) {
     return arr.reduce((a, b) => a + b, 0) / arr.length;
 }
 
-function renderAverages(tableId, order, data) {
+function renderAverages(tableId, order, data, family) {
+    const recKeys = recColumnKeys(family);
+    const rows = order.map((label) => ({
+        label,
+        original: average(data[label]),
+        rec: recKeys.map((k) => { const m = state.recMetricData[family]?.[label]?.[k]; return m ? average(m) : undefined; }),
+    }));
+    buildAverageTable(tableId, rows, recKeys);
+}
+
+// Renders a metric/average table: a "metric" column, an "original" column, and one column per recommendation
+// (headed by the model label) when any recommendation values are present. Falls back to a plain two-column table.
+function buildAverageTable(tableId, rows, recKeys) {
     const table = $(tableId);
     table.innerHTML = "";
-    for (const label of order) {
+    if (recKeys.length) {
+        const thead = document.createElement("thead");
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${label}</td><td>${fmt(average(data[label]))}</td>`;
-        table.appendChild(tr);
+        tr.appendChild(thEl("metric"));
+        tr.appendChild(thEl("original"));
+        recKeys.forEach((k) => tr.appendChild(thEl(recLabel(k))));
+        thead.appendChild(tr);
+        table.appendChild(thead);
     }
+    const tbody = document.createElement("tbody");
+    for (const row of rows) {
+        const tr = document.createElement("tr");
+        tr.appendChild(tdText(row.label));
+        tr.appendChild(tdText(fmt(row.original)));
+        (row.rec || []).forEach((v) => tr.appendChild(tdText(v === undefined || v === null ? "" : fmt(v))));
+        tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+}
+
+function thEl(text) { const th = document.createElement("th"); th.textContent = text; return th; }
+function tdText(text) { const td = document.createElement("td"); td.textContent = text; return td; }
+
+// The recommendation columns currently populated for a metric family (union across that family's metrics).
+function recColumnKeys(family) {
+    const fam = state.recMetricData[family] || {};
+    const set = new Set();
+    for (const label of Object.keys(fam)) for (const k of Object.keys(fam[label])) set.add(k);
+    return Array.from(set);
+}
+
+function recLabel(key) {
+    return (state.rec.models[key] && state.rec.models[key].label) || key;
 }
 
 function syncChartSelectors() {
@@ -1952,6 +2509,32 @@ function syncChartSelectors() {
     // Per-community chart.
     setSelectOptions("comm-chart-metric", state.commMetricOrder, state.commMetricOrder);
     setSelectOptions("comm-chart-sort", ["community", ...state.commMetricOrder], ["community", ...state.commMetricOrder]);
+
+    // Original-vs-recommendation scatter selectors (metric + which recommendation column).
+    syncScatterSelectors("node", "vertex", state.metricOrder);
+    syncScatterSelectors("edge", "pair", state.pairOrder);
+    syncScatterSelectors("comm", "comm", state.commMetricOrder);
+}
+
+// Populates a scatter subtab's metric + recommendation selectors from the metrics that have recommendation values.
+function syncScatterSelectors(prefix, family, order) {
+    const withRec = order.filter((label) => state.recMetricData[family] && state.recMetricData[family][label]);
+    setSelectOptions(prefix + "-scatter-metric", withRec, withRec);
+    const metric = $(prefix + "-scatter-metric").value;
+    const keys = (state.recMetricData[family] && state.recMetricData[family][metric]) ? Object.keys(state.recMetricData[family][metric]) : [];
+    setSelectOptions(prefix + "-scatter-rec", keys, keys.map(recLabel));
+}
+
+// Shows the scatter section on a subtab only when that family has at least one recommendation column.
+function updateScatterBlocks() {
+    toggleHidden("node-scatter-block", recColumnKeys("vertex").length === 0);
+    toggleHidden("edge-scatter-block", recColumnKeys("pair").length === 0);
+    toggleHidden("comm-scatter-block", recColumnKeys("comm").length === 0);
+}
+
+function toggleHidden(id, hidden) {
+    const el = $(id);
+    if (el) el.hidden = hidden;
 }
 
 function setSelectOptions(id, values, labels) {
@@ -2037,6 +2620,10 @@ function clearChart(canvasId) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+// Shared chart typography: axis titles at 12px, tick labels at 10px (see drawBarChart / drawScatter / drawMultiLineChart).
+const AXIS_TITLE_FONT = "12px sans-serif";
+const AXIS_LABEL_FONT = "10px sans-serif";
+
 function drawBarChart(canvasId, tipId, items, title, xLabel, yLabel) {
     const canvas = $(canvasId);
     const dpr = window.devicePixelRatio || 1;
@@ -2048,11 +2635,11 @@ function drawBarChart(canvasId, tipId, items, title, xLabel, yLabel) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
-    // Extra padding for the axis labels when present.
-    const padL = 56 + (yLabel ? 14 : 0);
+    // Extra padding for the axis titles when present (room so the rotated y title clears the tick labels).
+    const padL = 58 + (yLabel ? 18 : 0);
     const padR = 14;
     const padT = 18;
-    const padB = 28 + (xLabel ? 16 : 0);
+    const padB = 28 + (xLabel ? 18 : 0);
     const plotW = W - padL - padR, plotH = H - padT - padB;
 
     const values = items.map((d) => d.value);
@@ -2065,27 +2652,28 @@ function drawBarChart(canvasId, tipId, items, title, xLabel, yLabel) {
     const colBar = cssVar("--accent", "#4f9dff");
 
     // Axes.
-    ctx.strokeStyle = colMuted; ctx.fillStyle = colMuted; ctx.font = "11px sans-serif";
     const yOf = (v) => padT + plotH - ((v - min) / (max - min)) * plotH;
+    ctx.strokeStyle = colMuted;
     ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
+    ctx.font = AXIS_LABEL_FONT; ctx.textAlign = "right"; ctx.textBaseline = "middle";
     for (let g = 0; g <= 4; g++) {
         const val = min + ((max - min) * g) / 4;
         const y = yOf(val);
-        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), 4, y + 3);
+        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), padL - 6, y);
         ctx.strokeStyle = colBorder; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
     }
-    ctx.fillStyle = colText; ctx.fillText(title + "  (n=" + items.length + ")", padL, 12);
+    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT; ctx.fillText(title + "  (n=" + items.length + ")", padL, 12);
 
-    // Axis labels.
-    ctx.fillStyle = colText;
+    // Axis titles.
     if (xLabel) {
         ctx.textAlign = "center";
-        ctx.fillText(xLabel, padL + plotW / 2, H - 4);
+        ctx.fillText(xLabel, padL + plotW / 2, H - 5);
         ctx.textAlign = "start";
     }
     if (yLabel) {
         ctx.save();
-        ctx.translate(12, padT + plotH / 2);
+        ctx.translate(14, padT + plotH / 2);
         ctx.rotate(-Math.PI / 2);
         ctx.textAlign = "center";
         ctx.fillText(yLabel, 0, 0);
@@ -2208,6 +2796,19 @@ function compositePng() {
 function cssVar(name, fallback) {
     const v = getComputedStyle(document.body).getPropertyValue(name).trim();
     return v || fallback;
+}
+
+// Downloads a chart canvas as a PNG, compositing it over the panel background so the (transparent) plot is legible.
+function downloadChartPng(canvas, filename) {
+    if (typeof canvas === "string") canvas = $(canvas);
+    if (!canvas || !canvas.width || !canvas.height) { setStatus("Nothing to download yet — draw the chart first.", "error"); return; }
+    const out = document.createElement("canvas");
+    out.width = canvas.width; out.height = canvas.height;
+    const ctx = out.getContext("2d");
+    ctx.fillStyle = cssVar("--panel-2", "#1e1f23");
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(canvas, 0, 0);
+    out.toBlob((blob) => download(filename || "chart.png", blob, "image/png"), "image/png");
 }
 
 function exportGlobalCsv() {
@@ -2337,6 +2938,7 @@ async function addNodeFromTable() {
     let id = raw;
     if (!id) { id = String(state.graph.order); while (state.graph.hasNode(id)) id = String(Number(id) + 1); }
     if (state.graph.hasNode(id)) { setStatus("Node " + id + " already exists.", "error"); return; }
+    if (!confirmClears("Adding a node")) return;
     try {
         const res = await api("/api/graph/" + state.graphId + "/node", jsonBody({ node: id }));
         state.graph.addNode(id, { label: id, x: (Math.random() - 0.5) * 50, y: (Math.random() - 0.5) * 50, size: 4, color: "#4f9dff" });
@@ -2436,10 +3038,10 @@ function applyTheme(theme) {
     try { localStorage.setItem("relison-theme", theme); } catch (e) { /* ignore */ }
     // Charts are drawn imperatively, so re-render the visible one with the new palette.
     if (state.activeTab === "metrics") {
-        if (state.activeSubtab === "nodes") drawNodeChart();
-        if (state.activeSubtab === "edges") drawEdgeChart();
+        if (state.activeSubtab === "nodes") { drawNodeChart(); drawNodeScatter(); }
+        if (state.activeSubtab === "edges") { drawEdgeChart(); drawEdgeScatter(); }
         if (state.activeSubtab === "pairs") drawPairChart();
-        if (state.activeSubtab === "comm") drawCommChart();
+        if (state.activeSubtab === "comm") { drawCommChart(); drawCommScatter(); }
     }
 }
 
@@ -2462,11 +3064,1304 @@ function toggleTheme() {
     state.labelOpts.edgeColor = def;
 })();
 
+/* ----------------------- recommendation / link prediction ----------------------- */
+
+// Loads the algorithm catalog the first time the Recommendation tab is opened.
+async function loadRecCatalog() {
+    if (state.rec.catalogLoaded) return;
+    try {
+        const cat = await api("/api/recommendation/catalog");
+        state.defs.recommendation = indexById(cat);
+        fillCommunitySelect("rec-algo", cat);   // grouped like the community algorithms
+        renderParams("rec-params", "recommendation", $("rec-algo").value);
+        onRecModeChange();
+        state.rec.catalogLoaded = true;
+    } catch (e) {
+        setStatus("Could not load recommendation catalog: " + e.message, "error");
+    }
+}
+
+// The cutoff means different things per task: links per node (recommendation) vs. links overall (prediction).
+function onRecModeChange() {
+    $("rec-cutoff-label").textContent = $("rec-mode").value === "prediction" ? "Total links" : "Links per node";
+}
+
+// Trains the selected model (or loads it from the server cache), then overlays its links on the graph and tables.
+async function applyRecommendation() {
+    if (!requireGraph()) return;
+    if (state.multigraph) { setStatus("Recommendation is not available for multigraphs.", "error"); return; }
+    const algorithm = $("rec-algo").value;
+    const mode = $("rec-mode").value;
+    const cutoff = Math.max(1, parseInt($("rec-cutoff").value, 10) || 10);
+    const reciprocal = $("rec-reciprocal").checked;
+    setStatus("Applying " + algorithm + "…", "busy");
+    $("btn-rec-apply").disabled = true;
+    try {
+        const res = await api("/api/recommendation/run", jsonBody(
+            { graphId: state.graphId, algorithm, mode, cutoff, reciprocal, params: collectParams("rec-params") }));
+        state.rec.models[res.key] = { label: res.label, mode: res.mode, cutoff: res.cutoff, edges: res.edges };
+        state.rec.active = res.key;     // only one model is shown at a time
+        state.rec.tableEdges = res.edges;
+        state.rec.show = true;          // a freshly applied model is shown
+        $("rec-edge-show").checked = true;
+        drawRecOverlay();               // recommended links are drawn on the overlay, not added to the sigma graph
+        renderTable("rec");
+        updateRecUI();
+        refreshAfterCompute();
+        setStatus("Applied " + res.label + " — " + res.count + " recommended link(s).");
+    } catch (e) {
+        setStatus(e.message, "error");
+    } finally {
+        $("btn-rec-apply").disabled = false;
+    }
+}
+
+// Fully removes the recommendation: overlay, model(s), metric columns/scatterplots and the recommendation table.
+async function resetRecommendationResults() {
+    if (state.graphId) {
+        try { await api("/api/recommendation/clear", jsonBody({ graphId: state.graphId })); }
+        catch (e) { /* clearing is best-effort */ }
+    }
+    resetRecommendation();
+    refreshAfterCompute();
+    setStatus("Recommendation results reset.");
+}
+
+// Commits a recommended link to the actual graph: persists it, removes it from the recommendation list, and clears the
+// now-stale computed metrics (the graph changed) while keeping the rest of the recommendation list so more can be added.
+async function addRecLinkFromTable(index) {
+    const e = state.rec.tableEdges[index];
+    if (!e || !state.graph) return;
+    if (state.graph.hasEdge(e.source, e.target)) { setStatus("That edge already exists in the graph.", "error"); return; }
+    try {
+        const res = await api("/api/graph/" + state.graphId + "/edge", jsonBody({ source: e.source, target: e.target, weight: 1 }));
+        ensureNode(e.source);
+        ensureNode(e.target);
+        if (!state.graph.hasEdge(e.source, e.target)) state.graph.addEdge(e.source, e.target, { weight: 1 });
+        removeRecLink(e.source, e.target);   // it is now a real edge, no longer a recommendation
+        resetResults();                      // computed metrics are stale now that the graph changed
+        rebuildAppearanceOptions();
+        applyAppearance();
+        if (res.stats) { $("ov-nodes").textContent = res.stats.nodes; $("ov-edges").textContent = res.stats.edges; }
+        renderTable("rec");
+        drawRecOverlay();
+        applyReducers();
+        refreshAfterCompute();
+        setStatus("Added link " + e.source + " → " + e.target + " to the graph.");
+    } catch (err) {
+        setStatus(err.message, "error");
+    }
+}
+
+// Drops a link from the recommendation table and the active model's overlay edges.
+function removeRecLink(s, t) {
+    const keep = (e) => !(e.source === s && e.target === t);
+    state.rec.tableEdges = state.rec.tableEdges.filter(keep);
+    const m = state.rec.active && state.rec.models[state.rec.active];
+    if (m) m.edges = m.edges.filter(keep);
+}
+
+// Fully drops all recommendation state and visuals; used when the graph itself changes (load / edit).
+function resetRecommendation() {
+    state.rec.active = null;
+    state.rec.models = {};
+    state.rec.tableEdges = [];
+    state.recMetricData = { vertex: {}, graph: {}, pair: {}, nodePair: {}, comm: {} };
+    state.tables.rec.filters = {};
+    state.tables.rec.page = 0;
+    state.tables.rec.headerSig = null;
+    renderTable("rec");
+    updateRecUI();
+    drawRecOverlay();
+}
+
+// Shows/hides the recommendation-dependent controls and updates the status line.
+function updateRecUI() {
+    const active = !!state.rec.active;
+    toggleHidden("rec-edge-block", !active);
+    document.querySelectorAll(".rec-include-field").forEach((el) => { el.hidden = !active; });
+    const status = $("rec-status");
+    if (active) {
+        const m = state.rec.models[state.rec.active];
+        status.textContent = "Active: " + m.label + " (" + (m.mode === "prediction" ? "prediction" : "recommendation")
+            + ", cutoff " + m.cutoff + ", " + m.edges.length + " links).";
+    } else {
+        status.textContent = "No recommendation applied.";
+    }
+}
+
+// Debounced overlay repaint bound to sigma's afterRender: clears immediately (so dashed lines never lag behind the
+// graph mid-gesture and rapid renders cost almost nothing) and does the full draw once rendering settles.
+let recOverlayTimer = null;
+function scheduleRecOverlay() {
+    clearRecOverlay();
+    if (recOverlayTimer) clearTimeout(recOverlayTimer);
+    recOverlayTimer = setTimeout(() => { recOverlayTimer = null; drawRecOverlay(); }, 90);
+}
+
+// Sizes the overlay to the sigma container and clears it (no edge drawing — cheap enough to run every frame).
+function clearRecOverlay() {
+    const canvas = $("rec-overlay");
+    if (!canvas) return;
+    const cont = $("sigma-container");
+    const dpr = window.devicePixelRatio || 1;
+    const W = cont ? cont.clientWidth : 0, H = cont ? cont.clientHeight : 0;
+    canvas.width = Math.max(1, Math.floor(W * dpr));
+    canvas.height = Math.max(1, Math.floor(H * dpr));
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+}
+
+// The current emphasis context (table filters + selection focus / path focus), mirroring applyReducers, so the
+// overlay can apply the same hide/dim decisions to its recommended edges and node copies.
+function focusContext() {
+    const g = state.graph;
+    const nodeFilters = activeFilters("nodes", nodeColumns());
+    let filterNodes = null;
+    if (nodeFilters.length) {
+        filterNodes = new Set();
+        g.forEachNode((n) => { if (rowPasses(nodeRowValue, n, nodeFilters)) filterNodes.add(n); });
+    }
+    const path = state.pathFocus;
+    const focus = path ? null : selectionFocus();
+    return {
+        filterNodes,
+        path,
+        focus,
+        dim: !!(focus && !focus.only),
+        isolate: !!(focus && focus.only),
+        dimColor: cssVar("--border", "#3a3c41"),
+    };
+}
+
+// "hidden" | "dim" | "normal" for a node, matching the nodeReducer in applyReducers.
+function overlayNodeVerdict(node, c) {
+    if (c.filterNodes && !c.filterNodes.has(node)) return "hidden";
+    if (c.path) return c.path.nodes.has(node) ? "normal" : (c.path.only ? "hidden" : "dim");
+    if (c.focus) {
+        if (c.isolate) return c.focus.nodes.has(node) ? "normal" : "hidden";
+        if (node === c.focus.selected) return "normal";
+        return c.focus.nodes.has(node) ? "normal" : "dim";
+    }
+    return "normal";
+}
+
+// "hidden" | "dim" | "normal" for a recommended edge, matching the edgeReducer (a path may run over rec edges).
+function overlayEdgeVerdict(s, t, c) {
+    if (c.filterNodes && (!c.filterNodes.has(s) || !c.filterNodes.has(t))) return "hidden";
+    if (c.path) {
+        if (c.path.edges.has(pairKey(s, t)) || c.path.edges.has(pairKey(t, s))) return "normal";
+        return c.path.only ? "hidden" : "dim";
+    }
+    if (c.isolate) return (c.focus.nodes.has(s) && c.focus.nodes.has(t)) ? "normal" : "hidden";
+    if (c.dim) return (c.focus.nodes.has(s) && c.focus.nodes.has(t)) ? "normal" : "dim";
+    return "normal";
+}
+
+// Draws the recommended edges (dashed) plus a copy of the nodes on top, aligned to sigma's camera and honouring the
+// current filter / selection / path emphasis. Node copies keep the nodes visible above the recommended edges.
+function drawRecOverlay() {
+    clearRecOverlay();
+    const canvas = $("rec-overlay");
+    if (!canvas) return;
+    const r = state.renderer, g = state.graph;
+    if (!r || !g || state.activeTab !== "network") return;
+    const model = state.rec.active && state.rec.models[state.rec.active];
+    const showRec = model && state.rec.show;   // rec links are not part of the sigma graph, drawn here when enabled
+    const showBorder = state.nodeBorder.on;
+    if (!showRec && !showBorder) return;
+
+    const ctx = canvas.getContext("2d");
+    try {
+        const c = focusContext();
+        const cam = r.getCamera();
+        const ratio = (cam && (cam.ratio || (cam.getState && cam.getState().ratio))) || 1;
+        const pos = (id) => r.graphToViewport({ x: g.getNodeAttribute(id, "x"), y: g.getNodeAttribute(id, "y") });
+        const nodeRadius = (node) => Math.max(1.5, (g.getNodeAttribute(node, "size") || 3) / Math.sqrt(ratio));
+
+        if (showRec) {
+            // Recommended edges (dashed) — same hide/dim rules as the base graph.
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash(state.rec.diff ? [6, 4] : []);
+            const edges = model.edges;
+            const arrows = state.directed && edges.length <= 1500;   // arrowheads only when not too cluttered
+            for (let i = 0; i < edges.length; i++) {
+                const e = edges[i];
+                if (!g.hasNode(e.source) || !g.hasNode(e.target)) continue;
+                const verdict = overlayEdgeVerdict(e.source, e.target, c);
+                if (verdict === "hidden") continue;
+                const sxy = g.getNodeAttribute(e.source, "x");
+                const txy = g.getNodeAttribute(e.target, "x");
+                if (sxy == null || txy == null) continue;
+                const ps = pos(e.source), pt = pos(e.target);
+                const dimmed = verdict === "dim";
+                ctx.strokeStyle = dimmed ? c.dimColor : state.rec.color;
+                ctx.beginPath();
+                ctx.moveTo(ps.x, ps.y);
+                ctx.lineTo(pt.x, pt.y);
+                ctx.stroke();
+                if (arrows && !dimmed) { ctx.fillStyle = state.rec.color; drawRecArrow(ctx, ps, pt); }
+            }
+            ctx.setLineDash([]);
+
+            // Node copies on top, so the nodes stay visible above the recommended edges.
+            g.forEachNode((node) => {
+                const verdict = overlayNodeVerdict(node, c);
+                if (verdict === "hidden") return;
+                const x = g.getNodeAttribute(node, "x");
+                if (x == null) return;
+                const p = pos(node);
+                let radius = nodeRadius(node);
+                let color = g.getNodeAttribute(node, "color") || "#4f9dff";
+                if (verdict === "dim") { color = c.dimColor; radius = Math.max(1, radius * 0.6); }
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, radius, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+        }
+
+        if (showBorder) {
+            // A stroked ring around each visible node, honouring the same hide/dim emphasis.
+            ctx.setLineDash([]);
+            ctx.lineWidth = state.nodeBorder.width;
+            g.forEachNode((node) => {
+                const verdict = overlayNodeVerdict(node, c);
+                if (verdict === "hidden") return;
+                const x = g.getNodeAttribute(node, "x");
+                if (x == null) return;
+                const p = pos(node);
+                let radius = nodeRadius(node);
+                if (verdict === "dim") radius = Math.max(1, radius * 0.6);
+                ctx.strokeStyle = verdict === "dim" ? c.dimColor : state.nodeBorder.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, radius, 0, 2 * Math.PI);
+                ctx.stroke();
+            });
+        }
+    } catch (err) {
+        console.error("Display overlay failed to draw", err);
+    }
+}
+
+// Small filled arrowhead near the target endpoint, to convey direction on the dashed overlay.
+function drawRecArrow(ctx, from, to) {
+    const ang = Math.atan2(to.y - from.y, to.x - from.x);
+    const len = 7, off = 10;   // pull the head slightly back from the node
+    const tx = to.x - Math.cos(ang) * off, ty = to.y - Math.sin(ang) * off;
+    ctx.save();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx - len * Math.cos(ang - Math.PI / 7), ty - len * Math.sin(ang - Math.PI / 7));
+    ctx.lineTo(tx - len * Math.cos(ang + Math.PI / 7), ty - len * Math.sin(ang + Math.PI / 7));
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
+
+// Stores a metric's "with recommendation" result under the active model key, for its average column / scatter.
+function storeRecMetric(family, label, value) {
+    if (!state.rec.active) return;
+    const fam = state.recMetricData[family];
+    if (!fam[label]) fam[label] = {};
+    fam[label][state.rec.active] = value;
+}
+
+/* ------------------------------ scatterplots ------------------------------ */
+
+function drawNodeScatter() {
+    const metric = $("node-scatter-metric").value, recKey = $("node-scatter-rec").value;
+    const orig = state.metricData[metric], rmap = state.recMetricData.vertex?.[metric]?.[recKey];
+    if (!metric || !recKey || !orig || !rmap) { clearChart("node-scatter"); return; }
+    const points = Object.keys(orig).filter((n) => rmap[n] !== undefined).map((n) => ({ label: n, x: orig[n], y: rmap[n] }));
+    drawScatter("node-scatter", "node-scatter-tip", points, metric + " — original vs " + recLabel(recKey), "original", "recommendation");
+}
+
+function drawEdgeScatter() {
+    const metric = $("edge-scatter-metric").value, recKey = $("edge-scatter-rec").value;
+    const orig = state.pairData[metric], rmap = state.recMetricData.pair?.[metric]?.[recKey];
+    if (!metric || !recKey || !orig || !rmap) { clearChart("edge-scatter"); return; }
+    const points = Object.keys(orig).filter((k) => rmap[k] !== undefined)
+        .map((k) => ({ label: k.replace("|", "→"), x: orig[k], y: rmap[k] }));
+    drawScatter("edge-scatter", "edge-scatter-tip", points, metric + " — original vs " + recLabel(recKey), "original", "recommendation");
+}
+
+function drawCommScatter() {
+    const metric = $("comm-scatter-metric").value, recKey = $("comm-scatter-rec").value;
+    const entry = state.commMetricData[metric], rmap = state.recMetricData.comm?.[metric]?.[recKey];
+    if (!metric || !recKey || !entry || !rmap) { clearChart("comm-scatter"); return; }
+    const orig = entry.values;
+    const points = Object.keys(orig).filter((c) => rmap[c] !== undefined)
+        .map((c) => ({ label: "community " + c, x: orig[c], y: rmap[c] }));
+    drawScatter("comm-scatter", "comm-scatter-tip", points, metric + " — original vs " + recLabel(recKey), "original", "recommendation");
+}
+
+// Draws a scatter of (original, recommendation) values with a y=x reference line; shares the chart palette.
+function drawScatter(canvasId, tipId, points, title, xLabel, yLabel) {
+    const canvas = $(canvasId);
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    if (!points.length) return;
+
+    const padL = 64, padR = 14, padT = 18, padB = 46;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    let lo = Infinity, hi = -Infinity;
+    for (const p of points) { lo = Math.min(lo, p.x, p.y); hi = Math.max(hi, p.x, p.y); }
+    if (hi === lo) hi = lo + 1;
+
+    const colText = cssVar("--text", "#e6e6e6"), colMuted = cssVar("--muted", "#9aa0a6");
+    const colBorder = cssVar("--border", "#333"), colDot = cssVar("--accent", "#4f9dff");
+    const xOf = (v) => padL + ((v - lo) / (hi - lo)) * plotW;
+    const yOf = (v) => padT + plotH - ((v - lo) / (hi - lo)) * plotH;
+
+    ctx.strokeStyle = colMuted;
+    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
+    ctx.font = AXIS_LABEL_FONT; ctx.fillStyle = colMuted;
+    for (let i = 0; i <= 4; i++) {
+        const val = lo + ((hi - lo) * i) / 4;
+        const y = yOf(val);
+        ctx.fillStyle = colMuted; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+        ctx.fillText(fmt(val), padL - 6, y);
+        ctx.strokeStyle = colBorder; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+        ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), xOf(val), padT + plotH + 14);
+    }
+    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+
+    // y = x reference line.
+    ctx.strokeStyle = colMuted; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(xOf(lo), yOf(lo)); ctx.lineTo(xOf(hi), yOf(hi)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT;
+    ctx.fillText(title + "  (n=" + points.length + ")", padL, 12);
+    ctx.textAlign = "center"; ctx.fillText(xLabel, padL + plotW / 2, H - 5);
+    ctx.save(); ctx.translate(14, padT + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(yLabel, 0, 0); ctx.restore();
+    ctx.textAlign = "start";
+
+    ctx.fillStyle = colDot;
+    const dots = [];
+    for (const p of points) {
+        const x = xOf(p.x), y = yOf(p.y);
+        ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 2 * Math.PI); ctx.fill();
+        dots.push({ x, y, label: p.label, px: p.x, py: p.y });
+    }
+
+    const tip = $(tipId);
+    canvas.onmousemove = (ev) => {
+        const r = canvas.getBoundingClientRect();
+        const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+        let best = null, bd = 1e9;
+        for (const d of dots) { const dd = (d.x - mx) ** 2 + (d.y - my) ** 2; if (dd < bd) { bd = dd; best = d; } }
+        if (best && bd < 120) {
+            tip.hidden = false;
+            tip.style.left = best.x + "px";
+            tip.style.top = best.y + "px";
+            tip.textContent = best.label + ": " + fmt(best.px) + " → " + fmt(best.py);
+        } else { tip.hidden = true; }
+    };
+    canvas.onmouseleave = () => { tip.hidden = true; };
+}
+
+/* ------------------------ information diffusion ------------------------ */
+
+const DIFF_COL = { base: "#5a5d63", informed: "#4f9dff", newly: "#28c76f", prop: "#ff9f43" };
+
+// Loads the diffusion catalog once and fills all the configuration selectors.
+async function loadDiffusionCatalog() {
+    if (state.diffusion.loaded) return;
+    try {
+        const cat = await api("/api/diffusion/catalog");
+        state.defs.protocol = indexById(cat.protocol);
+        state.defs.selection = indexById(cat.selection);
+        state.defs.expiration = indexById(cat.expiration);
+        state.defs.propagation = indexById(cat.propagation);
+        state.defs.update = indexById(cat.update);
+        state.defs.sight = indexById(cat.sight);
+        state.defs.stop = indexById(cat.stop);
+        state.defs.metric = indexById(cat.metric);
+
+        fillSelect("diff-protocol", cat.protocol);
+        fillSelect("diff-selection", cat.selection);
+        fillSelect("diff-expiration", cat.expiration);
+        fillSelect("diff-propagation", cat.propagation);
+        fillSelect("diff-update", cat.update);
+        fillSelect("diff-sight", cat.sight);
+        fillSelect("diff-stop", cat.stop);
+        fillCommunitySelect("diff-metrics", cat.metric);   // grouped multiselect of metrics to compute
+
+        renderParams("diff-protocol-params", "protocol", $("diff-protocol").value);
+        renderParams("diff-selection-params", "selection", $("diff-selection").value);
+        renderParams("diff-expiration-params", "expiration", $("diff-expiration").value);
+        renderParams("diff-propagation-params", "propagation", $("diff-propagation").value);
+        renderParams("diff-update-params", "update", $("diff-update").value);
+        renderParams("diff-sight-params", "sight", $("diff-sight").value);
+        renderParams("diff-stop-params", "stop", $("diff-stop").value);
+        state.diffusion.loaded = true;
+    } catch (e) {
+        setStatus("Could not load diffusion catalog: " + e.message, "error");
+    }
+}
+
+function onDiffProtocolType() {
+    const custom = $("diff-protocol-type").value === "custom";
+    toggleHidden("diff-preset-wrap", custom);
+    toggleHidden("diff-custom-wrap", !custom);
+}
+
+function enterDiffusionTab() {
+    loadDiffusionCatalog();
+    if (!state.graph) return;
+    if (!state.diffusion.graph) initDiffGraph();
+    else syncDiffAppearance();   // mirror any appearance changes made on the Network tab while we were away
+    if (state.diffusion.renderer) setTimeout(() => { state.diffusion.renderer.refresh(); drawDiffOverlay(); }, 0);
+    if (state.diffusion.result) setDiffIteration(state.diffusion.iteration);
+    if (state.diffusion.subview === "metrics") renderDiffMetrics();
+    if (state.diffusion.subview === "pieces") renderPiecesTable();
+}
+
+// Builds a sigma renderer over a copy of the loaded graph (sharing its node positions).
+function initDiffGraph() {
+    if (!state.graph || !SigmaClass) return;
+    if (state.diffusion.renderer) { try { state.diffusion.renderer.kill(); } catch (e) { /* ignore */ } }
+    const exported = state.graph.export();
+    const g = new Graph({
+        type: (exported.options && exported.options.type) || (state.directed ? "directed" : "undirected"),
+        multi: !!(exported.options && exported.options.multi),
+        allowSelfLoops: true,
+    });
+    g.import(exported);
+    g.forEachNode((n) => g.setNodeAttribute(n, "color", DIFF_COL.base));
+    state.diffusion.graph = g;
+    $("diff-empty-hint").style.display = "none";
+    const o = state.labelOpts;
+    state.diffusion.renderer = new SigmaClass(g, $("diff-sigma-container"), {
+        defaultEdgeType: state.directed ? "arrow" : "line",
+        renderLabels: o.nodeShow,
+        renderEdgeLabels: o.edgeShow,
+        labelRenderer: drawDiffNodeLabel,
+        edgeLabelRenderer: drawDiffEdgeLabel,
+        labelDensity: 0.5,
+        labelRenderedSizeThreshold: 8,
+        allowInvalidContainer: true,
+    });
+    state.diffusion.renderer.on("clickNode", ({ node }) => selectDiffNode(node));
+    state.diffusion.renderer.on("afterRender", drawDiffOverlay);
+    syncDiffAppearance();
+    buildDiffLegend();
+}
+
+// Mirrors the main display's drawing into the diffusion canvas — node sizes/positions, edge thickness/colour, labels
+// (geometry + which are shown + size/font), and node borders — but NOT node or label colours, which the diffusion
+// view drives itself (by diffusion state). Called when entering the tab and after appearance changes.
+function syncDiffAppearance() {
+    const g = state.diffusion.graph, main = state.graph;
+    if (!g || !main) return;
+    g.forEachNode((n) => {
+        if (!main.hasNode(n)) return;
+        g.setNodeAttribute(n, "size", main.getNodeAttribute(n, "size"));
+        g.setNodeAttribute(n, "x", main.getNodeAttribute(n, "x"));
+        g.setNodeAttribute(n, "y", main.getNodeAttribute(n, "y"));
+        g.setNodeAttribute(n, "label", main.getNodeAttribute(n, "label"));
+        // node "color" is intentionally left as the diffusion-state colour.
+    });
+    g.forEachEdge((e) => {
+        if (!main.hasEdge(e)) return;
+        g.setEdgeAttribute(e, "size", main.getEdgeAttribute(e, "size"));
+        g.setEdgeAttribute(e, "color", main.getEdgeAttribute(e, "color"));
+        g.setEdgeAttribute(e, "label", main.getEdgeAttribute(e, "label"));
+    });
+    const r = state.diffusion.renderer, o = state.labelOpts;
+    if (r) {
+        // Mirror which labels are shown and their size/font (but not their colour — see drawDiffNodeLabel).
+        r.setSetting("renderLabels", o.nodeShow);
+        r.setSetting("renderEdgeLabels", o.edgeShow);
+        r.setSetting("labelSize", o.nodeSize);
+        r.setSetting("edgeLabelSize", o.edgeSize);
+        r.setSetting("labelFont", o.nodeFont);
+        r.setSetting("edgeLabelFont", o.edgeFont);
+        r.refresh();
+    }
+    drawDiffOverlay();
+}
+
+// Builds the node-colour legend shown over the diffusion canvas, sourced from DIFF_COL so it stays in sync.
+function buildDiffLegend() {
+    const el = $("diff-legend");
+    if (!el) return;
+    const items = [
+        ["Not informed", DIFF_COL.base],
+        ["Informed (received)", DIFF_COL.informed],
+        ["Newly informed", DIFF_COL.newly],
+        ["Propagating", DIFF_COL.prop],
+    ];
+    el.innerHTML = "";
+    items.forEach(([label, color]) => {
+        const row = document.createElement("div");
+        row.className = "legend-row";
+        const sw = document.createElement("span");
+        sw.className = "legend-swatch";
+        sw.style.background = color;
+        const lab = document.createElement("span");
+        lab.textContent = label;
+        row.appendChild(sw);
+        row.appendChild(lab);
+        el.appendChild(row);
+    });
+    el.hidden = false;
+}
+
+function selectDiffNode(node) {
+    state.diffusion.selectedNode = node;
+    $("diff-node-input").value = node;
+    $("diff-state-hint").textContent = "Node " + node;
+    fetchDiffState();
+}
+
+// Distinct colours for overlaid metric series (one per accumulated run).
+const SERIES_COLORS = ["#4f9dff", "#ff9f43", "#28c76f", "#e0576b", "#a66bff", "#22c3c3", "#f6c744", "#8892a0"];
+
+// A human label for the currently-configured protocol (used to tag an accumulated run).
+function protocolLabel(type) {
+    if (type === "custom") return "Custom";
+    const id = $("diff-protocol").value;
+    const def = state.defs.protocol && state.defs.protocol[id];
+    return def && def.label ? def.label : id;
+}
+
+// Ensures each accumulated run has a distinct label, appending " #k" on collision.
+function uniqueRunLabel(base) {
+    const used = new Set(state.diffusion.runs.map((r) => r.label));
+    if (!used.has(base)) return base;
+    let k = 2;
+    while (used.has(base + " #" + k)) k++;
+    return base + " #" + k;
+}
+
+// Runs the simulation with the configured protocol / stop / metrics.
+async function runDiffusion() {
+    if (!requireGraph()) return;
+    if (!state.diffusion.pieces.length) { setStatus("Add at least one information piece to run a simulation.", "error"); return; }
+    if (!state.diffusion.graph) initDiffGraph();
+    const type = $("diff-protocol-type").value;
+    const protocol = type === "custom"
+        ? {
+            type: "custom",
+            selection: { id: $("diff-selection").value, params: collectParams("diff-selection-params") },
+            expiration: { id: $("diff-expiration").value, params: collectParams("diff-expiration-params") },
+            propagation: { id: $("diff-propagation").value, params: collectParams("diff-propagation-params") },
+            update: { id: $("diff-update").value, params: collectParams("diff-update-params") },
+            sight: { id: $("diff-sight").value, params: collectParams("diff-sight-params") },
+          }
+        : { type: "preset", id: $("diff-protocol").value, params: collectParams("diff-protocol-params") };
+    const stop = { id: $("diff-stop").value, params: collectParams("diff-stop-params") };
+    const metrics = selectedOptions("diff-metrics").map((id) => ({ id }));
+    const protoLabel = protocolLabel(type);
+
+    setStatus("Running diffusion…", "busy");
+    $("diff-status").textContent = "Running…";
+    $("btn-diff-run").disabled = true;
+    try {
+        await persistPiecesNow();   // ensure the session has the latest pieces; the run reads them from there
+        const body = { graphId: state.graphId, protocol, stop, metrics, filters: [] };
+        const res = await api("/api/diffusion/run", jsonBody(body));
+        state.diffusion.result = res;
+        state.diffusion.iteration = 0;
+        // Accumulate this run's metric series (tagged with a unique protocol label) for overlaid plotting.
+        if (res.metrics && res.metrics.length) {
+            state.diffusion.runs.push({ label: uniqueRunLabel(protoLabel), numIterations: res.numIterations, metrics: res.metrics });
+        }
+        $("diff-empty-hint").style.display = "none";
+        toggleHidden("diff-timebar", res.numIterations <= 0);
+        const slider = $("diff-slider");
+        slider.min = 0; slider.max = Math.max(0, res.numIterations - 1); slider.value = 0;
+        setDiffIteration(0);
+        populateDiffMetricSelect();
+        renderDiffMetrics();
+        $("diff-status").textContent = "Done — " + res.numIterations + " iteration(s).";
+        setStatus("Diffusion finished (" + res.numIterations + " iterations).");
+    } catch (e) {
+        $("diff-status").textContent = e.message;
+        setStatus(e.message, "error");
+    } finally {
+        $("btn-diff-run").disabled = false;
+    }
+}
+
+// Colours the diffusion graph for an iteration and refreshes the slider, overlay and node panel.
+function setDiffIteration(i) {
+    const res = state.diffusion.result, g = state.diffusion.graph;
+    if (!res || !g) return;
+    i = Math.max(0, Math.min(i, res.numIterations - 1));
+    state.diffusion.iteration = i;
+
+    const informed = new Set(), newly = new Set(res.iterations[i].newlyInformed), prop = new Set(res.iterations[i].propagating);
+    for (let j = 0; j <= i; j++) res.iterations[j].newlyInformed.forEach((n) => informed.add(n));
+    g.forEachNode((n) => {
+        let c = DIFF_COL.base;
+        if (informed.has(n)) c = DIFF_COL.informed;
+        if (newly.has(n)) c = DIFF_COL.newly;
+        if (prop.has(n)) c = DIFF_COL.prop;
+        g.setNodeAttribute(n, "color", c);
+    });
+    $("diff-slider").value = i;
+    $("diff-iter-label").textContent = "iteration " + i + " / " + (res.numIterations - 1);
+    if (state.diffusion.renderer) state.diffusion.renderer.refresh();
+    drawDiffOverlay();
+    if (state.diffusion.selectedNode) fetchDiffState();
+}
+
+// Draws, for the current iteration, dashed spread edges from each propagating user to its neighbours.
+function drawDiffOverlay() {
+    const canvas = $("diff-overlay");
+    if (!canvas) return;
+    const cont = $("diff-sigma-container"), r = state.diffusion.renderer, g = state.diffusion.graph, res = state.diffusion.result;
+    const dpr = window.devicePixelRatio || 1;
+    const W = cont ? cont.clientWidth : 0, H = cont ? cont.clientHeight : 0;
+    canvas.width = Math.max(1, Math.floor(W * dpr));
+    canvas.height = Math.max(1, Math.floor(H * dpr));
+    canvas.style.width = W + "px"; canvas.style.height = H + "px";
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    if (!r || !g || state.activeTab !== "diffusion") return;
+
+    try {
+        const pos = (n) => r.graphToViewport({ x: g.getNodeAttribute(n, "x"), y: g.getNodeAttribute(n, "y") });
+
+        if (res) {
+            const prop = res.iterations[state.diffusion.iteration].propagating;
+            ctx.strokeStyle = DIFF_COL.prop; ctx.lineWidth = 1.4; ctx.setLineDash([5, 4]);
+            let drawn = 0;
+            for (const u of prop) {
+                if (!g.hasNode(u) || drawn > 3000) break;
+                const pu = pos(u);
+                const each = (v) => {
+                    if (drawn++ > 3000) return;
+                    const pv = pos(v);
+                    ctx.beginPath(); ctx.moveTo(pu.x, pu.y); ctx.lineTo(pv.x, pv.y); ctx.stroke();
+                };
+                if (state.directed) g.forEachOutNeighbor(u, each); else g.forEachNeighbor(u, each);
+            }
+            ctx.setLineDash([]);
+        }
+
+        // Mirror the main display's node borders (a drawing attribute, not a node colour).
+        if (state.nodeBorder.on) {
+            const cam = r.getCamera();
+            const ratio = (cam && (cam.ratio || (cam.getState && cam.getState().ratio))) || 1;
+            ctx.lineWidth = state.nodeBorder.width;
+            ctx.strokeStyle = state.nodeBorder.color;
+            g.forEachNode((n) => {
+                if (g.getNodeAttribute(n, "x") == null) return;
+                const p = pos(n);
+                const radius = Math.max(1.5, (g.getNodeAttribute(n, "size") || 3) / Math.sqrt(ratio));
+                ctx.beginPath(); ctx.arc(p.x, p.y, radius, 0, 2 * Math.PI); ctx.stroke();
+            });
+        }
+    } catch (err) {
+        console.error("Diffusion overlay failed", err);
+    }
+}
+
+// Fetches and renders the per-node, per-iteration information lists.
+// Information categories shown for the selected node, each with a this-iteration and an overall list.
+const DIFF_CATS = [
+    ["own", "Own information"],
+    ["propagated", "Propagated"],
+    ["read", "Read"],
+    ["received", "Received"],
+    ["discarded", "Discarded"],
+];
+
+async function fetchDiffState() {
+    const node = state.diffusion.selectedNode;
+    if (!node || !state.diffusion.result) return;
+    try {
+        const res = await api("/api/diffusion/state", jsonBody(
+            { graphId: state.graphId, iteration: state.diffusion.iteration, node }));
+        renderDiffState(res);
+    } catch (e) { /* ignore transient state errors */ }
+}
+
+function renderDiffState(res) {
+    const host = $("diff-cats");
+    if (!host) return;
+    host.innerHTML = "";
+    for (const [key, label] of DIFF_CATS) {
+        const cat = res[key] || { iter: [], overall: [] };
+        const block = document.createElement("div");
+        block.className = "diff-cat";
+        const h = document.createElement("span");
+        h.className = "sublabel";
+        h.textContent = label;
+        block.appendChild(h);
+        const cols = document.createElement("div");
+        cols.className = "diff-cat-cols";
+        cols.appendChild(diffCatColumn("This iteration", cat.iter));
+        cols.appendChild(diffCatColumn("Overall", cat.overall));
+        block.appendChild(cols);
+        host.appendChild(block);
+    }
+}
+
+function diffCatColumn(title, items) {
+    const col = document.createElement("div");
+    col.className = "diff-cat-col";
+    const t = document.createElement("span");
+    t.className = "diff-col-h";
+    t.textContent = title + " (" + (items ? items.length : 0) + ")";
+    col.appendChild(t);
+    const tbl = document.createElement("div");
+    tbl.className = "scroll-table";
+    if (!items || !items.length) {
+        tbl.innerHTML = '<div class="empty">none</div>';
+    } else {
+        for (const it of items) {
+            const d = document.createElement("div");
+            d.className = "row";
+            d.textContent = it;
+            tbl.appendChild(d);
+        }
+    }
+    col.appendChild(tbl);
+    return col;
+}
+
+// Exports every computed diffusion metric across all runs as a wide CSV: one row per iteration, one column
+// per (metric, run) named "Metric (diffusion protocol)".
+function downloadDiffMetricsCsv() {
+    const runs = state.diffusion.runs;
+    if (!runs.length) { setStatus("Run a simulation with metrics first.", "error"); return; }
+    // One column per (run, metric); track the longest series for the row count.
+    const cols = [];
+    let maxIters = 0;
+    for (const run of runs) {
+        maxIters = Math.max(maxIters, run.numIterations || 0);
+        for (const m of run.metrics) cols.push({ header: m.label + " (" + run.label + ")", values: m.values });
+    }
+    const lines = [["iteration", ...cols.map((c) => c.header)].map(csvCell).join(",")];
+    for (let i = 0; i < maxIters; i++) {
+        const row = [i, ...cols.map((c) => (c.values && Number.isFinite(c.values[i]) ? c.values[i] : ""))];
+        lines.push(row.map(csvCell).join(","));
+    }
+    download("diffusion-metrics.csv", lines.join("\n"), "text/csv");
+}
+
+function selectedOptions(id) { return Array.from($(id).selectedOptions).map((o) => o.value); }
+
+function diffPlay() {
+    if (state.diffusion.playing) { diffStop(); return; }
+    if (!state.diffusion.result) return;
+    $("diff-play").textContent = "⏸";
+    state.diffusion.playing = setInterval(() => {
+        const res = state.diffusion.result;
+        if (!res) { diffStop(); return; }
+        const next = state.diffusion.iteration + 1;
+        if (next >= res.numIterations) { diffStop(); return; }
+        setDiffIteration(next);
+    }, 700);
+}
+
+function diffStop() {
+    if (state.diffusion.playing) { clearInterval(state.diffusion.playing); state.diffusion.playing = null; }
+    const p = $("diff-play"); if (p) p.textContent = "▶";
+}
+
+async function clearDiffusion() {
+    if (state.graphId) { try { await api("/api/diffusion/clear", jsonBody({ graphId: state.graphId })); } catch (e) { /* best effort */ } }
+    resetDiffusion();
+}
+
+function resetDiffusion() {
+    diffStop();
+    if (state.diffusion.renderer) { try { state.diffusion.renderer.kill(); } catch (e) { /* ignore */ } state.diffusion.renderer = null; }
+    state.diffusion.graph = null;
+    state.diffusion.result = null;
+    state.diffusion.runs = [];
+    state.diffusion.iteration = 0;
+    state.diffusion.selectedNode = null;
+    toggleHidden("diff-timebar", true);
+    toggleHidden("diff-legend", true);
+    const eh = $("diff-empty-hint"); if (eh) eh.style.display = "";
+    const cats = $("diff-cats"); if (cats) cats.innerHTML = "";
+    const ds = $("diff-status"); if (ds) ds.textContent = "No simulation run yet.";
+    const ch = $("diffmetrics-charts"); if (ch) ch.innerHTML = "";
+}
+
+/* ----------------------- diffusion information pieces ----------------------- */
+
+// Whether there is any simulation output (canvas result or accumulated metric runs) that a change would invalidate.
+function diffusionHasResults() {
+    return !!state.diffusion.result || state.diffusion.runs.length > 0;
+}
+
+// Clears the simulation output (canvas result + metric plots) without touching the graph copy or the pieces. Used
+// when the information pieces change, since the existing results describe a different set of pieces.
+function invalidateDiffusionResults() {
+    diffStop();
+    state.diffusion.result = null;
+    state.diffusion.runs = [];
+    state.diffusion.iteration = 0;
+    toggleHidden("diff-timebar", true);
+    toggleHidden("diff-legend", true);
+    const eh = $("diff-empty-hint"); if (eh) eh.style.display = "";
+    const cats = $("diff-cats"); if (cats) cats.innerHTML = "";
+    const ds = $("diff-status"); if (ds) ds.textContent = "No simulation run yet.";
+    populateDiffMetricSelect();
+    renderDiffMetrics();
+    const g = state.diffusion.graph;
+    if (g) {
+        g.forEachNode((n) => g.setNodeAttribute(n, "color", DIFF_COL.base));
+        if (state.diffusion.renderer) state.diffusion.renderer.refresh();
+    }
+    drawDiffOverlay();
+}
+
+// Confirms a change to the information pieces. If there are diffusion results, it warns that they will be cleared;
+// on confirmation it clears them and returns true. Returns false if the user cancels (so the change is aborted).
+function confirmPiecesChange() {
+    if (!diffusionHasResults()) return true;
+    if (!window.confirm("Changing the information pieces will clear the current diffusion results and metric plots. Continue?")) return false;
+    invalidateDiffusionResults();
+    return true;
+}
+
+function updatePiecesSummary() {
+    const el = $("diff-pieces-summary");
+    if (!el) return;
+    const pieces = state.diffusion.pieces;
+    const creators = new Set(pieces.map((p) => p.creator).filter(Boolean));
+    let text = pieces.length === 0
+        ? "No pieces defined — add or generate at least one piece to run a simulation."
+        : pieces.length + " piece(s) from " + creators.size + " creator(s).";
+    text += state.diffusion.piecesSaved ? "  ·  saved" : "  ·  saving…";
+    el.textContent = text;
+    updateDiffRunEnabled();
+}
+
+// The simulation can only run when at least one information piece is defined.
+function updateDiffRunEnabled() {
+    const btn = $("btn-diff-run");
+    if (!btn) return;
+    const has = state.diffusion.pieces.length > 0;
+    btn.disabled = !has;
+    btn.title = has ? "" : "Add at least one information piece (in the \"Information pieces\" subtab) to run.";
+}
+
+// Persistence: the pieces are stored on the session so they survive across runs and aren't resent on every run.
+let piecesSaveTimer = null;
+
+function setPiecesSaved(saved) {
+    state.diffusion.piecesSaved = saved;
+    updatePiecesSummary();
+}
+
+// Saves the pieces to the session immediately (cancelling any pending debounced save). Returns a promise.
+function persistPiecesNow() {
+    if (piecesSaveTimer) { clearTimeout(piecesSaveTimer); piecesSaveTimer = null; }
+    if (!state.graphId) return Promise.resolve();
+    return api("/api/diffusion/pieces", jsonBody({ graphId: state.graphId, pieces: state.diffusion.pieces }))
+        .then(() => setPiecesSaved(true))
+        .catch(() => { /* best effort; the pieces are also revalidated server-side at run time */ });
+}
+
+// Debounced save, used while the user is typing in the table.
+function schedulePersistPieces() {
+    setPiecesSaved(false);
+    if (piecesSaveTimer) clearTimeout(piecesSaveTimer);
+    piecesSaveTimer = setTimeout(persistPiecesNow, 600);
+}
+
+// Renders the current page of the pieces table. Paging keeps the DOM small so arbitrarily large piece sets stay
+// responsive (only one page of <input> rows exists at a time).
+function renderPiecesTable() {
+    const table = $("diff-pieces-table");
+    if (!table) return;
+    const d = state.diffusion;
+    const pieces = d.pieces;
+    updatePiecesSummary();
+    table.innerHTML = "";
+
+    const pages = Math.max(1, Math.ceil(pieces.length / d.piecesPageSize));
+    if (d.piecesPage >= pages) d.piecesPage = pages - 1;
+    if (d.piecesPage < 0) d.piecesPage = 0;
+    const start = d.piecesPage * d.piecesPageSize;
+    const end = Math.min(pieces.length, start + d.piecesPageSize);
+
+    const thead = document.createElement("thead");
+    thead.innerHTML = "<tr><th>Id</th><th>Creator (node)</th><th>Timestamp</th><th></th></tr>";
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    for (let i = start; i < end; i++) tbody.appendChild(pieceRow(pieces[i], i));
+    table.appendChild(tbody);
+
+    updatePiecesPager(pieces.length, pages, start, end - start);
+}
+
+function updatePiecesPager(total, pages, start, shown) {
+    const container = $("diff-pieces-pager");
+    if (!container) return;
+    container.innerHTML = "";
+    const d = state.diffusion;
+
+    const sizeSel = document.createElement("select");
+    [100, 200, 500, 1000].forEach((n) => sizeSel.appendChild(option(String(n), n + " / page")));
+    sizeSel.value = String(d.piecesPageSize);
+    sizeSel.addEventListener("change", () => { d.piecesPageSize = parseInt(sizeSel.value, 10); d.piecesPage = 0; renderPiecesTable(); });
+
+    const prev = document.createElement("button");
+    prev.textContent = "‹ Prev";
+    prev.disabled = d.piecesPage <= 0;
+    prev.addEventListener("click", () => { d.piecesPage--; renderPiecesTable(); });
+
+    const next = document.createElement("button");
+    next.textContent = "Next ›";
+    next.disabled = d.piecesPage >= pages - 1;
+    next.addEventListener("click", () => { d.piecesPage++; renderPiecesTable(); });
+
+    // Direct page jump.
+    const jump = document.createElement("span");
+    jump.className = "page-jump";
+    const jumpLabel = document.createElement("span");
+    jumpLabel.textContent = "Page";
+    const pageInput = document.createElement("input");
+    pageInput.type = "number";
+    pageInput.min = "1";
+    pageInput.max = String(pages);
+    pageInput.value = String(d.piecesPage + 1);
+    pageInput.className = "page-input";
+    const goTo = () => {
+        let v = parseInt(pageInput.value, 10);
+        if (isNaN(v)) v = d.piecesPage + 1;
+        v = Math.max(1, Math.min(pages, v));
+        d.piecesPage = v - 1;
+        renderPiecesTable();
+    };
+    pageInput.addEventListener("change", goTo);
+    pageInput.addEventListener("keydown", (e) => { if (e.key === "Enter") goTo(); });
+    const ofLabel = document.createElement("span");
+    ofLabel.textContent = "of " + pages;
+    jump.append(jumpLabel, pageInput, ofLabel);
+
+    const info = document.createElement("span");
+    info.className = "pageinfo";
+    info.textContent = (total ? start + 1 : 0) + "–" + (start + shown) + " of " + total;
+
+    container.append(sizeSel, prev, next, jump, info);
+}
+
+function pieceRow(p, i) {
+    const tr = document.createElement("tr");
+    tr.appendChild(pieceCell(i, "id", "text", p.id));
+    tr.appendChild(pieceCell(i, "creator", "text", p.creator));
+    tr.appendChild(pieceCell(i, "timestamp", "number", p.timestamp));
+    const td = document.createElement("td");
+    const del = document.createElement("button");
+    del.className = "piece-del";
+    del.textContent = "✕";
+    del.title = "Delete piece";
+    del.addEventListener("click", () => {
+        if (!confirmPiecesChange()) return;
+        state.diffusion.pieces.splice(i, 1);
+        renderPiecesTable();
+        persistPiecesNow();
+    });
+    td.appendChild(del);
+    tr.appendChild(td);
+    return tr;
+}
+
+function pieceCell(i, field, type, value) {
+    const td = document.createElement("td");
+    const inp = document.createElement("input");
+    inp.type = type;
+    if (type === "number") inp.step = "1";
+    inp.value = value == null ? "" : value;
+    inp.addEventListener("input", () => {
+        if (!confirmPiecesChange()) { inp.value = state.diffusion.pieces[i][field] ?? ""; return; }   // revert on cancel
+        state.diffusion.pieces[i][field] = (type === "number") ? (parseInt(inp.value, 10) || 0) : inp.value;
+        schedulePersistPieces();
+    });
+    td.appendChild(inp);
+    // The creator is a node of the graph: turn its cell into a searchable node selector (picking fires "change").
+    if (field === "creator") {
+        attachNodeCombo(inp);
+        inp.addEventListener("change", () => {
+            if (!confirmPiecesChange()) { inp.value = state.diffusion.pieces[i][field] ?? ""; return; }
+            state.diffusion.pieces[i][field] = inp.value;
+            schedulePersistPieces();
+        });
+    }
+    return td;
+}
+
+function addDiffPiece() {
+    if (!confirmPiecesChange()) return;
+    const d = state.diffusion;
+    let n = d.pieces.length + 1;
+    const existing = new Set(d.pieces.map((p) => p.id));
+    while (existing.has("piece" + n)) n++;
+    d.pieces.push({ id: "piece" + n, creator: "", timestamp: 0 });
+    d.piecesPage = Math.floor((d.pieces.length - 1) / d.piecesPageSize);   // jump to the page holding the new row
+    renderPiecesTable();
+    schedulePersistPieces();
+}
+
+// Prefills the pieces from the graph: every node creates the chosen number of pieces (owned by it), added to the list.
+function generatePiecesFromGraph() {
+    if (!requireGraph()) return;
+    if (!confirmPiecesChange()) return;
+    const k = Math.max(1, numInput("diff-piece-seed", 1));
+    const pieces = [];
+    state.graph.forEachNode((node) => {
+        for (let j = 0; j < k; j++) pieces.push({ id: node + "#" + j, creator: node, timestamp: 0 });
+    });
+    state.diffusion.pieces = pieces;
+    state.diffusion.piecesPage = 0;
+    renderPiecesTable();
+    persistPiecesNow();
+    setStatus("Generated " + pieces.length + " information piece(s) from the graph.");
+}
+
+function clearDiffPieces() {
+    if (!state.diffusion.pieces.length) return;
+    if (!confirmPiecesChange()) return;
+    state.diffusion.pieces = [];
+    state.diffusion.piecesPage = 0;
+    renderPiecesTable();
+    persistPiecesNow();
+}
+
+function uploadPiecesCsv(file) {
+    if (!file) return;
+    if (!confirmPiecesChange()) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        state.diffusion.pieces = parsePiecesText(String(reader.result));
+        state.diffusion.piecesPage = 0;
+        renderPiecesTable();
+        persistPiecesNow();
+        setStatus("Loaded " + state.diffusion.pieces.length + " information piece(s) from " + file.name + ".");
+    };
+    reader.onerror = () => setStatus("Could not read " + file.name + ".", "error");
+    reader.readAsText(file);
+}
+
+// Parses an information-pieces file (comma / tab / semicolon separated): columns id, creator, timestamp. A leading
+// header row (first cell "id") is skipped.
+function parsePiecesText(text) {
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length);
+    const out = [];
+    lines.forEach((line, idx) => {
+        const cols = line.split(/[,\t;]/).map((c) => c.trim());
+        if (idx === 0 && cols[0].toLowerCase() === "id") return;   // header
+        if (!cols[0]) return;
+        out.push({ id: cols[0], creator: cols[1] || "", timestamp: (cols[2] !== undefined && cols[2] !== "") ? (parseInt(cols[2], 10) || 0) : 0 });
+    });
+    return out;
+}
+
+function downloadPiecesCsv() {
+    const pieces = state.diffusion.pieces;
+    if (!pieces.length) { setStatus("No information pieces to download.", "error"); return; }
+    const lines = [["id", "creator", "timestamp"].join(",")];
+    for (const p of pieces) lines.push([p.id, p.creator, p.timestamp].map(csvCell).join(","));
+    download("information-pieces.csv", lines.join("\n"), "text/csv");
+}
+
+/* --------------------------- diffusion metrics --------------------------- */
+
+// The union of metrics computed across all accumulated runs, in first-seen order.
+function diffMetricUnion() {
+    const seen = new Map();
+    for (const run of state.diffusion.runs) {
+        for (const m of run.metrics) if (!seen.has(m.id)) seen.set(m.id, m.label);
+    }
+    return Array.from(seen, ([id, label]) => ({ id, label }));
+}
+
+function populateDiffMetricSelect() {
+    const items = diffMetricUnion();
+    const sel = $("diffmetric-select");
+    const prev = sel.value;
+    sel.innerHTML = "";
+    items.forEach((m) => sel.appendChild(option(m.id, m.label)));
+    if (prev && items.some((m) => m.id === prev)) sel.value = prev;
+}
+
+function renderDiffMetrics() {
+    const container = $("diffmetrics-charts");
+    if (!container) return;
+    container.innerHTML = "";
+    const runs = state.diffusion.runs;
+    if (!runs.length) {
+        $("diffmetrics-hint").textContent = "Run a simulation (with metrics selected) to see plots over iterations.";
+        return;
+    }
+    $("diffmetrics-hint").textContent = "";
+    const sel = $("diffmetric-select");
+    const union = diffMetricUnion();
+    const chosen = union.find((m) => m.id === sel.value) || union[0];
+    if (!chosen) return;
+
+    // One line per run that computed the chosen metric, coloured by run and labelled with its protocol.
+    const series = [];
+    runs.forEach((run, idx) => {
+        const m = run.metrics.find((x) => x.id === chosen.id);
+        if (m) series.push({ name: run.label, values: m.values, color: SERIES_COLORS[idx % SERIES_COLORS.length] });
+    });
+    if (!series.length) return;
+
+    const title = document.createElement("h2");
+    title.textContent = chosen.label;
+    const area = document.createElement("div");
+    area.className = "chart-area";
+    area.style.height = "320px";
+    const canvas = document.createElement("canvas");
+    area.appendChild(canvas);
+    container.appendChild(title);
+    container.appendChild(area);
+    drawMultiLineChart(canvas, series, chosen.label);
+}
+
+// Draws one or more metric series (each {name, values, color}) as lines over iteration index, with an
+// "iteration" x axis (labelled ticks), the metric name as the y-axis title, and a legend of series names.
+function drawMultiLineChart(canvas, series, label) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    // Overall value range and iteration count across all series.
+    let min = Infinity, max = -Infinity, n = 0;
+    for (const s of series) {
+        n = Math.max(n, (s.values || []).length);
+        for (const v of s.values || []) if (Number.isFinite(v)) { if (v < min) min = v; if (v > max) max = v; }
+    }
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return;
+    if (max === min) { max = min + 1; min = min - 1; }
+
+    const padL = 66, padR = 16, padT = 16, padB = 50;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const xOf = (i) => padL + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+    const yOf = (v) => padT + plotH - ((v - min) / (max - min)) * plotH;
+
+    const colText = cssVar("--text", "#e6e6e6"), colMuted = cssVar("--muted", "#9aa0a6");
+    const colBorder = cssVar("--border", "#333");
+
+    // Axis lines + y grid/labels.
+    ctx.strokeStyle = colMuted;
+    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
+    ctx.font = AXIS_LABEL_FONT; ctx.fillStyle = colMuted; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (let gIdx = 0; gIdx <= 4; gIdx++) {
+        const val = min + ((max - min) * gIdx) / 4, y = yOf(val);
+        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), padL - 6, y);
+        ctx.strokeStyle = colBorder; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+    }
+    // x tick labels (iteration indices, thinned so they don't overlap).
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = colMuted;
+    const step = Math.max(1, Math.ceil(n / 8));
+    for (let i = 0; i < n; i += step) ctx.fillText(String(i), xOf(i), padT + plotH + 15);
+    if (n > 1 && (n - 1) % step !== 0) ctx.fillText(String(n - 1), xOf(n - 1), padT + plotH + 15);
+
+    // Axis titles.
+    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT; ctx.textAlign = "center";
+    ctx.fillText("iteration", padL + plotW / 2, H - 6);
+    ctx.save(); ctx.translate(14, padT + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(label || "value", 0, 0); ctx.restore();
+    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+
+    // Series lines.
+    for (const s of series) {
+        ctx.strokeStyle = s.color || cssVar("--accent", "#4f9dff"); ctx.lineWidth = 1.8; ctx.beginPath();
+        let started = false;
+        const vals = s.values || [];
+        for (let i = 0; i < vals.length; i++) {
+            const v = vals[i];
+            if (!Number.isFinite(v)) { started = false; continue; }
+            const x = xOf(i), y = yOf(v);
+            if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+    ctx.lineWidth = 1;
+
+    // Legend (top-right): one swatch + protocol label per series.
+    ctx.font = AXIS_LABEL_FONT; ctx.textBaseline = "middle";
+    const lh = 15, sw = 12, gap = 5;
+    let widest = 0;
+    for (const s of series) widest = Math.max(widest, ctx.measureText(s.name).width);
+    const boxW = sw + gap + widest + 12, boxH = series.length * lh + 8;
+    const bx = padL + plotW - boxW, by = padT + 4;
+    ctx.fillStyle = cssVar("--panel", "#26272b"); ctx.globalAlpha = 0.9;
+    ctx.fillRect(bx, by, boxW, boxH);
+    ctx.globalAlpha = 1; ctx.strokeStyle = colBorder; ctx.strokeRect(bx, by, boxW, boxH);
+    series.forEach((s, i) => {
+        const cy = by + 4 + i * lh + lh / 2;
+        ctx.fillStyle = s.color; ctx.fillRect(bx + 6, cy - sw / 2, sw, sw);
+        ctx.fillStyle = colText; ctx.textAlign = "start"; ctx.fillText(s.name, bx + 6 + sw + gap, cy);
+    });
+    ctx.textBaseline = "alphabetic";
+}
+
 /* ------------------------------- wiring ----------------------------- */
 
 $("btn-load").addEventListener("click", loadGraph);
-$("btn-layout").addEventListener("click", startLayout);
+$("btn-layout").addEventListener("click", onLayoutButton);
+$("btn-noverlap").addEventListener("click", removeOverlaps);
 $("btn-reset-layout").addEventListener("click", resetLayout);
+$("layout-type").addEventListener("change", () => { if (state.fa2Running) stopLayout(); updateLayoutButton(); updateLayoutTypeUI(); });
+$("drag-nodes").addEventListener("change", (e) => { state.dragNodes = e.target.checked; });
+updateLayoutButton();
+updateLayoutTypeUI();
+
+// Make the left/right panel blocks collapsible by clicking their headings.
+document.querySelectorAll(".panel .block > h2").forEach((h) => {
+    h.addEventListener("click", () => h.parentElement.classList.toggle("collapsed"));
+});
+
+// Diffusion tab controls.
+$("btn-diff-run").addEventListener("click", runDiffusion);
+$("btn-diff-clear").addEventListener("click", clearDiffusion);
+$("diff-protocol-type").addEventListener("change", onDiffProtocolType);
+$("diff-protocol").addEventListener("change", (e) => renderParams("diff-protocol-params", "protocol", e.target.value));
+$("diff-selection").addEventListener("change", (e) => renderParams("diff-selection-params", "selection", e.target.value));
+$("diff-expiration").addEventListener("change", (e) => renderParams("diff-expiration-params", "expiration", e.target.value));
+$("diff-propagation").addEventListener("change", (e) => renderParams("diff-propagation-params", "propagation", e.target.value));
+$("diff-update").addEventListener("change", (e) => renderParams("diff-update-params", "update", e.target.value));
+$("diff-sight").addEventListener("change", (e) => renderParams("diff-sight-params", "sight", e.target.value));
+$("diff-stop").addEventListener("change", (e) => renderParams("diff-stop-params", "stop", e.target.value));
+$("diff-slider").addEventListener("input", (e) => { diffStop(); setDiffIteration(parseInt(e.target.value, 10) || 0); });
+$("diff-step-back").addEventListener("click", () => { diffStop(); setDiffIteration(state.diffusion.iteration - 1); });
+$("diff-step-fwd").addEventListener("click", () => { diffStop(); setDiffIteration(state.diffusion.iteration + 1); });
+$("diff-play").addEventListener("click", diffPlay);
+$("diff-node-input").addEventListener("change", () => {
+    const v = $("diff-node-input").value.trim();
+    if (v && state.diffusion.graph && state.diffusion.graph.hasNode(v)) selectDiffNode(v);
+});
+$("diffmetric-select").addEventListener("change", renderDiffMetrics);
+// Information-pieces subtab controls.
+$("btn-diff-piece-add").addEventListener("click", addDiffPiece);
+$("btn-diff-piece-gen").addEventListener("click", generatePiecesFromGraph);
+$("btn-diff-piece-clear").addEventListener("click", clearDiffPieces);
+$("btn-diff-piece-download").addEventListener("click", downloadPiecesCsv);
+$("btn-diff-piece-upload").addEventListener("click", () => $("diff-piece-file").click());
+$("diff-piece-file").addEventListener("change", (e) => { uploadPiecesCsv(e.target.files[0]); e.target.value = ""; });
+updateDiffRunEnabled();   // starts disabled until at least one piece exists
 $("size-by").addEventListener("change", applyAppearance);
 $("color-by").addEventListener("change", applyAppearance);
 $("node-color-low").addEventListener("input", applyAppearance);
@@ -2478,6 +4373,15 @@ $("edge-color-mode").addEventListener("change", (e) => {
 });
 $("edge-color-single").addEventListener("input", applyAppearance);
 ["node-size-min", "node-size-max", "edge-size-min", "edge-size-max"].forEach((id) => $(id).addEventListener("input", applyAppearance));
+
+// Node borders (drawn on the display overlay).
+$("node-border-on").addEventListener("change", (e) => {
+    state.nodeBorder.on = e.target.checked;
+    toggleHidden("node-border-params", !e.target.checked);
+    drawRecOverlay();
+});
+$("node-border-color").addEventListener("input", (e) => { state.nodeBorder.color = e.target.value; drawRecOverlay(); });
+$("node-border-width").addEventListener("input", () => { state.nodeBorder.width = numInput("node-border-width", 1.5); drawRecOverlay(); });
 ["node-label-show", "node-label-size", "node-label-prop", "node-label-color", "node-label-font",
  "edge-label-show", "edge-label-size", "edge-label-prop", "edge-label-color", "edge-label-font"]
     .forEach((id) => $(id).addEventListener("input", syncLabelOpts));
@@ -2488,7 +4392,7 @@ $("btn-vertex").addEventListener("click", runVertexMetric);
 $("btn-graph").addEventListener("click", runGraphMetric);
 $("btn-pair").addEventListener("click", runPairMetric);
 $("btn-community").addEventListener("click", detectCommunity);
-$("btn-community-metrics").addEventListener("click", runCommunityMetrics);
+$("btn-global-comm").addEventListener("click", runGlobalCommMetric);
 $("btn-indiv-comm").addEventListener("click", runIndividualCommMetric);
 
 $("vertex-metric").addEventListener("change", (e) => renderParams("vertex-params", "vertex", e.target.value));
@@ -2496,6 +4400,7 @@ $("graph-metric").addEventListener("change", (e) => renderParams("graph-params",
 $("pair-metric").addEventListener("change", (e) => renderParams("pair-params", "pair", e.target.value));
 $("community-algo").addEventListener("change", (e) => renderParams("community-params", "community", e.target.value));
 $("indiv-comm-metric").addEventListener("change", (e) => renderParams("indiv-comm-params", "communityIndividual", e.target.value));
+$("global-comm-metric").addEventListener("change", (e) => renderParams("global-comm-params", "communityGlobal", e.target.value));
 $("edit-mode").addEventListener("change", (e) => setEditMode(e.target.checked));
 $("theme-toggle").addEventListener("click", toggleTheme);
 
@@ -2516,6 +4421,19 @@ $("path-display").addEventListener("change", () => {
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 document.querySelectorAll(".subtab").forEach((b) => b.addEventListener("click", () => switchSubtab(b.dataset.subtab)));
 document.querySelectorAll(".tablesubtab").forEach((b) => b.addEventListener("click", () => switchTableSubtab(b.dataset.tablesubtab)));
+document.querySelectorAll(".diffsubtab").forEach((b) => b.addEventListener("click", () => switchDiffSubtab(b.dataset.diffsubtab)));
+
+// Structural metric chart download buttons (delegated by data-canvas / data-file).
+document.querySelectorAll(".chart-dl[data-canvas]").forEach((b) =>
+    b.addEventListener("click", () => downloadChartPng(b.dataset.canvas, b.dataset.file)));
+// Diffusion metric chart: the canvas is created dynamically inside #diffmetrics-charts.
+$("btn-diffmetric-png").addEventListener("click", () => {
+    const canvas = $("diffmetrics-charts").querySelector("canvas");
+    const sel = $("diffmetric-select");
+    const name = (sel && sel.value ? sel.value : "diffusion-metric").replace(/[^\w.-]+/g, "_");
+    downloadChartPng(canvas, name + ".png");
+});
+$("btn-diffmetric-csv").addEventListener("click", downloadDiffMetricsCsv);
 
 $("btn-export-png").addEventListener("click", exportPng);
 $("btn-export-gexf").addEventListener("click", exportGexf);
@@ -2551,18 +4469,44 @@ $("btn-clear-edges-filters").addEventListener("click", () => clearFilters("edges
 $("pair-chart-metric").addEventListener("change", drawPairChart);
 ["comm-chart-metric", "comm-chart-sort"].forEach((id) => $(id).addEventListener("change", drawCommChart));
 
+// Recommendation tab + overlay controls.
+$("btn-rec-apply").addEventListener("click", applyRecommendation);
+$("btn-rec-reset").addEventListener("click", resetRecommendationResults);
+$("rec-mode").addEventListener("change", onRecModeChange);
+$("rec-algo").addEventListener("change", (e) => renderParams("rec-params", "recommendation", e.target.value));
+$("btn-clear-rec-filters").addEventListener("click", () => clearFilters("rec"));
+$("rec-edge-show").addEventListener("change", (e) => { state.rec.show = e.target.checked; drawRecOverlay(); });
+$("rec-edge-diff").addEventListener("change", (e) => { state.rec.diff = e.target.checked; applyReducers(); drawRecOverlay(); });
+$("rec-edge-color").addEventListener("input", (e) => { state.rec.color = e.target.value; applyAppearance(); drawRecOverlay(); });
+
+// Scatter selectors: changing the metric reloads the recommendation list, both redraw.
+$("node-scatter-metric").addEventListener("change", () => { syncScatterSelectors("node", "vertex", state.metricOrder); drawNodeScatter(); });
+$("node-scatter-rec").addEventListener("change", drawNodeScatter);
+$("edge-scatter-metric").addEventListener("change", () => { syncScatterSelectors("edge", "pair", state.pairOrder); drawEdgeScatter(); });
+$("edge-scatter-rec").addEventListener("change", drawEdgeScatter);
+$("comm-scatter-metric").addEventListener("change", () => { syncScatterSelectors("comm", "comm", state.commMetricOrder); drawCommScatter(); });
+$("comm-scatter-rec").addEventListener("change", drawCommScatter);
+
 window.addEventListener("resize", () => {
+    if (state.activeTab === "network") { scheduleRecOverlay(); return; }
+    if (state.activeTab === "diffusion") {
+        if (state.diffusion.subview === "metrics") { renderDiffMetrics(); return; }
+        if (state.diffusion.renderer) state.diffusion.renderer.refresh();
+        drawDiffOverlay();
+        return;
+    }
     if (state.activeTab !== "metrics") return;
-    if (state.activeSubtab === "nodes") drawNodeChart();
-    if (state.activeSubtab === "edges") drawEdgeChart();
+    if (state.activeSubtab === "nodes") { drawNodeChart(); drawNodeScatter(); }
+    if (state.activeSubtab === "edges") { drawEdgeChart(); drawEdgeScatter(); }
     if (state.activeSubtab === "pairs") drawPairChart();
-    if (state.activeSubtab === "comm") drawCommChart();
+    if (state.activeSubtab === "comm") { drawCommChart(); drawCommScatter(); }
 });
 
 document.addEventListener("keydown", (e) => {
     if (!$("edit-mode").checked) return;
     if ((e.key === "Delete" || e.key === "Backspace") && state.selectedNode != null) {
         const node = state.selectedNode;
+        if (!window.confirm('Delete node "' + node + '" and its edges?' + pendingClearsSuffix())) return;
         clearSelection();
         editDeleteNode(node);
     }

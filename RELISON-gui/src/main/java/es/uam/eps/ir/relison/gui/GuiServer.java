@@ -53,6 +53,8 @@ public class GuiServer
         EditController editController = new EditController(store);
         PathController pathController = new PathController(store);
         AttributeController attributeController = new AttributeController(store);
+        RecommendationController recommendationController = new RecommendationController(store);
+        DiffusionController diffusionController = new DiffusionController(store);
 
         Javalin app = Javalin.create(config ->
         {
@@ -78,8 +80,21 @@ public class GuiServer
 
         // Communities.
         app.post("/api/communities", communityController::detect);
-        app.post("/api/communities/metrics", communityController::metrics);
+        app.post("/api/communities/global", communityController::globalMetric);
         app.post("/api/communities/individual", communityController::individual);
+
+        // Recommendation / link prediction.
+        app.get("/api/recommendation/catalog", recommendationController::catalog);
+        app.post("/api/recommendation/run", recommendationController::run);
+        app.post("/api/recommendation/clear", recommendationController::clear);
+
+        // Information diffusion.
+        app.get("/api/diffusion/catalog", diffusionController::catalog);
+        app.post("/api/diffusion/run", diffusionController::run);
+        app.post("/api/diffusion/state", diffusionController::state);
+        app.post("/api/diffusion/clear", diffusionController::clear);
+        app.post("/api/diffusion/pieces", diffusionController::savePieces);
+        app.post("/api/diffusion/pieces/get", diffusionController::getPieces);
 
         // Shortest paths.
         app.post("/api/paths", pathController::shortestPaths);

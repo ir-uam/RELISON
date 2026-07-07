@@ -105,10 +105,10 @@ public class CreatorIndividualEntropy<U extends Serializable,I extends Serializa
         if(!this.isInitialized())
         {
             this.counter.clear();
-            Map<U,Double> aux = new HashMap<>();
-            this.data.getAllUsers().forEach(u -> aux.put(u, 0.0));
-            this.data.getAllUsers().forEach(u -> 
+            this.data.getAllUsers().forEach(u ->
             {
+                Map<U, Double> aux = new HashMap<>();
+                this.data.getAllUsers().forEach(v -> aux.put(v, 0.0));
                 aux.remove(u);
                 this.counter.put(u, aux);
             });

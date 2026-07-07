@@ -58,7 +58,9 @@ public class PathController
         String target = parse(ctx, body.get("target"));
         if (source == null || target == null) return;
 
-        Graph<String> graph = session.getGraph();
+        // Optionally search over the graph augmented with the active recommendation's links.
+        boolean withRec = MetricController.useRecommendation(body, session);
+        Graph<String> graph = withRec ? session.getAugmentedGraph() : session.getGraph();
         if (!graph.containsVertex(source) || !graph.containsVertex(target))
         {
             ctx.status(400).json(Map.of("error", "Both nodes must exist in the graph."));
@@ -98,6 +100,7 @@ public class PathController
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("source", source);
         response.put("target", target);
+        response.put("recommendation", withRec ? session.getActiveRecommendationKey() : null);
 
         // Note: keep both branches as Integer. A `? 0 : dist.get(target)` would type the expression as int and
         // unbox dist.get(target), throwing an NPE when the target is unreachable instead of reporting "no path".

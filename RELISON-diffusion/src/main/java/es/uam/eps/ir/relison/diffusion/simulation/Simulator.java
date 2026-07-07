@@ -11,7 +11,6 @@ package es.uam.eps.ir.relison.diffusion.simulation;
 import es.uam.eps.ir.relison.diffusion.data.Data;
 import es.uam.eps.ir.relison.diffusion.data.Information;
 import es.uam.eps.ir.relison.diffusion.data.PropagatedInformation;
-import es.uam.eps.ir.relison.diffusion.io.backup.BinarySimulationWriter;
 import es.uam.eps.ir.relison.diffusion.protocols.Protocol;
 import es.uam.eps.ir.relison.diffusion.selections.Selection;
 import es.uam.eps.ir.relison.diffusion.stop.StopCondition;
@@ -107,8 +106,8 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
         System.out.println("Filtering done");
         System.out.println(this.data.dataSummary());
         this.numIter = simulation.getInitialNumber() + simulation.getNumIterations();
-        long timestamp = data.getTimestamps().first();
-        for(int i = 0; i < simulation.getInitialNumber() + simulation.getNumIterations(); ++i)
+        Long timestamp = data.getTimestamps().first();
+        for(int i = 0; i < simulation.getInitialNumber() + simulation.getNumIterations() && timestamp != null; ++i)
         {
             timestamp = data.getTimestamps().higher(timestamp);
         }
@@ -116,29 +115,41 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
     }
     
     /**
-     * Executes the simulation and stores the results in a file. This method does not backup the simulation.
+     * Executes the simulation and returns its full evolution. This method does not backup the simulation.
      * @return the simulation evolution.
      */
     public Simulation<U,I,P> simulate()
     {
-        return this.simulate(null);
+        return this.simulate((String) null);
     }
-    
+
     /**
-     * Executes the simulation and stores the results in a file.
-     * @param backup file where we want to backup the simulation, to prevent errors.
+     * Executes the simulation and returns its full evolution, optionally backing it up periodically.
+     * @param backup file where we want to backup the simulation, to prevent errors (may be {@code null}).
      * @return the simulation evolution.
      */
-    public Simulation<U,I,P> simulate(String backup) 
+    public Simulation<U,I,P> simulate(String backup)
     {
-        Simulation<U,I,P> simulation = new Simulation<>(this.data, this.numIter);
-        
-        long initTime = System.currentTimeMillis();
+        CollectingSimulationConsumer<U,I,P> consumer = new CollectingSimulationConsumer<>(this.data, this.numIter, backup);
+        this.simulate(consumer);
+        return consumer.getSimulation();
+    }
+
+    /**
+     * Executes the simulation in streaming mode: each iteration is produced and handed to the given consumer, which
+     * decides whether to retain it. This allows metric-only runs to use memory proportional to a single iteration
+     * plus their accumulators, instead of retaining the whole simulation.
+     * @param consumer the consumer notified of each produced iteration.
+     */
+    public void simulate(SimulationConsumer<U,I,P> consumer)
+    {
+        consumer.start(this.numIter);
+
         long alarmTime = 0L;
         long totalpropagated = 0L;
 
         Map<U, Long> receivedCount = new HashMap<>();
-        this.state.getAllUsers().forEach(u -> 
+        this.state.getAllUsers().forEach(u ->
         {
             long count = u.getReceivedInformation().count();
             if(count > 0)
@@ -353,32 +364,25 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
             });
 
             totalpropagated += this.currentPropagated;
-            simulation.addIteration(iteration);
+            consumer.accept(iteration);
 
             // Move all the newly observed pieces to the received set.
-            
+
             alarmTime += (System.currentTimeMillis() - initialTime);
-            
+
             if(numIter%100 == 0)
             {
                 System.out.println("Iteration " + numIter + " finished (" + alarmTime + " ms.)");
             }
-            
+
             numIter++;
-            this.currentTimestamp = this.data.getTimestamps().higher(this.currentTimestamp);
-            
-            long endTime = System.currentTimeMillis();
-            if(backup != null && (endTime - initTime) > 3600 * 1000) // Each hour of simulation, store a backup
-            {
-                BinarySimulationWriter<U,I,P> bsw = new BinarySimulationWriter<>();
-                bsw.initialize(backup);
-                bsw.writeSimulation(simulation);
-                initTime = System.currentTimeMillis();
-            }
-                
+            // Advance the timestamp cursor; guard against exhausting the set (higher(null) would throw) so the number
+            // of iterations is governed by the stop condition rather than the number of distinct timestamps.
+            this.currentTimestamp = (this.currentTimestamp == null) ? null : this.data.getTimestamps().higher(this.currentTimestamp);
+
         } // Checks whether the simulation has finished.
         while(!this.stop.stop(numIter, currentPropagated, currentPropagatingUsers, this.newlyPropagatedInfo, totalpropagated, data, currentTimestamp));
 
-        return simulation;
+        consumer.finish();
     }
 }

@@ -9,6 +9,7 @@
 package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.grid.community.CommunityDetectionIdentifiers;
+import es.uam.eps.ir.relison.grid.sna.comm.global.GlobalCommunityMetricIdentifiers;
 import es.uam.eps.ir.relison.grid.sna.comm.indiv.IndividualCommunityMetricIdentifiers;
 
 import java.util.ArrayList;
@@ -47,6 +48,8 @@ public final class CommunityCatalog
     private static final Map<String, AlgorithmDef> ALGORITHMS = new LinkedHashMap<>();
     /** Individual (per-community) metrics, reusing {@link MetricCatalog.MetricDef}. */
     private static final Map<String, MetricCatalog.MetricDef> INDIVIDUAL = new LinkedHashMap<>();
+    /** Global (whole-partition) community metrics, reusing {@link MetricCatalog.MetricDef}. */
+    private static final Map<String, MetricCatalog.MetricDef> GLOBAL = new LinkedHashMap<>();
 
     static
     {
@@ -54,6 +57,27 @@ public final class CommunityCatalog
         indiv(IndividualCommunityMetricIdentifiers.COMMSIZE, "Size");
         indiv(IndividualCommunityMetricIdentifiers.COMMDEGREE, "Degree", Param.orientation("orientation", "Orientation", "OUT"));
         indiv(IndividualCommunityMetricIdentifiers.VOLUME, "Volume", Param.orientation("orientation", "Orientation", "OUT"));
+
+        // Global community metrics (the degree/edge Gini variants take an orientation and/or a self-loop flag).
+        global(GlobalCommunityMetricIdentifiers.NUMCOMMS, "Number of communities");
+        global(GlobalCommunityMetricIdentifiers.MODULARITY, "Modularity");
+        global(GlobalCommunityMetricIdentifiers.MODULARITYCOMPL, "Modularity complement");
+        global(GlobalCommunityMetricIdentifiers.COMMSIZEGINI, "Community size Gini");
+        global(GlobalCommunityMetricIdentifiers.COMMDESTSIZE, "Destination community size");
+        global(GlobalCommunityMetricIdentifiers.WEAKTIES, "Weak ties");
+        global(GlobalCommunityMetricIdentifiers.INTERCOMMUNITYDEGREEGINI, "Inter-community degree Gini", orientation());
+        global(GlobalCommunityMetricIdentifiers.SIZENORMINTERCOMMUNITYDEGREEGINI, "Size-normalized inter-community degree Gini", orientation());
+        global(GlobalCommunityMetricIdentifiers.COMPLETECOMMUNITYDEGREEGINI, "Complete community degree Gini", orientation(), autoloops());
+        global(GlobalCommunityMetricIdentifiers.SIZENORMCOMPLETECOMMUNITYDEGREEGINI, "Size-normalized complete community degree Gini", orientation(), autoloops());
+        global(GlobalCommunityMetricIdentifiers.INTERCOMMUNITYEDGEGINI, "Inter-community edge Gini complement");
+        global(GlobalCommunityMetricIdentifiers.COMPLETECOMMUNITYEDGEGINI, "Complete community edge Gini complement", selfloops());
+        global(GlobalCommunityMetricIdentifiers.SEMICOMPLETECOMMUNITYEDGEGINI, "Semi-complete community edge Gini complement", selfloops());
+        global(GlobalCommunityMetricIdentifiers.SIZENORMINTERCOMMUNITYEDGEGINI, "Size-normalized inter-community edge Gini");
+        global(GlobalCommunityMetricIdentifiers.SIZENORMCOMPLETECOMMUNITYEDGEGINI, "Size-normalized complete community edge Gini", autoloops());
+        global(GlobalCommunityMetricIdentifiers.SIZENORMSEMICOMPLETECOMMUNITYEDGEGINI, "Size-normalized semi-complete community edge Gini", autoloops());
+        global(GlobalCommunityMetricIdentifiers.DICEINTERCOMMUNITYEDGEGINI, "Dice inter-community edge Gini");
+        global(GlobalCommunityMetricIdentifiers.DICECOMPLETECOMMUNITYEDGEGINI, "Dice complete community edge Gini", autoloops());
+        global(GlobalCommunityMetricIdentifiers.DICESEMICOMPLETECOMMUNITYEDGEGINI, "Dice semi-complete community edge Gini", autoloops());
 
         // Connectedness (no parameters).
         add(CommunityDetectionIdentifiers.WCC, "Weakly connected components", "Connectedness");
@@ -90,6 +114,26 @@ public final class CommunityCatalog
         INDIVIDUAL.put(id, new MetricCatalog.MetricDef(id, label, List.of(params)));
     }
 
+    private static void global(String id, String label, Param... params)
+    {
+        GLOBAL.put(id, new MetricCatalog.MetricDef(id, label, List.of(params)));
+    }
+
+    private static Param orientation()
+    {
+        return Param.orientation("orientation", "Orientation", "OUT");
+    }
+
+    private static Param autoloops()
+    {
+        return Param.bool("autoloops", "Count self-loops", true);
+    }
+
+    private static Param selfloops()
+    {
+        return Param.bool("selfloops", "Count self-loops", true);
+    }
+
     /** @return the exposed algorithm definitions, in display order. */
     public static Map<String, AlgorithmDef> algorithms()
     {
@@ -102,10 +146,22 @@ public final class CommunityCatalog
         return INDIVIDUAL;
     }
 
+    /** @return the exposed global (whole-partition) community metric definitions, in display order. */
+    public static Map<String, MetricCatalog.MetricDef> globalMetrics()
+    {
+        return GLOBAL;
+    }
+
     /** Catalog payload for the individual community metrics. */
     public static List<Map<String, Object>> individualJson()
     {
         return MetricCatalog.familyJson(INDIVIDUAL);
+    }
+
+    /** Catalog payload for the global community metrics. */
+    public static List<Map<String, Object>> globalJson()
+    {
+        return MetricCatalog.familyJson(GLOBAL);
     }
 
     /**

@@ -9,11 +9,15 @@
 package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.graph.generator.GraphGenerator;
+import es.uam.eps.ir.relison.graph.generator.GraphCloneGenerator;
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,6 +49,20 @@ public class GraphSession
     private DistanceCalculator<String> distanceCalculator;
     /** Community partitions detected during the session, keyed by a user-facing name. */
     private final Map<String, Communities<String>> communities = new HashMap<>();
+
+    /** Recommendations/predictions computed during the session, keyed by their model signature. */
+    private final Map<String, RecommendationResult> recommendations = new LinkedHashMap<>();
+    /** The signature of the recommendation currently overlaid on the graph, or {@code null} if none. */
+    private String activeRecommendation;
+    /** Lazily-built graph = base graph + the active recommendation's edges (for "with recommendation" metrics). */
+    private Graph<String> augmentedGraph;
+    /** Lazily-built distance calculator for {@link #augmentedGraph}. */
+    private DistanceCalculator<String> augmentedDistanceCalculator;
+
+    /** The most recent information-diffusion simulation result, or {@code null}. */
+    private DiffusionResult diffusion;
+    /** The information pieces defined for diffusion (each a map with {@code id}, {@code creator}, {@code timestamp}). */
+    private List<?> diffusionPieces = List.of();
 
     /**
      * Constructor.
@@ -100,6 +118,107 @@ public class GraphSession
         return communities;
     }
 
+    /** @return the most recent diffusion result, or {@code null}. */
+    public DiffusionResult getDiffusion()
+    {
+        return diffusion;
+    }
+
+    /** Stores (or clears, with {@code null}) the most recent diffusion result. */
+    public void setDiffusion(DiffusionResult diffusion)
+    {
+        this.diffusion = diffusion;
+    }
+
+    /** @return the persisted diffusion information pieces (never {@code null}). */
+    public List<?> getDiffusionPieces()
+    {
+        return diffusionPieces;
+    }
+
+    /** Persists the diffusion information pieces on the session. */
+    public void setDiffusionPieces(List<?> pieces)
+    {
+        this.diffusionPieces = pieces == null ? List.of() : pieces;
+    }
+
+    /** @return the recommendations computed so far, keyed by their model signature. */
+    public Map<String, RecommendationResult> getRecommendations()
+    {
+        return recommendations;
+    }
+
+    /** @return the active recommendation, or {@code null} if none is overlaid. */
+    public RecommendationResult getActiveRecommendation()
+    {
+        return activeRecommendation == null ? null : recommendations.get(activeRecommendation);
+    }
+
+    /** @return the signature of the active recommendation, or {@code null}. */
+    public String getActiveRecommendationKey()
+    {
+        return activeRecommendation;
+    }
+
+    /**
+     * Sets (or clears, with {@code null}) the recommendation overlaid on the graph and drops the cached augmented
+     * graph so the next "with recommendation" metric is computed against the new overlay.
+     * @param key the signature of the recommendation to activate, or {@code null} to clear it.
+     */
+    public void setActiveRecommendation(String key)
+    {
+        this.activeRecommendation = key;
+        this.augmentedGraph = null;
+        this.augmentedDistanceCalculator = null;
+    }
+
+    /**
+     * Returns the base graph augmented with the active recommendation's edges, built lazily and cached. The base
+     * graph is never modified: a clone is created and the recommended links are added to it.
+     * @return the augmented graph, or {@code null} if there is no active recommendation.
+     */
+    public Graph<String> getAugmentedGraph()
+    {
+        RecommendationResult active = getActiveRecommendation();
+        if (active == null) return null;
+        if (augmentedGraph == null)
+        {
+            try
+            {
+                GraphGenerator<String> cloner = new GraphCloneGenerator<>();
+                cloner.configure(graph);
+                Graph<String> aug = cloner.generate();
+                for (RecommendationResult.RecEdge e : active.edges)
+                {
+                    if (!aug.containsEdge(e.source, e.target))
+                    {
+                        aug.addEdge(e.source, e.target);
+                    }
+                }
+                augmentedGraph = aug;
+            }
+            catch (Exception ex)
+            {
+                throw new RuntimeException("Could not build the augmented graph: " + ex.getMessage(), ex);
+            }
+        }
+        return augmentedGraph;
+    }
+
+    /**
+     * Returns the shared distance calculator for the augmented graph, created lazily, mirroring
+     * {@link #getDistanceCalculator()}.
+     * @return the distance calculator for the augmented graph.
+     */
+    public DistanceCalculator<String> getAugmentedDistanceCalculator()
+    {
+        if (augmentedDistanceCalculator == null)
+        {
+            augmentedDistanceCalculator = new CompleteDistanceCalculator<>();
+        }
+        return augmentedDistanceCalculator;
+    }
+
     /**
      * Returns the shared distance calculator, created lazily on first access.
      *
@@ -127,5 +246,10 @@ public class GraphSession
     {
         this.distanceCalculator = null;
         this.communities.clear();
+        this.recommendations.clear();
+        this.activeRecommendation = null;
+        this.augmentedGraph = null;
+        this.augmentedDistanceCalculator = null;
+        this.diffusion = null;
     }
 }

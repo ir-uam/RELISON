@@ -77,13 +77,13 @@ public class GiniIndex
     {
         List<Double> list = new ArrayList<>(values);
         Collections.sort(list);
-        int numItems = values.size();
+        int numItems = list.size();
         double value = 0.0;
         double sum = 0.0;
         for (int i = 0; i < numItems; ++i)
         {
-            value += (2 * (i + 1) - numItems - 1.0) * values.get(i);
-            sum += values.get(i);
+            value += (2 * (i + 1) - numItems - 1.0) * list.get(i);
+            sum += list.get(i);
         }
 
         return value / (sum * (numItems - 1.0));

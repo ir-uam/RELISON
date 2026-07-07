@@ -48,6 +48,7 @@ html, body {
 .status { margin-left: auto; color: var(--muted); font-size: 12px; }
 .icon-btn { width: auto; margin: 0; padding: 4px 10px; font-size: 16px; line-height: 1; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
 .icon-btn:hover { border-color: var(--accent); }
+a.icon-btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 .status.error { color: #d23; }
 .status.busy { color: #2667c7; }
 
@@ -104,6 +105,12 @@ html, body {
     letter-spacing: 0.6px;
     color: var(--muted);
 }
+/* Collapsible panel blocks: click the heading to fold the block; a caret shows the state. */
+.panel .block > h2 { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px; }
+.panel .block > h2::before { content: "▾"; font-size: 9px; color: var(--muted); }
+.panel .block.collapsed > h2 { margin-bottom: 0; }
+.panel .block.collapsed > h2::before { content: "▸"; }
+.panel .block.collapsed > :not(h2) { display: none; }
 
 .field { display: block; margin-bottom: 10px; }
 .field > span { display: block; margin-bottom: 4px; color: var(--muted); }
@@ -142,6 +149,89 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 #pane-network { background: var(--canvas-bg); }
 #sigma-container { position: absolute; inset: 0; }
+
+/* Dashed recommended-edge overlay, drawn above sigma's canvases but transparent to the mouse. */
+#rec-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+
+/* Recommendation tab is disabled for multigraphs. */
+.tab:disabled, .tab.disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Recommendation pane (full-width, no side panels). */
+#pane-recommend { overflow: auto; background: var(--bg); }
+#pane-recommend.active { display: block; }
+.rec-card { max-width: 760px; margin: 20px auto; padding: 24px 28px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+.rec-card h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
+.rec-card .field { margin-bottom: 12px; }
+.rec-card #rec-status { margin-top: 12px; }
+.rec-scatter-block { margin-top: 20px; }
+
+/* Diffusion tab: self-contained left config / centre canvas / right state. */
+#pane-diffusion { background: var(--bg); }
+.diff-layout { display: grid; grid-template-columns: 300px 1fr 290px; height: 100%; }
+.diff-config, .diff-state { overflow: auto; }
+.diff-config { border-right: 1px solid var(--border); }
+.diff-state { border-left: 1px solid var(--border); }
+.diff-config select[multiple], .diff-config #diff-metrics { width: 100%; }
+.diff-center { display: flex; flex-direction: column; background: var(--canvas-bg); overflow: hidden; }
+.diff-subtabbar { display: flex; height: 32px; background: var(--panel-2); border-bottom: 1px solid var(--border); flex: 0 0 auto; }
+.diffsubtab {
+    width: auto; margin: 0; padding: 0 16px; background: transparent; border: none;
+    border-right: 1px solid var(--border); border-bottom: 2px solid transparent;
+    color: var(--muted); border-radius: 0; cursor: pointer;
+}
+.diffsubtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.diff-views { position: relative; flex: 1 1 auto; }
+.diff-view { display: none; position: absolute; inset: 0; }
+.diff-view.active { display: block; }
+#diff-view-metrics { overflow: auto; background: var(--bg); }
+#diff-sigma-container { position: absolute; inset: 0; }
+#diff-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+#diff-empty-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.diff-timebar { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; gap: 8px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; z-index: 5; }
+.diff-timebar input[type=range] { flex: 1; }
+.diff-state .scroll-table { max-height: 150px; overflow: auto; border: 1px solid var(--border); border-radius: 4px; margin: 4px 0 10px; font-size: 12px; }
+.diff-state .scroll-table .row { padding: 2px 7px; border-bottom: 1px solid var(--border); word-break: break-all; }
+.diff-state .scroll-table .empty { padding: 4px 7px; color: var(--muted); }
+.diff-cat { margin-bottom: 12px; }
+.diff-cat-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.diff-cat-col { min-width: 0; }
+.diff-col-h { display: block; font-size: 10px; color: var(--muted); margin: 2px 0; }
+.diff-cat .scroll-table { max-height: 92px; margin: 0; }
+.diff-legend { position: absolute; top: 12px; left: 12px; z-index: 6; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+.diff-legend .legend-row { display: flex; align-items: center; gap: 6px; }
+.diff-legend .legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
+
+/* Node-colour legend on the main display panel. */
+.node-legend { position: absolute; top: 12px; left: 12px; z-index: 6; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px; font-size: 12px; max-width: 220px; max-height: 55%; overflow: auto;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+.node-legend .legend-title { color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+.node-legend .legend-list { display: flex; flex-direction: column; gap: 4px; }
+.node-legend .legend-row { display: flex; align-items: center; gap: 6px; }
+.node-legend .legend-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node-legend .legend-swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; flex: none; border: 1px solid var(--border); }
+.node-legend .legend-swatch-input { width: 18px; height: 18px; padding: 0; border: 1px solid var(--border); border-radius: 3px;
+    background: none; flex: none; cursor: pointer; }
+.node-legend .legend-gradient { height: 12px; border-radius: 3px; border: 1px solid var(--border); }
+.node-legend .legend-scale { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; margin-top: 3px; }
+
+/* Diffusion metrics subtab. */
+.diffmetrics-pane { padding: 16px; }
+
+/* Diffusion information-pieces subtab. */
+#diff-view-pieces { overflow: auto; background: var(--bg); }
+.diff-pieces-pane { padding: 14px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
+.diff-pieces-pane .scroll-table.tall { flex: 1 1 auto; min-height: 120px; }
+#diff-piece-seed { width: 64px; }
+#diff-pieces-table input { width: 100%; box-sizing: border-box; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; }
+#diff-pieces-table td:last-child { width: 28px; text-align: center; }
+.piece-del { width: auto; margin: 0; padding: 1px 6px; background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.piece-del:hover { color: var(--text); border-color: var(--accent); }
+#diffmetrics-charts .chart-area { margin-bottom: 16px; }
 
 /* Import landing pane: a single centered card, no side panels. */
 #pane-import { overflow: auto; background: var(--bg); }
@@ -211,6 +301,11 @@ table.data .row-remove {
     background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; cursor: pointer;
 }
 table.data .row-remove:hover { color: #fff; background: #c0392b; border-color: #c0392b; }
+table.data .row-add {
+    width: auto; margin: 0; padding: 1px 8px; font-size: 11px; line-height: 1.3; white-space: nowrap;
+    background: transparent; color: var(--accent); border: 1px solid var(--border); border-radius: 3px; cursor: pointer;
+}
+table.data .row-add:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
 table.data th.act-th { width: 1%; }
 table.data td:last-child { text-align: center; }
 
@@ -218,6 +313,8 @@ table.data td:last-child { text-align: center; }
 .pagination button { width: auto; margin: 0; padding: 4px 10px; }
 .pagination select { width: auto; }
 .pagination .pageinfo { color: var(--muted); }
+.pagination .page-jump { display: flex; align-items: center; gap: 5px; color: var(--muted); }
+.pagination .page-input { width: 56px; }
 
 .inline-check { display: block; margin: 4px 0 8px; color: var(--text); font-size: 12px; }
 .inline-check input { width: auto; }
@@ -321,6 +418,7 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
 .chart-controls { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
 .chart-controls label { color: var(--muted); display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
 .chart-controls select { min-width: 180px; }
+.chart-dl { width: auto; margin: 0; align-self: flex-end; padding: 6px 12px; white-space: nowrap; }
 .chart-area { position: relative; width: 100%; height: 340px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel-2); }
 .chart-area canvas { width: 100%; height: 100%; display: block; }
 .chart-tip {
