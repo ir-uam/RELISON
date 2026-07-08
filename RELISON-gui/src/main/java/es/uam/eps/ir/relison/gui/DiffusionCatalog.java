@@ -80,15 +80,23 @@ public final class DiffusionCatalog
         public final String label;
         public final String group;
         public final List<DiffParam> params;
-        /** Whether the element needs uploaded information/user feature data to run. */
+        /** Whether the element uses feature data (info-piece or node-derived user features). */
         public final boolean needsFeatures;
+        /** Whether the element needs ground-truth real-propagation data, which the GUI does not provide (skipped). */
+        public final boolean needsRealProp;
 
         Element(String id, String label, String group, boolean needsFeatures, List<DiffParam> params)
+        {
+            this(id, label, group, needsFeatures, false, params);
+        }
+
+        Element(String id, String label, String group, boolean needsFeatures, boolean needsRealProp, List<DiffParam> params)
         {
             this.id = id;
             this.label = label;
             this.group = group;
             this.needsFeatures = needsFeatures;
+            this.needsRealProp = needsRealProp;
             this.params = params;
         }
 
@@ -99,6 +107,7 @@ public final class DiffusionCatalog
             json.put("label", label);
             json.put("group", group);
             json.put("needsFeatures", needsFeatures);
+            json.put("needsRealProp", needsRealProp);
             List<Map<String, Object>> ps = new ArrayList<>();
             for (DiffParam p : params) ps.add(p.toJson());
             json.put("params", ps);
@@ -189,8 +198,8 @@ public final class DiffusionCatalog
         metric(MetricIdentifiers.USERINDIVGINI, "Individual creator Gini complement", "Creators", false, unique());
         metric(MetricIdentifiers.USERGLOBALENTROPY, "Global creator entropy", "Creators", false, unique());
         metric(MetricIdentifiers.USERINDIVENTROPY, "Individual creator entropy", "Creators", false, unique());
-        metric(MetricIdentifiers.REALPROPRECALL, "Individual real propagated recall", "Information pieces", true);
-        metric(MetricIdentifiers.GLOBALREALPROPRECALL, "Global real propagated recall", "Information pieces", true);
+        metricRealProp(MetricIdentifiers.REALPROPRECALL, "Individual real propagated recall", "Information pieces");
+        metricRealProp(MetricIdentifiers.GLOBALREALPROPRECALL, "Global real propagated recall", "Information pieces");
         metric(MetricIdentifiers.RECALL, "Feature recall", "Features", true, feature(), userFeature());
         metric(MetricIdentifiers.GINI, "Individual feature Gini complement", "Features", true, feature(), userFeature(), unique());
         metric(MetricIdentifiers.GLOBALGINI, "Global feature Gini complement", "Features", true, feature(), userFeature(), unique());
@@ -214,6 +223,7 @@ public final class DiffusionCatalog
     private static void stop(String id, String label, DiffParam... params) { STOP.put(id, new Element(id, label, "Stop", false, List.of(params))); }
     private static void filter(String id, String label, boolean needsFeat, DiffParam... params) { FILTERS.put(id, new Element(id, label, "Filter", needsFeat, List.of(params))); }
     private static void metric(String id, String label, String group, boolean needsFeat, DiffParam... params) { METRICS.put(id, new Element(id, label, group, needsFeat, List.of(params))); }
+    private static void metricRealProp(String id, String label, String group, DiffParam... params) { METRICS.put(id, new Element(id, label, group, false, true, List.of(params))); }
 
     private static DiffParam integer(String name, String label, int def) { return new DiffParam(name, label, "int", "int", def, null); }
     private static DiffParam longp(String name, String label, long def) { return new DiffParam(name, label, "int", "long", def, null); }

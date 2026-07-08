@@ -11,6 +11,7 @@ package es.uam.eps.ir.relison.gui;
 import es.uam.eps.ir.relison.diffusion.data.Data;
 import es.uam.eps.ir.relison.diffusion.data.Information;
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.index.Index;
 import es.uam.eps.ir.relison.index.Relation;
 import es.uam.eps.ir.relison.index.fast.FastIndex;
@@ -19,6 +20,7 @@ import es.uam.eps.ir.relison.index.fast.FastWeightedPairwiseRelation;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -82,13 +84,17 @@ public final class DiffusionData
 
     /**
      * Builds a diffusion dataset from an explicit, user-provided list of information pieces. Each piece is a map with
-     * {@code id}, {@code creator} (a node of the graph) and {@code timestamp}. Pieces with a blank id, a duplicate id
-     * or a creator that is not a node of the graph are skipped.
-     * @param graph  the loaded network (users are its nodes).
-     * @param pieces the list of pieces (each a {@code Map} with {@code id}, {@code creator}, {@code timestamp}).
-     * @return the diffusion data (no features).
+     * {@code id}, {@code creator} (a node of the graph), {@code timestamp} and an optional {@code features} list (each
+     * feature a map {@code {param, value, weight}}). Pieces with a blank id, a duplicate id or a creator that is not a
+     * node of the graph are skipped. User features are derived from the graph's node attributes (one feature parameter
+     * per node attribute), so the user-feature variants of the feature metrics work without extra uploads.
+     * @param graph       the loaded network (users are its nodes).
+     * @param pieces      the list of pieces (each a {@code Map} with {@code id}, {@code creator}, {@code timestamp}, {@code features}).
+     * @param communities the detected community partitions (each becomes a user feature: the user's community id).
+     * @return the diffusion data, including info-piece features and node/community-derived user features.
      */
-    public static Data<String, String, String> fromPieces(Graph<String> graph, List<?> pieces)
+    public static Data<String, String, String> fromPieces(Graph<String> graph, List<?> pieces,
+                                                          Map<String, Communities<String>> communities)
     {
         Index<String> users = new FastIndex<>();
         graph.getAllNodes().forEach(users::addObject);
@@ -97,6 +103,9 @@ public final class DiffusionData
         Map<Integer, Information<String>> infoMap = new HashMap<>();
         List<int[]> ownership = new ArrayList<>();   // (userIdx, pieceIdx)
         Set<String> seenIds = new HashSet<>();
+        // Collected info-piece feature entries: pieceIdx -> param -> list of (value, weight). Filled while iterating
+        // the pieces (once the piece index is complete we turn these into per-parameter relations below).
+        List<Object[]> infoFeatureEntries = new ArrayList<>();   // {int pieceIdx, String param, String value, double weight}
 
         for (Object o : pieces)
         {
@@ -113,6 +122,7 @@ public final class DiffusionData
             int iidx = pieceIndex.addObject(id);
             infoMap.put(iidx, new Information<>(id, timestamp));
             ownership.add(new int[]{uidx, iidx});
+            collectFeatures(p.get("features"), iidx, infoFeatureEntries);
         }
 
         Relation<Integer> userInfo = new FastWeightedPairwiseRelation<>();
@@ -120,12 +130,134 @@ public final class DiffusionData
         IntStream.range(0, pieceIndex.numObjects()).forEach(userInfo::addSecondItem);
         for (int[] o : ownership) userInfo.addRelation(o[0], o[1], 1);
 
-        return new Data<>(graph, users, pieceIndex, infoMap, userInfo);
+        // Shared feature-value indexes (one per parameter name), plus the user and info feature relations.
+        Map<String, Index<String>> featureIndexes = new LinkedHashMap<>();
+        List<String> infoFeatureNames = new ArrayList<>();
+        Map<String, Relation<Double>> infoFeatures = new LinkedHashMap<>();
+        List<String> userFeatureNames = new ArrayList<>();
+        Map<String, Relation<Double>> userFeatures = new LinkedHashMap<>();
+
+        buildInfoFeatures(pieceIndex.numObjects(), infoFeatureEntries, featureIndexes, infoFeatureNames, infoFeatures);
+        buildUserFeaturesFromNodeAttributes(graph, users, featureIndexes, userFeatureNames, userFeatures);
+        buildUserFeaturesFromCommunities(communities, users, featureIndexes, userFeatureNames, userFeatures);
+
+        return new Data<>(graph, users, pieceIndex, infoMap, userInfo,
+                featureIndexes, userFeatureNames, userFeatures, infoFeatureNames, infoFeatures);
+    }
+
+    /** Collects a piece's declared features (a list of {@code {param, value, weight}} maps) into the entry buffer. */
+    private static void collectFeatures(Object featuresObj, int pieceIdx, List<Object[]> entries)
+    {
+        if (!(featuresObj instanceof List)) return;
+        for (Object fo : (List<?>) featuresObj)
+        {
+            if (!(fo instanceof Map)) continue;
+            Map<?, ?> f = (Map<?, ?>) fo;
+            String param = str(f.get("param"));
+            String value = str(f.get("value"));
+            if (param.isEmpty() || value.isEmpty()) continue;
+            entries.add(new Object[]{pieceIdx, param, value, doubleValue(f.get("weight"), 1.0)});
+        }
+    }
+
+    /** Turns the collected info-feature entries into one {@code (value index, relation)} per parameter name. */
+    private static void buildInfoFeatures(int numPieces, List<Object[]> entries, Map<String, Index<String>> featureIndexes,
+                                          List<String> names, Map<String, Relation<Double>> relations)
+    {
+        for (Object[] e : entries)
+        {
+            int pieceIdx = (int) e[0];
+            String param = (String) e[1], value = (String) e[2];
+            double weight = (double) e[3];
+
+            Index<String> valIndex = featureIndexes.computeIfAbsent(param, k -> new FastIndex<>());
+            Relation<Double> rel = relations.get(param);
+            if (rel == null)
+            {
+                rel = new FastWeightedPairwiseRelation<>();
+                for (int i = 0; i < numPieces; ++i) rel.addFirstItem(i);
+                relations.put(param, rel);
+                names.add(param);
+            }
+            valIndex.addObject(value);
+            int vidx = valIndex.object2idx(value);
+            rel.addSecondItem(vidx);
+            if (rel.containsPair(pieceIdx, vidx)) rel.updatePair(pieceIdx, vidx, rel.getValue(pieceIdx, vidx) + weight);
+            else rel.addRelation(pieceIdx, vidx, weight);
+        }
+    }
+
+    /** Derives one user-feature parameter per node attribute (value = the attribute value as text, weight 1). */
+    private static void buildUserFeaturesFromNodeAttributes(Graph<String> graph, Index<String> users,
+                                                            Map<String, Index<String>> featureIndexes,
+                                                            List<String> names, Map<String, Relation<Double>> relations)
+    {
+        graph.getNodeAttributeNames().forEach(attrName ->
+        {
+            Index<String> valIndex = featureIndexes.computeIfAbsent(attrName, k -> new FastIndex<>());
+            Relation<Double> rel = new FastWeightedPairwiseRelation<>();
+            for (int i = 0; i < users.numObjects(); ++i) rel.addFirstItem(i);
+
+            graph.getNodeAttributes(attrName).forEach(w ->
+            {
+                int uidx = users.object2idx(w.getIdx());
+                if (uidx == -1 || w.getValue() == null) return;
+                String value = w.getValue().toString();
+                valIndex.addObject(value);
+                int vidx = valIndex.object2idx(value);
+                rel.addSecondItem(vidx);
+                if (!rel.containsPair(uidx, vidx)) rel.addRelation(uidx, vidx, 1.0);
+            });
+
+            names.add(attrName);
+            relations.put(attrName, rel);
+        });
+    }
+
+    /** Derives one user-feature parameter per detected community partition (value = the user's community id). */
+    private static void buildUserFeaturesFromCommunities(Map<String, Communities<String>> communities, Index<String> users,
+                                                         Map<String, Index<String>> featureIndexes,
+                                                         List<String> names, Map<String, Relation<Double>> relations)
+    {
+        if (communities == null) return;
+        for (Map.Entry<String, Communities<String>> entry : communities.entrySet())
+        {
+            String partition = entry.getKey();
+            Communities<String> comms = entry.getValue();
+            if (comms == null) continue;
+
+            Index<String> valIndex = featureIndexes.computeIfAbsent(partition, k -> new FastIndex<>());
+            Relation<Double> rel = new FastWeightedPairwiseRelation<>();
+            for (int i = 0; i < users.numObjects(); ++i) rel.addFirstItem(i);
+
+            for (int uidx = 0; uidx < users.numObjects(); ++uidx)
+            {
+                String user = users.idx2object(uidx);
+                int community = comms.getCommunity(user);
+                if (community < 0) continue;      // user not assigned to any community
+                String value = String.valueOf(community);
+                valIndex.addObject(value);
+                int vidx = valIndex.object2idx(value);
+                rel.addSecondItem(vidx);
+                if (!rel.containsPair(uidx, vidx)) rel.addRelation(uidx, vidx, 1.0);
+            }
+
+            names.add(partition);
+            relations.put(partition, rel);
+        }
     }
 
     private static String str(Object o)
     {
         return o == null ? "" : o.toString().trim();
+    }
+
+    private static double doubleValue(Object o, double def)
+    {
+        if (o instanceof Number) return ((Number) o).doubleValue();
+        if (o == null) return def;
+        try { return Double.parseDouble(o.toString().trim()); }
+        catch (NumberFormatException e) { return def; }
     }
 
     private static long longValue(Object o, long def)

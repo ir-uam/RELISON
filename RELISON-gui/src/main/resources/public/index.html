@@ -530,6 +530,7 @@
                             <div class="diff-pieces-pane">
                                 <div class="toolbar">
                                     <button id="btn-diff-piece-add">Add piece</button>
+                                    <button id="btn-diff-feature-add">Add feature column</button>
                                     <span class="addgroup">
                                         <button id="btn-diff-piece-gen">Generate from graph</button>
                                         <input type="number" id="diff-piece-seed" min="1" step="1" value="1" title="Pieces created per node"/>
@@ -537,14 +538,26 @@
                                     </span>
                                     <button id="btn-diff-piece-upload">Upload CSV</button>
                                     <button id="btn-diff-piece-download">Download CSV</button>
+                                    <span class="addgroup">
+                                        <button id="btn-diff-feature-upload">Upload features</button>
+                                        <input type="text" id="diff-feature-param" placeholder="feature name" value="feature" title="Feature parameter name (or read from the file header)"/>
+                                    </span>
+                                    <button id="btn-diff-piece-clear-filters">Clear filters</button>
                                     <button id="btn-diff-piece-clear">Clear</button>
+                                    <label class="inline-check" title="When on, only the pieces passing the table filters are used in the simulation">
+                                        <input type="checkbox" id="diff-apply-filters"/> Apply filters to simulation</label>
                                     <input type="file" id="diff-piece-file" accept=".csv,.tsv,.txt" hidden/>
+                                    <input type="file" id="diff-feature-file" accept=".tsv,.txt,.csv" hidden/>
                                 </div>
                                 <p class="muted" id="diff-pieces-summary"></p>
                                 <div class="scroll-table tall"><table id="diff-pieces-table" class="data"></table></div>
                                 <div class="pagination" id="diff-pieces-pager"></div>
                                 <p class="muted">Each piece is created by a node of the graph at a given timestamp. When at least one piece is
-                                    defined here, it replaces the automatic seeding for the simulation. CSV columns: <code>id, creator, timestamp</code>.</p>
+                                    defined here, it replaces the automatic seeding for the simulation. Each <b>feature</b> parameter is its own column
+                                    (add one with <b>Add feature column</b>); a cell holds that parameter's <code>value:weight; …</code> (weight optional).
+                                    Upload/download of pieces is tab-separated (<code>id ⇥ creator ⇥ timestamp ⇥ features</code>, features in the compact <code>param=value:weight; …</code> form).
+                                    <b>Upload features</b> loads a separate file of <code>infoId ⇥ featureId</code> lines (optional third column = weight; an <code>infoId ⇥ name</code> header sets the
+                                    feature name, otherwise the box on the left is used). Feature metrics run over these piece features and over node attributes / communities (as user features).</p>
                             </div>
                         </div>
                     </div>

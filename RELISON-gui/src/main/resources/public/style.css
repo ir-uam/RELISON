@@ -225,7 +225,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .diff-pieces-pane { padding: 14px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
 .diff-pieces-pane .scroll-table.tall { flex: 1 1 auto; min-height: 120px; }
 #diff-piece-seed { width: 64px; }
-#diff-pieces-table input { width: 100%; box-sizing: border-box; background: var(--panel-2); color: var(--text);
+#diff-pieces-table .piece-feature-cell { min-width: 120px; }
+#diff-pieces-table .feature-col-th { white-space: nowrap; }
+.feature-col-del { width: auto; margin: 0 0 0 6px; padding: 0 5px; background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 11px; }
+.feature-col-del:hover { color: var(--text); border-color: var(--accent); }
+#diff-pieces-table tbody input { width: 100%; box-sizing: border-box; background: var(--panel-2); color: var(--text);
     border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; }
 #diff-pieces-table td:last-child { width: 28px; text-align: center; }
 .piece-del { width: auto; margin: 0; padding: 1px 6px; background: transparent; color: var(--muted);
@@ -345,7 +350,7 @@ table.data td.editable:focus { outline: 2px solid var(--accent); outline-offset:
 table.data thead tr.filter-row th { padding: 3px 4px; background: var(--panel-2); top: 24px; }
 table.data thead tr.filter-row .colfilter { display: flex; gap: 3px; }
 table.data thead tr.filter-row select { width: auto; flex: 0 0 auto; padding: 2px; font-size: 11px; }
-table.data thead tr.filter-row input { width: 100%; min-width: 60px; padding: 2px 4px; font-size: 11px; }
+table.data thead tr.filter-row input { flex: 1 1 40px; width: auto; min-width: 40px; padding: 2px 4px; font-size: 11px; }
 table.data thead tr.filter-row .col-remove {
     width: auto; flex: 0 0 auto; margin: 0; padding: 2px 5px; font-size: 10px; line-height: 1;
     background: transparent; border: 1px solid var(--border); border-radius: 3px; color: var(--muted); cursor: pointer;

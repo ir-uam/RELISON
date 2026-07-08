@@ -82,7 +82,7 @@ public class DiffusionController
             Data<String, String, String> data;
             if (pieces != null && !pieces.isEmpty())
             {
-                data = DiffusionData.fromPieces(graph, pieces);
+                data = DiffusionData.fromPieces(graph, pieces, session.getCommunities());
                 if (data.getInformationPiecesIndex().numObjects() == 0)   // all pieces invalid → fall back
                     data = DiffusionData.synthetic(graph, intValue(body.get("seedCount"), 1));
             }
@@ -374,14 +374,24 @@ public class DiffusionController
             else { id = String.valueOf(o); params = null; }
 
             DiffusionCatalog.Element def = DiffusionCatalog.find("metric", id);
-            if (def == null || def.needsFeatures) continue;   // feature/real-prop metrics need uploaded data
+            if (def == null || def.needsRealProp) continue;   // real-propagation metrics need ground-truth data we don't have
             try
             {
                 Parameters mp = metricParams(def, params);
                 Tuple2<String, SimulationMetric<String, String, String>> metric = selector.select(id, mp);
                 if (metric == null || metric.v2() == null) continue;
-                metricObjs.put(id, metric.v2());
-                labels.put(id, def.label);
+                // A feature metric can be requested once per feature parameter, so key it (and label it) by that
+                // parameter to avoid collisions between instances of the same metric id.
+                String key = id, label = def.label;
+                Object feature = params == null ? null : params.get("feature");
+                if (feature != null && !String.valueOf(feature).isEmpty())
+                {
+                    boolean userFeat = Boolean.parseBoolean(String.valueOf(params.get("userFeature")));
+                    key = id + "|" + (userFeat ? "u" : "i") + "|" + feature;
+                    label = def.label + " — " + feature + (userFeat ? " (user)" : "");
+                }
+                metricObjs.put(key, metric.v2());
+                labels.put(key, label);
             }
             catch (Exception e)
             {

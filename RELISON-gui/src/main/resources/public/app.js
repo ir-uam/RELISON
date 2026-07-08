@@ -64,7 +64,11 @@ const state = {
     diffusion: {
         loaded: false,     // catalog loaded
         subview: "pieces", // active center subtab: "pieces" | "graph" | "metrics"
-        pieces: [],        // uploaded/edited information pieces: [{ id, creator, timestamp }] (empty = seed synthetically)
+        pieces: [],        // uploaded/edited information pieces: [{ id, creator, timestamp, features:[{param,value,weight}] }]
+        featureParams: [], // ordered feature-parameter names, one table column each
+        pieceFilters: {},  // per-column filters for the pieces table: colKey -> { op, value }
+        piecesHeaderSig: null,   // signature of the current column set (to rebuild the header only when it changes)
+        applyFiltersToSim: false,// when true, only pieces passing the table filters are used in the simulation
         piecesPage: 0,     // current page of the (paginated) pieces table
         piecesPageSize: 200,
         piecesSaved: true, // whether the current pieces are persisted on the session
@@ -207,6 +211,9 @@ async function loadGraph() {
         // Pieces reference nodes of the old graph; start fresh on the new (empty) session.
         if (piecesSaveTimer) { clearTimeout(piecesSaveTimer); piecesSaveTimer = null; }
         state.diffusion.pieces = [];
+        state.diffusion.featureParams = [];
+        state.diffusion.pieceFilters = {};
+        state.diffusion.piecesHeaderSig = null;
         state.diffusion.piecesPage = 0;
         state.diffusion.piecesSaved = true;
         renderPiecesTable();
@@ -1944,11 +1951,40 @@ const OPERATORS = [
     { value: "gte", label: "≥" },
     { value: "lt", label: "<" },
     { value: "lte", label: "≤" },
+    { value: "between", label: "between" },
+    { value: "empty", label: "empty" },
+    { value: "nonempty", label: "non-empty" },
 ];
 
-// Tests one cell value against a single column filter.
-function matchFilter(value, op, fv) {
-    if (fv === "" || fv == null) return true; // inactive
+// Operators that ignore the value box entirely (they test presence, not a value).
+const UNARY_OPS = new Set(["empty", "nonempty"]);
+
+function isValueEmpty(value) {
+    return value === null || value === undefined || String(value).trim() === "";
+}
+
+// Whether a stored filter should actually be applied (unary ops are active with no value; "between" needs a bound).
+function isFilterActive(f) {
+    if (!f) return false;
+    if (UNARY_OPS.has(f.op)) return true;
+    if (f.op === "between") return !isValueEmpty(f.value) || !isValueEmpty(f.value2);
+    return !isValueEmpty(f.value);
+}
+
+// Tests one cell value against a single column filter. fv2 is the upper bound for the "between" operator.
+function matchFilter(value, op, fv, fv2) {
+    if (op === "empty") return isValueEmpty(value);
+    if (op === "nonempty") return !isValueEmpty(value);
+    if (op === "between") {
+        const numV = Number(value);
+        if (isValueEmpty(value) || Number.isNaN(numV)) return false;
+        const lo = isValueEmpty(fv) ? null : Number(fv);
+        const hi = isValueEmpty(fv2) ? null : Number(fv2);
+        if (lo !== null && !Number.isNaN(lo) && numV < lo) return false;
+        if (hi !== null && !Number.isNaN(hi) && numV > hi) return false;
+        return true;
+    }
+    if (isValueEmpty(fv)) return true; // inactive
     const s = value == null ? "" : String(value);
     const sl = s.toLowerCase(), fl = String(fv).toLowerCase();
     const numV = Number(value), numF = Number(fv);
@@ -1966,18 +2002,43 @@ function matchFilter(value, op, fv) {
     }
 }
 
+// Builds a filter control (operator select + value input + a second input for "between"); calls apply(op, value,
+// value2) on any change. Shared by the node/edge tables and the information-pieces table.
+function makeColFilter(existing, apply) {
+    const wrap = document.createElement("div");
+    wrap.className = "colfilter";
+    const sel = document.createElement("select");
+    OPERATORS.forEach((o) => sel.appendChild(option(o.value, o.label)));
+    const inp = document.createElement("input");
+    inp.type = "text"; inp.placeholder = "…";
+    const inp2 = document.createElement("input");
+    inp2.type = "text"; inp2.placeholder = "…"; inp2.className = "filter-hi";
+    if (existing) { sel.value = existing.op; inp.value = existing.value || ""; inp2.value = existing.value2 || ""; }
+    const updateVis = () => {
+        inp.style.display = UNARY_OPS.has(sel.value) ? "none" : "";
+        inp2.style.display = sel.value === "between" ? "" : "none";
+    };
+    updateVis();
+    const fire = () => apply(sel.value, inp.value, inp2.value);
+    sel.addEventListener("change", () => { updateVis(); fire(); });
+    inp.addEventListener("input", fire);
+    inp2.addEventListener("input", fire);
+    wrap.append(sel, inp, inp2);
+    return wrap;
+}
+
 // Active filters for a table, restricted to columns that currently exist.
 function activeFilters(key, cols) {
     const filters = state.tables[key].filters;
     const colKeys = new Set(cols.map((c) => c.key));
     return Object.keys(filters)
-        .filter((col) => colKeys.has(col) && filters[col].value !== "")
-        .map((col) => ({ col, op: filters[col].op, value: filters[col].value }));
+        .filter((col) => colKeys.has(col) && isFilterActive(filters[col]))
+        .map((col) => ({ col, op: filters[col].op, value: filters[col].value, value2: filters[col].value2 }));
 }
 
 // True if a row passes every active filter (AND).
 function rowPasses(valFn, id, filters) {
-    return filters.every((f) => matchFilter(valFn(id, f.col), f.op, f.value));
+    return filters.every((f) => matchFilter(valFn(id, f.col), f.op, f.value, f.value2));
 }
 
 // Full filtered + sorted id list for a table (no pagination); used for rendering and export.
@@ -2045,19 +2106,8 @@ function buildHeader(key, cols) {
     cols.forEach((c) => {
         const th = document.createElement("th");
         if (c.key === "_act") { filterRow.appendChild(th); return; }   // no filter on the actions column
-        const wrap = document.createElement("div");
-        wrap.className = "colfilter";
-        const sel = document.createElement("select");
-        OPERATORS.forEach((o) => sel.appendChild(option(o.value, o.label)));
-        const inp = document.createElement("input");
-        inp.type = "text";
-        inp.placeholder = "…";
-        const existing = state.tables[key].filters[c.key];
-        if (existing) { sel.value = existing.op; inp.value = existing.value; }
-        const apply = () => setColFilter(key, c.key, sel.value, inp.value);
-        sel.addEventListener("change", apply);
-        inp.addEventListener("input", apply);
-        wrap.append(sel, inp);
+        const wrap = makeColFilter(state.tables[key].filters[c.key],
+            (op, value, value2) => setColFilter(key, c.key, op, value, value2));
         // Attribute columns get a remove (✕) control in the header.
         const isAttr = (key === "nodes" && c.key.startsWith("a:")) || (key === "edges" && c.key.startsWith("ea:"));
         if (isAttr) {
@@ -2137,10 +2187,11 @@ function renderBody(key) {
     updatePager(key, total, pages, start, pageIds.length);
 }
 
-function setColFilter(key, col, op, value) {
+function setColFilter(key, col, op, value, value2) {
     const filters = state.tables[key].filters;
-    if (value === "") delete filters[col];
-    else filters[col] = { op, value };
+    const f = { op, value, value2 };
+    if (isFilterActive(f)) filters[col] = f;
+    else delete filters[col];
     state.tables[key].page = 0;
     renderBody(key);     // body only → keeps the filter input focused
     applyReducers();   // hide filtered-out nodes/edges in the visualization
@@ -3649,10 +3700,43 @@ function uniqueRunLabel(base) {
     return base + " #" + k;
 }
 
+// The feature parameters currently available: info-piece feature names (from the pieces) and user feature names —
+// the graph's node attributes plus the detected community partitions, both exposed by the server as user features.
+function knownFeatureParams() {
+    const info = new Set();
+    state.diffusion.pieces.forEach((p) => (p.features || []).forEach((f) => { if (f.param) info.add(f.param); }));
+    const user = new Set();
+    (state.attrSchema && state.attrSchema.node ? state.attrSchema.node : []).forEach((a) => { if (a.name) user.add(a.name); });
+    Object.keys(state.communityData || {}).forEach((name) => user.add(name));   // communities as user features
+    return { info: [...info], user: [...user] };
+}
+
+// Builds the metrics list for a run. Feature metrics (those with a "feature" parameter) are expanded into one
+// instance per known feature parameter — over info-piece features and over user (node-attribute) features — so the
+// user doesn't have to type feature names; plain metrics are sent as-is.
+function buildDiffMetricsRequest() {
+    const feats = knownFeatureParams();
+    const out = [];
+    for (const id of selectedOptions("diff-metrics")) {
+        const def = state.defs.metric && state.defs.metric[id];
+        const isFeatureMetric = def && def.params && def.params.some((p) => p.name === "feature");
+        if (!isFeatureMetric) { out.push({ id }); continue; }
+        feats.info.forEach((name) => out.push({ id, params: { feature: name, userFeature: false } }));
+        feats.user.forEach((name) => out.push({ id, params: { feature: name, userFeature: true } }));
+    }
+    return out;
+}
+
 // Runs the simulation with the configured protocol / stop / metrics.
 async function runDiffusion() {
     if (!requireGraph()) return;
     if (!state.diffusion.pieces.length) { setStatus("Add at least one information piece to run a simulation.", "error"); return; }
+    // When "apply filters to simulation" is on, only the pieces passing the table filters are simulated.
+    let simPieces = null;
+    if (state.diffusion.applyFiltersToSim && activePieceFilters().length) {
+        simPieces = filteredPieceIndices().map((i) => state.diffusion.pieces[i]);
+        if (!simPieces.length) { setStatus("No information pieces pass the current filters.", "error"); return; }
+    }
     if (!state.diffusion.graph) initDiffGraph();
     const type = $("diff-protocol-type").value;
     const protocol = type === "custom"
@@ -3666,7 +3750,7 @@ async function runDiffusion() {
           }
         : { type: "preset", id: $("diff-protocol").value, params: collectParams("diff-protocol-params") };
     const stop = { id: $("diff-stop").value, params: collectParams("diff-stop-params") };
-    const metrics = selectedOptions("diff-metrics").map((id) => ({ id }));
+    const metrics = buildDiffMetricsRequest();
     const protoLabel = protocolLabel(type);
 
     setStatus("Running diffusion…", "busy");
@@ -3675,6 +3759,7 @@ async function runDiffusion() {
     try {
         await persistPiecesNow();   // ensure the session has the latest pieces; the run reads them from there
         const body = { graphId: state.graphId, protocol, stop, metrics, filters: [] };
+        if (simPieces) body.pieces = simPieces;   // filtered subset overrides the persisted (full) set for this run
         const res = await api("/api/diffusion/run", jsonBody(body));
         state.diffusion.result = res;
         state.diffusion.iteration = 0;
@@ -3984,30 +4069,120 @@ function schedulePersistPieces() {
     piecesSaveTimer = setTimeout(persistPiecesNow, 600);
 }
 
-// Renders the current page of the pieces table. Paging keeps the DOM small so arbitrarily large piece sets stay
-// responsive (only one page of <input> rows exists at a time).
+// The pieces-table columns, in order: fixed columns plus one per feature parameter (prefixed "feat:").
+function pieceColumns() {
+    return ["id", "creator", "timestamp"].concat(state.diffusion.featureParams.map((p) => "feat:" + p));
+}
+
+// Renders the pieces table. The header (column titles + filter row) is rebuilt only when the column set changes, so
+// typing in a filter never recreates the input and never loses focus; the body (a single page of rows) is rebuilt
+// on every filter / page / edit.
 function renderPiecesTable() {
     const table = $("diff-pieces-table");
     if (!table) return;
-    const d = state.diffusion;
-    const pieces = d.pieces;
-    updatePiecesSummary();
-    table.innerHTML = "";
+    syncFeatureParams();
+    ensurePiecesHeader();
+    renderPiecesBody();
+}
 
-    const pages = Math.max(1, Math.ceil(pieces.length / d.piecesPageSize));
+function ensurePiecesHeader() {
+    const table = $("diff-pieces-table");
+    const d = state.diffusion;
+    const sig = pieceColumns().join("|");
+    if (d.piecesHeaderSig === sig && table.querySelector("thead")) return;
+    d.piecesHeaderSig = sig;
+    const old = table.querySelector("thead");
+    if (old) old.remove();
+
+    const thead = document.createElement("thead");
+    const htr = document.createElement("tr");
+    ["Id", "Creator (node)", "Timestamp"].forEach((h) => { const th = document.createElement("th"); th.textContent = h; htr.appendChild(th); });
+    d.featureParams.forEach((param) => htr.appendChild(featureColumnHeader(param)));
+    htr.appendChild(document.createElement("th"));   // delete-button column
+    thead.appendChild(htr);
+
+    const ftr = document.createElement("tr");
+    ftr.className = "filter-row";
+    pieceColumns().forEach((col) => ftr.appendChild(pieceFilterTh(col)));
+    ftr.appendChild(document.createElement("th"));   // delete-button column has no filter
+    thead.appendChild(ftr);
+
+    table.insertBefore(thead, table.firstChild);
+}
+
+// One filter cell (operator + value[s]), mirroring the node/edge tables.
+function pieceFilterTh(col) {
+    const th = document.createElement("th");
+    th.appendChild(makeColFilter(state.diffusion.pieceFilters[col],
+        (op, value, value2) => setPieceFilter(col, op, value, value2)));
+    return th;
+}
+
+function renderPiecesBody() {
+    const table = $("diff-pieces-table");
+    const d = state.diffusion;
+    updatePiecesSummary();
+    const old = table.querySelector("tbody");
+    if (old) old.remove();
+
+    const idxs = filteredPieceIndices();
+    const total = idxs.length;
+    const pages = Math.max(1, Math.ceil(total / d.piecesPageSize));
     if (d.piecesPage >= pages) d.piecesPage = pages - 1;
     if (d.piecesPage < 0) d.piecesPage = 0;
     const start = d.piecesPage * d.piecesPageSize;
-    const end = Math.min(pieces.length, start + d.piecesPageSize);
+    const end = Math.min(total, start + d.piecesPageSize);
 
-    const thead = document.createElement("thead");
-    thead.innerHTML = "<tr><th>Id</th><th>Creator (node)</th><th>Timestamp</th><th></th></tr>";
-    table.appendChild(thead);
     const tbody = document.createElement("tbody");
-    for (let i = start; i < end; i++) tbody.appendChild(pieceRow(pieces[i], i));
+    for (let k = start; k < end; k++) { const i = idxs[k]; tbody.appendChild(pieceRow(d.pieces[i], i)); }
     table.appendChild(tbody);
 
-    updatePiecesPager(pieces.length, pages, start, end - start);
+    updatePiecesPager(total, pages, start, end - start);
+}
+
+/* pieces-table filtering (mirrors the node/edge table filters) */
+
+function pieceColValue(p, col) {
+    if (col === "id") return p.id;
+    if (col === "creator") return p.creator;
+    if (col === "timestamp") return p.timestamp;
+    if (col.startsWith("feat:")) return encodeParamValues(p.features, col.slice(5));
+    return "";
+}
+
+function activePieceFilters() {
+    const f = state.diffusion.pieceFilters || {};
+    const cols = new Set(pieceColumns());
+    return Object.keys(f)
+        .filter((c) => cols.has(c) && isFilterActive(f[c]))
+        .map((c) => ({ col: c, op: f[c].op, value: f[c].value, value2: f[c].value2 }));
+}
+
+function pieceRowPasses(p, filters) {
+    return filters.every((f) => matchFilter(pieceColValue(p, f.col), f.op, f.value, f.value2));
+}
+
+// Indices (into state.diffusion.pieces) of the pieces that pass the active filters, in order.
+function filteredPieceIndices() {
+    const filters = activePieceFilters();
+    const out = [];
+    state.diffusion.pieces.forEach((p, i) => { if (!filters.length || pieceRowPasses(p, filters)) out.push(i); });
+    return out;
+}
+
+function setPieceFilter(col, op, value, value2) {
+    const f = { op, value, value2 };
+    if (isFilterActive(f)) state.diffusion.pieceFilters[col] = f;
+    else delete state.diffusion.pieceFilters[col];
+    state.diffusion.piecesPage = 0;
+    renderPiecesBody();   // body only, so the filter input the user is typing in keeps focus
+}
+
+function clearPieceFilters() {
+    state.diffusion.pieceFilters = {};
+    state.diffusion.piecesHeaderSig = null;   // force a header rebuild to clear the filter inputs
+    state.diffusion.piecesPage = 0;
+    renderPiecesTable();
 }
 
 function updatePiecesPager(total, pages, start, shown) {
@@ -4067,6 +4242,7 @@ function pieceRow(p, i) {
     tr.appendChild(pieceCell(i, "id", "text", p.id));
     tr.appendChild(pieceCell(i, "creator", "text", p.creator));
     tr.appendChild(pieceCell(i, "timestamp", "number", p.timestamp));
+    state.diffusion.featureParams.forEach((param) => tr.appendChild(featureValueCell(i, param, p)));
     const td = document.createElement("td");
     const del = document.createElement("button");
     del.className = "piece-del";
@@ -4107,13 +4283,126 @@ function pieceCell(i, field, type, value) {
     return td;
 }
 
+// Ensures every feature parameter present in the pieces has a column (columns are additive: explicitly-added or
+// previously-seen parameters remain even when no piece currently carries a value).
+function syncFeatureParams() {
+    const d = state.diffusion;
+    if (!d.featureParams) d.featureParams = [];
+    const have = new Set(d.featureParams);
+    d.pieces.forEach((p) => (p.features || []).forEach((f) => {
+        if (f.param && !have.has(f.param)) { have.add(f.param); d.featureParams.push(f.param); }
+    }));
+}
+
+// A feature-column header: the parameter name plus a control to drop the whole column.
+function featureColumnHeader(param) {
+    const th = document.createElement("th");
+    th.className = "feature-col-th";
+    const label = document.createElement("span");
+    label.textContent = param;
+    const del = document.createElement("button");
+    del.className = "feature-col-del";
+    del.textContent = "✕";
+    del.title = 'Remove the "' + param + '" feature column';
+    del.addEventListener("click", () => removeFeatureColumn(param));
+    th.append(label, del);
+    return th;
+}
+
+// One cell for (piece i, feature parameter): the piece's value(s) for that parameter, editable.
+function featureValueCell(i, param, p) {
+    const td = document.createElement("td");
+    td.className = "piece-feature-cell";
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.placeholder = "value:weight; …";
+    inp.value = encodeParamValues(p.features, param);
+    inp.addEventListener("input", () => {
+        if (!confirmPiecesChange()) { inp.value = encodeParamValues(state.diffusion.pieces[i].features, param); return; }
+        setPieceParamValues(i, param, inp.value);
+        schedulePersistPieces();
+    });
+    td.appendChild(inp);
+    return td;
+}
+
+// Prompts for a new feature-parameter name and adds an (initially empty) column for it.
+function addFeatureColumn() {
+    const name = (window.prompt("New feature name:") || "").trim();
+    if (!name) return;
+    if (!state.diffusion.featureParams.includes(name)) state.diffusion.featureParams.push(name);
+    renderPiecesTable();
+}
+
+// Removes a feature column: drops that parameter's values from every piece and the column itself.
+function removeFeatureColumn(param) {
+    if (!confirmPiecesChange()) return;
+    state.diffusion.pieces.forEach((p) => { if (p.features) p.features = p.features.filter((f) => f.param !== param); });
+    state.diffusion.featureParams = state.diffusion.featureParams.filter((x) => x !== param);
+    delete state.diffusion.pieceFilters["feat:" + param];   // drop its filter, if any
+    renderPiecesTable();
+    persistPiecesNow();
+}
+
+// Encodes one parameter's values for a piece as "value:weight" entries (":weight" omitted when 1), separated by "; ".
+function encodeParamValues(features, param) {
+    const vals = (features || []).filter((f) => f.param === param);
+    if (!vals.length) return "";
+    return vals.map((f) => f.value + (f.weight != null && Number(f.weight) !== 1 ? ":" + f.weight : "")).join("; ");
+}
+
+// Replaces the values of one parameter on a piece with those parsed from a cell ("value:weight; value2; …").
+function setPieceParamValues(i, param, text) {
+    const p = state.diffusion.pieces[i];
+    p.features = (p.features || []).filter((f) => f.param !== param);
+    (text || "").split(/[;,\n]+/).forEach((tokRaw) => {
+        const tok = tokRaw.trim();
+        if (!tok) return;
+        let value = tok, weight = 1;
+        const colon = tok.lastIndexOf(":");
+        if (colon >= 0) {
+            const w = parseFloat(tok.slice(colon + 1));
+            if (!isNaN(w)) { weight = w; value = tok.slice(0, colon).trim(); }
+        }
+        if (value) p.features.push({ param, value, weight });
+    });
+}
+
+// Encodes a piece's feature list as "param=value" entries (with ":weight" when not 1), separated by "; ".
+function encodePieceFeatures(features) {
+    if (!features || !features.length) return "";
+    return features.map((f) => f.param + "=" + f.value + (f.weight != null && Number(f.weight) !== 1 ? ":" + f.weight : "")).join("; ");
+}
+
+// Parses "param=value:weight; …" into a list of {param, value, weight} (weight defaults to 1).
+function parsePieceFeatures(text) {
+    const out = [];
+    (text || "").split(/[;\n]+/).forEach((tokRaw) => {
+        const tok = tokRaw.trim();
+        if (!tok) return;
+        const eq = tok.indexOf("=");
+        if (eq < 0) return;
+        const param = tok.slice(0, eq).trim();
+        let rest = tok.slice(eq + 1).trim();
+        let weight = 1;
+        const colon = rest.lastIndexOf(":");
+        if (colon >= 0) {
+            const w = parseFloat(rest.slice(colon + 1));
+            if (!isNaN(w)) { weight = w; rest = rest.slice(0, colon).trim(); }
+        }
+        if (!param || !rest) return;
+        out.push({ param, value: rest, weight });
+    });
+    return out;
+}
+
 function addDiffPiece() {
     if (!confirmPiecesChange()) return;
     const d = state.diffusion;
     let n = d.pieces.length + 1;
     const existing = new Set(d.pieces.map((p) => p.id));
     while (existing.has("piece" + n)) n++;
-    d.pieces.push({ id: "piece" + n, creator: "", timestamp: 0 });
+    d.pieces.push({ id: "piece" + n, creator: "", timestamp: 0, features: [] });
     d.piecesPage = Math.floor((d.pieces.length - 1) / d.piecesPageSize);   // jump to the page holding the new row
     renderPiecesTable();
     schedulePersistPieces();
@@ -4126,9 +4415,12 @@ function generatePiecesFromGraph() {
     const k = Math.max(1, numInput("diff-piece-seed", 1));
     const pieces = [];
     state.graph.forEachNode((node) => {
-        for (let j = 0; j < k; j++) pieces.push({ id: node + "#" + j, creator: node, timestamp: 0 });
+        for (let j = 0; j < k; j++) pieces.push({ id: node + "#" + j, creator: node, timestamp: 0, features: [] });
     });
     state.diffusion.pieces = pieces;
+    state.diffusion.featureParams = [];
+    state.diffusion.pieceFilters = {};
+    state.diffusion.piecesHeaderSig = null;
     state.diffusion.piecesPage = 0;
     renderPiecesTable();
     persistPiecesNow();
@@ -4139,6 +4431,9 @@ function clearDiffPieces() {
     if (!state.diffusion.pieces.length) return;
     if (!confirmPiecesChange()) return;
     state.diffusion.pieces = [];
+    state.diffusion.featureParams = [];
+    state.diffusion.pieceFilters = {};
+    state.diffusion.piecesHeaderSig = null;
     state.diffusion.piecesPage = 0;
     renderPiecesTable();
     persistPiecesNow();
@@ -4150,6 +4445,9 @@ function uploadPiecesCsv(file) {
     const reader = new FileReader();
     reader.onload = () => {
         state.diffusion.pieces = parsePiecesText(String(reader.result));
+        state.diffusion.featureParams = [];   // rebuilt from the loaded pieces
+        state.diffusion.pieceFilters = {};
+        state.diffusion.piecesHeaderSig = null;
         state.diffusion.piecesPage = 0;
         renderPiecesTable();
         persistPiecesNow();
@@ -4159,16 +4457,76 @@ function uploadPiecesCsv(file) {
     reader.readAsText(file);
 }
 
-// Parses an information-pieces file (comma / tab / semicolon separated): columns id, creator, timestamp. A leading
-// header row (first cell "id") is skipped.
+// Uploads a RELISON-style info-features file: lines of "infoId \t featureId" (optional 3rd column = weight). The
+// feature parameter name comes from a header row ("infoId \t <name>") when present, otherwise from the name box.
+function uploadInfoFeaturesFile(file) {
+    if (!file) return;
+    if (!state.diffusion.pieces.length) { setStatus("Add or generate information pieces before uploading their features.", "error"); return; }
+    if (!confirmPiecesChange()) return;
+    const reader = new FileReader();
+    reader.onload = () => applyInfoFeaturesText(String(reader.result), file.name);
+    reader.onerror = () => setStatus("Could not read " + file.name + ".", "error");
+    reader.readAsText(file);
+}
+
+function applyInfoFeaturesText(text, filename) {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim().length);
+    if (!lines.length) { setStatus("The features file is empty.", "error"); return; }
+
+    // Split on tab (fall back to any whitespace if a line has no tab).
+    const cells = (line) => (line.includes("\t") ? line.split("\t") : line.split(/\s+/)).map((c) => c.trim());
+    let param = ($("diff-feature-param").value || "").trim() || "feature";
+    let start = 0;
+    const first = cells(lines[0]);
+    if (["infoid", "id", "info", "piece"].includes((first[0] || "").toLowerCase())) {
+        if (first[1]) param = first[1];   // header names the feature parameter
+        start = 1;
+    }
+
+    // Collect featureId(s) per infoId.
+    const byInfo = new Map();
+    for (let i = start; i < lines.length; i++) {
+        const c = cells(lines[i]);
+        const info = c[0], value = c[1];
+        if (!info || !value) continue;
+        const weight = (c[2] !== undefined && c[2] !== "") ? (parseFloat(c[2]) || 1) : 1;
+        if (!byInfo.has(info)) byInfo.set(info, []);
+        byInfo.get(info).push({ value, weight });
+    }
+
+    // Replace any existing values of this parameter, then apply the uploaded ones to the matching pieces.
+    const pieceById = new Map(state.diffusion.pieces.map((p) => [p.id, p]));
+    state.diffusion.pieces.forEach((p) => { p.features = (p.features || []).filter((f) => f.param !== param); });
+    let applied = 0, unmatched = 0;
+    byInfo.forEach((entries, info) => {
+        const p = pieceById.get(info);
+        if (!p) { unmatched++; return; }
+        entries.forEach((e) => p.features.push({ param, value: e.value, weight: e.weight }));
+        applied++;
+    });
+
+    renderPiecesTable();
+    persistPiecesNow();
+    setStatus("Loaded \"" + param + "\" features for " + applied + " piece(s)" +
+        (unmatched ? " (" + unmatched + " unknown info id(s) skipped)" : "") + " from " + filename + ".");
+}
+
+// Parses an information-pieces file. Columns: id, creator, timestamp, features. Tab-separated (so the features
+// field can freely use ",", ";", "=", ":"); a comma-only line (no tab) is still accepted for legacy 3-column files.
+// A leading header row (first cell "id") is skipped.
 function parsePiecesText(text) {
-    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length);
+    const lines = text.split(/\r?\n/).filter((l) => l.trim().length);
     const out = [];
     lines.forEach((line, idx) => {
-        const cols = line.split(/[,\t;]/).map((c) => c.trim());
+        const cols = (line.includes("\t") ? line.split("\t") : line.split(",")).map((c) => c.trim());
         if (idx === 0 && cols[0].toLowerCase() === "id") return;   // header
         if (!cols[0]) return;
-        out.push({ id: cols[0], creator: cols[1] || "", timestamp: (cols[2] !== undefined && cols[2] !== "") ? (parseInt(cols[2], 10) || 0) : 0 });
+        out.push({
+            id: cols[0],
+            creator: cols[1] || "",
+            timestamp: (cols[2] !== undefined && cols[2] !== "") ? (parseInt(cols[2], 10) || 0) : 0,
+            features: parsePieceFeatures(cols[3] || ""),
+        });
     });
     return out;
 }
@@ -4176,9 +4534,10 @@ function parsePiecesText(text) {
 function downloadPiecesCsv() {
     const pieces = state.diffusion.pieces;
     if (!pieces.length) { setStatus("No information pieces to download.", "error"); return; }
-    const lines = [["id", "creator", "timestamp"].join(",")];
-    for (const p of pieces) lines.push([p.id, p.creator, p.timestamp].map(csvCell).join(","));
-    download("information-pieces.csv", lines.join("\n"), "text/csv");
+    // Tab-separated so the features field can contain commas/semicolons/colons.
+    const lines = [["id", "creator", "timestamp", "features"].join("\t")];
+    for (const p of pieces) lines.push([p.id, p.creator, p.timestamp, encodePieceFeatures(p.features)].join("\t"));
+    download("information-pieces.tsv", lines.join("\n"), "text/tab-separated-values");
 }
 
 /* --------------------------- diffusion metrics --------------------------- */
@@ -4361,6 +4720,11 @@ $("btn-diff-piece-clear").addEventListener("click", clearDiffPieces);
 $("btn-diff-piece-download").addEventListener("click", downloadPiecesCsv);
 $("btn-diff-piece-upload").addEventListener("click", () => $("diff-piece-file").click());
 $("diff-piece-file").addEventListener("change", (e) => { uploadPiecesCsv(e.target.files[0]); e.target.value = ""; });
+$("btn-diff-feature-upload").addEventListener("click", () => $("diff-feature-file").click());
+$("diff-feature-file").addEventListener("change", (e) => { uploadInfoFeaturesFile(e.target.files[0]); e.target.value = ""; });
+$("btn-diff-feature-add").addEventListener("click", addFeatureColumn);
+$("btn-diff-piece-clear-filters").addEventListener("click", clearPieceFilters);
+$("diff-apply-filters").addEventListener("change", (e) => { state.diffusion.applyFiltersToSim = e.target.checked; });
 updateDiffRunEnabled();   // starts disabled until at least one piece exists
 $("size-by").addEventListener("change", applyAppearance);
 $("color-by").addEventListener("change", applyAppearance);
