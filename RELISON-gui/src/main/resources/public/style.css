@@ -109,6 +109,26 @@ a.icon-btn { text-decoration: none; display: inline-flex; align-items: center; j
 }
 #right { border-right: none; border-left: 1px solid var(--border); }
 
+
+/* Focus mode is intentionally a layout option, not a new theme: the familiar controls remain in place, while the
+   inspector becomes a contextual drawer and the graph gets the reclaimed space. */
+/* #focus-toggle.active, #inspector-toggle.active { border-color: var(--accent); color: var(--accent); }
+body.focus-mode #layout { grid-template-columns: 230px 1fr; position: relative; }
+body.focus-mode #right {
+    position: absolute; inset: 0 0 0 auto; z-index: 20; width: 300px;
+    transform: translateX(calc(100% + 1px)); transition: transform 160ms ease;
+    box-shadow: -10px 0 24px rgba(0, 0, 0, 0.22);
+}*/
+/*body.focus-mode.inspector-open #right { transform: translateX(0); }
+body.focus-mode #left .block { padding: 10px 12px; }
+body.focus-mode #left .block h2 { margin-bottom: 8px; }
+body.focus-mode #left .field { margin-bottom: 8px; }
+body.focus-mode #left .params { margin: 5px 0 7px; }
+
+@media (max-width: 760px) {
+    body.focus-mode #layout { grid-template-columns: 210px 1fr; }
+    body.focus-mode #right { width: min(300px, calc(100vw - 36px)); }
+}*/
 /* Per-metric parameter controls */
 .params { margin: 6px 0 8px; }
 .params:empty { margin: 0; }
@@ -590,3 +610,35 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
     position: absolute; pointer-events: none; padding: 4px 7px; font-size: 12px;
     background: #000; color: #fff; border-radius: 3px; transform: translate(-50%, -130%); white-space: nowrap; z-index: 2;
 }
+
+/* Modern Slate: a calmer evolution of the existing dark workspace. It keeps the established structure and uses
+   contrast, surface layering, and restrained motion rather than decorative effects. */
+body.modern-slate:not(.light) {
+    --bg: #171a20;
+    --panel: #22262e;
+    --panel-2: #1c2027;
+    --border: #343b47;
+    --text: #e8edf5;
+    --muted: #a2acba;
+    --accent: #69a8ff;
+    --accent-2: #4fa875;
+    --canvas-bg: #11141a;
+    --topbar-bg: #20242c;
+}
+body.modern-slate:not(.light) #topbar { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.025), 0 8px 24px rgba(0, 0, 0, 0.12); z-index: 2; }
+body.modern-slate:not(.light) #tabbar { background: #1b1f26; }
+body.modern-slate:not(.light) .panel { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.018); }
+body.modern-slate:not(.light) input[type="file"],
+body.modern-slate:not(.light) select,
+body.modern-slate:not(.light) input[type="text"],
+body.modern-slate:not(.light) input[type="number"],
+body.modern-slate:not(.light) button { border-radius: 6px; }
+body.modern-slate:not(.light) button,
+body.modern-slate:not(.light) .icon-btn,
+body.modern-slate:not(.light) .tab { transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease; }
+body.modern-slate:not(.light) button:hover:not(:disabled) { background: #252b35; }
+body.modern-slate:not(.light) button.primary:hover:not(:disabled) { background: #7ab2ff; }
+/* Style comparison and light-mode counterpart for Modern Slate. */ #style-selector { width: auto; min-width: 114px; margin: 0; padding: 4px 24px 4px 8px; font-size: 12px; } body.modern-slate.light { --bg: #f3f5f8; --panel: #ffffff; --panel-2: #e9edf2; --border: #d2d9e3; --text: #17202b; --muted: #647184; --accent: #357fd8; --accent-2: #318b60; --canvas-bg: #fafbfc; --topbar-bg: #ffffff; } body.modern-slate.light #topbar { box-shadow: 0 1px 0 rgba(255,255,255,.8), 0 8px 24px rgba(25,38,56,.08); } body.modern-slate.light #tabbar { background: #eef1f5; } body.modern-slate.light .panel { box-shadow: inset 0 1px 0 rgba(255,255,255,.85); } body.modern-slate.light input[type="file"], body.modern-slate.light select, body.modern-slate.light input[type="text"], body.modern-slate.light input[type="number"], body.modern-slate.light button { border-radius: 6px; } body.modern-slate.light button, body.modern-slate.light .icon-btn, body.modern-slate.light .tab { transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease; } body.modern-slate.light button:hover:not(:disabled) { background: #e4e9f0; } body.modern-slate.light button.primary:hover:not(:disabled) { background: #4c8fe0; } body.modern-slate.light .tab.active { background: #ffffff; } body.classic:not(.light) { --bg: #1e1f22; --panel: #2b2d31; --panel-2: #232428; --border: #3a3c41; --text: #e6e6e6; --muted: #9aa0a6; --accent: #4f9dff; --accent-2: #2d7d46; --canvas-bg: #18191c; --topbar-bg: #2b2d31; } body.classic:not(.light) #topbar, body.classic:not(.light) .panel { box-shadow: none; } body.classic:not(.light) #tabbar { background: var(--panel-2); } body.classic:not(.light) input[type="file"], body.classic:not(.light) select, body.classic:not(.light) input[type="text"], body.classic:not(.light) input[type="number"], body.classic:not(.light) button:hover:not(:disabled) { background: var(--panel-2); } body.classic:not(.light) button.primary:hover:not(:disabled) { background: var(--accent); } body.classic:not(.light) .tab.active { background: var(--panel); }
+/* Quiet Light and Graph-first Dark: complete alternatives with the same controls and information architecture. */
+body.quiet-light { --bg: #f6f7f4; --panel: #ffffff; --panel-2: #eef0ec; --border: #dce1dc; --text: #233039; --muted: #68756f; --accent: #2f8173; --accent-2: #5a9d74; --canvas-bg: #fcfcfa; --topbar-bg: #ffffff; } body.quiet-light #topbar { box-shadow: 0 1px 0 rgba(255,255,255,.85), 0 8px 24px rgba(32,47,42,.07); z-index: 2; } body.quiet-light #tabbar { background: #f0f2ee; } body.quiet-light .panel { box-shadow: inset 0 1px 0 rgba(255,255,255,.9); } body.quiet-light input[type="file"], body.quiet-light select, body.quiet-light input[type="text"], body.quiet-light input[type="number"], body.quiet-light button { border-radius: 7px; } body.quiet-light button, body.quiet-light .icon-btn, body.quiet-light .tab { transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease; } body.quiet-light button:hover:not(:disabled) { background: #e5ebe6; } body.quiet-light button.primary:hover:not(:disabled) { background: #438f82; } body.quiet-light .tab.active { background: #ffffff; } body.graph-first-dark { --bg: #0c1016; --panel: #121922; --panel-2: #0d131b; --border: #293847; --text: #e5edf6; --muted: #9babbc; --accent: #54b6ff; --accent-2: #65d69b; --canvas-bg: #070a0f; --topbar-bg: #101720; } body.graph-first-dark #topbar { box-shadow: 0 1px 0 rgba(255,255,255,.025), 0 8px 28px rgba(0,0,0,.28); z-index: 2; } body.graph-first-dark #tabbar { background: #0c121a; } body.graph-first-dark .panel { box-shadow: inset 0 1px 0 rgba(255,255,255,.018); } body.graph-first-dark:not(.focus-mode) #layout { grid-template-columns: 230px 1fr 260px; } body.graph-first-dark input[type="file"], body.graph-first-dark select, body.graph-first-dark input[type="text"], body.graph-first-dark input[type="number"], body.graph-first-dark button { border-radius: 5px; } body.graph-first-dark button, body.graph-first-dark .icon-btn, body.graph-first-dark .tab { transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease; } body.graph-first-dark button:hover:not(:disabled) { background: #18222d; } body.graph-first-dark button.primary:hover:not(:disabled) { background: #6bc2ff; } body.graph-first-dark .tab.active { background: #17212c; }
+/* Cross-mode variants preserve each style's character when the user changes colour mode. */ body.quiet-light:not(.light) { --bg: #1b211f; --panel: #252d2a; --panel-2: #1f2724; --border: #3a4741; --text: #e8efea; --muted: #a5b2a9; --accent: #65b9a8; --accent-2: #80c58e; --canvas-bg: #141a18; --topbar-bg: #222a27; } body.quiet-light:not(.light) #topbar { box-shadow: 0 1px 0 rgba(255,255,255,.025), 0 8px 24px rgba(0,0,0,.16); } body.quiet-light:not(.light) #tabbar { background: #1d2522; } body.quiet-light:not(.light) .panel { box-shadow: inset 0 1px 0 rgba(255,255,255,.018); } body.quiet-light:not(.light) button:hover:not(:disabled) { background: #2c3732; } body.quiet-light:not(.light) button.primary:hover:not(:disabled) { background: #79c5b5; } body.quiet-light:not(.light) .tab.active { background: #29332f; } body.graph-first-dark.light { --bg: #f1f5f9; --panel: #ffffff; --panel-2: #e8eef5; --border: #cbd7e4; --text: #162331; --muted: #607489; --accent: #247dc5; --accent-2: #2c9367; --canvas-bg: #f9fbfd; --topbar-bg: #ffffff; } body.graph-first-dark.light #topbar { box-shadow: 0 1px 0 rgba(255,255,255,.85), 0 8px 28px rgba(20,46,72,.09); } body.graph-first-dark.light #tabbar { background: #e7eef6; } body.graph-first-dark.light .panel { box-shadow: inset 0 1px 0 rgba(255,255,255,.9); } body.graph-first-dark.light button:hover:not(:disabled) { background: #dce8f3; } body.graph-first-dark.light button.primary:hover:not(:disabled) { background: #418fd1; } body.graph-first-dark.light .tab.active { background: #ffffff; }

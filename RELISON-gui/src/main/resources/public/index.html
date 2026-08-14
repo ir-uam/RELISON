@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>RELISON</title>
+    <title>RELISON Spectrum</title>
     <link rel="icon" type="image/svg+xml" href="img/relison-favicon.svg"/>
     <link rel="icon" type="image/png" sizes="any" href="img/relison-logo.png"/>
     <link rel="stylesheet" href="style.css"/>
@@ -38,6 +38,14 @@
     <a id="docs-link" class="icon-btn" href="https://relison.readthedocs.io" target="_blank" rel="noopener" title="Documentation">❓</a>
     <button id="debug-terminal" class="icon-btn" title="Debug console (standard output / error)" hidden>&gt;_</button>
     <button id="theme-toggle" class="icon-btn" title="Toggle light/dark">🌙</button>
+    <!-- <button id="inspector-toggle" class="icon-btn" title="Show or hide the selection inspector" aria-pressed="false" hidden>Inspector</button> -->
+    <!-- <button id="focus-toggle" class="icon-btn" title="Reduce visual clutter while keeping every control available" aria-pressed="false">Focus</button> -->
+    <select id="style-selector" aria-label="Interface style">
+        <option value="modern-slate">Modern Slate</option>
+        <option value="classic">Classic</option>
+        <option value="quiet-light">Quiet Light</option>
+        <option value="graph-first-dark">Graph-first Dark</option>
+    </select>
 </header>
 
 <!-- Debug console: replaces the tabs + content (everything below the top bar) when toggled on; only available with --debug. -->

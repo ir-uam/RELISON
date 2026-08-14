@@ -1332,6 +1332,7 @@ function selectNode(node) {
     $("select-node-input").value = node;
     renderNodeInfo(node);
     updatePartitionField();
+    //if (document.body.classList.contains("focus-mode")) { document.body.classList.add("inspector-open"); $("inspector-toggle").classList.add("active"); $("inspector-toggle").setAttribute("aria-pressed", "true"); }
     applyReducers();
     if (state.selection.mode === "ego-only" || state.selection.mode === "community-only") {
         renderTable(state.activeTableSubtab);
@@ -4524,8 +4525,13 @@ function toggleTheme() {
 }
 
 /* ------------------------------ debug console ----------------------------- */
+function applyVisualStyle(style) { const modern = style !== "classic"; document.body.classList.toggle("modern-slate", modern); document.body.classList.toggle("classic", !modern); $("style-selector").value = modern ? "modern-slate" : "classic"; try { localStorage.setItem("relison-visual-style", modern ? "modern-slate" : "classic"); } catch (e) { /* ignore */ } }
+//function applyFocusMode(enabled) { document.body.classList.toggle("focus-mode", enabled); if (!enabled) document.body.classList.remove("inspector-open"); $("focus-toggle").classList.toggle("active", enabled); $("focus-toggle").setAttribute("aria-pressed", String(enabled)); $("focus-toggle").textContent = enabled ? "Focus on" : "Focus"; toggleHidden("inspector-toggle", !enabled); if (!enabled) { $("inspector-toggle").classList.remove("active"); $("inspector-toggle").setAttribute("aria-pressed", "false"); } try { localStorage.setItem("relison-focus-mode", enabled ? "on" : "off"); } catch (e) { /* ignore */ } setTimeout(() => { if (state.renderer) { state.renderer.refresh(); drawRecOverlay(); } if (state.diffusion.renderer) { state.diffusion.renderer.refresh(); drawDiffOverlay(); } }, 0); }
+function applyExtendedVisualStyle(style) { const valid = ["classic", "modern-slate", "quiet-light", "graph-first-dark"]; const next = valid.includes(style) ? style : "modern-slate"; document.body.classList.remove(...valid); document.body.classList.add(next); $("style-selector").value = next; try { localStorage.setItem("relison-visual-style", next); } catch (e) { /* ignore */ } }
 // Available only when the server was launched with --debug. The button reveals a terminal-like overlay that mirrors
+//function toggleFocusMode() { applyFocusMode(!document.body.classList.contains("focus-mode")); }
 // the server's standard output / error (polled incrementally from /api/logs), replacing everything below the top bar.
+//function toggleInspector() { if (!document.body.classList.contains("focus-mode")) return; const open = !document.body.classList.contains("inspector-open"); document.body.classList.toggle("inspector-open", open); $("inspector-toggle").classList.toggle("active", open); $("inspector-toggle").setAttribute("aria-pressed", String(open)); }
 const debugConsole = { enabled: false, on: false, cursor: 0, timer: null };
 
 async function initDebugConsole() {
@@ -4589,7 +4595,10 @@ function appendDebugLines(entries) {
     applyTheme(saved);
 })();
 
+(function initVisualStyle() { let saved = "modern-slate"; try { saved = localStorage.getItem("relison-visual-style") || "modern-slate"; } catch (e) { /* ignore */ } applyVisualStyle(saved); })();
 // Default label colours to a readable value for the current theme (white-ish on dark, dark on light).
+(function initAdditionalVisualStyles() { const selector = $("style-selector"); if (!selector.querySelector('option[value="quiet-light"]')) { selector.add(new Option("Quiet Light", "quiet-light"), 1); selector.add(new Option("Graph-first Dark", "graph-first-dark"), 2); } let saved = "modern-slate"; try { saved = localStorage.getItem("relison-visual-style") || "modern-slate"; } catch (e) { /* ignore */ } applyExtendedVisualStyle(saved); })();
+//(function initFocusMode() { let saved = "off"; try { saved = localStorage.getItem("relison-focus-mode") || "off"; } catch (e) { /* ignore */ } applyFocusMode(saved === "on"); })();
 (function initLabelColors() {
     const def = document.body.classList.contains("light") ? "#1c1d20" : "#e6e6e6";
     $("node-label-color").value = def;
@@ -8053,6 +8062,10 @@ $("global-comm-metric").addEventListener("change", (e) => renderParams("global-c
 $("edit-mode").addEventListener("change", (e) => setEditMode(e.target.checked));
 $("theme-toggle").addEventListener("click", toggleTheme);
 setupMenu("btn-report", "report-menu", (act) => (act === "pdf" ? exportReportPdf() : exportReportHtml()));
+//$("focus-toggle").addEventListener("click", toggleFocusMode);
+//$("inspector-toggle").addEventListener("click", toggleInspector);
+//$("style-selector").addEventListener("change", (e) => applyVisualStyle(e.target.value));
+$("style-selector").addEventListener("change", (e) => applyExtendedVisualStyle(e.target.value));
 setupMenu("btn-session", "session-menu", (act) => (act === "save" ? saveSession() : $("session-file").click()));
 $("session-file").addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
