@@ -41,10 +41,12 @@ import java.util.function.Supplier;
 public class MetricController
 {
     private final GraphStore store;
+    private final JobManager jobs;
 
-    public MetricController(GraphStore store)
+    public MetricController(GraphStore store, JobManager jobs)
     {
         this.store = store;
+        this.jobs = jobs;
     }
 
     /**
@@ -89,7 +91,13 @@ public class MetricController
         }
 
         VertexMetric<String> metric = metrics.values().iterator().next().get();
-        Map<String, Double> values = metric.compute(graph);
+        Map<String, Double> values;
+        try
+        {
+            values = jobs.run(jobKey(body, "vertex"), () -> metric.compute(graph));
+        }
+        catch (JobCancelledException e) { ctx.json(Map.of("cancelled", true)); return; }
+        catch (Exception e) { ctx.status(500).json(Map.of("error", String.valueOf(e))); return; }
 
         Map<String, Double> out = new LinkedHashMap<>();
         values.forEach(out::put);
@@ -137,7 +145,13 @@ public class MetricController
         }
 
         GraphMetric<String> metric = metrics.values().iterator().next().get();
-        double value = metric.compute(graph);
+        double value;
+        try
+        {
+            value = jobs.run(jobKey(body, "graph"), () -> metric.compute(graph));
+        }
+        catch (JobCancelledException e) { ctx.json(Map.of("cancelled", true)); return; }
+        catch (Exception e) { ctx.status(500).json(Map.of("error", String.valueOf(e))); return; }
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("metric", metricId);
@@ -188,18 +202,19 @@ public class MetricController
         PairMetric<String> metric = metrics.values().iterator().next().get();
         String label = def.label + Grids.suffix(def.params, paramsOf(body));
 
-        if (onlyLinks)
+        try
         {
-            pairLinks(ctx, session, graph, recKey, metricId, label, metric);
+            Map<String, Object> response = jobs.run(jobKey(body, "pair"), () -> onlyLinks
+                    ? pairLinks(session, graph, recKey, metricId, label, metric)
+                    : pairAggregate(session, graph, recKey, metricId, label, metric));
+            ctx.json(response);
         }
-        else
-        {
-            pairAggregate(ctx, session, graph, recKey, metricId, label, metric);
-        }
+        catch (JobCancelledException e) { ctx.json(Map.of("cancelled", true)); }
+        catch (Exception e) { ctx.status(500).json(Map.of("error", String.valueOf(e))); }
     }
 
     /** Returns the full per-link values (bounded by the number of edges). */
-    private void pairLinks(Context ctx, GraphSession session, Graph<String> graph, String recKey, String metricId, String label, PairMetric<String> metric)
+    private Map<String, Object> pairLinks(GraphSession session, Graph<String> graph, String recKey, String metricId, String label, PairMetric<String> metric)
     {
         Map<Pair<String>, Double> values = metric.computeOnlyLinks(graph);
         List<Map<String, Object>> out = new ArrayList<>();
@@ -221,7 +236,7 @@ public class MetricController
         response.put("values", out);
         response.put("average", average);
         response.put("recommendation", recKey);
-        ctx.json(response);
+        return response;
     }
 
     /** Number of node pairs above which non-distance metrics estimate the aggregate from a random sample. */
@@ -246,7 +261,7 @@ public class MetricController
      * min/max and a histogram. Distance-based metrics are always enumerated exactly (their values are already
      * cached); other metrics are enumerated exactly when small and sampled when large.
      */
-    private void pairAggregate(Context ctx, GraphSession session, Graph<String> graph, String recKey, String metricId, String label, PairMetric<String> metric)
+    private Map<String, Object> pairAggregate(GraphSession session, Graph<String> graph, String recKey, String metricId, String label, PairMetric<String> metric)
     {
         boolean directed = session.isDirected();
         List<String> nodes = new ArrayList<>();
@@ -322,7 +337,7 @@ public class MetricController
         response.put("max", finite > 0 ? max : 0.0);
         response.put("histogram", histogram);
         response.put("recommendation", recKey);
-        ctx.json(response);
+        return response;
     }
 
     /** Applies the consumer to the metric value of every ordered (directed) / unordered (undirected) node pair. */
@@ -331,6 +346,9 @@ public class MetricController
         int n = nodes.size();
         for (int i = 0; i < n; i++)
         {
+            // Cooperative cancellation: the all-pairs sweep can be enormous, so bail out promptly when the Stop
+            // button interrupted this worker thread (checked once per source node — negligible overhead).
+            if (Thread.currentThread().isInterrupted()) throw new java.util.concurrent.CancellationException();
             int jStart = directed ? 0 : i + 1;
             for (int j = jStart; j < n; j++)
             {
@@ -348,6 +366,8 @@ public class MetricController
         long taken = 0;
         for (int k = 0; k < SAMPLE_SIZE; k++)
         {
+            if ((k & 0xFFF) == 0 && Thread.currentThread().isInterrupted())
+                throw new java.util.concurrent.CancellationException();
             int i = rnd.nextInt(n), j = rnd.nextInt(n);
             if (i == j) continue;
             consumer.accept(metric.compute(graph, nodes.get(i), nodes.get(j)));
@@ -368,6 +388,17 @@ public class MetricController
      * @param body the parsed request body.
      * @return the parameter map, or {@code null} if none was supplied.
      */
+    /**
+     * The cancellation key for a computation on the request's graph.
+     * @param body the parsed request body.
+     * @param kind the computation family (matches the {@code kind} the Stop button posts to {@code /api/jobs/cancel}).
+     * @return {@code graphId + ":" + kind}.
+     */
+    static String jobKey(Map<?, ?> body, String kind)
+    {
+        return String.valueOf(body.get("graphId")) + ":" + kind;
+    }
+
     static Map<?, ?> paramsOf(Map<?, ?> body)
     {
         Object params = body.get("params");

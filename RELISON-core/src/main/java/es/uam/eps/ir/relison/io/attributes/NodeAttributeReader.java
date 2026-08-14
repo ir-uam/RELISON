@@ -42,16 +42,36 @@ public class NodeAttributeReader<V>
     private final String delimiter;
     /** Parser for the node identifiers. */
     private final Parser<V> uParser;
+    /** Whether to automatically add nodes that are not present in the graph. */
+    private final boolean addNodes;
 
     /**
      * Constructor.
      * @param delimiter the field delimiter.
      * @param uParser   the parser for the node identifiers.
      */
+    /**
+     * Constructor that does not add missing nodes (default behaviour).
+     * @param delimiter field delimiter.
+     * @param uParser parser for node identifiers.
+     */
     public NodeAttributeReader(String delimiter, Parser<V> uParser)
+    {
+        this(delimiter, uParser, false);
+    }
+
+    /**
+     * Constructor allowing the caller to decide whether missing nodes should be added to the graph.
+     * @param delimiter field delimiter.
+     * @param uParser parser for node identifiers.
+     * @param addNodes if {@code true}, nodes that are not already present in the graph will be added before
+     *                 setting their attributes.
+     */
+    public NodeAttributeReader(String delimiter, Parser<V> uParser, boolean addNodes)
     {
         this.delimiter = delimiter;
         this.uParser = uParser;
+        this.addNodes = addNodes;
     }
 
     /**
@@ -104,7 +124,18 @@ public class NodeAttributeReader<V>
                 if (line.isEmpty()) continue;
                 String[] splits = line.split(delimiter, -1);
                 V node = uParser.parse(splits[0]);
-                if (!graph.containsVertex(node)) continue;
+                if (!graph.containsVertex(node)) 
+                {
+                    if (addNodes) 
+                    {
+                        // Attempt to add the node; if addition fails, skip this line.
+                        boolean added = graph.addNode(node);
+                        if (!added) continue; // could not add (e.g., null or duplicate), skip attributes.
+                    } else 
+                    {
+                        continue; // skip rows for non‑existing nodes when addNodes is false
+                    }
+                }
                 for (int j = 0; j < numAttr; ++j)
                 {
                     int col = j + 1;

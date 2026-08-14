@@ -4,6 +4,7 @@ import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.community.detection.DendogramCommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.community.detection.connectedness.WeaklyConnectedComponents;
+import es.uam.eps.ir.relison.sna.metrics.distance.BetweennessDistanceCalculator;
 import es.uam.eps.ir.relison.sna.metrics.distance.pair.EdgeBetweenness;
 import es.uam.eps.ir.relison.sna.community.Dendogram;
 import es.uam.eps.ir.relison.graph.Graph;
@@ -14,7 +15,6 @@ import es.uam.eps.ir.relison.graph.generator.exception.GeneratorNotConfiguredExc
 import es.uam.eps.ir.relison.index.fast.FastIndex;
 import es.uam.eps.ir.relison.sna.metrics.communities.graph.Modularity;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
-import org.jooq.lambda.tuple.Tuple2;
 import org.jooq.lambda.tuple.Tuple3;
 
 import java.util.*;
@@ -74,11 +74,12 @@ public class GirvanNewman<U> implements CommunityDetectionAlgorithm<U>, Dendogra
         int minCluster = 2*fastIndex.numObjects()-2;
         clusterMap.put(0, minCluster);
 
-        // We first compute the edge betweenness of the edges in the original network:
-        EdgeBetweenness<U> edgeBetweenness = new EdgeBetweenness<>(false);
+        // We first compute the edge betweenness of the edges in the original network. We only need the betweenness
+        // values, so we use the calculator that just accumulates them (O(n+m) memory) instead of the default one,
+        // which would also store the distances and geodesic paths between every pair of nodes (O(n²) memory).
+        // (the explicit EdgeBetweenness<U> type is what lets the diamonds infer U here)
+        EdgeBetweenness<U> edgeBetweenness = new EdgeBetweenness<>(new BetweennessDistanceCalculator<>(), false);
         Map<Pair<U>, Double> betweenness = edgeBetweenness.compute(graph);
-
-        Comparator<Tuple2<Pair<U>, Double>> comparator = (o1, o2) -> Double.compare(o2.v2, o1.v2);
 
         // As a first step, we find the connected components of the network.
         CommunityDetectionAlgorithm<U> connectedness = new WeaklyConnectedComponents<>();
@@ -142,18 +143,34 @@ public class GirvanNewman<U> implements CommunityDetectionAlgorithm<U>, Dendogra
 
         Modularity<U> mod = new Modularity<>();
         double maxq = mod.compute(graph, aux);
+        // optimalNumComms must always name a valid partition size. It is only reassigned below when a later split
+        // beats maxq; without this seed, a graph whose best modularity is the very first (connected-components)
+        // partition would leave it at its 0 default, and getCommunitiesByNumber(0) returns null (NPE downstream).
+        this.optimalNumComms = aux.getNumCommunities();
 
         while(aux.getNumCommunities() < graph.getVertexCount())
         {
+            // Cooperative cancellation: recomputing edge betweenness after every removal makes this loop very
+            // expensive on large graphs, so bail out when the computing thread is interrupted (the GUI's Stop button).
+            // An ordinary caller never interrupts the thread, so this is a no-op outside that context.
+            if (Thread.currentThread().isInterrupted())
+                throw new java.util.concurrent.CancellationException("Girvan-Newman community detection cancelled.");
             try
             {
-                // First step: we sort the links by betweenness value:
-                List<Tuple2<Pair<U>, Double>> list = new ArrayList<>();
-                betweenness.forEach((key, value) -> list.add(new Tuple2<>(key, value)));
-                list.sort(comparator);
-
-                // We take the edge with the highest betweenness in the network:
-                Pair<U> p = list.get(0).v1;
+                // We take the edge with the highest betweenness in the network. A single scan is enough: sorting the
+                // whole set of edges on every iteration (i.e. once per removed edge) just to read its first element
+                // cost O(m log m) time and allocated a list of m entries each time.
+                Pair<U> p = null;
+                double maxBetw = Double.NEGATIVE_INFINITY;
+                for (Map.Entry<Pair<U>, Double> entry : betweenness.entrySet())
+                {
+                    if (entry.getValue() > maxBetw)
+                    {
+                        maxBetw = entry.getValue();
+                        p = entry.getKey();
+                    }
+                }
+                if (p == null) break; // no edges left to remove.
 
                 // Then
                 // a) we remove the edge
@@ -166,7 +183,7 @@ public class GirvanNewman<U> implements CommunityDetectionAlgorithm<U>, Dendogra
                 Graph<U> subgraph = subGraphGenerator.generate();
 
                 // c) we update the edge betweenness values for such subgraph
-                EdgeBetweenness<U> betw = new EdgeBetweenness<>(false);
+                EdgeBetweenness<U> betw = new EdgeBetweenness<>(new BetweennessDistanceCalculator<>(), false);
                 Map<Pair<U>, Double> newBetw = betw.compute(subgraph);
                 newBetw.forEach(betweenness::put);
                 betweenness.remove(p);

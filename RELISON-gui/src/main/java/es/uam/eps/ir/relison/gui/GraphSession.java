@@ -59,10 +59,18 @@ public class GraphSession
     /** Lazily-built distance calculator for {@link #augmentedGraph}. */
     private DistanceCalculator<String> augmentedDistanceCalculator;
 
+    /**
+     * The held-out test network uploaded for recommendation evaluation, or {@code null}. It is user-supplied data
+     * rather than something derived from the graph, so it deliberately survives {@link #invalidateCaches()} — an edit
+     * invalidates the recommendations computed from the graph, not the test set the user loaded.
+     */
+    private Graph<String> testGraph;
+
     /** The most recent information-diffusion simulation result, or {@code null}. */
     private DiffusionResult diffusion;
     /** The information pieces defined for diffusion (each a map with {@code id}, {@code creator}, {@code timestamp}). */
     private List<?> diffusionPieces = List.of();
+    private List<?> realPropagated = List.of();
 
     /**
      * Constructor.
@@ -118,15 +126,31 @@ public class GraphSession
         return communities;
     }
 
+    /** @return the uploaded test network for recommendation evaluation, or {@code null} if none was loaded. */
+    public Graph<String> getTestGraph()
+    {
+        return testGraph;
+    }
+
+    /** Stores (or clears, with {@code null}) the test network used for recommendation evaluation. */
+    public void setTestGraph(Graph<String> testGraph)
+    {
+        this.testGraph = testGraph;
+    }
+
     /** @return the most recent diffusion result, or {@code null}. */
     public DiffusionResult getDiffusion()
     {
         return diffusion;
     }
 
-    /** Stores (or clears, with {@code null}) the most recent diffusion result. */
+    /** Stores (or clears, with {@code null}) the most recent diffusion result, deleting the previous one's backing file. */
     public void setDiffusion(DiffusionResult diffusion)
     {
+        if (this.diffusion != null && this.diffusion != diffusion)
+        {
+            this.diffusion.deleteBackingFile();
+        }
         this.diffusion = diffusion;
     }
 
@@ -140,6 +164,18 @@ public class GraphSession
     public void setDiffusionPieces(List<?> pieces)
     {
         this.diffusionPieces = pieces == null ? List.of() : pieces;
+    }
+
+    /** @return the persisted "real propagated" records ({@code {user, piece, timestamp}}), never {@code null}. */
+    public List<?> getRealPropagated()
+    {
+        return realPropagated;
+    }
+
+    /** Persists the "real propagated" records (which pieces each user repropagated in the real scenario) on the session. */
+    public void setRealPropagated(List<?> realPropagated)
+    {
+        this.realPropagated = realPropagated == null ? List.of() : realPropagated;
     }
 
     /** @return the recommendations computed so far, keyed by their model signature. */
@@ -250,6 +286,6 @@ public class GraphSession
         this.activeRecommendation = null;
         this.augmentedGraph = null;
         this.augmentedDistanceCalculator = null;
-        this.diffusion = null;
+        setDiffusion(null);   // also deletes the streamed-simulation backing file
     }
 }

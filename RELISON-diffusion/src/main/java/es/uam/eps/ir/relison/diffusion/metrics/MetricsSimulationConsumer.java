@@ -42,6 +42,8 @@ public class MetricsSimulationConsumer<U extends Serializable, I extends Seriali
     private final Map<String, SimulationMetric<U, I, F>> metrics;
     /** The resulting per-iteration series, keyed by the same identifier. */
     private final Map<String, List<Double>> results;
+    /** Identifiers of metrics that were dropped (failed to initialize or update), e.g. ran out of memory. */
+    private final List<String> failedIds = new ArrayList<>();
 
     /**
      * Constructor.
@@ -58,7 +60,7 @@ public class MetricsSimulationConsumer<U extends Serializable, I extends Seriali
     @Override
     public void start(int initialIteration)
     {
-        List<String> failed = new ArrayList<>();
+        List<String> failed = new ArrayList<>(this.metrics.size());
         this.metrics.forEach((id, metric) ->
         {
             try
@@ -67,18 +69,22 @@ public class MetricsSimulationConsumer<U extends Serializable, I extends Seriali
                 metric.initialize(this.data);
                 this.results.put(id, new ArrayList<>());
             }
-            catch (Exception e)
+            // Throwable (not just Exception): a memory-heavy metric can throw OutOfMemoryError while allocating its
+            // per-user structures. Releasing that metric's partial data (clear) lets the heap recover so the remaining
+            // metrics — and the simulation itself — still run, instead of the whole request dying.
+            catch (Throwable e)
             {
+                try { metric.clear(); } catch (Throwable ignored) { /* best-effort release */ }
                 failed.add(id);
             }
         });
-        failed.forEach(this.metrics::remove);
+        dropFailed(failed);
     }
 
     @Override
     public void accept(Iteration<U, I, F> iteration)
     {
-        List<String> failed = new ArrayList<>();
+        List<String> failed = new ArrayList<>(this.metrics.size());
         this.metrics.forEach((id, metric) ->
         {
             try
@@ -86,16 +92,23 @@ public class MetricsSimulationConsumer<U extends Serializable, I extends Seriali
                 metric.update(iteration);
                 this.results.get(id).add(metric.calculate());
             }
-            catch (Exception e)
+            catch (Throwable e)
             {
+                try { metric.clear(); } catch (Throwable ignored) { /* best-effort release */ }
                 failed.add(id);
             }
         });
-        // Drop any metric that failed this iteration, together with its partial series.
+        dropFailed(failed);
+    }
+
+    /** Removes the failed metrics (and their partial series) and records them as dropped. */
+    private void dropFailed(List<String> failed)
+    {
         failed.forEach(id ->
         {
             this.metrics.remove(id);
             this.results.remove(id);
+            this.failedIds.add(id);
         });
     }
 
@@ -106,5 +119,14 @@ public class MetricsSimulationConsumer<U extends Serializable, I extends Seriali
     public Map<String, List<Double>> getResults()
     {
         return this.results;
+    }
+
+    /**
+     * Obtains the identifiers of the metrics that were dropped (failed to initialize or update, e.g. ran out of memory).
+     * @return the dropped metric identifiers.
+     */
+    public List<String> getFailed()
+    {
+        return this.failedIds;
     }
 }

@@ -32,12 +32,14 @@ import java.util.function.Supplier;
 public class CommunityController
 {
     private final GraphStore store;
+    private final JobManager jobs;
     /** Temporary directory required by some detection algorithms (e.g. Infomap). */
     private final String tempFolder = System.getProperty("java.io.tmpdir");
 
-    public CommunityController(GraphStore store)
+    public CommunityController(GraphStore store, JobManager jobs)
     {
         this.store = store;
+        this.jobs = jobs;
     }
 
     /**
@@ -69,11 +71,17 @@ public class CommunityController
             return;
         }
 
+        CommunityDetectionAlgorithm<String> algorithm = algorithms.values().iterator().next().get();
         Communities<String> communities;
         try
         {
-            CommunityDetectionAlgorithm<String> algorithm = algorithms.values().iterator().next().get();
-            communities = algorithm.detectCommunities(session.getGraph());
+            communities = jobs.run(MetricController.jobKey(body, "community"),
+                    () -> algorithm.detectCommunities(session.getGraph()));
+        }
+        catch (JobCancelledException e)
+        {
+            ctx.json(Map.of("cancelled", true));
+            return;
         }
         catch (Exception | UnsatisfiedLinkError | NoClassDefFoundError e)
         {
@@ -137,7 +145,13 @@ public class CommunityController
         boolean withRec = MetricController.useRecommendation(body, session);
         Graph<String> graph = withRec ? session.getAugmentedGraph() : session.getGraph();
         CommunityMetric<String> metric = metrics.values().iterator().next().get();
-        double value = metric.compute(graph, communities);
+        double value;
+        try
+        {
+            value = jobs.run(MetricController.jobKey(body, "commGlobal"), () -> metric.compute(graph, communities));
+        }
+        catch (JobCancelledException e) { ctx.json(Map.of("cancelled", true)); return; }
+        catch (Exception e) { ctx.status(500).json(Map.of("error", String.valueOf(e))); return; }
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("metric", metricId);
@@ -187,7 +201,13 @@ public class CommunityController
         Graph<String> graph = withRec ? session.getAugmentedGraph() : session.getGraph();
 
         IndividualCommunityMetric<String> metric = metrics.values().iterator().next().get();
-        Map<Integer, Double> values = metric.compute(graph, communities);
+        Map<Integer, Double> values;
+        try
+        {
+            values = jobs.run(MetricController.jobKey(body, "commIndividual"), () -> metric.compute(graph, communities));
+        }
+        catch (JobCancelledException e) { ctx.json(Map.of("cancelled", true)); return; }
+        catch (Exception e) { ctx.status(500).json(Map.of("error", String.valueOf(e))); return; }
 
         Map<String, Double> out = new LinkedHashMap<>();
         values.forEach((comm, value) -> out.put(Integer.toString(comm), value));

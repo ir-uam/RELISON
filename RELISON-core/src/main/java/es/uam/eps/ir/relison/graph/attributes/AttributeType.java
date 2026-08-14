@@ -31,7 +31,13 @@ public enum AttributeType
     /** A free-form textual value, stored as {@link String}. */
     STRING("string"),
     /** A textual value drawn from a (typically small) set of categories, stored as {@link String}. */
-    CATEGORICAL("categorical");
+    CATEGORICAL("categorical"),
+    /**
+     * A temporal value: a comma-separated list whose items are either a single (non-negative) timestamp or a
+     * {@code start-end} range of timestamps, stored in canonical text form as a {@link String} (e.g.
+     * {@code "5,10-20,30"}).
+     */
+    TIME("time");
 
     /** Canonical token used in serialized headers. */
     private final String token;
@@ -77,6 +83,7 @@ public enum AttributeType
             case LONG -> Long.valueOf(t);
             case DOUBLE -> Double.valueOf(t);
             case BOOLEAN -> parseBoolean(t);
+            case TIME -> parseTime(t);
             case STRING, CATEGORICAL -> t;
         };
     }
@@ -106,7 +113,7 @@ public enum AttributeType
             case LONG -> value instanceof Long;
             case DOUBLE -> value instanceof Double;
             case BOOLEAN -> value instanceof Boolean;
-            case STRING, CATEGORICAL -> value instanceof String;
+            case STRING, CATEGORICAL, TIME -> value instanceof String;
         };
     }
 
@@ -129,8 +136,56 @@ public enum AttributeType
             case "bool", "boolean" -> BOOLEAN;
             case "string", "str", "text" -> STRING;
             case "categorical", "category", "cat", "nominal" -> CATEGORICAL;
+            case "time", "temporal", "timestamps" -> TIME;
             default -> throw new IllegalArgumentException("Unknown attribute type: " + token);
         };
+    }
+
+    /**
+     * Validates and canonicalises a temporal value: a comma-separated list whose items are either a single
+     * (non-negative) timestamp or a {@code start-end} range. Whitespace is ignored, reversed ranges are normalised
+     * (so {@code 20-10} becomes {@code 10-20}) and single-point ranges collapse to a plain timestamp.
+     * @param text the trimmed, non-empty text.
+     * @return the canonical representation, e.g. {@code "5,10-20,30"}.
+     * @throws IllegalArgumentException if any item is neither a timestamp nor a valid range of integers.
+     */
+    private static String parseTime(String text)
+    {
+        StringBuilder canonical = new StringBuilder();
+        for (String rawItem : text.split(","))
+        {
+            String item = rawItem.trim();
+            if (item.isEmpty()) continue;
+            int dash = item.indexOf('-');
+            String piece;
+            try
+            {
+                if (dash < 0)
+                {
+                    piece = Long.toString(Long.parseLong(item));
+                }
+                else
+                {
+                    long start = Long.parseLong(item.substring(0, dash).trim());
+                    long end = Long.parseLong(item.substring(dash + 1).trim());
+                    long lo = Math.min(start, end);
+                    long hi = Math.max(start, end);
+                    piece = (lo == hi) ? Long.toString(lo) : (lo + "-" + hi);
+                }
+            }
+            catch (NumberFormatException e)
+            {
+                throw new IllegalArgumentException("Invalid time value '" + item
+                        + "': expected a timestamp or a 'start-end' range of integers.");
+            }
+            if (canonical.length() > 0) canonical.append(',');
+            canonical.append(piece);
+        }
+        if (canonical.length() == 0)
+        {
+            throw new IllegalArgumentException("A time value must contain at least one timestamp or range.");
+        }
+        return canonical.toString();
     }
 
     /**

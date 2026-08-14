@@ -20,7 +20,8 @@
         <maven.compiler.target>14</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
-        <javalin.version>5.6.3</javalin.version>
+        <!-- Updated to the latest Javalin LTS version (as of 2026) -->
+        <javalin.version>7.2.2</javalin.version>
         <slf4j.version>2.0.7</slf4j.version>
     </properties>
 

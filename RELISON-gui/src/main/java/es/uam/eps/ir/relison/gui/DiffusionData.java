@@ -91,10 +91,12 @@ public final class DiffusionData
      * @param graph       the loaded network (users are its nodes).
      * @param pieces      the list of pieces (each a {@code Map} with {@code id}, {@code creator}, {@code timestamp}, {@code features}).
      * @param communities the detected community partitions (each becomes a user feature: the user's community id).
-     * @return the diffusion data, including info-piece features and node/community-derived user features.
+     * @param realProp    optional "real propagated" records (each a {@code Map} with {@code user}, {@code piece}, {@code timestamp}):
+     *                    which pieces each user actually repropagated in the real scenario. May be {@code null} or empty.
+     * @return the diffusion data, including info-piece features, node/community-derived user features and the real-propagation relation.
      */
     public static Data<String, String, String> fromPieces(Graph<String> graph, List<?> pieces,
-                                                          Map<String, Communities<String>> communities)
+                                                          Map<String, Communities<String>> communities, List<?> realProp)
     {
         Index<String> users = new FastIndex<>();
         graph.getAllNodes().forEach(users::addObject);
@@ -141,8 +143,45 @@ public final class DiffusionData
         buildUserFeaturesFromNodeAttributes(graph, users, featureIndexes, userFeatureNames, userFeatures);
         buildUserFeaturesFromCommunities(communities, users, featureIndexes, userFeatureNames, userFeatures);
 
+        Relation<Long> realPropagated = buildRealPropagated(users, pieceIndex, realProp);
+
         return new Data<>(graph, users, pieceIndex, infoMap, userInfo,
-                featureIndexes, userFeatureNames, userFeatures, infoFeatureNames, infoFeatures);
+                featureIndexes, userFeatureNames, userFeatures, infoFeatureNames, infoFeatures, realPropagated);
+    }
+
+    /**
+     * Builds the "real propagated" relation ({@code user idx -> piece idx -> timestamp}) from a list of
+     * {@code {user, piece, timestamp}} records. Records with a blank field, an unknown user or an unknown piece are
+     * skipped; a duplicate (user, piece) keeps the first timestamp. Returns {@code null} when there is nothing usable
+     * (so {@link Data} falls back to an empty relation).
+     * @param users      the user index.
+     * @param pieceIndex the information-piece index.
+     * @param realProp   the records (may be {@code null}).
+     * @return the relation, or {@code null} if empty.
+     */
+    private static Relation<Long> buildRealPropagated(Index<String> users, Index<String> pieceIndex, List<?> realProp)
+    {
+        if (realProp == null || realProp.isEmpty()) return null;
+        Relation<Long> rel = new FastWeightedPairwiseRelation<>();
+        IntStream.range(0, users.numObjects()).forEach(rel::addFirstItem);
+        IntStream.range(0, pieceIndex.numObjects()).forEach(rel::addSecondItem);
+
+        boolean any = false;
+        for (Object o : realProp)
+        {
+            if (!(o instanceof Map)) continue;
+            Map<?, ?> e = (Map<?, ?>) o;
+            String user = str(e.get("user"));
+            String piece = str(e.get("piece"));
+            if (user.isEmpty() || piece.isEmpty()) continue;
+            int uidx = users.object2idx(user);
+            int iidx = pieceIndex.object2idx(piece);
+            if (uidx == -1 || iidx == -1) continue;   // user or piece not part of this dataset
+            if (rel.containsPair(uidx, iidx)) continue;
+            rel.addRelation(uidx, iidx, longValue(e.get("timestamp"), 0L));
+            any = true;
+        }
+        return any ? rel : null;
     }
 
     /** Collects a piece's declared features (a list of {@code {param, value, weight}} maps) into the entry buffer. */

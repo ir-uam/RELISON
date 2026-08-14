@@ -370,10 +370,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
 
             alarmTime += (System.currentTimeMillis() - initialTime);
 
-            if(numIter%100 == 0)
-            {
-                System.out.println("Iteration " + numIter + " finished (" + alarmTime + " ms.)");
-            }
+            System.out.println("Iteration " + numIter + " finished (" + alarmTime + " ms.)");
 
             numIter++;
             // Advance the timestamp cursor; guard against exhausting the set (higher(null) would throw) so the number

@@ -26,6 +26,11 @@ body.light {
 
 * { box-sizing: border-box; }
 
+/* The `hidden` attribute must always win. The browser's own [hidden]{display:none} is a user-agent rule, so ANY
+   author rule that sets `display` on the element (.toolbar, .addgroup, .field, …) silently overrides it and the
+   element stays visible. Toggling `hidden` from JS is how this app shows/hides things, so make it non-negotiable. */
+[hidden] { display: none !important; }
+
 html, body {
     margin: 0;
     height: 100%;
@@ -49,6 +54,23 @@ html, body {
 .icon-btn { width: auto; margin: 0; padding: 4px 10px; font-size: 16px; line-height: 1; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
 .icon-btn:hover { border-color: var(--accent); }
 a.icon-btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+#debug-terminal { font-family: "Consolas", "Courier New", monospace; font-weight: 700; }
+#debug-terminal.active { border-color: var(--accent); color: var(--accent); }
+
+/* Debug console: a fixed overlay covering everything below the top bar. */
+#debug-view { position: fixed; top: var(--topbar-h); left: 0; right: 0; bottom: 0; z-index: 60; display: none; flex-direction: column; }
+#debug-view.active { display: flex; }
+.terminal-toolbar { display: flex; align-items: center; gap: 14px; padding: 6px 14px; background: var(--panel-2); border-bottom: 1px solid var(--border); }
+.terminal-toolbar .terminal-title { font-weight: 600; }
+.terminal-toolbar .inline-check { margin: 0; }
+#debug-output.terminal { flex: 1 1 auto; margin: 0; padding: 10px 14px; overflow: auto; background: #0e0f12; color: #cfeecf;
+    font-family: "Cascadia Code", "Consolas", "Courier New", monospace; font-size: 12px; line-height: 1.5;
+    white-space: pre-wrap; word-break: break-word; }
+#debug-output .log-line { white-space: pre-wrap; word-break: break-word; min-height: 1.25em; }
+#debug-output .log-http { color: #6ee06e; }  /* Javalin request traces → green */
+#debug-output .log-out { color: #e6e6e6; }   /* other stdout → white */
+#debug-output .log-err { color: #ff7a7a; }   /* stderr → red   */
+#debug-output .log-meta { color: var(--muted); font-style: italic; }
 .status.error { color: #d23; }
 .status.busy { color: #2667c7; }
 
@@ -114,6 +136,9 @@ a.icon-btn { text-decoration: none; display: inline-flex; align-items: center; j
 
 .field { display: block; margin-bottom: 10px; }
 .field > span { display: block; margin-bottom: 4px; color: var(--muted); }
+/* A selector placed straight into a block (no .field wrapper) still needs to clear whatever follows it — otherwise a
+   metric with no parameters puts its Run button flush against the dropdown, since .params:empty collapses to nothing. */
+.block > select { margin-bottom: 10px; }
 
 input[type="file"], select, input[type="text"], input[type="number"] {
     width: 100%;
@@ -141,6 +166,15 @@ button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 button.primary:hover { filter: brightness(1.1); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Scrollable checkbox list (recommendation evaluation metrics), grouped by family. */
+.checklist { max-height: 190px; overflow-y: auto; border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; background: var(--panel-2); }
+.checklist .inline-check { display: flex; margin: 2px 0; }
+.checklist-group { margin: 6px 0 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted, #8b9198); }
+.checklist-group:first-child { margin-top: 0; }
+
+/* A run button turns into a red "Stop" button while its computation is running (see beginJob/endJob in app.js). */
+button.btn-stop, button.btn-stop.primary { background: #c0392b; color: #fff; border-color: #c0392b; }
+button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none; }
 
 /* Content / panes */
 #content { position: relative; overflow: hidden; background: var(--canvas-bg); }
@@ -156,18 +190,30 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Recommendation tab is disabled for multigraphs. */
 .tab:disabled, .tab.disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* Recommendation pane (full-width, no side panels). */
-#pane-recommend { overflow: auto; background: var(--bg); }
+/* Recommendation pane: self-contained left config / centre subtabs, mirroring the diffusion tab. */
+#pane-recommend { background: var(--bg); overflow: hidden; }
 #pane-recommend.active { display: block; }
-.rec-card { max-width: 760px; margin: 20px auto; padding: 24px 28px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
-.rec-card h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
-.rec-card .field { margin-bottom: 12px; }
-.rec-card #rec-status { margin-top: 12px; }
+.rec-layout { display: grid; grid-template-columns: 300px 1fr; height: 100%; }
+.rec-config { overflow: auto; border-right: 1px solid var(--border); }
+.rec-center { display: flex; flex-direction: column; overflow: hidden; }
+.rec-subtabbar { display: flex; height: 32px; background: var(--panel-2); border-bottom: 1px solid var(--border); flex: 0 0 auto; }
+.recsubtab {
+    width: auto; margin: 0; padding: 0 16px; background: transparent; border: none;
+    border-right: 1px solid var(--border); border-bottom: 2px solid transparent;
+    color: var(--muted); border-radius: 0; cursor: pointer;
+}
+.recsubtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.rec-views { position: relative; flex: 1 1 auto; }
+/* Uniform padding (matching .tablesubpane) so the toolbar clears the subtab bar instead of hugging it. */
+.rec-view { display: none; position: absolute; inset: 0; overflow: auto; padding: 12px; }
+.rec-view.active { display: block; }
 .rec-scatter-block { margin-top: 20px; }
 
 /* Diffusion tab: self-contained left config / centre canvas / right state. */
 #pane-diffusion { background: var(--bg); }
 .diff-layout { display: grid; grid-template-columns: 300px 1fr 290px; height: 100%; }
+/* The "Node at iteration" panel is only meaningful on the graph subtab; elsewhere its column collapses away. */
+.diff-layout.no-state { grid-template-columns: 300px 1fr; }
 .diff-config, .diff-state { overflow: auto; }
 .diff-config { border-right: 1px solid var(--border); }
 .diff-state { border-left: 1px solid var(--border); }
@@ -190,6 +236,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .diff-timebar { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; gap: 8px; align-items: center;
     background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; z-index: 5; }
 .diff-timebar input[type=range] { flex: 1; }
+.diff-dl-btn { width: auto; height: auto; flex: none; margin: 0; padding: 4px 9px; font-size: 12px; line-height: 1;
+    white-space: nowrap; background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; cursor: pointer; }
+.diff-dl-btn:hover { border-color: var(--accent); }
+.diff-dl-btn:disabled { opacity: 0.5; cursor: default; }
+.diff-res-sel { flex: none; width: auto; margin: 0; padding: 3px 4px; font-size: 12px; background: var(--panel-2);
+    color: var(--text); border: 1px solid var(--border); border-radius: 6px; }
 .diff-state .scroll-table { max-height: 150px; overflow: auto; border: 1px solid var(--border); border-radius: 4px; margin: 4px 0 10px; font-size: 12px; }
 .diff-state .scroll-table .row { padding: 2px 7px; border-bottom: 1px solid var(--border); word-break: break-all; }
 .diff-state .scroll-table .empty { padding: 4px 7px; color: var(--muted); }
@@ -198,10 +251,18 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .diff-cat-col { min-width: 0; }
 .diff-col-h { display: block; font-size: 10px; color: var(--muted); margin: 2px 0; }
 .diff-cat .scroll-table { max-height: 92px; margin: 0; }
+.piece-row { display: flex; gap: 5px; align-items: center; }
+.piece-row .piece-id { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.piece-chips { display: flex; gap: 3px; flex-wrap: wrap; align-items: center; }
+.feat-chip { font-size: 10px; line-height: 1.5; padding: 0 4px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); white-space: nowrap; }
+.dist-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 4px 0 2px; border: 1px solid var(--border); }
+.dist-seg { flex-grow: 0; flex-shrink: 0; min-width: 1px; }
+.node-feats { margin-bottom: 12px; }
 .diff-legend { position: absolute; top: 12px; left: 12px; z-index: 6; background: var(--panel); border: 1px solid var(--border);
     border-radius: 6px; padding: 8px 10px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
 .diff-legend .legend-row { display: flex; align-items: center; gap: 6px; }
 .diff-legend .legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
+.diff-legend .legend-swatch.legend-line { height: 0; border-radius: 0; align-self: center; }
 
 /* Node-colour legend on the main display panel. */
 .node-legend { position: absolute; top: 12px; left: 12px; z-index: 6; background: var(--panel); border: 1px solid var(--border);
@@ -224,19 +285,66 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 #diff-view-pieces { overflow: auto; background: var(--bg); }
 .diff-pieces-pane { padding: 14px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
 .diff-pieces-pane .scroll-table.tall { flex: 1 1 auto; min-height: 120px; }
-#diff-piece-seed { width: 64px; }
+/* Inner toggle (Information pieces | Real propagated): only one mode's table renders at a time. */
+.diff-pieces-modebar { display: flex; gap: 6px; margin-bottom: 10px; flex: 0 0 auto; align-items: center; }
+.modebar-label { color: var(--muted); font-size: 12px; margin-right: 2px; }
+.diffpiecesmode, .diffstatsview {
+    width: auto; margin: 0; padding: 4px 14px; background: var(--panel-2);
+    border: 1px solid var(--border); border-radius: 6px; color: var(--muted); cursor: pointer;
+}
+.diffpiecesmode.active, .diffstatsview.active { color: var(--accent); border-color: var(--accent); }
+.diff-pieces-mode { flex: 1 1 auto; min-height: 0; flex-direction: column; }
+.diff-pieces-mode:not([hidden]) { display: flex; }
+/* Seeder-driven piece generation panel */
+.diff-gen { border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; background: var(--panel-2); }
+.diff-gen-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.diff-gen-row:last-child { margin-bottom: 0; }
+.diff-gen-row > label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; min-width: 96px; }
+.diff-gen-row select, .diff-gen-row input[type="number"] { width: auto; margin: 0; }
+.diff-gen-row input[type="number"] { width: 72px; }
+.diff-gen .gen-params { display: inline-flex; align-items: center; gap: 5px; }
+.diff-gen #btn-diff-gen { width: auto; margin: 0; }
 #diff-pieces-table .piece-feature-cell { min-width: 120px; }
 #diff-pieces-table .feature-col-th { white-space: nowrap; }
 .feature-col-del { width: auto; margin: 0 0 0 6px; padding: 0 5px; background: transparent; color: var(--muted);
     border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 11px; }
 .feature-col-del:hover { color: var(--text); border-color: var(--accent); }
-#diff-pieces-table tbody input { width: 100%; box-sizing: border-box; background: var(--panel-2); color: var(--text);
-    border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; }
-#diff-pieces-table td:last-child { width: 28px; text-align: center; }
+/* The diffusion tables edit through inputs, but they are styled to read exactly like the plain-text, contenteditable
+   cells of the nodes/edges tables: the input fills the whole cell, is transparent/borderless, and only reveals an
+   outline on hover / focus (mirroring table.data td.editable). This also lets the row-hover highlight show through. */
+#diff-pieces-table tbody td, #diff-realprop-table tbody td { padding: 0; }
+#diff-pieces-table tbody input, #diff-realprop-table tbody input {
+    width: 100%; box-sizing: border-box; background: transparent; color: var(--text);
+    border: none; border-radius: 0; padding: 4px 8px; font: inherit; cursor: text;
+}
+#diff-pieces-table tbody input:hover, #diff-realprop-table tbody input:hover { outline: 1px dashed var(--accent); outline-offset: -1px; }
+#diff-pieces-table tbody input:focus, #diff-realprop-table tbody input:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--panel-2); }
+#diff-pieces-table td:last-child, #diff-realprop-table td:last-child { text-align: center; }
 .piece-del { width: auto; margin: 0; padding: 1px 6px; background: transparent; color: var(--muted);
     border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
 .piece-del:hover { color: var(--text); border-color: var(--accent); }
 #diffmetrics-charts .chart-area { margin-bottom: 16px; }
+.diff-runs { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+.diff-runs-title { margin-bottom: 2px; }
+.diff-run-row { display: flex; align-items: center; gap: 7px; font-size: 12px; cursor: help; }
+.diff-run-row .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.diff-run-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.diff-run-del { flex: none; width: auto; margin: 0; padding: 0 5px; background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 11px; }
+.diff-run-del:hover { color: var(--text); border-color: var(--accent); }
+
+/* Diffusion node-timeline subtab. */
+#diff-view-stats { overflow: auto; background: var(--bg); }
+/* Statistics subtab: an inner Node / Piece / Feature switch, only one of which renders at a time. */
+.diff-stats-pane { padding: 14px 14px 0; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
+.diff-stats-view { flex: 1 1 auto; min-height: 0; }
+.diff-stats-view:not([hidden]) { display: flex; flex-direction: column; }
+.diff-stats-view .diff-node-pane { flex: 1 1 auto; min-height: 0; padding: 0 0 14px; }
+.diff-node-pane { padding: 16px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
+.diff-node-toolbar { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 10px; }
+.diff-node-toolbar label { color: var(--muted); display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.diff-node-toolbar select, .diff-node-toolbar input { min-width: 120px; }
+.diff-node-pane .chart-area { flex: 1 1 auto; min-height: 240px; position: relative; }
 
 /* Import landing pane: a single centered card, no side panels. */
 #pane-import { overflow: auto; background: var(--bg); }
@@ -254,6 +362,17 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .import-card h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
 .import-card .field { margin-bottom: 12px; }
 .import-card #overview { margin-top: 12px; }
+.import-sep { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--muted); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.6px; }
+.import-sep::before, .import-sep::after { content: ""; flex: 1 1 auto; border-top: 1px solid var(--border); }
+.import-card .params { margin-bottom: 10px; }
+
+/* Graph timeline controls (Network left panel). */
+.tl-bar { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+.tl-bar button { width: auto; margin: 0; padding: 2px 8px; flex: none; }
+.tl-bar input[type="range"] { flex: 1 1 auto; min-width: 0; margin: 0; }
+.tl-export { display: flex; gap: 6px; margin-top: 6px; }
+.tl-export button { flex: 1 1 auto; margin: 0; }
 
 /* Floating canvas controls (zoom / fit). */
 #canvas-tools { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 6px; z-index: 5; }
@@ -296,6 +415,28 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .toolbar button { width: auto; margin-bottom: 0; }
 .toolbar .filter { margin-left: auto; width: 180px; }
 .toolbar.subrow { margin-top: -2px; padding: 6px 8px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; }
+/* Toolbar grouping: related actions sit together, separated by a thin rule; .tb-spacer pushes the
+   table-view controls (filters) to the right, away from the data actions. */
+.toolbar .tb-group { display: inline-flex; gap: 6px; align-items: center; }
+.toolbar .tb-sep { width: 1px; height: 20px; background: var(--border); flex: 0 0 auto; }
+.toolbar .tb-spacer { flex: 1 1 auto; }
+
+/* Small dropdown menu (e.g. Upload ▾) */
+.menu-wrap { position: relative; display: inline-flex; }
+.menu {
+    position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; min-width: 190px;
+    margin: 0; padding: 4px; list-style: none;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.menu li { margin: 0; }
+.menu li button {
+    width: 100%; margin: 0; padding: 6px 8px; text-align: left;
+    background: transparent; border: none; border-radius: 4px; color: var(--text); cursor: pointer;
+}
+.menu li button:hover { background: var(--panel-2); color: var(--accent); }
+.menu.menu-right { left: auto; right: 0; }   /* aligned to the button's right edge (top-bar buttons) */
+
 .addgroup { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .addgroup input[type="text"], .addgroup input[type="number"] { width: 150px; }
 .addgroup select { width: auto; }
@@ -331,8 +472,17 @@ hr.sep { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
 .sublabel { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
 
 table.data { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-table.data th, table.data td { padding: 4px 8px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+table.data th, table.data td {
+    padding: 4px 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+    text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+table.data th:last-child, table.data td:last-child { border-right: none; }
+/* The last column holds action buttons (Add / remove / delete) — never clip it, so its intrinsic width is measured
+   from the button (not collapsed to the empty header cell's 1% width) when the resizable-column widths are frozen. */
+table.data th:last-child, table.data td:last-child { overflow: visible; }
 table.data th:first-child, table.data td:first-child { text-align: left; }
+/* Column titles are centred; data cells keep their numeric right / first-column left alignment. */
+table.data thead tr:first-child th { text-align: center; }
 table.data thead th {
     position: sticky; top: 0;
     background: var(--panel-2);
@@ -341,10 +491,14 @@ table.data thead th {
 }
 table.data thead th.sort-th { cursor: pointer; }
 table.data thead th.sort-th:hover { color: var(--text); }
+/* Resizable columns: a grip straddling each column divider in the title row. */
+.col-grip { position: absolute; top: 0; right: -3px; width: 7px; height: 100%; cursor: col-resize; z-index: 3; }
+.col-grip:hover { background: var(--accent); opacity: 0.5; }
+body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none !important; }
 table.data tbody tr:hover { background: rgba(79,157,255,0.08); }
 table.data td.editable { cursor: text; }
 table.data td.editable:hover { outline: 1px dashed var(--accent); outline-offset: -1px; }
-table.data td.editable:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--panel-2); }
+table.data td.editable:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--panel-2); overflow: visible; white-space: nowrap; }
 
 /* Per-column filter row inside the header */
 table.data thead tr.filter-row th { padding: 3px 4px; background: var(--panel-2); top: 24px; }
@@ -426,6 +580,12 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
 .chart-dl { width: auto; margin: 0; align-self: flex-end; padding: 6px 12px; white-space: nowrap; }
 .chart-area { position: relative; width: 100%; height: 340px; border: 1px solid var(--border); border-radius: 4px; background: var(--panel-2); }
 .chart-area canvas { width: 100%; height: 100%; display: block; }
+.chart-loading { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center;
+    gap: 8px; color: var(--muted); font-size: 13px; background: rgba(127, 127, 127, 0.18);
+    background: color-mix(in srgb, var(--panel-2) 55%, transparent); }
+.chart-loading .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .chart-tip {
     position: absolute; pointer-events: none; padding: 4px 7px; font-size: 12px;
     background: #000; color: #fff; border-radius: 3px; transform: translate(-50%, -130%); white-space: nowrap; z-index: 2;

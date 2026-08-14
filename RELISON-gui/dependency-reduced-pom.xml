@@ -58,7 +58,7 @@
     <slf4j.version>2.0.7</slf4j.version>
     <maven.compiler.source>14</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <javalin.version>5.6.3</javalin.version>
+    <javalin.version>7.2.2</javalin.version>
     <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
   </properties>
 </project>

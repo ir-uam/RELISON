@@ -79,7 +79,9 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
         Map<U,Double> degrees = new Object2DoubleOpenHashMap<>();
         Map<U, Integer> userToComm = new HashMap<>();
         Map<Integer, Set<U>> commToUser = new HashMap<>();
-        Map<Integer, Double> sumIn = new HashMap<>();
+        // sumTot[c] = total degree of the nodes currently in community c. Together with the weight of the edges from a
+        // node to a community, it is all the modularity-gain of a local move depends on (the internal-edge sums the
+        // classic derivation also carries cancel out of the gain, so they are not tracked here).
         Map<Integer, Double> sumTot = new HashMap<>();
 
         // Step 2: Community assignments:
@@ -96,88 +98,85 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
             double degreeU = graph.getNeighbourhoodWeights(u, EdgeOrientation.UND).mapToDouble(Weight::getValue).sum();
             degrees.put(u, degreeU);
 
-            // Then, the weight of the links inside the community is just the weight of a node to itself:
-            sumIn.put(commIndex, graph.containsEdge(u,u) ? graph.getEdgeWeight(u,u) : 0.0);
-
-            // and the total number of links towards the community is this:
+            // Each node starts in its own community, whose total degree is just the node's degree.
             sumTot.put(commIndex, degreeU);
             return degreeU;
         }).sum();
 
         Collections.shuffle(users, rng);
-        double variation = Double.POSITIVE_INFINITY;
 
-        // Phase 1 of the procedure:
-        while(variation >= threshold)
+        // Phase 1: local moving. We repeatedly sweep over the nodes; for each node u we (conceptually) remove it from
+        // its community and reinsert it into the neighbouring community with the largest modularity gain — its own
+        // community included, so "do not move" is always an option. Isolating u first and then scoring EVERY candidate
+        // (the original community and the neighbouring ones) with the SAME insertion formula is what makes the gain
+        // correct and symmetric: computing the "leave" cost on the community while u is still counted in it double-counts
+        // u and yields a gain that is not the true modularity change, which makes the moves oscillate and never converge.
+        int maxSweeps = 500;   // safety cap: local moving always converges, but never let a numeric edge case hang the loop.
+        double m2 = m * m;
+        boolean changed = true;
+        for (int sweep = 0; changed && sweep < maxSweeps; ++sweep)
         {
-            variation = 0.0;
-            for(U u : users)
+            // Cooperative cancellation: when run on a worker thread that the GUI's Stop button interrupts, abandon the
+            // (potentially long) local-moving loop instead of running it to convergence. Harmless outside that context:
+            // an ordinary caller never interrupts the computing thread, so the flag is never set.
+            if (Thread.currentThread().isInterrupted())
+                throw new java.util.concurrent.CancellationException("Louvain community detection cancelled.");
+            changed = false;
+            double variation = 0.0;
+            for (U u : users)
             {
-                Set<Integer> comms = new HashSet<>();
                 int actualComm = userToComm.get(u);
-                Int2DoubleOpenHashMap degreeToInterior = new Int2DoubleOpenHashMap();
-                degreeToInterior.defaultReturnValue(0.0);
-                graph.getNeighbourhoodWeights(u, EdgeOrientation.UND).filter(v -> !v.equals(u)).forEach(v ->
+                double degU = degrees.get(u);
+
+                // Weight of the edges from u to each neighbouring community (self-loops excluded: a self-loop stays
+                // with u whatever community it joins, so it is constant across candidates and irrelevant to the choice).
+                Int2DoubleOpenHashMap degreeToComm = new Int2DoubleOpenHashMap();
+                degreeToComm.defaultReturnValue(0.0);
+                Set<Integer> comms = new HashSet<>();
+                // Exclude the self-loop: compare the neighbour node (v.getIdx()), not the Weight object, against u —
+                // Weight does not override equals, so "v.equals(u)" is always false and would leak the self-loop into
+                // the edges-to-own-community count. This only matters when self-loops exist (notably the condensed
+                // graphs built during the phase-2 recursion), where a self-loop must stay neutral to the move choice.
+                graph.getNeighbourhoodWeights(u, EdgeOrientation.UND).filter(v -> !v.getIdx().equals(u)).forEach(v ->
                 {
                     int comm = userToComm.get(v.getIdx());
-                    double val = degreeToInterior.get(comm);
-                    degreeToInterior.put(comm, val + v.getValue());
+                    degreeToComm.addTo(comm, v.getValue());
                     comms.add(comm);
                 });
 
-                double Qminus = Math.pow((sumTot.get(actualComm) + degrees.get(u))/m, 2.0);
-                Qminus -= (sumIn.get(actualComm) + 2*(degreeToInterior.containsKey(actualComm) ? degreeToInterior.get(actualComm) : 0.0))/m;
-                Qminus += sumIn.get(actualComm)/m;
-                Qminus -= (Math.pow(sumTot.get(actualComm)/m, 2.0));
+                // Isolate u from its current community so that community's stats no longer include it.
+                sumTot.put(actualComm, sumTot.get(actualComm) - degU);
+                commToUser.get(actualComm).remove(u);
 
-                double increment = 0.0;
-                int nextComm = actualComm;
-
-                for(int comm : comms)
+                // Community-dependent part of the insertion gain: 2*k(u,C)/m - 2*deg(u)*sumTot[C]/m². The remaining
+                // terms of the gain (u's self-loop, deg(u)²) are the same for every candidate and drop out of the argmax.
+                double baseGain = 2.0 * degreeToComm.get(actualComm) / m - 2.0 * degU * sumTot.get(actualComm) / m2;
+                int bestComm = actualComm;
+                double bestGain = baseGain;
+                for (int comm : comms)
                 {
-                    if(comm == actualComm)
+                    if (comm == actualComm) continue;
+                    double gain = 2.0 * degreeToComm.get(comm) / m - 2.0 * degU * sumTot.get(comm) / m2;
+                    if (gain > bestGain)
                     {
-                        continue;
-                    }
-
-                    double Qsum = -Math.pow((sumTot.get(comm) + degrees.get(u))/m, 2.0);
-                    Qsum += (sumIn.get(comm) + 2*(degreeToInterior.containsKey(comm) ? degreeToInterior.get(comm) : 0.0))/m;
-                    Qsum -= sumIn.get(comm)/m;
-                    Qsum += (Math.pow(sumTot.get(comm)/m, 2.0));
-
-                    double score = Qsum - Qminus;
-                    if(score > increment)
-                    {
-                        nextComm = comm;
-                        increment = score;
-                    }
-                    else if(score == increment && increment > 0.0)
-                    {
-                        if(rng.nextBoolean())
-                        {
-                            nextComm = comm;
-                        }
+                        bestGain = gain;
+                        bestComm = comm;
                     }
                 }
 
-                // Swap communities:
-                if(nextComm != actualComm)
-                {
-                    // We first update the number of edges inside nextComm and actualComm
-                    sumIn.put(nextComm, sumIn.get(nextComm) + degreeToInterior.get(nextComm) + graph.getEdgeWeight(u,u));
-                    sumIn.put(actualComm, sumIn.get(actualComm) - degreeToInterior.get(actualComm) - graph.getEdgeWeight(u,u));
-                    // We then update the sum of the weights of the edges of the community.
-                    sumTot.put(nextComm, sumTot.get(nextComm) + degrees.get(u));
-                    sumTot.put(actualComm, sumTot.get(actualComm) - degrees.get(u));
+                // Reinsert u into the best community found (its own if nothing was strictly better).
+                sumTot.put(bestComm, sumTot.get(bestComm) + degU);
+                commToUser.get(bestComm).add(u);
+                userToComm.put(u, bestComm);
 
-                    userToComm.put(u, nextComm);
-                    commToUser.get(actualComm).remove(u);
-                    commToUser.get(nextComm).add(u);
-                    variation += increment;
+                if (bestComm != actualComm)
+                {
+                    changed = true;
+                    variation += bestGain - baseGain;   // the true modularity increase produced by this move.
                 }
             }
+            if (variation < threshold) break;   // this sweep improved modularity by less than the threshold: converged.
         }
-
 
         Communities<U> initComms = new Communities<>();
         // Phase 2: Build the community graph

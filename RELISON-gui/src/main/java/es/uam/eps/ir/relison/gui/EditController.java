@@ -131,7 +131,84 @@ public class EditController
         finish(ctx, session, removed, "Edge does not exist.");
     }
 
+    /**
+     * Handles {@code POST /api/graph/{id}/edges}: adds many edges in a single request (endpoints are created as
+     * needed). Backs the "add all recommended links" action, which would otherwise need one request per link.
+     * @param ctx the request context, with body {@code {edges:[{source,target,weight?}]}}.
+     */
+    public void addEdges(Context ctx)
+    {
+        bulkEdges(ctx, true);
+    }
+
+    /**
+     * Handles {@code DELETE /api/graph/{id}/edges}: removes many edges in a single request (the inverse of
+     * {@link #addEdges(Context)}, used to undo a bulk addition).
+     * @param ctx the request context, with body {@code {edges:[{source,target}]}}.
+     */
+    public void removeEdges(Context ctx)
+    {
+        bulkEdges(ctx, false);
+    }
+
+    /**
+     * Applies a batch of edge additions or removals, reporting how many actually took effect. Individual entries that
+     * cannot be applied (a duplicate on add, a missing edge on remove) are skipped rather than failing the batch, so a
+     * partially-stale request still does as much as it can.
+     * @param ctx the request context.
+     * @param add {@code true} to add the edges, {@code false} to remove them.
+     */
+    private void bulkEdges(Context ctx, boolean add)
+    {
+        GraphSession session = session(ctx);
+        if (session == null) return;
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        Object raw = body.get("edges");
+        if (!(raw instanceof List))
+        {
+            ctx.status(400).json(Map.of("error", "Missing 'edges' list."));
+            return;
+        }
+
+        Graph<String> graph = session.getGraph();
+        int applied = 0;
+        for (Object o : (List<?>) raw)
+        {
+            if (!(o instanceof Map)) continue;
+            Map<?, ?> e = (Map<?, ?>) o;
+            String source = token(e.get("source"));
+            String target = token(e.get("target"));
+            if (source == null || target == null) continue;
+            if (add)
+            {
+                double weight;
+                try { weight = e.get("weight") == null ? 1.0 : Double.parseDouble(String.valueOf(e.get("weight"))); }
+                catch (NumberFormatException ex) { weight = 1.0; }
+                if (graph.addEdge(source, target, weight)) applied++;
+            }
+            else if (graph.removeEdge(source, target))
+            {
+                applied++;
+            }
+        }
+
+        if (applied > 0) session.invalidateCaches();
+        ctx.json(Map.of(
+                "ok", true,
+                "applied", applied,
+                "stats", Map.of("nodes", graph.getVertexCount(), "edges", graph.getEdgeCount())
+        ));
+    }
+
     /* ------------------------------ helpers ------------------------------ */
+
+    /** A non-blank node identifier from a raw JSON value, or {@code null}. */
+    private String token(Object raw)
+    {
+        if (raw == null) return null;
+        String id = String.valueOf(raw).trim();
+        return id.isEmpty() ? null : id;
+    }
 
     private GraphSession session(Context ctx)
     {

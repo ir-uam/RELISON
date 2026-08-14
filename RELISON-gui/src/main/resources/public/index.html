@@ -10,15 +10,45 @@
     <!-- graphology (graph model) + graphology-library (layouts/metrics helpers) + sigma (rendering). -->
     <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/graphology-library@0.7.0/dist/graphology-library.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sigma@3.0.3/dist/sigma.min.js"></script>
+    <!-- gif.js: client-side GIF encoding for the timeline animation export (worker loaded as a same-origin blob). -->
+    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
 </head>
 <body>
 <header id="topbar">
     <img id="logo" src="img/relison-full-logo.png" alt="RELISON"/>
     <span id="status" class="status"></span>
+    <button id="btn-undo" class="icon-btn" title="Nothing to undo" disabled>↶</button>
+    <button id="btn-redo" class="icon-btn" title="Nothing to redo" disabled>↷</button>
+    <span class="menu-wrap">
+        <button id="btn-session" class="icon-btn" title="Save or open a RELISON session (.relison)">💾</button>
+        <ul class="menu menu-right" id="session-menu" hidden>
+            <li><button type="button" data-act="save">Save session…</button></li>
+            <li><button type="button" data-act="open">Open session…</button></li>
+        </ul>
+    </span>
+    <input type="file" id="session-file" accept=".relison,application/json" hidden/>
+    <span class="menu-wrap">
+        <button id="btn-report" class="icon-btn" title="Export a report (HTML or PDF)">📄</button>
+        <ul class="menu menu-right" id="report-menu" hidden>
+            <li><button type="button" data-act="html">Export as HTML…</button></li>
+            <li><button type="button" data-act="pdf">Export as PDF…</button></li>
+        </ul>
+    </span>
     <a id="docs-link" class="icon-btn" href="https://relison.readthedocs.io" target="_blank" rel="noopener" title="Documentation">❓</a>
+    <button id="debug-terminal" class="icon-btn" title="Debug console (standard output / error)" hidden>&gt;_</button>
     <button id="theme-toggle" class="icon-btn" title="Toggle light/dark">🌙</button>
 </header>
+
+<!-- Debug console: replaces the tabs + content (everything below the top bar) when toggled on; only available with --debug. -->
+<div id="debug-view">
+    <div class="terminal-toolbar">
+        <span class="terminal-title">Standard output / error</span>
+        <label class="inline-check"><input type="checkbox" id="debug-autoscroll" checked/> Auto-scroll</label>
+        <button id="debug-clear" class="icon-btn" title="Clear the console view">Clear</button>
+    </div>
+    <pre id="debug-output" class="terminal" tabindex="0"></pre>
+</div>
 
 <nav id="tabbar">
     <button class="tab active" data-tab="import">Import</button>
@@ -31,8 +61,11 @@
 </nav>
 
 <main id="layout">
-    <!-- LEFT: layout & visualization (Network tab only) -->
+    <!-- LEFT: the configuration column — layout & visualization on the Network tab, metric/community runners on the
+         Metrics tab. Only one group is shown at a time (see updatePanels). -->
     <aside id="left" class="panel">
+        <!-- Layout & visualization: Network tab only. -->
+        <div id="left-layout">
         <section class="block">
             <h2>Layout</h2>
             <label class="field">
@@ -128,6 +161,43 @@
         </section>
 
         <section class="block">
+            <h2>Timeline</h2>
+            <label class="field">
+                <span>Node time attribute</span>
+                <select id="tl-node-attr"><option value="">— none —</option></select>
+            </label>
+            <label class="field">
+                <span>Edge time attribute</span>
+                <select id="tl-edge-attr"><option value="">— none —</option></select>
+            </label>
+            <div id="tl-controls" hidden>
+                <div class="tl-bar">
+                    <button id="tl-step-back" title="Step to previous change">◀</button>
+                    <button id="tl-play" title="Play / pause">▶</button>
+                    <button id="tl-step-fwd" title="Step to next change">▶▶</button>
+                    <input type="range" id="tl-slider" min="0" max="0" value="0"/>
+                </div>
+                <label class="field">
+                    <span>Timestamp</span>
+                    <input type="number" id="tl-time" step="1"/>
+                </label>
+                <p class="muted" id="tl-range"></p>
+                <div class="tl-export">
+                    <button id="btn-tl-gif">⬇ GIF</button>
+                    <button id="btn-tl-webm">⬇ WebM</button>
+                </div>
+                <label class="field">
+                    <span>WebM resolution</span>
+                    <select id="tl-webm-res">
+                        <option value="1920">1920px (smaller file)</option>
+                        <option value="native">Full native resolution</option>
+                    </select>
+                </label>
+            </div>
+            <p class="muted" id="tl-hint">Pick a time attribute to scrub the graph through time. A node/edge shows only at timestamps its value covers; an empty value never shows.</p>
+        </section>
+
+        <section class="block">
             <h2>Labels</h2>
             <span class="sublabel">Node labels</span>
             <label class="inline-check"><input type="checkbox" id="node-label-show" checked/> Show node labels</label>
@@ -179,6 +249,65 @@
                 Select a node and press Delete to remove it.
             </p>
         </section>
+        </div>
+
+        <!-- Metric / community controls: Metrics tab only (moved here from the old right column). -->
+        <div id="left-metrics" hidden>
+        <section class="block">
+            <h2>Vertex metrics</h2>
+            <select id="vertex-metric"></select>
+            <div class="params" id="vertex-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="vertex-rec"/> Include active recommendation</label>
+            <button id="btn-vertex">Run</button>
+            <p class="muted" id="vertex-result"></p>
+        </section>
+
+        <section class="block">
+            <h2>Graph metrics</h2>
+            <select id="graph-metric"></select>
+            <div class="params" id="graph-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="graph-rec"/> Include active recommendation</label>
+            <button id="btn-graph">Run</button>
+        </section>
+
+        <section class="block">
+            <h2>Pair metrics</h2>
+            <select id="pair-metric"></select>
+            <div class="params" id="pair-params"></div>
+            <label class="inline-check"><input type="checkbox" id="pair-allpairs"/> All node pairs (not just edges)</label>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="pair-rec"/> Include active recommendation</label>
+            <button id="btn-pair">Run</button>
+            <p class="muted" id="pair-result"></p>
+        </section>
+
+        <section class="block">
+            <h2>Communities</h2>
+            <select id="community-algo"></select>
+            <div class="params" id="community-params"></div>
+            <button id="btn-community">Detect</button>
+            <p class="muted" id="community-result"></p>
+            <hr class="sep"/>
+            <span class="sublabel">Global community metric</span>
+            <label class="field">
+                <span>Partition</span>
+                <select id="global-comm-partition"></select>
+            </label>
+            <select id="global-comm-metric"></select>
+            <div class="params" id="global-comm-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="global-comm-rec"/> Include active recommendation</label>
+            <button id="btn-global-comm" disabled>Run global community metric</button>
+            <hr class="sep"/>
+            <span class="sublabel">Per-community metric</span>
+            <label class="field">
+                <span>Partition</span>
+                <select id="indiv-comm-partition"></select>
+            </label>
+            <select id="indiv-comm-metric"></select>
+            <div class="params" id="indiv-comm-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="comm-rec"/> Include active recommendation</label>
+            <button id="btn-indiv-comm" disabled>Run per-community metric</button>
+        </section>
+        </div>
     </aside>
 
     <!-- CENTER: tabbed content -->
@@ -189,9 +318,21 @@
                 <img class="import-logo" src="img/relison-full-logo.png" alt="RELISON"/>
                 <h2>Import network</h2>
                 <label class="field">
-                    <span>Edge list file</span>
-                    <input type="file" id="file-input"/>
+                    <span>Network or session file</span>
+                    <input type="file" id="file-input" accept=".txt,.tsv,.csv,.edges,.net,.paj,.gexf,.relison"/>
                 </label>
+                <label class="field">
+                    <span>Format</span>
+                    <select id="opt-format">
+                        <option value="">Auto-detect (by extension)</option>
+                        <option value="edges">Edge list (tab-separated)</option>
+                        <option value="pajek">Pajek (.net / .paj)</option>
+                        <option value="gexf">GEXF (.gexf)</option>
+                        <option value="relison">RELISON session (.relison)</option>
+                    </select>
+                </label>
+                <p class="muted" id="import-session-hint" hidden>A saved session carries its own network and type
+                    options, so the settings below are ignored.</p>
                 <div class="checks">
                     <label><input type="checkbox" id="opt-directed" checked/> Directed</label>
                     <label><input type="checkbox" id="opt-weighted"/> Weighted</label>
@@ -199,6 +340,42 @@
                     <label><input type="checkbox" id="opt-selfloops"/> Self-loops</label>
                 </div>
                 <button id="btn-load" class="primary">Load network</button>
+                <div class="import-sep">or</div>
+                <h2>Generate network</h2>
+                <label class="field">
+                    <span>Model</span>
+                    <select id="gen-type">
+                        <option value="erdos">Erdős–Rényi (random)</option>
+                        <option value="barabasi">Barabási–Albert (preferential attachment)</option>
+                        <option value="watts">Watts–Strogatz (small world)</option>
+                        <option value="complete">Complete graph</option>
+                        <option value="empty">Empty graph (nodes only)</option>
+                    </select>
+                </label>
+                <div class="checks">
+                    <label><input type="checkbox" id="gen-directed" checked/> Directed</label>
+                </div>
+                <div class="params" id="gen-params-erdos">
+                    <label><span>Nodes</span><input type="number" id="gen-erdos-nodes" min="1" step="1" value="100"/></label>
+                    <label><span>Link probability</span><input type="number" id="gen-erdos-prob" min="0" max="1" step="0.01" value="0.05"/></label>
+                </div>
+                <div class="params" id="gen-params-barabasi" hidden>
+                    <label><span>Initial nodes</span><input type="number" id="gen-barabasi-initial" min="1" step="1" value="5"/></label>
+                    <label><span>Iterations (new nodes)</span><input type="number" id="gen-barabasi-iter" min="1" step="1" value="95"/></label>
+                    <label><span>Edges per iteration</span><input type="number" id="gen-barabasi-edges" min="1" step="1" value="2"/></label>
+                </div>
+                <div class="params" id="gen-params-watts" hidden>
+                    <label><span>Nodes</span><input type="number" id="gen-watts-nodes" min="3" step="1" value="100"/></label>
+                    <label><span>Mean degree</span><input type="number" id="gen-watts-degree" min="2" step="2" value="4"/></label>
+                    <label><span>Rewiring probability (β)</span><input type="number" id="gen-watts-beta" min="0" max="1" step="0.01" value="0.1"/></label>
+                </div>
+                <div class="params" id="gen-params-complete" hidden>
+                    <label><span>Nodes</span><input type="number" id="gen-complete-nodes" min="1" step="1" value="20"/></label>
+                </div>
+                <div class="params" id="gen-params-empty" hidden>
+                    <label><span>Nodes</span><input type="number" id="gen-empty-nodes" min="1" step="1" value="50"/></label>
+                </div>
+                <button id="btn-generate" class="primary">Generate network</button>
                 <table class="kv" id="overview">
                     <tr><td>Nodes</td><td id="ov-nodes">–</td></tr>
                     <tr><td>Edges</td><td id="ov-edges">–</td></tr>
@@ -228,12 +405,21 @@
             </nav>
 
             <div class="tablesubpane active" id="tablesubpane-nodes">
+                <!-- Grouped by concern (create · file · table view), mirroring the diffusion toolbars. -->
                 <div class="toolbar">
-                    <button id="btn-node-add-toggle">Add node</button>
-                    <button id="btn-node-col-toggle">Add column</button>
-                    <button id="btn-export-nodes">Export CSV</button>
-                    <button id="btn-import-nodes-csv">Import CSV</button>
-                    <button id="btn-clear-nodes-filters">Clear filters</button>
+                    <span class="tb-group">
+                        <button id="btn-node-add-toggle" title="Add a node">➕ Add node…</button>
+                        <button id="btn-node-col-toggle" title="Add an attribute column">🏷 Add column…</button>
+                    </span>
+                    <span class="tb-sep"></span>
+                    <span class="tb-group">
+                        <button id="btn-import-nodes-csv" title="Import nodes / attributes from a CSV file">⬆ Import CSV</button>
+                        <button id="btn-export-nodes" title="Export the nodes table as CSV">⬇ Export CSV</button>
+                    </span>
+                    <span class="tb-spacer"></span>
+                    <span class="tb-group">
+                        <button id="btn-clear-nodes-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                    </span>
                 </div>
                 <div class="toolbar subrow" id="nodes-addrow" hidden>
                     <span class="addgroup" id="nodes-add-main" hidden>
@@ -249,6 +435,7 @@
                             <option value="double">double</option>
                             <option value="bool">bool</option>
                             <option value="categorical">categorical</option>
+                            <option value="time">time</option>
                         </select>
                         <button id="btn-add-node-attr" class="primary">Add column</button>
                     </span>
@@ -259,12 +446,21 @@
             </div>
 
             <div class="tablesubpane" id="tablesubpane-edges">
+                <!-- Grouped by concern (create · file · table view), mirroring the diffusion toolbars. -->
                 <div class="toolbar">
-                    <button id="btn-edge-add-toggle">Add edge</button>
-                    <button id="btn-edge-col-toggle">Add column</button>
-                    <button id="btn-export-edges">Export CSV</button>
-                    <button id="btn-import-edges-csv">Import CSV</button>
-                    <button id="btn-clear-edges-filters">Clear filters</button>
+                    <span class="tb-group">
+                        <button id="btn-edge-add-toggle" title="Add an edge">➕ Add edge…</button>
+                        <button id="btn-edge-col-toggle" title="Add an attribute column">🏷 Add column…</button>
+                    </span>
+                    <span class="tb-sep"></span>
+                    <span class="tb-group">
+                        <button id="btn-import-edges-csv" title="Import edges / attributes from a CSV file">⬆ Import CSV</button>
+                        <button id="btn-export-edges" title="Export the edges table as CSV">⬇ Export CSV</button>
+                    </span>
+                    <span class="tb-spacer"></span>
+                    <span class="tb-group">
+                        <button id="btn-clear-edges-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                    </span>
                 </div>
                 <div class="toolbar subrow" id="edges-addrow" hidden>
                     <span class="addgroup" id="edges-add-main" hidden>
@@ -282,6 +478,7 @@
                             <option value="double">double</option>
                             <option value="bool">bool</option>
                             <option value="categorical">categorical</option>
+                            <option value="time">time</option>
                         </select>
                         <button id="btn-add-edge-attr" class="primary">Add column</button>
                     </span>
@@ -307,7 +504,7 @@
                 <h2>Global metrics</h2>
                 <div class="toolbar"><button id="btn-export-global">Export CSV</button></div>
                 <table class="kv wide" id="global-metrics-table"></table>
-                <p class="muted">Run graph metrics or community metrics from the right panel to populate this table.</p>
+                <p class="muted">Run graph metrics or community metrics from the left panel to populate this table.</p>
             </div>
 
             <div class="subpane" id="subpane-nodes">
@@ -419,39 +616,112 @@
 
         <!-- TAB 5: link recommendation / prediction -->
         <div class="tabpane" id="pane-recommend">
-            <div class="rec-card">
-                <h2>Link recommendation / prediction</h2>
-                <label class="field">
-                    <span>Task</span>
-                    <select id="rec-mode">
-                        <option value="recommendation">Link recommendation (top-k per node)</option>
-                        <option value="prediction">Link prediction (top-n total)</option>
-                    </select>
-                </label>
-                <label class="field">
-                    <span>Algorithm</span>
-                    <select id="rec-algo"></select>
-                </label>
-                <div class="params" id="rec-params"></div>
-                <label class="field">
-                    <span id="rec-cutoff-label">Links per node</span>
-                    <input type="number" id="rec-cutoff" min="1" step="1" value="10"/>
-                </label>
-                <label class="inline-check"><input type="checkbox" id="rec-reciprocal"/> Allow reciprocal links</label>
-                <div class="toolbar">
-                    <button id="btn-rec-apply" class="primary">Apply</button>
-                    <button id="btn-rec-reset">Reset results</button>
-                </div>
-                <p class="muted" id="rec-status">No recommendation applied.</p>
-                <div class="toolbar"><button id="btn-clear-rec-filters">Clear filters</button></div>
-                <div class="scroll-table tall"><table id="rec-edges-table" class="data"></table></div>
-                <div class="pagination" id="pager-rec"></div>
+            <div class="rec-layout">
+                <!-- Left: the model configuration, plus the evaluation setup when that subtab is showing. -->
+                <aside class="rec-config">
+                    <section class="block">
+                        <h2>Link recommendation / prediction</h2>
+                        <label class="field">
+                            <span>Task</span>
+                            <select id="rec-mode">
+                                <option value="recommendation">Link recommendation (top-k per node)</option>
+                                <option value="prediction">Link prediction (top-n total)</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>Algorithm</span>
+                            <select id="rec-algo"></select>
+                        </label>
+                        <div class="params" id="rec-params"></div>
+                        <label class="field">
+                            <span id="rec-cutoff-label">Links per node</span>
+                            <input type="number" id="rec-cutoff" min="1" step="1" value="10"/>
+                        </label>
+                        <label class="inline-check"><input type="checkbox" id="rec-reciprocal"/> Allow reciprocal links</label>
+                        <button id="btn-rec-apply" class="primary">Apply</button>
+                        <button id="btn-rec-reset">Reset results</button>
+                        <p class="muted" id="rec-status">No recommendation applied.</p>
+                    </section>
+
+                    <!-- Evaluation setup: only shown on the Evaluation subtab, so each view carries its own controls. -->
+                    <section class="block" id="rec-eval-config" hidden>
+                        <h2>Evaluation</h2>
+                        <label class="field">
+                            <span>Test set (tab-separated edge list)</span>
+                            <input type="file" id="rec-test-file" accept=".txt,.tsv,.csv,.edges"/>
+                        </label>
+                        <button id="btn-rec-test-upload">⬆ Upload test set</button>
+                        <p class="muted" id="rec-test-status">No test set loaded.</p>
+                        <label class="field">
+                            <span>Metrics</span>
+                            <div id="rec-eval-metrics" class="checklist"></div>
+                        </label>
+                        <label class="field">
+                            <span>Cutoff</span>
+                            <input type="number" id="rec-eval-cutoff" min="1" step="1" value="10"/>
+                        </label>
+                        <label class="field">
+                            <span>Evaluate over</span>
+                            <select id="rec-eval-population">
+                                <option value="test">Users with test links</option>
+                                <option value="all">All recommended users</option>
+                            </select>
+                        </label>
+                        <p class="muted" id="rec-eval-population-hint"></p>
+                        <label class="field">
+                            <span>Feature attribute (ILD / Unexpectedness)</span>
+                            <select id="rec-eval-feature"></select>
+                        </label>
+                        <label class="inline-check"><input type="checkbox" id="rec-eval-reciprocal"/> Allow reciprocal links</label>
+                        <button id="btn-rec-evaluate" class="primary">Evaluate</button>
+                        <p class="muted" id="rec-eval-status"></p>
+                    </section>
+                </aside>
+
+                <!-- Centre: recommended links and evaluation results, as two subtabs. -->
+                <section class="rec-center">
+                    <nav class="rec-subtabbar">
+                        <button class="recsubtab active" data-recsubtab="links">Recommended links</button>
+                        <button class="recsubtab" data-recsubtab="eval">Evaluation</button>
+                    </nav>
+                    <div class="rec-views">
+                        <div class="rec-view active" id="rec-view-links">
+                            <div class="toolbar">
+                                <span class="tb-group">
+                                    <button id="btn-rec-add-all" title="Add every recommended link listed below (honouring the column filters) to the graph" disabled>➕ Add all</button>
+                                </span>
+                                <span class="tb-spacer"></span>
+                                <span class="tb-group">
+                                    <button id="btn-clear-rec-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                                </span>
+                            </div>
+                            <div class="scroll-table tall"><table id="rec-edges-table" class="data"></table></div>
+                            <div class="pagination" id="pager-rec"></div>
+                        </div>
+
+                        <!-- One row per executed algorithm, one column per metric. -->
+                        <div class="rec-view" id="rec-view-eval">
+                            <div class="toolbar">
+                                <span class="tb-spacer"></span>
+                                <span class="tb-group">
+                                    <button id="btn-rec-eval-export" title="Export the evaluation table as CSV">⬇ Export CSV</button>
+                                </span>
+                            </div>
+                            <p class="muted" id="rec-eval-empty">Upload a test set and press Evaluate to score the algorithms you have run.</p>
+                            <div id="rec-eval-results" hidden>
+                                <p class="muted" id="rec-eval-summary"></p>
+                                <div class="scroll-table"><table id="rec-eval-table" class="data"></table></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
 
         <!-- TAB 6: information diffusion -->
         <div class="tabpane" id="pane-diffusion">
-            <div class="diff-layout">
+            <!-- "no-state" matches the default subtab ("Information pieces"): the Node-at-iteration column starts collapsed. -->
+            <div class="diff-layout no-state">
                 <aside class="diff-config">
                     <section class="block">
                         <h2>Protocol</h2>
@@ -489,6 +759,9 @@
                         <p class="muted">Selected metrics are plotted in the "Metrics" subtab of the canvas.</p>
                     </section>
                     <section class="block">
+                        <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="diff-rec"/> Run on selected recommendation</label>
+                        <label class="field"><span>Run label</span>
+                            <input type="text" id="diff-run-label" placeholder="auto (protocol / Custom X)" title="Optional name for this run in the metric plots; leave blank for an automatic label"/></label>
                         <button id="btn-diff-run" class="primary">Run simulation</button>
                         <button id="btn-diff-clear">Clear</button>
                         <p class="muted" id="diff-status">No simulation run yet.</p>
@@ -498,7 +771,8 @@
                 <section class="diff-center">
                     <nav class="diff-subtabbar">
                         <button class="diffsubtab active" data-diffsubtab="pieces">Information pieces</button>
-                        <button class="diffsubtab" data-diffsubtab="graph">Graph</button>
+                        <button class="diffsubtab" data-diffsubtab="graph">Graph visualization</button>
+                        <button class="diffsubtab" data-diffsubtab="stats">Statistics</button>
                         <button class="diffsubtab" data-diffsubtab="metrics">Metrics</button>
                     </nav>
                     <div class="diff-views">
@@ -513,6 +787,12 @@
                                 <button id="diff-step-fwd" class="canvas-btn" title="Step forward">▶▶</button>
                                 <input type="range" id="diff-slider" min="0" max="0" value="0"/>
                                 <span id="diff-iter-label" class="pageinfo">iteration 0</span>
+                                <button id="btn-diff-gif" class="diff-dl-btn" title="Download the animation as a GIF">⬇ GIF</button>
+                                <button id="btn-diff-webm" class="diff-dl-btn" title="Download the animation as a WebM video">⬇ WebM</button>
+                                <select id="diff-webm-res" class="diff-res-sel" title="WebM resolution">
+                                    <option value="1920">1920px</option>
+                                    <option value="native">native</option>
+                                </select>
                             </div>
                         </div>
                         <div class="diff-view" id="diff-view-metrics">
@@ -524,51 +804,267 @@
                                 </div>
                                 <p class="muted" id="diffmetrics-hint">Run a simulation (with metrics selected) to see plots over iterations.</p>
                                 <div id="diffmetrics-charts"></div>
+                                <div id="diffmetrics-runs" class="diff-runs"></div>
                             </div>
+                        </div>
+                        <div class="diff-view" id="diff-view-stats">
+                          <div class="diff-stats-pane">
+                            <nav class="diff-pieces-modebar">
+                                <span class="modebar-label">Select element to observe</span>
+                                <button class="diffstatsview active" data-statsview="node">Node</button>
+                                <button class="diffstatsview" data-statsview="piece">Piece</button>
+                                <button class="diffstatsview" data-statsview="feat">Feature</button>
+                                <button class="diffstatsview" data-statsview="dist">Distributions</button>
+                            </nav>
+                            <div class="diff-stats-view" id="diff-stats-view-node">
+                            <div class="diff-node-pane">
+                                <div class="diff-node-toolbar">
+                                    <label>Node <input type="text" id="diff-traj-node" placeholder="type or click a node"/></label>
+                                    <label>Feature <select id="diff-traj-feature"></select></label>
+                                    <label>Category <select id="diff-traj-category">
+                                        <option value="received">Received</option>
+                                        <option value="read">Read</option>
+                                        <option value="propagated">Propagated</option>
+                                        <option value="discarded">Discarded</option>
+                                    </select></label>
+                                    <label>Over <select id="diff-traj-mode">
+                                        <option value="cumulative">Cumulative</option>
+                                        <option value="delta">Per-iteration</option>
+                                    </select></label>
+                                    <label>Value <select id="diff-traj-agg">
+                                        <option value="count">Count</option>
+                                        <option value="weight">Weight</option>
+                                    </select></label>
+                                    <label>Style <select id="diff-traj-stack">
+                                        <option value="stacked">Stacked area</option>
+                                        <option value="lines">Lines</option>
+                                    </select></label>
+                                    <button id="btn-diff-traj-png" class="chart-dl">⬇ Download PNG</button>
+                                </div>
+                                <p class="muted" id="diff-traj-hint">Run a simulation and select a node to see how its information exposure evolves.</p>
+                                <div class="chart-area" id="diff-traj-area"><canvas id="diff-traj-canvas"></canvas></div>
+                                <div class="chart-tip" id="diff-traj-tip" hidden></div>
+                            </div>
+                        </div>
+                        <div class="diff-stats-view" id="diff-stats-view-piece" hidden>
+                            <div class="diff-node-pane">
+                                <div class="diff-node-toolbar">
+                                    <label>Piece <input type="text" id="diff-ptraj-piece" list="diff-piece-datalist" placeholder="piece id"/>
+                                        <datalist id="diff-piece-datalist"></datalist></label>
+                                    <label>Break down by <select id="diff-ptraj-feature"></select></label>
+                                    <label>Category <select id="diff-ptraj-category">
+                                        <option value="received">Received</option>
+                                        <option value="read">Read</option>
+                                        <option value="propagated">Propagated</option>
+                                        <option value="discarded">Discarded</option>
+                                    </select></label>
+                                    <label>Over <select id="diff-ptraj-mode">
+                                        <option value="cumulative">Cumulative</option>
+                                        <option value="delta">Per-iteration</option>
+                                    </select></label>
+                                    <label>Style <select id="diff-ptraj-stack">
+                                        <option value="stacked">Stacked area</option>
+                                        <option value="lines">Lines</option>
+                                    </select></label>
+                                    <button id="btn-diff-ptraj-png" class="chart-dl">⬇ Download PNG</button>
+                                </div>
+                                <p class="muted" id="diff-ptraj-hint">Run a simulation and choose an information piece to see how many users receive / read / propagate / discard it over the iterations.</p>
+                                <div class="chart-area" id="diff-ptraj-area"><canvas id="diff-ptraj-canvas"></canvas></div>
+                            </div>
+                        </div>
+                        <div class="diff-stats-view" id="diff-stats-view-feat" hidden>
+                            <div class="diff-node-pane">
+                                <div class="diff-node-toolbar">
+                                    <label>Feature <select id="diff-ftraj-feature"></select></label>
+                                    <label>Value <select id="diff-ftraj-value"></select></label>
+                                    <label>Category <select id="diff-ftraj-category">
+                                        <option value="received">Received</option>
+                                        <option value="read">Read</option>
+                                        <option value="propagated">Propagated</option>
+                                        <option value="discarded">Discarded</option>
+                                    </select></label>
+                                    <label>Over <select id="diff-ftraj-mode">
+                                        <option value="cumulative">Cumulative</option>
+                                        <option value="delta">Per-iteration</option>
+                                    </select></label>
+                                    <label>Count <select id="diff-ftraj-entity">
+                                        <option value="pieces">Information pieces</option>
+                                        <option value="users">Users</option>
+                                    </select></label>
+                                    <label>Style <select id="diff-ftraj-stack">
+                                        <option value="stacked">Stacked area</option>
+                                        <option value="lines">Lines</option>
+                                    </select></label>
+                                    <button id="btn-diff-ftraj-png" class="chart-dl">⬇ Download PNG</button>
+                                </div>
+                                <p class="muted" id="diff-ftraj-hint">Run a simulation and choose a feature to see how its values spread across the network over the iterations.</p>
+                                <div class="chart-area" id="diff-ftraj-area"><canvas id="diff-ftraj-canvas"></canvas></div>
+                            </div>
+                            </div>
+                            <div class="diff-stats-view" id="diff-stats-view-dist" hidden>
+                            <div class="diff-node-pane">
+                                <div class="diff-node-toolbar">
+                                    <label>Distribution <select id="diff-dist-type">
+                                        <option value="info">Information feature</option>
+                                        <option value="user">User feature</option>
+                                        <option value="mixed">Mixed (info × user)</option>
+                                    </select></label>
+                                    <label id="diff-dist-feat-field">Feature <select id="diff-dist-feature"></select></label>
+                                    <label id="diff-dist-info-field" hidden>Info feature <select id="diff-dist-info"></select></label>
+                                    <label id="diff-dist-user-field" hidden>User feature <select id="diff-dist-user"></select></label>
+                                    <button id="btn-diff-dist-png" class="chart-dl">⬇ Download PNG</button>
+                                </div>
+                                <p class="muted" id="diff-dist-hint">Run a simulation to see how received information distributes across feature values (over the whole simulation).</p>
+                                <div class="chart-area" id="diff-dist-area"><canvas id="diff-dist-canvas"></canvas><div class="chart-tip" id="diff-dist-tip" hidden></div></div>
+                            </div>
+                            </div>
+                          </div>
                         </div>
                         <div class="diff-view active" id="diff-view-pieces">
                             <div class="diff-pieces-pane">
-                                <div class="toolbar">
-                                    <button id="btn-diff-piece-add">Add piece</button>
-                                    <button id="btn-diff-feature-add">Add feature column</button>
-                                    <span class="addgroup">
-                                        <button id="btn-diff-piece-gen">Generate from graph</button>
-                                        <input type="number" id="diff-piece-seed" min="1" step="1" value="1" title="Pieces created per node"/>
-                                        <span class="muted">per node</span>
-                                    </span>
-                                    <button id="btn-diff-piece-upload">Upload CSV</button>
-                                    <button id="btn-diff-piece-download">Download CSV</button>
-                                    <span class="addgroup">
-                                        <button id="btn-diff-feature-upload">Upload features</button>
-                                        <input type="text" id="diff-feature-param" placeholder="feature name" value="feature" title="Feature parameter name (or read from the file header)"/>
-                                    </span>
-                                    <button id="btn-diff-piece-clear-filters">Clear filters</button>
-                                    <button id="btn-diff-piece-clear">Clear</button>
-                                    <label class="inline-check" title="When on, only the pieces passing the table filters are used in the simulation">
-                                        <input type="checkbox" id="diff-apply-filters"/> Apply filters to simulation</label>
-                                    <input type="file" id="diff-piece-file" accept=".csv,.tsv,.txt" hidden/>
-                                    <input type="file" id="diff-feature-file" accept=".tsv,.txt,.csv" hidden/>
+                                <nav class="diff-pieces-modebar">
+                                    <span class="modebar-label">Select view</span>
+                                    <button class="diffpiecesmode active" data-piecesmode="pieces">Information pieces</button>
+                                    <button class="diffpiecesmode" data-piecesmode="realprop">Real propagated</button>
+                                </nav>
+
+                                <!-- Mode 1: the information pieces themselves -->
+                                <div class="diff-pieces-mode active" id="diff-pieces-mode-pieces">
+                                    <!-- One row, grouped by concern: create · file · columns · destructive, then table-view controls. -->
+                                    <div class="toolbar">
+                                        <span class="tb-group">
+                                            <button id="btn-diff-piece-add" title="Add an empty information piece">➕ Add</button>
+                                            <button id="btn-diff-gen-toggle" title="Generate pieces with the seeders">✨ Generate…</button>
+                                        </span>
+                                        <span class="tb-sep"></span>
+                                        <span class="tb-group">
+                                            <span class="menu-wrap">
+                                                <button id="btn-diff-upload-menu" title="Upload information pieces or their features">⬆ Upload ▾</button>
+                                                <ul class="menu" id="diff-upload-menu" hidden>
+                                                    <li><button type="button" data-act="pieces">Information pieces…</button></li>
+                                                    <li><button type="button" data-act="features">Piece features…</button></li>
+                                                </ul>
+                                            </span>
+                                            <button id="btn-diff-piece-download" title="Download the information pieces as TSV">⬇ Download</button>
+                                        </span>
+                                        <span class="tb-sep"></span>
+                                        <span class="tb-group">
+                                            <button id="btn-diff-feature-add" title="Add a feature column to the table">🏷 Add feature column</button>
+                                        </span>
+                                        <span class="tb-sep"></span>
+                                        <span class="tb-group">
+                                            <button id="btn-diff-piece-clear" title="Remove every information piece">🗑 Clear all</button>
+                                        </span>
+                                        <span class="tb-spacer"></span>
+                                        <span class="tb-group">
+                                            <button id="btn-diff-piece-clear-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                                            <label class="inline-check" title="When on, only the pieces passing the table filters are used in the simulation">
+                                                <input type="checkbox" id="diff-apply-filters"/> Apply filters</label>
+                                        </span>
+                                        <input type="file" id="diff-piece-file" accept=".csv,.tsv,.txt" hidden/>
+                                        <input type="file" id="diff-feature-file" accept=".tsv,.txt,.csv" hidden/>
+                                    </div>
+
+                                    <!-- Seeder-driven generation: how many pieces (count) × which users (selection) × when (timestamp). -->
+                                    <div class="diff-gen" id="diff-gen" hidden>
+                                        <div class="diff-gen-row">
+                                            <label>Count
+                                                <select id="gen-count-type">
+                                                    <option value="fixed">Fixed</option>
+                                                    <option value="uniform">Uniform</option>
+                                                    <option value="poisson">Poisson</option>
+                                                </select>
+                                            </label>
+                                            <span class="gen-params" id="gen-count-fixed"><input type="number" id="gen-count-n" min="0" step="1" value="1"/> <span class="muted">per user</span></span>
+                                            <span class="gen-params" id="gen-count-uniform" hidden><span class="muted">min</span> <input type="number" id="gen-count-min" min="0" step="1" value="1"/> <span class="muted">max</span> <input type="number" id="gen-count-max" min="0" step="1" value="3"/></span>
+                                            <span class="gen-params" id="gen-count-poisson" hidden><span class="muted">λ</span> <input type="number" id="gen-count-lambda" min="0" step="0.1" value="2"/></span>
+                                        </div>
+                                        <div class="diff-gen-row">
+                                            <label>Users
+                                                <select id="gen-users-type">
+                                                    <option value="all">All</option>
+                                                    <option value="random">Random %</option>
+                                                    <option value="community">Community</option>
+                                                    <option value="values">Metric top/bottom-k</option>
+                                                </select>
+                                            </label>
+                                            <span class="gen-params" id="gen-users-random" hidden><input type="number" id="gen-users-fraction" min="0" max="100" step="1" value="10"/> <span class="muted">%</span></span>
+                                            <span class="gen-params" id="gen-users-community" hidden><span class="muted">partition</span> <select id="gen-users-partition"></select> <span class="muted">community</span> <input type="number" id="gen-users-commid" min="0" step="1" value="0"/></span>
+                                            <span class="gen-params" id="gen-users-values" hidden><select id="gen-users-metric"></select> <select id="gen-users-mode"><option value="top">top</option><option value="bottom">bottom</option></select> <span class="muted">k</span> <input type="number" id="gen-users-k" min="0" step="1" value="10"/></span>
+                                        </div>
+                                        <div class="diff-gen-row">
+                                            <label>Timestamp
+                                                <select id="gen-ts-type">
+                                                    <option value="fixed">Fixed</option>
+                                                    <option value="uniform">Uniform (random)</option>
+                                                </select>
+                                            </label>
+                                            <span class="gen-params" id="gen-ts-fixed"><input type="number" id="gen-ts-value" step="1" value="0"/></span>
+                                            <span class="gen-params" id="gen-ts-uniform" hidden><span class="muted">min</span> <input type="number" id="gen-ts-min" step="1" value="0"/> <span class="muted">max</span> <input type="number" id="gen-ts-max" step="1" value="1000"/></span>
+                                        </div>
+                                        <div class="diff-gen-row">
+                                            <label>Seed <input type="number" id="gen-seed" step="1" placeholder="random"/></label>
+                                            <button id="btn-diff-gen" class="primary">Generate pieces</button>
+                                            <span class="muted" id="gen-hint"></span>
+                                        </div>
+                                    </div>
+
+                                    <p class="muted" id="diff-pieces-summary"></p>
+                                    <div class="scroll-table tall"><table id="diff-pieces-table" class="data"></table></div>
+                                    <div class="pagination" id="diff-pieces-pager"></div>
+                                    <p class="muted">Each piece is created by a node of the graph at a given timestamp. When at least one piece is
+                                        defined here, it replaces the automatic seeding for the simulation. Each <b>feature</b> parameter is its own column
+                                        (add one with <b>Add feature column</b>); a cell holds that parameter's <code>value:weight; …</code> (weight optional).
+                                        Upload/download of pieces is tab-separated. <b>Download</b> writes <code>id ⇥ creator ⇥ timestamp ⇥ features</code>, packing every feature into the last column as
+                                        <code>param=value:weight; …</code>. <b>Upload</b> accepts that, and also one column per feature: give it a header such as
+                                        <code>id ⇥ creator ⇥ timestamp ⇥ feat:topic ⇥ feat:lang</code> (the <code>feat:</code> prefix is optional) and each column holds that parameter's <code>value:weight; …</code>, just like the table's cells.
+                                        <b>Upload ▾ → Piece features</b> loads a separate file of <code>infoId ⇥ featureId</code> lines (optional third column = weight); an <code>infoId ⇥ name</code> header names the
+                                        feature, otherwise you are asked for it. Feature metrics run over these piece features and over node attributes / communities (as user features).</p>
                                 </div>
-                                <p class="muted" id="diff-pieces-summary"></p>
-                                <div class="scroll-table tall"><table id="diff-pieces-table" class="data"></table></div>
-                                <div class="pagination" id="diff-pieces-pager"></div>
-                                <p class="muted">Each piece is created by a node of the graph at a given timestamp. When at least one piece is
-                                    defined here, it replaces the automatic seeding for the simulation. Each <b>feature</b> parameter is its own column
-                                    (add one with <b>Add feature column</b>); a cell holds that parameter's <code>value:weight; …</code> (weight optional).
-                                    Upload/download of pieces is tab-separated (<code>id ⇥ creator ⇥ timestamp ⇥ features</code>, features in the compact <code>param=value:weight; …</code> form).
-                                    <b>Upload features</b> loads a separate file of <code>infoId ⇥ featureId</code> lines (optional third column = weight; an <code>infoId ⇥ name</code> header sets the
-                                    feature name, otherwise the box on the left is used). Feature metrics run over these piece features and over node attributes / communities (as user features).</p>
+
+                                <!-- Mode 2: real-propagated records (which pieces each user repropagated in reality) -->
+                                <div class="diff-pieces-mode" id="diff-pieces-mode-realprop" hidden>
+                                    <!-- Mirrors the pieces toolbar's grouping so the two modes stay consistent. -->
+                                    <div class="toolbar">
+                                        <span class="tb-group">
+                                            <button id="btn-diff-realprop-add" title="Add an empty real-propagation record">➕ Add record</button>
+                                        </span>
+                                        <span class="tb-sep"></span>
+                                        <span class="tb-group">
+                                            <button id="btn-diff-realprop-upload" title="Upload real-propagation records">⬆ Upload</button>
+                                            <button id="btn-diff-realprop-download" title="Download the records as TSV">⬇ Download</button>
+                                        </span>
+                                        <span class="tb-sep"></span>
+                                        <span class="tb-group">
+                                            <button id="btn-diff-realprop-clear" title="Remove every real-propagation record">🗑 Clear all</button>
+                                        </span>
+                                        <span class="tb-spacer"></span>
+                                        <span class="tb-group">
+                                            <button id="btn-diff-realprop-clear-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                                        </span>
+                                        <input type="file" id="diff-realprop-file" accept=".tsv,.txt,.csv" hidden/>
+                                    </div>
+                                    <p class="muted" id="diff-realprop-summary"></p>
+                                    <div class="scroll-table tall"><table id="diff-realprop-table" class="data"></table></div>
+                                    <div class="pagination" id="diff-realprop-pager"></div>
+                                    <p class="muted">Each record states that a <b>user</b> (a node of the graph) actually repropagated a <b>piece</b> at a
+                                        given <b>timestamp</b> in the real scenario — not necessarily a piece they own. Upload/download is tab-separated
+                                        (<code>user ⇥ piece ⇥ timestamp</code>; a <code>user …</code> header row is skipped). This is optional and only needed for
+                                        real-propagation metrics (recall / precision / F1 vs. the ground truth). Records whose user isn't a node or whose piece isn't a defined piece are ignored at run time.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <aside class="diff-state">
+                <aside class="diff-state" id="diff-state-aside" hidden>
                     <section class="block">
                         <h2>Node at iteration</h2>
                         <label class="field"><span>Node</span>
                             <input type="text" id="diff-node-input" placeholder="type or click a node"/></label>
                         <p class="muted" id="diff-state-hint">Click a node on the canvas.</p>
+                        <label class="field" id="diff-feature-view-field" hidden><span>Feature</span>
+                            <select id="diff-feature-view" title="Feature shown on the piece chips and distribution bars"></select></label>
                         <div id="diff-cats"></div>
                     </section>
                 </aside>
@@ -603,63 +1099,10 @@
             <button id="btn-clear-selection">Clear selection</button>
         </section>
 
-        <section class="block right-metric">
-            <h2>Vertex metrics</h2>
-            <select id="vertex-metric"></select>
-            <div class="params" id="vertex-params"></div>
-            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="vertex-rec"/> Include active recommendation</label>
-            <button id="btn-vertex">Run</button>
-            <p class="muted" id="vertex-result"></p>
-        </section>
-
-        <section class="block right-metric">
-            <h2>Graph metrics</h2>
-            <select id="graph-metric"></select>
-            <div class="params" id="graph-params"></div>
-            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="graph-rec"/> Include active recommendation</label>
-            <button id="btn-graph">Run</button>
-        </section>
-
-        <section class="block right-metric">
-            <h2>Pair metrics</h2>
-            <select id="pair-metric"></select>
-            <div class="params" id="pair-params"></div>
-            <label class="inline-check"><input type="checkbox" id="pair-allpairs"/> All node pairs (not just edges)</label>
-            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="pair-rec"/> Include active recommendation</label>
-            <button id="btn-pair">Run</button>
-            <p class="muted" id="pair-result"></p>
-        </section>
-
-        <section class="block right-metric">
-            <h2>Communities</h2>
-            <select id="community-algo"></select>
-            <div class="params" id="community-params"></div>
-            <button id="btn-community">Detect</button>
-            <p class="muted" id="community-result"></p>
-            <hr class="sep"/>
-            <span class="sublabel">Global community metric</span>
-            <label class="field">
-                <span>Partition</span>
-                <select id="global-comm-partition"></select>
-            </label>
-            <select id="global-comm-metric"></select>
-            <div class="params" id="global-comm-params"></div>
-            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="global-comm-rec"/> Include active recommendation</label>
-            <button id="btn-global-comm" disabled>Run global community metric</button>
-            <hr class="sep"/>
-            <span class="sublabel">Per-community metric</span>
-            <label class="field">
-                <span>Partition</span>
-                <select id="indiv-comm-partition"></select>
-            </label>
-            <select id="indiv-comm-metric"></select>
-            <div class="params" id="indiv-comm-params"></div>
-            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="comm-rec"/> Include active recommendation</label>
-            <button id="btn-indiv-comm" disabled>Run per-community metric</button>
-        </section>
     </aside>
 </main>
 
+<script src="pdf.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

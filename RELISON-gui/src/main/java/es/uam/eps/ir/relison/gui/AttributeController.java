@@ -55,7 +55,9 @@ public class AttributeController
         }
         try (InputStream in = file.content())
         {
-            boolean ok = new NodeAttributeReader<>("\t", Parsers.sp).read(session.getGraph(), in);
+            // Determine whether the client requested to add missing nodes.
+            boolean addMissing = Boolean.parseBoolean(ctx.formParam("addMissing"));
+            boolean ok = new NodeAttributeReader<>("\t", Parsers.sp, addMissing).read(session.getGraph(), in);
             if (!ok)
             {
                 ctx.status(400).json(Map.of("error", "Could not parse the node attribute file."));
@@ -86,7 +88,9 @@ public class AttributeController
         }
         try (InputStream in = file.content())
         {
-            boolean ok = new EdgeAttributeReader<>("\t", Parsers.sp).read(session.getGraph(), in);
+            // Determine whether the client requested to add missing edges.
+            boolean addMissing = Boolean.parseBoolean(ctx.formParam("addMissing"));
+            boolean ok = new EdgeAttributeReader<>("\t", Parsers.sp, addMissing).read(session.getGraph(), in);
             if (!ok)
             {
                 ctx.status(400).json(Map.of("error", "Could not parse the edge attribute file."));
@@ -267,6 +271,7 @@ public class AttributeController
             case LONG -> raw instanceof Number ? ((Number) raw).longValue() : Long.valueOf(raw.toString().trim());
             case DOUBLE -> raw instanceof Number ? ((Number) raw).doubleValue() : Double.valueOf(raw.toString().trim());
             case BOOLEAN -> raw instanceof Boolean ? raw : AttributeType.BOOLEAN.parse(raw.toString());
+            case TIME -> AttributeType.TIME.parse(raw.toString());   // validates + canonicalises the timestamp list
             case STRING, CATEGORICAL -> raw.toString();
         };
     }

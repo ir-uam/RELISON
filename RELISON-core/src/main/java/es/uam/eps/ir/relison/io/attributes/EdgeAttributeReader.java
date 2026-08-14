@@ -44,16 +44,35 @@ public class EdgeAttributeReader<V>
     private final String delimiter;
     /** Parser for the node identifiers. */
     private final Parser<V> uParser;
+    /** Whether to automatically add edges that are not present in the graph. */
+    private final boolean addEdges;
 
     /**
      * Constructor.
      * @param delimiter the field delimiter.
      * @param uParser   the parser for the node identifiers.
      */
+    /**
+     * Constructor that does not add missing edges (default behaviour).
+     * @param delimiter field delimiter.
+     * @param uParser parser for the node identifiers.
+     */
     public EdgeAttributeReader(String delimiter, Parser<V> uParser)
+    {
+        this(delimiter, uParser, false);
+    }
+
+    /**
+     * Constructor allowing the caller to decide whether missing edges should be added to the graph.
+     * @param delimiter field delimiter.
+     * @param uParser parser for the node identifiers.
+     * @param addEdges if {@code true}, edges that are not already present will be added before setting their attributes.
+     */
+    public EdgeAttributeReader(String delimiter, Parser<V> uParser, boolean addEdges)
     {
         this.delimiter = delimiter;
         this.uParser = uParser;
+        this.addEdges = addEdges;
     }
 
     /**
@@ -113,9 +132,29 @@ public class EdgeAttributeReader<V>
                 if (splits.length < 2) continue;
                 V source = uParser.parse(splits[0]);
                 V target = uParser.parse(splits[1]);
-                if (!graph.containsEdge(source, target)) continue;
 
-                int edgeIdx = multi ? occurrences.merge(splits[0] + "\t" + splits[1], 1, Integer::sum) - 1 : 0;
+                boolean addedNow = false;
+                if (!graph.containsEdge(source, target)) {
+                    if (addEdges) {
+                        // Try to add the edge (nodes will be added if needed by the graph implementation).
+                        boolean added = graph.addEdge(source, target);
+                        if (!added) continue; // could not add edge, skip this line
+                        addedNow = true;
+                        // Initialise occurrence count for multigraphs so that the current line is treated as the first edge.
+                        if (multi) occurrences.put(splits[0] + "\t" + splits[1], 1);
+                    } else {
+                        continue; // skip rows for non‑existing edges when addEdges is false
+                    }
+                }
+
+                int edgeIdx = 0;
+                if (multi) {
+                    if (addedNow) {
+                        edgeIdx = 0; // the edge was just added, this is the first occurrence
+                    } else {
+                        edgeIdx = occurrences.merge(splits[0] + "\t" + splits[1], 1, Integer::sum) - 1;
+                    }
+                }
                 for (int j = 0; j < numAttr; ++j)
                 {
                     int col = j + 2;
