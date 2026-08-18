@@ -4497,8 +4497,8 @@ function mergeAttributes(serialized) {
 // Swaps the topbar + import logos to the dark-mode artwork when in dark theme, falling back to the light logo if
 // the dark file is not present (so a missing asset never shows a broken image).
 function applyLogo(dark) {
-    const light = "img/relison-full-logo.png";
-    const src = dark ? "img/relison-full-logo-dark.png" : light;
+    const light = "img/RELISON-full-logo.png";
+    const src = dark ? "img/RELISON-full-logo-dark.png" : light;
     document.querySelectorAll("#logo, .import-logo").forEach((img) => {
         img.onerror = () => { img.onerror = null; img.src = light; };
         img.src = src;
