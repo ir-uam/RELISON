@@ -4371,9 +4371,13 @@ function exportPairAveragesCsv() {
 // sigma's own "afterRender" event (synchronously, before the buffer is cleared) to match the on-screen plot.
 async function exportPng() {
     if (usingCosmograph()) {
-        const exported = await window.relisonCosmograph?.exportPng("network.png");
-        if (!exported) { setStatus("Cosmograph is not ready to export yet.", "error"); return; }
-        setStatus("Cosmograph PNG downloaded.");
+        try {
+            const exported = await window.relisonCosmograph?.exportPng("network.png");
+            if (!exported) { setStatus("Cosmograph is not ready to export yet.", "error"); return; }
+            setStatus("Cosmograph PNG downloaded.");
+        } catch (error) {
+            setStatus("PNG export failed: " + error.message, "error");
+        }
         return;
     }
     if (!state.renderer) { setStatus("Load a network first.", "error"); return; }

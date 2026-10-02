@@ -437,23 +437,32 @@ function savePointPositions() {
 }
 
 async function exportPng(filename = "network.png") {
-    if (!instance || typeof instance.captureScreenshot !== "function") return false;
-    // captureScreenshot scales a finished canvas. Rendering the WebGL canvas at
-    // a higher pixel ratio first preserves detail instead of merely enlarging
-    // the existing pixels.
-    const current = typeof instance.getConfig === "function" ? await instance.getConfig() : null;
-    const originalPixelRatio = Number(current?.pixelRatio) || window.devicePixelRatio || 1;
-    const exportPixelRatio = Math.max(originalPixelRatio, 4);
+    const scene = await buildSvgScene();
+    if (!scene) return false;
+    const url = URL.createObjectURL(new Blob([scene.svg], { type: "image/svg+xml" }));
     try {
-        if (typeof instance.setConfigPartial === "function") {
-            await instance.setConfigPartial({ pixelRatio: exportPixelRatio });
-            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        }
-        instance.captureScreenshot(filename, 1);
+        const image = new Image();
+        await new Promise((resolve, reject) => {
+            image.onload = resolve;
+            image.onerror = () => reject(new Error("Could not rasterize the Cosmograph export."));
+            image.src = url;
+        });
+        const output = document.createElement("canvas");
+        // Rasterize vector primitives at export resolution, including text and
+        // label boxes, rather than enlarging pixels from the displayed canvas.
+        output.width = Math.ceil(scene.width * 4);
+        output.height = Math.ceil(scene.height * 4);
+        output.getContext("2d").drawImage(image, 0, 0, output.width, output.height);
+        const blob = await new Promise((resolve) => output.toBlob(resolve, "image/png"));
+        if (!blob) throw new Error("Could not encode the Cosmograph PNG export.");
+        const downloadUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = downloadUrl;
+        anchor.download = filename;
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
     } finally {
-        if (typeof instance.setConfigPartial === "function" && exportPixelRatio !== originalPixelRatio) {
-            await instance.setConfigPartial({ pixelRatio: originalPixelRatio });
-        }
+        URL.revokeObjectURL(url);
     }
     return true;
 }
@@ -485,7 +494,7 @@ function renderedRgba(colorBuffer, index, fallback) {
 // genuine SVG export (not a conversion of the WebGL canvas), so it stays crisp
 // when enlarged and includes the current camera position, projected links and
 // visible node/edge labels.
-async function exportSvg(filename = "network.svg") {
+async function buildSvgScene() {
     if (!instance || typeof instance.getCanvas !== "function" || typeof instance.spaceToScreenPosition !== "function") return false;
     const canvas = instance.getCanvas();
     const config = typeof instance.getConfig === "function" ? await instance.getConfig() : {};
@@ -564,9 +573,16 @@ async function exportSvg(filename = "network.svg") {
             + '" font-family="' + xmlEscape(style.fontFamily) + '" font-size="' + fontSize + '" font-weight="' + xmlEscape(style.fontWeight)
             + '">' + xmlEscape(element.textContent || '') + '</text></g>';
     }).join('');
-    downloadSvg(filename, '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height
+    const svg = '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height
         + '" viewBox="0 0 ' + width + ' ' + height + '"><defs>' + defs + '</defs><rect width="100%" height="100%" fill="' + xmlEscape(background) + '"/>'
-        + linkMarkup + nodes + labelMarkup + '</svg>');
+        + linkMarkup + nodes + labelMarkup + '</svg>';
+    return { svg, width, height };
+}
+
+async function exportSvg(filename = "network.svg") {
+    const scene = await buildSvgScene();
+    if (!scene) return false;
+    downloadSvg(filename, scene.svg);
     return true;
 }
 async function setFocusedSelection(nodeId, edgeId) {
