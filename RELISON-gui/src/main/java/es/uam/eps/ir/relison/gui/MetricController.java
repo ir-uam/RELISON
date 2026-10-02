@@ -17,6 +17,10 @@ import es.uam.eps.ir.relison.grid.sna.vertex.VertexMetricSelector;
 import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
 import es.uam.eps.ir.relison.sna.metrics.PairMetric;
 import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
+import es.uam.eps.ir.relison.sna.metrics.EdgeAttributeMetric;
+import es.uam.eps.ir.relison.sna.metrics.IndividualEdgeAttributeMetric;
+import es.uam.eps.ir.relison.sna.metrics.attributes.edges.graph.NumAttributes;
+import es.uam.eps.ir.relison.sna.metrics.attributes.edges.indiv.Count;
 import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
 import io.javalin.http.Context;
@@ -161,6 +165,61 @@ public class MetricController
         ctx.json(response);
     }
 
+    /** Computes one of the RELISON-SNA edge-attribute metrics for a declared edge attribute. */
+    public void edgeAttribute(Context ctx)
+    {
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        GraphSession session = requireSession(ctx, body);
+        if (session == null) return;
+
+        String attribute = body.get("attribute") == null ? "" : String.valueOf(body.get("attribute"));
+        if (attribute.isBlank() || session.getGraph().getEdgeAttributeType(attribute) == null)
+        {
+            ctx.status(400).json(Map.of("error", "Unknown edge attribute: " + attribute));
+            return;
+        }
+        String metricId = String.valueOf(body.get("metric"));
+        Graph<String> graph = session.getGraph();
+        try
+        {
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("attribute", attribute);
+            if ("num-attributes".equals(metricId))
+            {
+                EdgeAttributeMetric<String> metric = new NumAttributes<>();
+                double value = jobs.run(jobKey(body, "edgeAttributeGlobal"), () -> metric.compute(graph, attribute));
+                response.put("label", "Number of attribute values (" + attribute + ")");
+                response.put("value", value);
+            }
+            else if ("count".equals(metricId))
+            {
+                IndividualEdgeAttributeMetric<String> metric = new Count<>();
+                Map<Object, Double> values = jobs.run(jobKey(body, "edgeAttributeIndividual"), () -> metric.compute(graph, attribute));
+                Map<String, Double> out = new LinkedHashMap<>();
+                Map<String, String> valueLabels = new LinkedHashMap<>();
+                int index = 0;
+                for (Map.Entry<Object, Double> entry : values.entrySet())
+                {
+                    String id = Integer.toString(index++);
+                    out.put(id, entry.getValue());
+                    valueLabels.put(id, entry.getKey() == null ? "(missing)" : String.valueOf(entry.getKey()));
+                }
+                response.put("label", "Edge count by attribute value (" + attribute + ")");
+                response.put("values", out);
+                response.put("valueLabels", valueLabels);
+                response.put("average", out.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
+            }
+            else
+            {
+                ctx.status(400).json(Map.of("error", "Unknown edge attribute metric: " + metricId));
+                return;
+            }
+            response.put("metric", metricId);
+            ctx.json(response);
+        }
+        catch (JobCancelledException e) { ctx.json(Map.of("cancelled", true)); }
+        catch (Exception e) { ctx.status(500).json(Map.of("error", String.valueOf(e))); }
+    }
     /**
      * Handles {@code POST /api/metrics/pair}: computes a pair/edge metric. By default it is computed only over the
      * existing links ({@code computeOnlyLinks}); pass {@code onlyLinks:false} to summarise the metric over all node

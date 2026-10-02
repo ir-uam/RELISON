@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="style.css"/>
     <!-- graphology (graph model) + graphology-library (layouts/metrics helpers) + sigma (rendering). -->
     <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/graphology-library@0.7.0/dist/graphology-library.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/graphology-library@0.8.0/dist/graphology-library.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sigma@3.0.3/dist/sigma.min.js"></script>
     <!-- gif.js: client-side GIF encoding for the timeline animation export (worker loaded as a same-origin blob). -->
     <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
@@ -81,6 +81,7 @@
                 <select id="layout-type">
                     <option value="forceatlas2">ForceAtlas2 (animated)</option>
                     <option value="force">Force-directed (animated)</option>
+                    <option value="cosmograph-force" hidden>Cosmograph force (animated)</option>
                     <option value="circular">Circular</option>
                     <option value="circlepack">Circle packing</option>
                     <option value="random">Random</option>
@@ -107,11 +108,15 @@
             <h2>Nodes</h2>
             <label class="field">
                 <span>Size by</span>
-                <select id="size-by"><option value="">— degree (default) —</option></select>
+                <select id="size-by"><option value="">— uniform (default) —</option></select>
             </label>
-            <div class="params">
+            <div class="params" id="node-size-uniform-params">
+                <label><span>Size</span><input type="number" id="node-size-uniform" step="0.5" min="0" value="14"/></label>
+            </div>
+            <div class="params" id="node-size-range-params" hidden>
                 <label><span>Min size</span><input type="number" id="node-size-min" step="0.5" min="0" value="2"/></label>
                 <label><span>Max size</span><input type="number" id="node-size-max" step="0.5" min="0" value="14"/></label>
+                <label><span>Scale values</span><select id="node-size-scale"><option value="proportional">Proportional to value</option><option value="percentile">Percentile rank</option></select></label>
             </div>
             <label class="field">
                 <span>Colour by</span>
@@ -140,9 +145,13 @@
                 <span>Thickness by</span>
                 <select id="edge-size-by"><option value="">— uniform —</option></select>
             </label>
-            <div class="params">
+            <div class="params" id="edge-size-uniform-params">
+                <label><span>Thickness</span><input type="number" id="edge-size-uniform" step="0.5" min="0" value="0.5"/></label>
+            </div>
+            <div class="params" id="edge-size-range-params" hidden>
                 <label><span>Min thickness</span><input type="number" id="edge-size-min" step="0.5" min="0" value="0.5"/></label>
                 <label><span>Max thickness</span><input type="number" id="edge-size-max" step="0.5" min="0" value="6"/></label>
+                <label><span>Scale values</span><select id="edge-size-scale"><option value="proportional">Proportional to value</option><option value="percentile">Percentile rank</option></select></label>
             </div>
             <label class="field">
                 <span>Colour</span>
@@ -179,6 +188,17 @@
                 <select id="tl-edge-attr"><option value="">— none —</option></select>
             </label>
             <div id="tl-controls" hidden>
+                <label class="field">
+                    <span>Timeline mode</span>
+                    <select id="tl-mode">
+                        <option value="instant">Instant playback</option>
+                        <option value="range">Range exploration</option>
+                    </select>
+                </label>
+                <label class="field" id="tl-range-start-field" hidden>
+                    <span>Range start</span>
+                    <input type="number" id="tl-range-start" step="1"/>
+                </label>
                 <div class="tl-bar">
                     <button id="tl-step-back" title="Step to previous change">◀</button>
                     <button id="tl-play" title="Play / pause">▶</button>
@@ -246,6 +266,7 @@
         <section class="block">
             <h2>Export</h2>
             <button id="btn-export-png">Export network (PNG)</button>
+            <button id="btn-export-svg">Export network (SVG)</button>
             <button id="btn-export-gexf">Export graph (GEXF)</button>
         </section>
 
@@ -314,6 +335,37 @@
             <div class="params" id="indiv-comm-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="comm-rec"/> Include active recommendation</label>
             <button id="btn-indiv-comm" disabled>Run per-community metric</button>
+        </section>
+        <section class="block">
+            <h2>Attribute-based metrics</h2>
+            <p class="muted">Treat each distinct node-attribute value as a community.</p>
+            <label class="field">
+                <span>Node attribute</span>
+                <select id="attribute-comm-attribute"></select>
+            </label>
+            <span class="sublabel">Global attribute-based metric</span>
+            <select id="attribute-global-comm-metric"></select>
+            <div class="params" id="attribute-global-comm-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="attribute-global-comm-rec"/> Include active recommendation</label>
+            <button id="btn-attribute-global-comm" disabled>Run global metric</button>
+            <hr class="sep"/>
+            <span class="sublabel">Per-attribute-value metric</span>
+            <select id="attribute-indiv-comm-metric"></select>
+            <div class="params" id="attribute-indiv-comm-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="attribute-comm-rec"/> Include active recommendation</label>
+            <button id="btn-attribute-indiv-comm" disabled>Run per-value metric</button>
+        </section>
+        <section class="block">
+            <h2>Edge attribute metrics</h2>
+            <p class="muted">Compute metrics over values assigned to edges.</p>
+            <label class="field"><span>Edge attribute</span><select id="edge-attribute-metric-attribute"></select></label>
+            <span class="sublabel">Global metric</span>
+            <select id="edge-attribute-global-metric"><option value="num-attributes">Number of attribute values</option></select>
+            <button id="btn-edge-attribute-global" disabled>Run global metric</button>
+            <hr class="sep"/>
+            <span class="sublabel">Per-value metric</span>
+            <select id="edge-attribute-indiv-metric"><option value="count">Edge count</option></select>
+            <button id="btn-edge-attribute-indiv" disabled>Run per-value metric</button>
         </section>
         </div>
     </aside>
@@ -396,12 +448,18 @@
         <div class="tabpane" id="pane-network">
             <div id="sigma-container"></div>
             <canvas id="rec-overlay"></canvas>
+            <!-- Cosmograph is an experimental Network-tab renderer. Sigma remains the default and owns the app state. -->
+            <div id="cosmograph-container" hidden></div>
             <div id="node-legend" class="node-legend" hidden></div>
             <div id="empty-hint">Load an edge list to begin.</div>
             <div id="canvas-tools">
                 <button id="btn-zoom-in" class="canvas-btn" title="Zoom in">+</button>
                 <button id="btn-zoom-out" class="canvas-btn" title="Zoom out">−</button>
                 <button id="btn-zoom-fit" class="canvas-btn" title="Fit graph to view">⤢</button>
+                <label class="renderer-picker" title="Cosmograph is experimental and currently supports browsing and node selection only.">
+                    <span>Renderer</span>
+                    <select id="network-renderer"><option value="sigma">Sigma</option><option value="cosmograph">Cosmograph (experimental)</option></select>
+                </label>
             </div>
         </div>
 
@@ -506,6 +564,8 @@
                 <button class="subtab" data-subtab="edges">Edge metrics</button>
                 <button class="subtab" data-subtab="pairs">Node-pair metrics</button>
                 <button class="subtab" data-subtab="comm">Community metrics</button>
+                <button class="subtab" data-subtab="attrcomm">Attribute metrics</button>
+                <button class="subtab" data-subtab="edgeattr">Edge attribute metrics</button>
             </nav>
 
             <div class="subpane active" id="subpane-global">
@@ -594,6 +654,32 @@
                     </div>
                     <div class="chart-area"><canvas id="comm-scatter"></canvas><div class="chart-tip" id="comm-scatter-tip" hidden></div></div>
                 </div>
+            </div>
+            <div class="subpane" id="subpane-attrcomm">
+                <h2>Per-attribute-value metric averages</h2>
+                <div class="toolbar"><button id="btn-export-attrcomm-averages">Export CSV</button></div>
+                <table class="kv wide" id="attrcomm-averages-table"></table>
+                <p class="muted">Run a per-attribute-value metric from the Attribute-based metrics panel.</p>
+                <h2>Per-attribute-value metric distribution</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="attrcomm-chart-metric"></select></label>
+                    <label>Sort by <select id="attrcomm-chart-sort"></select></label>
+                    <button class="chart-dl" data-canvas="attrcomm-chart" data-file="attribute-metric-distribution.png">⬇ Download PNG</button>
+                </div>
+                <div class="chart-area"><canvas id="attrcomm-chart"></canvas><div class="chart-tip" id="attrcomm-chart-tip" hidden></div></div>
+            </div>
+            <div class="subpane" id="subpane-edgeattr">
+                <h2>Per-edge-attribute-value metric averages</h2>
+                <div class="toolbar"><button id="btn-export-edgeattr-averages">Export CSV</button></div>
+                <table class="kv wide" id="edgeattr-averages-table"></table>
+                <p class="muted">Run a per-value edge attribute metric from the left panel.</p>
+                <h2>Per-edge-attribute-value distribution</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="edgeattr-chart-metric"></select></label>
+                    <label>Sort by <select id="edgeattr-chart-sort"></select></label>
+                    <button class="chart-dl" data-canvas="edgeattr-chart" data-file="edge-attribute-metric-distribution.png">⬇ Download PNG</button>
+                </div>
+                <div class="chart-area"><canvas id="edgeattr-chart"></canvas><div class="chart-tip" id="edgeattr-chart-tip" hidden></div></div>
             </div>
         </div>
 
@@ -1084,7 +1170,15 @@
     <aside id="right" class="panel">
         <section class="block" id="selection-block">
             <h2>Selection</h2>
+            <div class="selection-context" aria-live="polite"><span class="selection-kind" id="selection-kind">Node</span><span class="selection-summary" id="selection-summary">Select a node to inspect it.</span></div>
             <label class="field">
+                <span>Selection</span>
+                <select id="select-type"><option value="node">Node</option><option value="edge">Edge</option></select>
+            </label>
+            <label class="field" id="select-edge-field" hidden>
+                <span>Edge</span>
+                <select id="select-edge-input"><option value="">— choose an edge —</option></select>
+            </label>            <label class="field" id="select-node-field">
                 <span>Node</span>
                 <input type="text" id="select-node-input" placeholder="type or click a node"/>
             </label>
@@ -1092,6 +1186,9 @@
                 <span>View mode</span>
                 <select id="select-mode">
                     <option value="highlight">Highlight node</option>
+                    <option value="edge-highlight" hidden>Highlight only edge</option>
+                    <option value="edge-attribute-highlight" hidden>Highlight matching edge attributes</option>
+                    <option value="edge-attribute-only" hidden>Show only matching edge attributes</option>
                     <option value="ego-highlight">Highlight ego-network</option>
                     <option value="ego-only">Show only ego-network</option>
                     <option value="community-highlight">Highlight community</option>
@@ -1099,11 +1196,16 @@
                     <option value="none">None (no emphasis)</option>
                 </select>
             </label>
+            <label class="field" id="select-edge-attribute-field" hidden><span>Edge attribute</span><select id="select-edge-attribute"></select></label>
             <label class="field" id="select-partition-field" hidden>
                 <span>Community partition</span>
                 <select id="select-partition"></select>
             </label>
             <table class="kv" id="node-info-table"><tr><td class="muted" colspan="2">No node selected.</td></tr></table>
+            <div id="edge-selection-details" hidden>
+                <span class="sublabel">Selected edge</span>
+                <div class="edge-preview" id="edge-preview"><span class="edge-endpoint" id="edge-source-preview">—</span><span class="edge-direction">→</span><span class="edge-endpoint" id="edge-target-preview">—</span></div>                <table class="kv" id="edge-info-table"><tr><td class="muted" colspan="2">No edge selected.</td></tr></table>
+            </div>
             <button id="btn-clear-selection">Clear selection</button>
         </section>
 
@@ -1112,5 +1214,6 @@
 
 <script src="pdf.js"></script>
 <script src="app.js"></script>
+<script type="module" src="cosmograph-spike.js"></script>
 </body>
 </html>

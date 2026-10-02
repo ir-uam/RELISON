@@ -134,6 +134,7 @@ public class GuiServer
             config.routes.post("/api/metrics/vertex", metricController::vertex);
             config.routes.post("/api/metrics/graph", metricController::graph);
             config.routes.post("/api/metrics/pair", metricController::pair);
+            config.routes.post("/api/metrics/edge-attributes", metricController::edgeAttribute);
 
             // Communities.
             config.routes.post("/api/communities", communityController::detect);
