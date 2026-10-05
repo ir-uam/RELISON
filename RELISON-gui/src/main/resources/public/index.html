@@ -13,6 +13,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sigma@3.0.3/dist/sigma.min.js"></script>
     <!-- gif.js: client-side GIF encoding for the timeline animation export (worker loaded as a same-origin blob). -->
     <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+    <!-- Apache ECharts for interactive metric and diffusion charts. -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
 </head>
 <body>
 <header id="topbar">
@@ -38,14 +40,36 @@
     <a id="docs-link" class="icon-btn" href="https://relison.readthedocs.io" target="_blank" rel="noopener" title="Documentation">❓</a>
     <button id="debug-terminal" class="icon-btn" title="Debug console (standard output / error)" hidden>&gt;_</button>
     <button id="theme-toggle" class="icon-btn" title="Toggle light/dark">🌙</button>
+    <span class="menu-wrap">
+        <button id="settings-button" class="icon-btn settings-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu" title="Appearance settings">⚙ Settings</button>
+<div id="settings-menu" class="menu menu-right settings-menu" role="dialog" aria-label="Appearance settings" hidden>
+            <label for="style-selector">Interface appearance</label>
+            <select id="style-selector">
+                <option value="modern-slate">Modern Slate</option>
+                <option value="classic">Classic</option>
+                <option value="quiet-light">Quiet Light</option>
+                <option value="graph-first-dark">Graph-first Dark</option>
+            </select>
+            <label for="chart-style-selector">Chart appearance</label>
+            <select id="chart-style-selector">
+                <option value="quiet-scientific">Quiet scientific</option>
+                <option value="vibrant-dashboard">Bold dashboard</option>
+                <option value="editorial">Editorial</option>
+                <option value="glass-panel">Glass panel</option>
+                <option value="monochrome-accent">Minimal</option>
+            </select>
+            <label for="chart-palette-selector">Chart colors</label>
+            <select id="chart-palette-selector">
+                <option value="balanced">Balanced</option>
+                <option value="vibrant">Vibrant</option>
+                <option value="editorial">Editorial</option>
+                <option value="glass">Glass</option>
+                <option value="monochrome">Monochrome with accents</option>
+            </select>
+        </div>
+    </span>
     <!-- <button id="inspector-toggle" class="icon-btn" title="Show or hide the selection inspector" aria-pressed="false" hidden>Inspector</button> -->
     <!-- <button id="focus-toggle" class="icon-btn" title="Reduce visual clutter while keeping every control available" aria-pressed="false">Focus</button> -->
-    <select id="style-selector" aria-label="Interface style">
-        <option value="modern-slate">Modern Slate</option>
-        <option value="classic">Classic</option>
-        <option value="quiet-light">Quiet Light</option>
-        <option value="graph-first-dark">Graph-first Dark</option>
-    </select>
 </header>
 
 <!-- Debug console: replaces the tabs + content (everything below the top bar) when toggled on; only available with --debug. -->
@@ -585,7 +609,7 @@
                     <label>Sort by <select id="node-chart-sort"></select></label>
                     <button class="chart-dl" data-canvas="node-chart" data-file="node-metric-distribution.png">⬇ Download PNG</button>
                 </div>
-                <div class="chart-area"><canvas id="node-chart"></canvas><div class="chart-tip" id="node-chart-tip" hidden></div></div>
+                <div class="chart-area"><div id="node-chart" class="echarts-chart"></div></div>
                 <div class="rec-scatter-block" id="node-scatter-block" hidden>
                     <h2>Original vs recommendation</h2>
                     <div class="chart-controls">
@@ -593,7 +617,7 @@
                         <label>Recommendation <select id="node-scatter-rec"></select></label>
                         <button class="chart-dl" data-canvas="node-scatter" data-file="node-original-vs-recommendation.png">⬇ Download PNG</button>
                     </div>
-                    <div class="chart-area"><canvas id="node-scatter"></canvas><div class="chart-tip" id="node-scatter-tip" hidden></div></div>
+                    <div class="chart-area"><div id="node-scatter" class="echarts-chart"></div></div>
                 </div>
             </div>
 
@@ -607,7 +631,7 @@
                     <label>Sort by <select id="edge-chart-sort"></select></label>
                     <button class="chart-dl" data-canvas="edge-chart" data-file="edge-metric-distribution.png">⬇ Download PNG</button>
                 </div>
-                <div class="chart-area"><canvas id="edge-chart"></canvas><div class="chart-tip" id="edge-chart-tip" hidden></div></div>
+                <div class="chart-area"><div id="edge-chart" class="echarts-chart"></div></div>
                 <div class="rec-scatter-block" id="edge-scatter-block" hidden>
                     <h2>Original vs recommendation</h2>
                     <div class="chart-controls">
@@ -615,7 +639,7 @@
                         <label>Recommendation <select id="edge-scatter-rec"></select></label>
                         <button class="chart-dl" data-canvas="edge-scatter" data-file="edge-original-vs-recommendation.png">⬇ Download PNG</button>
                     </div>
-                    <div class="chart-area"><canvas id="edge-scatter"></canvas><div class="chart-tip" id="edge-scatter-tip" hidden></div></div>
+                    <div class="chart-area"><div id="edge-scatter" class="echarts-chart"></div></div>
                 </div>
             </div>
 
@@ -629,7 +653,7 @@
                     <label>Metric <select id="pair-chart-metric"></select></label>
                     <button class="chart-dl" data-canvas="pair-chart" data-file="node-pair-metric-distribution.png">⬇ Download PNG</button>
                 </div>
-                <div class="chart-area"><canvas id="pair-chart"></canvas><div class="chart-tip" id="pair-chart-tip" hidden></div></div>
+                <div class="chart-area histogram-chart"><div id="pair-chart" class="echarts-chart"></div></div>
                 <p class="muted" id="pair-chart-note"></p>
             </div>
 
@@ -644,7 +668,7 @@
                     <label>Sort by <select id="comm-chart-sort"></select></label>
                     <button class="chart-dl" data-canvas="comm-chart" data-file="community-metric-distribution.png">⬇ Download PNG</button>
                 </div>
-                <div class="chart-area"><canvas id="comm-chart"></canvas><div class="chart-tip" id="comm-chart-tip" hidden></div></div>
+                <div class="chart-area"><div id="comm-chart" class="echarts-chart"></div></div>
                 <div class="rec-scatter-block" id="comm-scatter-block" hidden>
                     <h2>Original vs recommendation</h2>
                     <div class="chart-controls">
@@ -652,7 +676,7 @@
                         <label>Recommendation <select id="comm-scatter-rec"></select></label>
                         <button class="chart-dl" data-canvas="comm-scatter" data-file="community-original-vs-recommendation.png">⬇ Download PNG</button>
                     </div>
-                    <div class="chart-area"><canvas id="comm-scatter"></canvas><div class="chart-tip" id="comm-scatter-tip" hidden></div></div>
+                    <div class="chart-area"><div id="comm-scatter" class="echarts-chart"></div></div>
                 </div>
             </div>
             <div class="subpane" id="subpane-attrcomm">
@@ -666,7 +690,7 @@
                     <label>Sort by <select id="attrcomm-chart-sort"></select></label>
                     <button class="chart-dl" data-canvas="attrcomm-chart" data-file="attribute-metric-distribution.png">⬇ Download PNG</button>
                 </div>
-                <div class="chart-area"><canvas id="attrcomm-chart"></canvas><div class="chart-tip" id="attrcomm-chart-tip" hidden></div></div>
+                <div class="chart-area"><div id="attrcomm-chart" class="echarts-chart"></div></div>
             </div>
             <div class="subpane" id="subpane-edgeattr">
                 <h2>Per-edge-attribute-value metric averages</h2>
@@ -679,7 +703,7 @@
                     <label>Sort by <select id="edgeattr-chart-sort"></select></label>
                     <button class="chart-dl" data-canvas="edgeattr-chart" data-file="edge-attribute-metric-distribution.png">⬇ Download PNG</button>
                 </div>
-                <div class="chart-area"><canvas id="edgeattr-chart"></canvas><div class="chart-tip" id="edgeattr-chart-tip" hidden></div></div>
+                <div class="chart-area"><div id="edgeattr-chart" class="echarts-chart"></div></div>
             </div>
         </div>
 
@@ -936,8 +960,7 @@
                                     <button id="btn-diff-traj-png" class="chart-dl">⬇ Download PNG</button>
                                 </div>
                                 <p class="muted" id="diff-traj-hint">Run a simulation and select a node to see how its information exposure evolves.</p>
-                                <div class="chart-area" id="diff-traj-area"><canvas id="diff-traj-canvas"></canvas></div>
-                                <div class="chart-tip" id="diff-traj-tip" hidden></div>
+                                <div class="chart-area" id="diff-traj-area"><div id="diff-traj-canvas" class="echarts-chart"></div></div>
                             </div>
                         </div>
                         <div class="diff-stats-view" id="diff-stats-view-piece" hidden>
@@ -963,7 +986,7 @@
                                     <button id="btn-diff-ptraj-png" class="chart-dl">⬇ Download PNG</button>
                                 </div>
                                 <p class="muted" id="diff-ptraj-hint">Run a simulation and choose an information piece to see how many users receive / read / propagate / discard it over the iterations.</p>
-                                <div class="chart-area" id="diff-ptraj-area"><canvas id="diff-ptraj-canvas"></canvas></div>
+                                <div class="chart-area" id="diff-ptraj-area"><div id="diff-ptraj-canvas" class="echarts-chart"></div></div>
                             </div>
                         </div>
                         <div class="diff-stats-view" id="diff-stats-view-feat" hidden>
@@ -992,7 +1015,7 @@
                                     <button id="btn-diff-ftraj-png" class="chart-dl">⬇ Download PNG</button>
                                 </div>
                                 <p class="muted" id="diff-ftraj-hint">Run a simulation and choose a feature to see how its values spread across the network over the iterations.</p>
-                                <div class="chart-area" id="diff-ftraj-area"><canvas id="diff-ftraj-canvas"></canvas></div>
+                                <div class="chart-area" id="diff-ftraj-area"><div id="diff-ftraj-canvas" class="echarts-chart"></div></div>
                             </div>
                             </div>
                             <div class="diff-stats-view" id="diff-stats-view-dist" hidden>
@@ -1009,7 +1032,7 @@
                                     <button id="btn-diff-dist-png" class="chart-dl">⬇ Download PNG</button>
                                 </div>
                                 <p class="muted" id="diff-dist-hint">Run a simulation to see how received information distributes across feature values (over the whole simulation).</p>
-                                <div class="chart-area" id="diff-dist-area"><canvas id="diff-dist-canvas"></canvas><div class="chart-tip" id="diff-dist-tip" hidden></div></div>
+                                <div class="chart-area" id="diff-dist-area"><div id="diff-dist-canvas" class="echarts-chart"></div></div>
                             </div>
                             </div>
                           </div>
@@ -1213,6 +1236,9 @@
 </main>
 
 <script src="pdf.js"></script>
+<script src="metric-charts.js"></script>
+<script src="diffusion-charts.js"></script>
+<script src="chart-settings.js"></script>
 <script src="app.js"></script>
 <script type="module" src="cosmograph-spike.js"></script>
 </body>

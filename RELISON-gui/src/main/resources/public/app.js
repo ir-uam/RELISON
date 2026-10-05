@@ -4110,210 +4110,38 @@ function setupMenu(buttonId, menuId, onSelect) {
         item.addEventListener("click", () => { close(); onSelect(item.dataset.act); }));
 }
 
+function setupSettingsMenu() {
+    const btn = $("settings-button"), menu = $("settings-menu");
+    if (!btn || !menu) return;
+    const onOutside = (e) => { if (!menu.contains(e.target) && !btn.contains(e.target)) close(); };
+    const onKey = (e) => {
+        if (e.key !== "Escape") return;
+        close();
+        btn.focus();
+        e.preventDefault();
+    };
+    function close() {
+        menu.hidden = true;
+        btn.setAttribute("aria-expanded", "false");
+        document.removeEventListener("mousedown", onOutside, true);
+        document.removeEventListener("keydown", onKey, true);
+    }
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!menu.hidden) { close(); return; }
+        menu.hidden = false;
+        btn.setAttribute("aria-expanded", "true");
+        document.addEventListener("mousedown", onOutside, true);
+        document.addEventListener("keydown", onKey, true);
+    });
+}
+
 function setSelectOptions(id, values, labels) {
     const select = $(id);
     const current = select.value;
     select.innerHTML = "";
     values.forEach((v, i) => select.appendChild(option(v, labels[i])));
     if (values.includes(current)) select.value = current;
-}
-
-/* ------------------------------- charts ----------------------------- */
-
-function drawNodeChart() {
-    const metric = $("node-chart-metric").value;
-    if (!state.graph || !metric || !state.metricData[metric]) { clearChart("node-chart"); return; }
-    const sortBy = $("node-chart-sort").value;
-    const values = state.metricData[metric];
-    let nodes = state.graph.nodes().slice();
-    if (sortBy === "id") nodes.sort((a, b) => Number(a) - Number(b));
-    else {
-        const sv = state.metricData[sortBy] || values;
-        nodes.sort((a, b) => (sv[b] ?? 0) - (sv[a] ?? 0));
-    }
-    const items = nodes.map((n) => ({ label: n, value: values[n] ?? 0 }));
-    drawBarChart("node-chart", "node-chart-tip", items, metric, "nodes", metric);
-}
-
-function drawEdgeChart() {
-    const metric = $("edge-chart-metric").value;
-    if (!state.graph || !metric || !state.pairData[metric]) { clearChart("edge-chart"); return; }
-    const sortBy = $("edge-chart-sort").value;
-    const data = state.pairData[metric];
-    const g = state.graph;
-    let edges = g.edges().slice().filter((e) => data[pairKey(g.source(e), g.target(e))] !== undefined);
-    const valOf = (e) => data[pairKey(g.source(e), g.target(e))] ?? 0;
-    if (sortBy === "pair") {
-        edges.sort((a, b) => Number(g.source(a)) - Number(g.source(b)) || Number(g.target(a)) - Number(g.target(b)));
-    } else {
-        const sd = state.pairData[sortBy] || data;
-        const sv = (e) => sd[pairKey(g.source(e), g.target(e))] ?? 0;
-        edges.sort((a, b) => sv(b) - sv(a));
-    }
-    const items = edges.map((e) => ({ label: g.source(e) + "→" + g.target(e), value: valOf(e) }));
-    drawBarChart("edge-chart", "edge-chart-tip", items, metric, "edges (source→target)", metric);
-}
-
-// The node-pair distribution is a histogram of the streamed aggregate (exact or sampled), so it scales to any N.
-function drawPairChart() {
-    const metric = $("pair-chart-metric").value;
-    const agg = state.nodePairAgg[metric];
-    if (!metric || !agg || !agg.histogram) { clearChart("pair-chart"); $("pair-chart-note").textContent = ""; return; }
-    const items = agg.histogram.map((b) => ({ label: fmt(b.x0) + "–" + fmt(b.x1), value: b.count }));
-    drawBarChart("pair-chart", "pair-chart-tip", items, metric + " — value distribution", "value", "count");
-    const parts = [];
-    parts.push(agg.estimated
-        ? "Estimated from " + agg.evaluated.toLocaleString() + " sampled pairs of " + agg.totalPairs.toLocaleString() + " total."
-        : "Exact over " + agg.totalPairs.toLocaleString() + " pairs.");
-    if (agg.infinite) parts.push(agg.infinite.toLocaleString() + " pairs had no finite value (excluded).");
-    parts.push("min " + fmt(agg.min) + ", max " + fmt(agg.max) + ".");
-    $("pair-chart-note").textContent = parts.join(" ");
-}
-
-function drawCommChart() {
-    const metric = $("comm-chart-metric").value;
-    const entry = state.commMetricData[metric];
-    if (!metric || !entry) { clearChart("comm-chart"); return; }
-    const values = entry.values;
-    const sortBy = $("comm-chart-sort").value;
-    let comms = Object.keys(values);
-    if (sortBy === "community") {
-        comms.sort((a, b) => Number(a) - Number(b));
-    } else {
-        const sv = state.commMetricData[sortBy]?.values || values;
-        comms.sort((a, b) => (sv[b] ?? 0) - (sv[a] ?? 0));
-    }
-    const items = comms.map((c) => ({ label: "community " + c, value: values[c] ?? 0 }));
-    drawBarChart("comm-chart", "comm-chart-tip", items, metric, "communities", metric);
-}
-
-function drawAttributeCommChart() {
-    const metric = $("attrcomm-chart-metric").value;
-    const entry = state.attributeMetricData[metric];
-    if (!metric || !entry) { clearChart("attrcomm-chart"); return; }
-    const values = entry.values;
-    const labels = entry.valueLabels || {};
-    const sortBy = $("attrcomm-chart-sort").value;
-    let ids = Object.keys(values);
-    if (sortBy === "attribute") {
-        ids.sort((a, b) => String(labels[a] ?? a).localeCompare(String(labels[b] ?? b), undefined, { numeric: true }));
-    } else {
-        const compared = state.attributeMetricData[sortBy]?.values || values;
-        ids.sort((a, b) => (compared[b] ?? 0) - (compared[a] ?? 0));
-    }
-    const items = ids.map((id) => ({ label: String(labels[id] ?? id), value: values[id] ?? 0 }));
-    drawBarChart("attrcomm-chart", "attrcomm-chart-tip", items, metric, "attribute values", metric);
-}
-function drawEdgeAttributeChart() {
-    const metric = $("edgeattr-chart-metric").value;
-    const entry = state.edgeAttributeMetricData[metric];
-    if (!metric || !entry) { clearChart("edgeattr-chart"); return; }
-    const values = entry.values, labels = entry.valueLabels || {};
-    const sortBy = $("edgeattr-chart-sort").value;
-    const ids = Object.keys(values);
-    if (sortBy === "attribute") ids.sort((a, b) => String(labels[a] ?? a).localeCompare(String(labels[b] ?? b), undefined, { numeric: true }));
-    else { const compared = state.edgeAttributeMetricData[sortBy]?.values || values; ids.sort((a, b) => (compared[b] ?? 0) - (compared[a] ?? 0)); }
-    drawBarChart("edgeattr-chart", "edgeattr-chart-tip", ids.map((id) => ({ label: String(labels[id] ?? id), value: values[id] ?? 0 })), metric, "edge attribute values", metric);
-}
-function clearChart(canvasId) {
-    const canvas = $(canvasId);
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-// Shared chart typography: axis titles at 12px, tick labels at 10px (see drawBarChart / drawScatter / drawMultiLineChart).
-const AXIS_TITLE_FONT = "12px sans-serif";
-const AXIS_LABEL_FONT = "10px sans-serif";
-
-function drawBarChart(canvasId, tipId, items, title, xLabel, yLabel) {
-    const canvas = $(canvasId);
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-
-    // Extra padding for the axis titles when present (room so the rotated y title clears the tick labels).
-    const padL = 58 + (yLabel ? 18 : 0);
-    const padR = 14;
-    const padT = 18;
-    const padB = 28 + (xLabel ? 18 : 0);
-    const plotW = W - padL - padR, plotH = H - padT - padB;
-
-    const values = items.map((d) => d.value);
-    let max = Math.max(0, ...values), min = Math.min(0, ...values);
-    if (max === min) max = min + 1;
-
-    const colText = cssVar("--text", "#e6e6e6");
-    const colMuted = cssVar("--muted", "#9aa0a6");
-    const colBorder = cssVar("--border", "#333");
-    const colBar = cssVar("--accent", "#4f9dff");
-
-    // Axes.
-    const yOf = (v) => padT + plotH - ((v - min) / (max - min)) * plotH;
-    ctx.strokeStyle = colMuted;
-    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
-    ctx.font = AXIS_LABEL_FONT; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (let g = 0; g <= 4; g++) {
-        const val = min + ((max - min) * g) / 4;
-        const y = yOf(val);
-        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), padL - 6, y);
-        ctx.strokeStyle = colBorder; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
-    }
-    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT; ctx.fillText(title + "  (n=" + items.length + ")", padL, 12);
-
-    // Axis titles.
-    if (xLabel) {
-        ctx.textAlign = "center";
-        ctx.fillText(xLabel, padL + plotW / 2, H - 5);
-        ctx.textAlign = "start";
-    }
-    if (yLabel) {
-        ctx.save();
-        ctx.translate(14, padT + plotH / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.textAlign = "center";
-        ctx.fillText(yLabel, 0, 0);
-        ctx.restore();
-    }
-
-    // Bars.
-    const n = items.length || 1;
-    const bw = plotW / n;
-    const zeroY = yOf(0);
-    const bars = [];
-    for (let i = 0; i < items.length; i++) {
-        const v = items[i].value;
-        const x = padL + i * bw;
-        const y = yOf(v);
-        const h = Math.abs(zeroY - y);
-        ctx.fillStyle = colBar;
-        ctx.fillRect(x, Math.min(y, zeroY), Math.max(1, bw - (bw > 3 ? 1 : 0)), Math.max(1, h));
-        bars.push({ x, w: bw, label: items[i].label, value: v });
-    }
-
-    // Hover tooltip.
-    const tip = $(tipId);
-    canvas.onmousemove = (ev) => {
-        const r = canvas.getBoundingClientRect();
-        const mx = ev.clientX - r.left;
-        const idx = Math.floor((mx - padL) / bw);
-        if (idx >= 0 && idx < bars.length) {
-            const b = bars[idx];
-            tip.hidden = false;
-            tip.style.left = (b.x + bw / 2) + "px";
-            tip.style.top = (ev.clientY - r.top) + "px";
-            tip.textContent = b.label + ": " + fmt(b.value);
-        } else {
-            tip.hidden = true;
-        }
-    };
-    canvas.onmouseleave = () => { tip.hidden = true; };
-    capturePlot(canvas, title);
 }
 
 /* ------------------------------ exports ----------------------------- */
@@ -4418,16 +4246,14 @@ function cssVar(name, fallback) {
 }
 
 // Downloads a chart canvas as a PNG, compositing it over the panel background so the (transparent) plot is legible.
-function downloadChartPng(canvas, filename) {
-    if (typeof canvas === "string") canvas = $(canvas);
-    if (!canvas || !canvas.width || !canvas.height) { setStatus("Nothing to download yet — draw the chart first.", "error"); return; }
-    const out = document.createElement("canvas");
-    out.width = canvas.width; out.height = canvas.height;
-    const ctx = out.getContext("2d");
-    ctx.fillStyle = cssVar("--panel-2", "#1e1f23");
-    ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(canvas, 0, 0);
-    out.toBlob((blob) => download(filename || "chart.png", blob, "image/png"), "image/png");
+function downloadChartPng(chartId, filename) {
+    const chart = typeof chartId === "string" ? ECHARTS.get(chartId)
+        : (chartId && typeof chartId.getDataURL === "function" ? chartId : ECHARTS.get(chartId?.id));
+    if (!chart || chart.isDisposed() || !chart.getWidth() || !chart.getHeight()) {
+        setStatus("Nothing to download yet — draw the chart first.", "error"); return;
+    }
+    const url = chart.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: echartColors().background, excludeComponents: ["dataZoom"] });
+    fetch(url).then((response) => response.blob()).then((blob) => download(filename || "chart.png", blob, "image/png"));
 }
 
 function exportGlobalCsv() {
@@ -4656,22 +4482,15 @@ function recEvalReportData() {
     return { headers, rows, meta, note };
 }
 
-// A single chart canvas → PNG data URI, composited over the panel background (so light-on-dark text stays legible
-// however the report page itself is themed).
-function chartToDataUrl(canvas) {
-    if (!canvas || !canvas.width || !canvas.height) return null;
-    const out = document.createElement("canvas");
-    out.width = canvas.width; out.height = canvas.height;
-    const ctx = out.getContext("2d");
-    ctx.fillStyle = cssVar("--panel-2", "#1e1f23");
-    ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(canvas, 0, 0);
-    return out.toDataURL("image/png");
+// Captures a high-resolution ECharts PNG over the current opaque panel color for HTML/PDF reports.
+function chartToDataUrl(chart) {
+    if (!chart || chart.isDisposed() || !chart.getWidth() || !chart.getHeight()) return null;
+    return chart.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: echartColors().background, excludeComponents: ["dataZoom"] });
 }
 
 // The report section a chart belongs to, inferred from its canvas id.
-function plotSection(canvas) {
-    const id = (canvas && canvas.id) || "";
+function plotSection(chart) {
+    const id = (chart?.getDom() && chart.getDom().id) || "";
     if (id.startsWith("node-")) return "Vertex metrics";
     if (id.startsWith("edge-")) return "Link metrics";
     if (id.startsWith("pair-")) return "Node-pair metrics";
@@ -4683,12 +4502,12 @@ function plotSection(canvas) {
 // Records a chart as it is drawn, so the report can include every plot generated during the session. Keyed by
 // canvas + title so redraws of the same plot overwrite (latest kept) while different selections stay distinct.
 // Blank / zero-size canvases (a chart that was never actually shown) are ignored.
-function capturePlot(canvas, title) {
-    if (!canvas || !state.graph || !state.reportPlots) return;
-    const url = chartToDataUrl(canvas);
+function capturePlot(chart, title) {
+    if (!chart || !state.graph || !state.reportPlots) return;
+    const url = chartToDataUrl(chart);
     if (!url) return;
-    const key = (canvas.id || "chart") + "::" + (title || "");
-    state.reportPlots.set(key, { section: plotSection(canvas), title: title || "chart", url });
+    const key = (chart.getDom().id || "chart") + "::" + (title || "");
+    state.reportPlots.set(key, { section: plotSection(chart), title: title || "chart", url });
 }
 
 // Snapshots the network (sigma's WebGL layers must be read inside an afterRender pass, as in exportPng).
@@ -5192,7 +5011,10 @@ function applyTheme(theme) {
     $("theme-toggle").textContent = light ? "☀️" : "🌙";
     applyLogo(!light);
     try { localStorage.setItem("relison-theme", theme); } catch (e) { /* ignore */ }
-    // Charts are drawn imperatively, so re-render the visible one with the new palette.
+    redrawVisibleCharts();
+}
+
+function redrawVisibleCharts() {
     if (state.activeTab === "metrics") {
         if (state.activeSubtab === "nodes") { drawNodeChart(); drawNodeScatter(); }
         if (state.activeSubtab === "edges") { drawEdgeChart(); drawEdgeScatter(); }
@@ -5200,6 +5022,15 @@ function applyTheme(theme) {
         if (state.activeSubtab === "comm") { drawCommChart(); drawCommScatter(); }
     if (state.activeSubtab === "attrcomm") drawAttributeCommChart();
     if (state.activeSubtab === "edgeattr") drawEdgeAttributeChart();
+    }
+    if (state.activeTab === "diffusion") {
+        if (state.diffusion.subview === "metrics") renderDiffMetrics();
+        else if (state.diffusion.subview === "stats") {
+            if (state.diffusion.statsView === "node" && state.diffusion.traj) drawTrajectoryChart();
+            if (state.diffusion.statsView === "piece" && state.diffusion.ptraj) drawPieceTimeline();
+            if (state.diffusion.statsView === "feat" && state.diffusion.ftraj) drawFeatureTimeline();
+            if (state.diffusion.statsView === "dist" && state.diffusion.dist) drawDistribution();
+        }
     }
 }
 
@@ -5210,7 +5041,7 @@ function toggleTheme() {
 /* ------------------------------ debug console ----------------------------- */
 function applyVisualStyle(style) { const modern = style !== "classic"; document.body.classList.toggle("modern-slate", modern); document.body.classList.toggle("classic", !modern); $("style-selector").value = modern ? "modern-slate" : "classic"; try { localStorage.setItem("relison-visual-style", modern ? "modern-slate" : "classic"); } catch (e) { /* ignore */ } }
 //function applyFocusMode(enabled) { document.body.classList.toggle("focus-mode", enabled); if (!enabled) document.body.classList.remove("inspector-open"); $("focus-toggle").classList.toggle("active", enabled); $("focus-toggle").setAttribute("aria-pressed", String(enabled)); $("focus-toggle").textContent = enabled ? "Focus on" : "Focus"; toggleHidden("inspector-toggle", !enabled); if (!enabled) { $("inspector-toggle").classList.remove("active"); $("inspector-toggle").setAttribute("aria-pressed", "false"); } try { localStorage.setItem("relison-focus-mode", enabled ? "on" : "off"); } catch (e) { /* ignore */ } setTimeout(() => { if (state.renderer) { state.renderer.refresh(); drawRecOverlay(); } if (state.diffusion.renderer) { state.diffusion.renderer.refresh(); drawDiffOverlay(); } }, 0); }
-function applyExtendedVisualStyle(style) { const valid = ["classic", "modern-slate", "quiet-light", "graph-first-dark"]; const next = valid.includes(style) ? style : "modern-slate"; document.body.classList.remove(...valid); document.body.classList.add(next); $("style-selector").value = next; try { localStorage.setItem("relison-visual-style", next); } catch (e) { /* ignore */ } }
+function applyExtendedVisualStyle(style) { const valid = ["classic", "modern-slate", "quiet-light", "graph-first-dark"]; const next = valid.includes(style) ? style : "modern-slate"; document.body.classList.remove(...valid); document.body.classList.add(next); $("style-selector").value = next; try { localStorage.setItem("relison-visual-style", next); } catch (e) { /* ignore */ } setTimeout(() => applyTheme(document.body.classList.contains("light") ? "light" : "dark"), 0); }
 // Available only when the server was launched with --debug. The button reveals a terminal-like overlay that mirrors
 //function toggleFocusMode() { applyFocusMode(!document.body.classList.contains("focus-mode")); }
 // the server's standard output / error (polled incrementally from /api/logs), replacing everything below the top bar.
@@ -5942,110 +5773,6 @@ function storeRecMetric(family, label, value) {
     const fam = state.recMetricData[family];
     if (!fam[label]) fam[label] = {};
     fam[label][state.rec.active] = value;
-}
-
-/* ------------------------------ scatterplots ------------------------------ */
-
-function drawNodeScatter() {
-    const metric = $("node-scatter-metric").value, recKey = $("node-scatter-rec").value;
-    const orig = state.metricData[metric], rmap = state.recMetricData.vertex?.[metric]?.[recKey];
-    if (!metric || !recKey || !orig || !rmap) { clearChart("node-scatter"); return; }
-    const points = Object.keys(orig).filter((n) => rmap[n] !== undefined).map((n) => ({ label: n, x: orig[n], y: rmap[n] }));
-    drawScatter("node-scatter", "node-scatter-tip", points, metric + " — original vs " + recLabel(recKey), "original", "recommendation");
-}
-
-function drawEdgeScatter() {
-    const metric = $("edge-scatter-metric").value, recKey = $("edge-scatter-rec").value;
-    const orig = state.pairData[metric], rmap = state.recMetricData.pair?.[metric]?.[recKey];
-    if (!metric || !recKey || !orig || !rmap) { clearChart("edge-scatter"); return; }
-    const points = Object.keys(orig).filter((k) => rmap[k] !== undefined)
-        .map((k) => ({ label: k.replace("|", "→"), x: orig[k], y: rmap[k] }));
-    drawScatter("edge-scatter", "edge-scatter-tip", points, metric + " — original vs " + recLabel(recKey), "original", "recommendation");
-}
-
-function drawCommScatter() {
-    const metric = $("comm-scatter-metric").value, recKey = $("comm-scatter-rec").value;
-    const entry = state.commMetricData[metric], rmap = state.recMetricData.comm?.[metric]?.[recKey];
-    if (!metric || !recKey || !entry || !rmap) { clearChart("comm-scatter"); return; }
-    const orig = entry.values;
-    const points = Object.keys(orig).filter((c) => rmap[c] !== undefined)
-        .map((c) => ({ label: "community " + c, x: orig[c], y: rmap[c] }));
-    drawScatter("comm-scatter", "comm-scatter-tip", points, metric + " — original vs " + recLabel(recKey), "original", "recommendation");
-}
-
-// Draws a scatter of (original, recommendation) values with a y=x reference line; shares the chart palette.
-function drawScatter(canvasId, tipId, points, title, xLabel, yLabel) {
-    const canvas = $(canvasId);
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    if (!points.length) return;
-
-    const padL = 64, padR = 14, padT = 18, padB = 46;
-    const plotW = W - padL - padR, plotH = H - padT - padB;
-    let lo = Infinity, hi = -Infinity;
-    for (const p of points) { lo = Math.min(lo, p.x, p.y); hi = Math.max(hi, p.x, p.y); }
-    if (hi === lo) hi = lo + 1;
-
-    const colText = cssVar("--text", "#e6e6e6"), colMuted = cssVar("--muted", "#9aa0a6");
-    const colBorder = cssVar("--border", "#333"), colDot = cssVar("--accent", "#4f9dff");
-    const xOf = (v) => padL + ((v - lo) / (hi - lo)) * plotW;
-    const yOf = (v) => padT + plotH - ((v - lo) / (hi - lo)) * plotH;
-
-    ctx.strokeStyle = colMuted;
-    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
-    ctx.font = AXIS_LABEL_FONT; ctx.fillStyle = colMuted;
-    for (let i = 0; i <= 4; i++) {
-        const val = lo + ((hi - lo) * i) / 4;
-        const y = yOf(val);
-        ctx.fillStyle = colMuted; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-        ctx.fillText(fmt(val), padL - 6, y);
-        ctx.strokeStyle = colBorder; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
-        ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), xOf(val), padT + plotH + 14);
-    }
-    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
-
-    // y = x reference line.
-    ctx.strokeStyle = colMuted; ctx.setLineDash([4, 4]);
-    ctx.beginPath(); ctx.moveTo(xOf(lo), yOf(lo)); ctx.lineTo(xOf(hi), yOf(hi)); ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT;
-    ctx.fillText(title + "  (n=" + points.length + ")", padL, 12);
-    ctx.textAlign = "center"; ctx.fillText(xLabel, padL + plotW / 2, H - 5);
-    ctx.save(); ctx.translate(14, padT + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(yLabel, 0, 0); ctx.restore();
-    ctx.textAlign = "start";
-
-    ctx.fillStyle = colDot;
-    const dots = [];
-    for (const p of points) {
-        const x = xOf(p.x), y = yOf(p.y);
-        ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 2 * Math.PI); ctx.fill();
-        dots.push({ x, y, label: p.label, px: p.x, py: p.y });
-    }
-
-    const tip = $(tipId);
-    canvas.onmousemove = (ev) => {
-        const r = canvas.getBoundingClientRect();
-        const mx = ev.clientX - r.left, my = ev.clientY - r.top;
-        let best = null, bd = 1e9;
-        for (const d of dots) { const dd = (d.x - mx) ** 2 + (d.y - my) ** 2; if (dd < bd) { bd = dd; best = d; } }
-        if (best && bd < 120) {
-            tip.hidden = false;
-            tip.style.left = best.x + "px";
-            tip.style.top = best.y + "px";
-            tip.textContent = best.label + ": " + fmt(best.px) + " → " + fmt(best.py);
-        } else { tip.hidden = true; }
-    };
-    canvas.onmouseleave = () => { tip.hidden = true; };
-    capturePlot(canvas, title);
 }
 
 /* ------------------------ information diffusion ------------------------ */
@@ -7902,706 +7629,6 @@ function downloadPiecesCsv() {
     download("information-pieces.tsv", lines.join("\n"), "text/tab-separated-values");
 }
 
-/* --------------------------- diffusion metrics --------------------------- */
-
-// The union of metrics computed across all accumulated runs, in first-seen order.
-function diffMetricUnion() {
-    const seen = new Map();
-    for (const run of state.diffusion.runs) {
-        for (const m of run.metrics) if (!seen.has(m.id)) seen.set(m.id, m.label);
-    }
-    return Array.from(seen, ([id, label]) => ({ id, label }));
-}
-
-function populateDiffMetricSelect() {
-    const items = diffMetricUnion();
-    const sel = $("diffmetric-select");
-    const prev = sel.value;
-    sel.innerHTML = "";
-    items.forEach((m) => sel.appendChild(option(m.id, m.label)));
-    if (prev && items.some((m) => m.id === prev)) sel.value = prev;
-}
-
-function renderDiffMetrics() {
-    const container = $("diffmetrics-charts");
-    if (!container) return;
-    container.innerHTML = "";
-    const runs = state.diffusion.runs;
-    if (!runs.length) {
-        $("diffmetrics-hint").textContent = "Run a simulation (with metrics selected) to see plots over iterations.";
-        renderDiffRuns();
-        return;
-    }
-    $("diffmetrics-hint").textContent = "";
-    renderDiffRuns();
-    const sel = $("diffmetric-select");
-    const union = diffMetricUnion();
-    const chosen = union.find((m) => m.id === sel.value) || union[0];
-    if (!chosen) return;
-
-    // One line per run that computed the chosen metric, coloured by run and labelled with its protocol.
-    const series = [];
-    runs.forEach((run, idx) => {
-        const m = run.metrics.find((x) => x.id === chosen.id);
-        if (m) series.push({ name: run.label, values: m.values, color: SERIES_COLORS[idx % SERIES_COLORS.length] });
-    });
-    if (!series.length) return;
-
-    const title = document.createElement("h2");
-    title.textContent = chosen.label;
-    const area = document.createElement("div");
-    area.className = "chart-area";
-    area.style.height = "320px";
-    const canvas = document.createElement("canvas");
-    canvas.id = "diff-metrics-chart";   // stable id so the report groups it under Diffusion (keyed by the metric label)
-    area.appendChild(canvas);
-    container.appendChild(title);
-    container.appendChild(area);
-    drawMultiLineChart(canvas, series, chosen.label, false);   // legend omitted — see the runs list below
-}
-
-// The accumulated runs, each with its plot colour, label and (on hover) full configuration; ✕ removes a run from
-// the overlaid plots. Colours match drawMultiLineChart's per-run assignment (run index into SERIES_COLORS).
-function renderDiffRuns() {
-    const host = $("diffmetrics-runs");
-    if (!host) return;
-    host.innerHTML = "";
-    const runs = state.diffusion.runs;
-    if (!runs.length) return;
-    const title = document.createElement("div");
-    title.className = "diff-runs-title sublabel";
-    title.textContent = "Runs (hover for the full configuration)";
-    host.appendChild(title);
-    runs.forEach((run, idx) => {
-        const row = document.createElement("div");
-        row.className = "diff-run-row";
-        if (run.detail) row.title = run.detail;
-        const sw = document.createElement("span");
-        sw.className = "legend-swatch";
-        sw.style.background = SERIES_COLORS[idx % SERIES_COLORS.length];
-        const lab = document.createElement("span");
-        lab.className = "diff-run-label";
-        lab.textContent = run.label;
-        const del = document.createElement("button");
-        del.className = "diff-run-del";
-        del.textContent = "✕";
-        del.title = "Remove this run from the plots";
-        del.addEventListener("click", () => { state.diffusion.runs.splice(idx, 1); renderDiffMetrics(); });
-        row.appendChild(sw);
-        row.appendChild(lab);
-        row.appendChild(del);
-        host.appendChild(row);
-    });
-}
-
-// Draws one or more metric series (each {name, values, color}) as lines over iteration index, with an
-// "iteration" x axis (labelled ticks) and the metric name as the y-axis title. The in-chart legend is optional
-// (off for the diffusion metric plot, whose series are listed in the runs list below the chart).
-function drawMultiLineChart(canvas, series, label, showLegend = true) {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-
-    // Overall value range and iteration count across all series.
-    let min = Infinity, max = -Infinity, n = 0;
-    for (const s of series) {
-        n = Math.max(n, (s.values || []).length);
-        for (const v of s.values || []) if (Number.isFinite(v)) { if (v < min) min = v; if (v > max) max = v; }
-    }
-    if (!Number.isFinite(min) || !Number.isFinite(max)) return;
-    if (max === min) { max = min + 1; min = min - 1; }
-
-    const padL = 66, padR = 16, padT = 16, padB = 50;
-    const plotW = W - padL - padR, plotH = H - padT - padB;
-    const xOf = (i) => padL + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
-    const yOf = (v) => padT + plotH - ((v - min) / (max - min)) * plotH;
-
-    const colText = cssVar("--text", "#e6e6e6"), colMuted = cssVar("--muted", "#9aa0a6");
-    const colBorder = cssVar("--border", "#333");
-
-    // Axis lines + y grid/labels.
-    ctx.strokeStyle = colMuted;
-    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
-    ctx.font = AXIS_LABEL_FONT; ctx.fillStyle = colMuted; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (let gIdx = 0; gIdx <= 4; gIdx++) {
-        const val = min + ((max - min) * gIdx) / 4, y = yOf(val);
-        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), padL - 6, y);
-        ctx.strokeStyle = colBorder; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
-    }
-    // x tick labels (iteration indices, thinned so they don't overlap).
-    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = colMuted;
-    const step = Math.max(1, Math.ceil(n / 8));
-    for (let i = 0; i < n; i += step) ctx.fillText(String(i), xOf(i), padT + plotH + 15);
-    if (n > 1 && (n - 1) % step !== 0) ctx.fillText(String(n - 1), xOf(n - 1), padT + plotH + 15);
-
-    // Axis titles.
-    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT; ctx.textAlign = "center";
-    ctx.fillText("iteration", padL + plotW / 2, H - 6);
-    ctx.save(); ctx.translate(14, padT + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(label || "value", 0, 0); ctx.restore();
-    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
-
-    // Series lines.
-    for (const s of series) {
-        ctx.strokeStyle = s.color || cssVar("--accent", "#4f9dff"); ctx.lineWidth = 1.8; ctx.beginPath();
-        let started = false;
-        const vals = s.values || [];
-        for (let i = 0; i < vals.length; i++) {
-            const v = vals[i];
-            if (!Number.isFinite(v)) { started = false; continue; }
-            const x = xOf(i), y = yOf(v);
-            if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-    }
-    ctx.lineWidth = 1;
-
-    // Legend (top-right): one swatch + protocol label per series. Skipped for the diffusion metric plot, where the
-    // runs list below the chart already provides the labels (and their full configuration on hover).
-    if (showLegend) {
-        ctx.font = AXIS_LABEL_FONT; ctx.textBaseline = "middle";
-        const lh = 15, sw = 12, gap = 5;
-        let widest = 0;
-        for (const s of series) widest = Math.max(widest, ctx.measureText(s.name).width);
-        const boxW = sw + gap + widest + 12, boxH = series.length * lh + 8;
-        const bx = padL + plotW - boxW, by = padT + 4;
-        ctx.fillStyle = cssVar("--panel", "#26272b"); ctx.globalAlpha = 0.9;
-        ctx.fillRect(bx, by, boxW, boxH);
-        ctx.globalAlpha = 1; ctx.strokeStyle = colBorder; ctx.strokeRect(bx, by, boxW, boxH);
-        series.forEach((s, i) => {
-            const cy = by + 4 + i * lh + lh / 2;
-            ctx.fillStyle = s.color; ctx.fillRect(bx + 6, cy - sw / 2, sw, sw);
-            ctx.fillStyle = colText; ctx.textAlign = "start"; ctx.fillText(s.name, bx + 6 + sw + gap, cy);
-        });
-        ctx.textBaseline = "alphabetic";
-    }
-    capturePlot(canvas, label);
-}
-
-/* ------------------------- node timeline (subtab) ------------------- */
-
-// Keeps the Node-timeline feature selector in sync. The first option, "Information pieces" (value "pieces"), is the
-// base view (piece counts per category, no feature breakdown); the rest are info-piece features and user features
-// (node attrs + communities), tagged so the request knows which kind. Value form: "info:<name>" | "user:<name>".
-function syncTrajFeatureSelect() {
-    const sel = $("diff-traj-feature");
-    const { info, user } = knownFeatureParams();
-    const sig = "base|i:" + info.join("") + "|u:" + user.join("");
-    if (sel.dataset.sig === sig) return;
-    const prev = sel.value;
-    sel.innerHTML = "";
-    sel.appendChild(option("pieces", "Information pieces"));
-    info.forEach((n) => sel.appendChild(option("info:" + n, n)));
-    user.forEach((n) => sel.appendChild(option("user:" + n, n + " (user)")));
-    sel.dataset.sig = sig;
-    sel.value = [...sel.options].some((o) => o.value === prev) ? prev : "pieces";
-}
-
-// Enables/disables the controls that only apply to the feature views (category, aggregation) — the base
-// "Information pieces" view always shows all four categories as counts.
-function updateTrajControls() {
-    const base = $("diff-traj-feature").value === "pieces";
-    $("diff-traj-category").disabled = base;
-    $("diff-traj-agg").disabled = base;
-}
-
-// Entry point for the Node subtab: validates prerequisites, otherwise fetches and draws the timeline.
-function renderNodeTimeline() {
-    const hint = $("diff-traj-hint");
-    if (!state.diffusion.result) {
-        hint.textContent = "Run a simulation and select a node to see how its information exposure evolves.";
-        hint.hidden = false; clearTrajCanvas(); return;
-    }
-    syncTrajFeatureSelect();
-    updateTrajControls();
-    const node = state.diffusion.selectedNode;
-    if (node) $("diff-traj-node").value = node;
-    if (!node) {
-        hint.textContent = "Select a node (click it on the Graph subtab or type it above).";
-        hint.hidden = false; clearTrajCanvas(); return;
-    }
-    hint.hidden = true;
-    fetchTrajectory();
-}
-
-async function fetchTrajectory() {
-    const node = state.diffusion.selectedNode;
-    if (!node || !state.diffusion.result) return;
-    const fv = $("diff-traj-feature").value;
-    if (!fv) return;
-    const body = { graphId: state.graphId, node, mode: $("diff-traj-mode").value };
-    if (fv === "pieces") {
-        body.pieces = true;   // base view: piece counts per category, no feature breakdown
-    } else {
-        body.userFeature = fv.startsWith("user:");
-        body.feature = fv.slice(fv.indexOf(":") + 1);
-        body.category = $("diff-traj-category").value;
-        body.aggregation = $("diff-traj-agg").value;
-    }
-    setChartLoading("diff-traj-area", true);
-    try {
-        const res = await api("/api/diffusion/trajectory", jsonBody(body));
-        state.diffusion.traj = res;
-        drawTrajectoryChart();
-    } catch (e) { setStatus("Node timeline failed: " + e.message, "error"); }
-    finally { setChartLoading("diff-traj-area", false); }
-}
-
-function clearTrajCanvas() {
-    const canvas = $("diff-traj-canvas");
-    if (!canvas || !canvas.getContext) return;
-    const ctx = canvas.getContext("2d");
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-// Shared renderer for the Node and Piece timeline charts: turns a {values, series, iterations} response into coloured
-// series and draws them (stacked or lines) with the slider playhead.
-function drawTrajectoryInto(canvasId, res, stacked, label) {
-    const canvas = $(canvasId);
-    if (!canvas || !res) return;
-    const values = res.values || [];
-    if (!values.length) { const c = canvas.getContext("2d"); if (c) c.clearRect(0, 0, canvas.width, canvas.height); return; }
-    const series = values.map((v) => ({
-        name: v,
-        values: (res.series && res.series[v]) || [],
-        color: v === "other" ? cssVar("--muted", "#888") : featureValueColor(v),
-    }));
-    if (stacked) drawStackedAreaChart(canvas, series, label);
-    else drawMultiLineChart(canvas, series, label);
-    drawTrajPlayhead(canvas, res.iterations);
-}
-
-function drawTrajectoryChart() {
-    const res = state.diffusion.traj;
-    if (!res) return;
-    const label = res.base
-        ? "Information pieces — count" + (res.mode === "cumulative" ? " (cumulative)" : " (per iteration)")
-        : (res.category + " · " + res.feature + (res.userFeature ? " (user)" : "")
-            + " — " + (res.aggregation === "weight" ? "weight" : "count"));
-    drawTrajectoryInto("diff-traj-canvas", res, $("diff-traj-stack").value === "stacked", label);
-}
-
-// A dashed vertical marker at the slider's current iteration, keeping the timeline coupled to the Graph subtab.
-function drawTrajPlayhead(canvas, n) {
-    if (!n || n <= 1) return;
-    const iter = Math.max(0, Math.min(state.diffusion.iteration || 0, n - 1));
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    const ctx = canvas.getContext("2d");   // transform already set to dpr by the chart drawer
-    const padL = 66, padR = 16, padT = 16, padB = 50;
-    const plotW = W - padL - padR, plotH = H - padT - padB;
-    const x = padL + (iter / (n - 1)) * plotW;
-    ctx.save();
-    ctx.strokeStyle = cssVar("--text", "#e6e6e6"); ctx.globalAlpha = 0.5;
-    ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
-    ctx.restore();
-}
-
-/* ------------------------- piece timeline (subtab) ------------------ */
-
-// The Piece-timeline break-down selector: "Users" (base — user counts per category) plus the user features
-// (node attributes + communities) to break the users of one category down by.
-function syncPtrajFeatureSelect() {
-    const sel = $("diff-ptraj-feature");
-    const { user } = knownFeatureParams();
-    const sig = "base|u:" + user.join("");
-    if (sel.dataset.sig !== sig) {
-        const prev = sel.value;
-        sel.innerHTML = "";
-        sel.appendChild(option("users", "Users (all categories)"));
-        user.forEach((n) => sel.appendChild(option(n, n)));
-        sel.dataset.sig = sig;
-        sel.value = [...sel.options].some((o) => o.value === prev) ? prev : "users";
-    }
-    // The category selector only applies when breaking down by a feature (the base view shows every category).
-    $("diff-ptraj-category").disabled = sel.value === "users";
-}
-
-// Keeps the piece autocomplete list in sync with the current pieces.
-function syncPieceDatalist() {
-    const dl = $("diff-piece-datalist");
-    if (!dl) return;
-    dl.innerHTML = "";
-    (state.diffusion.pieces || []).forEach((p) => { if (p.id != null && p.id !== "") dl.appendChild(option(String(p.id), "")); });
-}
-
-function renderPieceTimeline() {
-    const hint = $("diff-ptraj-hint");
-    if (!state.diffusion.result) {
-        hint.textContent = "Run a simulation and choose an information piece to see how many users receive / read / propagate / discard it over the iterations.";
-        hint.hidden = false; clearCanvasById("diff-ptraj-canvas"); return;
-    }
-    syncPtrajFeatureSelect();
-    syncPieceDatalist();
-    if (state.diffusion.selectedPiece) $("diff-ptraj-piece").value = state.diffusion.selectedPiece;
-    if (!state.diffusion.selectedPiece) {
-        hint.textContent = "Type or pick an information piece id above.";
-        hint.hidden = false; clearCanvasById("diff-ptraj-canvas"); return;
-    }
-    hint.hidden = true;
-    fetchPieceTrajectory();
-}
-
-async function fetchPieceTrajectory() {
-    const piece = state.diffusion.selectedPiece;
-    if (!piece || !state.diffusion.result) return;
-    const fv = $("diff-ptraj-feature").value;
-    const body = { graphId: state.graphId, piece, mode: $("diff-ptraj-mode").value };
-    if (fv && fv !== "users") { body.feature = fv; body.category = $("diff-ptraj-category").value; }
-    setChartLoading("diff-ptraj-area", true);
-    try {
-        const res = await api("/api/diffusion/piece-trajectory", jsonBody(body));
-        state.diffusion.ptraj = res;
-        drawPieceTimeline();
-    } catch (e) { setStatus("Piece timeline failed: " + e.message, "error"); }
-    finally { setChartLoading("diff-ptraj-area", false); }
-}
-
-function drawPieceTimeline() {
-    const res = state.diffusion.ptraj;
-    if (!res) return;
-    const label = res.base
-        ? "Users — count" + (res.mode === "cumulative" ? " (cumulative)" : " (per iteration)")
-        : (res.category + " users · " + res.feature + " — count" + (res.mode === "cumulative" ? " (cumulative)" : " (per iteration)"));
-    drawTrajectoryInto("diff-ptraj-canvas", res, $("diff-ptraj-stack").value === "stacked", label);
-}
-
-/* ------------------------ feature timeline (subtab) ----------------- */
-
-// The Feature-timeline selector: which feature's values to track over time (info-piece features + user features).
-function syncFtrajFeatureSelect() {
-    const sel = $("diff-ftraj-feature");
-    const { info, user } = knownFeatureParams();
-    const sig = "i:" + info.join("") + "|u:" + user.join("");
-    if (sel.dataset.sig === sig) return;
-    const prev = sel.value;
-    sel.innerHTML = "";
-    info.forEach((n) => sel.appendChild(option("info:" + n, n)));
-    user.forEach((n) => sel.appendChild(option("user:" + n, n + " (user)")));
-    sel.dataset.sig = sig;
-    if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
-}
-
-// The distinct values of a tagged feature ("info:<name>" | "user:<name>"), derived client-side from the pieces
-// (info features) or node attributes / communities (user features).
-function featureValueOptions(fv) {
-    if (!fv) return [];
-    const userFeature = fv.startsWith("user:");
-    const name = fv.slice(fv.indexOf(":") + 1);
-    const set = new Set();
-    if (!userFeature) {
-        (state.diffusion.pieces || []).forEach((p) => (p.features || []).forEach((f) => {
-            if (f.param === name && f.value != null && f.value !== "") set.add(String(f.value));
-        }));
-    } else if (state.communityData && state.communityData[name]) {
-        Object.values(state.communityData[name]).forEach((v) => { if (v != null) set.add(String(v)); });
-    } else if (state.graph) {
-        state.graph.forEachNode((n) => { const v = nodeAttrVal(n, name); if (v != null && v !== "") set.add(String(v)); });
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-}
-
-// Repopulates the value selector for the current feature ("All values" + each distinct value).
-function syncFtrajValueSelect() {
-    const sel = $("diff-ftraj-value");
-    const prev = sel.value;
-    sel.innerHTML = "";
-    sel.appendChild(option("__all__", "All values"));
-    featureValueOptions($("diff-ftraj-feature").value).forEach((v) => sel.appendChild(option(v, v)));
-    sel.value = [...sel.options].some((o) => o.value === prev) ? prev : "__all__";
-    updateFtrajControls();
-}
-
-// The category selector only applies to the "all values" view (a specific value shows all four categories).
-function updateFtrajControls() {
-    $("diff-ftraj-category").disabled = $("diff-ftraj-value").value !== "__all__";
-}
-
-function renderFeatureTimeline() {
-    const hint = $("diff-ftraj-hint");
-    if (!state.diffusion.result) {
-        hint.textContent = "Run a simulation and choose a feature to see how its values spread across the network over the iterations.";
-        hint.hidden = false; clearCanvasById("diff-ftraj-canvas"); return;
-    }
-    syncFtrajFeatureSelect();
-    syncFtrajValueSelect();
-    if (!$("diff-ftraj-feature").value) {
-        hint.textContent = "No features available. Add info-piece features, node attributes or communities.";
-        hint.hidden = false; clearCanvasById("diff-ftraj-canvas"); return;
-    }
-    hint.hidden = true;
-    fetchFeatureTrajectory();
-}
-
-async function fetchFeatureTrajectory() {
-    if (!state.diffusion.result) return;
-    const fv = $("diff-ftraj-feature").value;
-    if (!fv) return;
-    const body = {
-        graphId: state.graphId,
-        feature: fv.slice(fv.indexOf(":") + 1),
-        userFeature: fv.startsWith("user:"),
-        value: $("diff-ftraj-value").value,
-        category: $("diff-ftraj-category").value,
-        mode: $("diff-ftraj-mode").value,
-        entity: $("diff-ftraj-entity").value,
-    };
-    setChartLoading("diff-ftraj-area", true);
-    try {
-        const res = await api("/api/diffusion/feature-trajectory", jsonBody(body));
-        state.diffusion.ftraj = res;
-        drawFeatureTimeline();
-    } catch (e) { setStatus("Feature timeline failed: " + e.message, "error"); }
-    finally { setChartLoading("diff-ftraj-area", false); }
-}
-
-function drawFeatureTimeline() {
-    const res = state.diffusion.ftraj;
-    if (!res) return;
-    const entity = res.entity === "users" ? "users" : "pieces";
-    const modeSuffix = res.mode === "cumulative" ? " (cumulative)" : " (per iteration)";
-    const label = res.value
-        ? res.feature + (res.userFeature ? " (user)" : "") + "=" + res.value + " — " + entity + modeSuffix
-        : res.category + " · " + res.feature + (res.userFeature ? " (user)" : "") + " — " + entity + modeSuffix;
-    drawTrajectoryInto("diff-ftraj-canvas", res, $("diff-ftraj-stack").value === "stacked", label);
-}
-
-function clearCanvasById(id) {
-    const canvas = $(id);
-    if (!canvas || !canvas.getContext) return;
-    const ctx = canvas.getContext("2d");
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-// Shows/hides a spinner overlay on a chart area while its data is being fetched (the diffusion plots stream the
-// simulation back from disk, which can take a moment on large runs).
-function setChartLoading(areaId, on) {
-    const area = $(areaId);
-    if (!area) return;
-    let el = area.querySelector(".chart-loading");
-    if (on) {
-        if (!el) {
-            el = document.createElement("div");
-            el.className = "chart-loading";
-            el.innerHTML = '<span class="spinner"></span>Loading…';
-            area.appendChild(el);
-        }
-        el.hidden = false;
-    } else if (el) {
-        el.hidden = true;
-    }
-}
-
-/* ------------------- feature distributions (subtab) ----------------- */
-// Uses RELISON's diffusion distribution classes (InformationFeatureDistribution / UserFeatureDistribution /
-// MixedFeatureDistribution) computed server-side over the whole simulation.
-
-// Shows the right feature selector(s) for the chosen distribution type and fills them from the schema.
-function updateDistFields() {
-    const type = $("diff-dist-type").value;
-    const { info, user } = knownFeatureParams();
-    toggleHidden("diff-dist-feat-field", type === "mixed");
-    toggleHidden("diff-dist-info-field", type !== "mixed");
-    toggleHidden("diff-dist-user-field", type !== "mixed");
-    if (type === "info") fillSelectKeep("diff-dist-feature", info);
-    else if (type === "user") fillSelectKeep("diff-dist-feature", user);
-    else { fillSelectKeep("diff-dist-info", info); fillSelectKeep("diff-dist-user", user); }
-}
-
-function fillSelectKeep(id, names) {
-    const sel = $(id);
-    const prev = sel.value;
-    sel.innerHTML = "";
-    names.forEach((n) => sel.appendChild(option(n, n)));
-    if (names.includes(prev)) sel.value = prev;
-}
-
-function renderDiffDistribution() {
-    const hint = $("diff-dist-hint");
-    if (!state.diffusion.result) {
-        hint.textContent = "Run a simulation to see how received information distributes across feature values.";
-        hint.hidden = false; clearCanvasById("diff-dist-canvas"); return;
-    }
-    updateDistFields();
-    const type = $("diff-dist-type").value;
-    const ok = type === "mixed" ? ($("diff-dist-info").value && $("diff-dist-user").value) : $("diff-dist-feature").value;
-    if (!ok) {
-        hint.textContent = "No suitable features available. Add info-piece features, node attributes or communities.";
-        hint.hidden = false; clearCanvasById("diff-dist-canvas"); return;
-    }
-    hint.hidden = true;
-    fetchDistribution();
-}
-
-async function fetchDistribution() {
-    if (!state.diffusion.result) return;
-    const type = $("diff-dist-type").value;
-    const body = { graphId: state.graphId, type };
-    if (type === "mixed") { body.infoFeature = $("diff-dist-info").value; body.userFeature = $("diff-dist-user").value; }
-    else body.feature = $("diff-dist-feature").value;
-    setChartLoading("diff-dist-area", true);
-    try {
-        const res = await api("/api/diffusion/distribution", jsonBody(body));
-        state.diffusion.dist = res;
-        drawDistribution();
-        if (res.error) { $("diff-dist-hint").textContent = res.error; $("diff-dist-hint").hidden = false; }
-    } catch (e) { setStatus("Distribution failed: " + e.message, "error"); }
-    finally { setChartLoading("diff-dist-area", false); }
-}
-
-function drawDistribution() {
-    const res = state.diffusion.dist;
-    if (!res) return;
-    if (res.type === "mixed") { drawHeatmap("diff-dist-canvas", res); return; }
-    const items = (res.values || []).map((v) => ({ label: v.value, value: v.count }));
-    if (!items.length) { clearCanvasById("diff-dist-canvas"); return; }
-    drawBarChart("diff-dist-canvas", "diff-dist-tip", items, res.feature + " — received pieces", res.feature, "count");
-}
-
-// A cross-tab heatmap: info-feature values down the rows, user-feature values across the columns, cell = joint count.
-function drawHeatmap(canvasId, res) {
-    const canvas = $(canvasId);
-    if (!canvas) return;
-    const infoVals = res.infoValues || [], userVals = res.userValues || [], matrix = res.matrix || [];
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    if (!infoVals.length || !userVals.length) return;
-
-    let max = 0;
-    matrix.forEach((row) => row.forEach((v) => { if (v > max) max = v; }));
-    if (max <= 0) max = 1;
-
-    const padL = 96, padR = 14, padT = 12, padB = 78;
-    const gw = (W - padL - padR) / userVals.length, gh = (H - padT - padB) / infoVals.length;
-    const colText = cssVar("--text", "#e6e6e6"), colMuted = cssVar("--muted", "#9aa0a6");
-    const rgb = hexToRgb(cssVar("--accent", "#4f9dff")) || { r: 79, g: 157, b: 255 };
-
-    for (let r = 0; r < infoVals.length; r++) {
-        for (let c = 0; c < userVals.length; c++) {
-            const v = (matrix[r] && matrix[r][c]) || 0;
-            const a = 0.08 + 0.92 * (v / max);
-            ctx.fillStyle = "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + "," + a + ")";
-            ctx.fillRect(padL + c * gw, padT + r * gh, Math.max(1, gw - 1), Math.max(1, gh - 1));
-        }
-    }
-
-    ctx.font = AXIS_LABEL_FONT; ctx.fillStyle = colMuted; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (let r = 0; r < infoVals.length; r++) ctx.fillText(clipText(infoVals[r], 14), padL - 6, padT + r * gh + gh / 2);
-    ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (let c = 0; c < userVals.length; c++) {
-        ctx.save();
-        ctx.translate(padL + c * gw + gw / 2, padT + infoVals.length * gh + 6);
-        ctx.rotate(-Math.PI / 4);
-        ctx.fillText(clipText(userVals[c], 14), 0, 0);
-        ctx.restore();
-    }
-
-    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-    ctx.save(); ctx.translate(12, padT + infoVals.length * gh / 2); ctx.rotate(-Math.PI / 2);
-    ctx.fillText(res.infoFeature || "info feature", 0, 0); ctx.restore();
-    ctx.fillText(res.userFeature || "user feature", padL + userVals.length * gw / 2, H - 4);
-    capturePlot(canvas, (res.infoFeature || "info") + " × " + (res.userFeature || "user") + " distribution");
-}
-
-function hexToRgb(hex) {
-    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
-    return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : null;
-}
-
-function clipText(s, n) {
-    s = String(s);
-    return s.length > n ? s.slice(0, n - 1) + "…" : s;
-}
-
-// Stacked-area variant of drawMultiLineChart: each series is a band, stacked to show composition over iterations.
-function drawStackedAreaChart(canvas, series, label) {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-
-    let n = 0;
-    for (const s of series) n = Math.max(n, (s.values || []).length);
-    if (!n) return;
-    let max = 0;
-    for (let i = 0; i < n; i++) {
-        let sum = 0;
-        for (const s of series) { const v = (s.values || [])[i]; if (Number.isFinite(v)) sum += v; }
-        if (sum > max) max = sum;
-    }
-    if (max <= 0) max = 1;
-    const min = 0;
-
-    const padL = 66, padR = 16, padT = 16, padB = 50;
-    const plotW = W - padL - padR, plotH = H - padT - padB;
-    const xOf = (i) => padL + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
-    const yOf = (v) => padT + plotH - ((v - min) / (max - min)) * plotH;
-
-    const colText = cssVar("--text", "#e6e6e6"), colMuted = cssVar("--muted", "#9aa0a6");
-    const colBorder = cssVar("--border", "#333");
-
-    ctx.strokeStyle = colMuted;
-    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
-    ctx.font = AXIS_LABEL_FONT; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (let g = 0; g <= 4; g++) {
-        const val = min + ((max - min) * g) / 4, y = yOf(val);
-        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), padL - 6, y);
-        ctx.strokeStyle = colBorder; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
-    }
-    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = colMuted;
-    const step = Math.max(1, Math.ceil(n / 8));
-    for (let i = 0; i < n; i += step) ctx.fillText(String(i), xOf(i), padT + plotH + 15);
-    if (n > 1 && (n - 1) % step !== 0) ctx.fillText(String(n - 1), xOf(n - 1), padT + plotH + 15);
-
-    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT; ctx.textAlign = "center";
-    ctx.fillText("iteration", padL + plotW / 2, H - 6);
-    ctx.save(); ctx.translate(14, padT + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(label || "value", 0, 0); ctx.restore();
-
-    // Bands, bottom-up: each series fills between the running baseline and baseline+value.
-    const baseline = new Array(n).fill(0);
-    for (const s of series) {
-        ctx.fillStyle = s.color; ctx.globalAlpha = 0.85; ctx.beginPath();
-        for (let i = 0; i < n; i++) {
-            const v = (s.values || [])[i], top = baseline[i] + (Number.isFinite(v) ? v : 0);
-            const x = xOf(i), y = yOf(top);
-            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        for (let i = n - 1; i >= 0; i--) ctx.lineTo(xOf(i), yOf(baseline[i]));
-        ctx.closePath(); ctx.fill();
-        for (let i = 0; i < n; i++) { const v = (s.values || [])[i]; baseline[i] += Number.isFinite(v) ? v : 0; }
-    }
-    ctx.globalAlpha = 1;
-
-    // Legend (top-left, since the stack tends to be tallest on the right).
-    ctx.font = AXIS_LABEL_FONT; ctx.textBaseline = "middle";
-    const lh = 15, sw = 12, gap = 5;
-    let widest = 0;
-    for (const s of series) widest = Math.max(widest, ctx.measureText(s.name).width);
-    const boxW = sw + gap + widest + 12, boxH = series.length * lh + 8;
-    const bx = padL + 6, by = padT + 4;
-    ctx.fillStyle = cssVar("--panel", "#26272b"); ctx.globalAlpha = 0.9; ctx.fillRect(bx, by, boxW, boxH);
-    ctx.globalAlpha = 1; ctx.strokeStyle = colBorder; ctx.strokeRect(bx, by, boxW, boxH);
-    series.forEach((s, i) => {
-        const cy = by + 4 + i * lh + lh / 2;
-        ctx.fillStyle = s.color; ctx.fillRect(bx + 6, cy - sw / 2, sw, sw);
-        ctx.fillStyle = colText; ctx.textAlign = "start"; ctx.fillText(s.name, bx + 6 + sw + gap, cy);
-    });
-    ctx.textBaseline = "alphabetic";
-    capturePlot(canvas, label);
-}
-
 /* ------------------------------- wiring ----------------------------- */
 
 $("btn-load").addEventListener("click", loadGraph);
@@ -8785,6 +7812,26 @@ setupMenu("btn-report", "report-menu", (act) => (act === "pdf" ? exportReportPdf
 //$("inspector-toggle").addEventListener("click", toggleInspector);
 //$("style-selector").addEventListener("change", (e) => applyVisualStyle(e.target.value));
 $("style-selector").addEventListener("change", (e) => applyExtendedVisualStyle(e.target.value));
+setupSettingsMenu();
+(function initChartStyle() {
+    let saved = "quiet-scientific";
+    try { saved = localStorage.getItem("relison-chart-style") || "quiet-scientific"; } catch (e) { /* ignore */ }
+    applyChartStyle(saved);
+})();
+$("chart-style-selector").addEventListener("change", (e) => applyChartStyle(e.target.value));
+(function initChartPalette() {
+    let saved;
+    try {
+        saved = localStorage.getItem("relison-chart-palette");
+        if (!saved) {
+            const previousStyle = localStorage.getItem("relison-chart-style");
+            saved = ({ "vibrant-dashboard": "vibrant", editorial: "editorial", "glass-panel": "glass",
+                "monochrome-accent": "monochrome" })[previousStyle] || "balanced";
+        }
+    } catch (e) { saved = "balanced"; }
+    applyChartPalette(saved);
+})();
+$("chart-palette-selector").addEventListener("change", (e) => applyChartPalette(e.target.value));
 setupMenu("btn-session", "session-menu", (act) => (act === "save" ? saveSession() : $("session-file").click()));
 $("session-file").addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
@@ -8831,12 +7878,12 @@ document.querySelectorAll(".diffstatsview").forEach((b) => b.addEventListener("c
 // Structural metric chart download buttons (delegated by data-canvas / data-file).
 document.querySelectorAll(".chart-dl[data-canvas]").forEach((b) =>
     b.addEventListener("click", () => downloadChartPng(b.dataset.canvas, b.dataset.file)));
-// Diffusion metric chart: the canvas is created dynamically inside #diffmetrics-charts.
+// Diffusion metric chart: the chart container is created dynamically inside #diffmetrics-charts.
 $("btn-diffmetric-png").addEventListener("click", () => {
-    const canvas = $("diffmetrics-charts").querySelector("canvas");
+    const chart = ECHARTS.get("diff-metrics-chart");
     const sel = $("diffmetric-select");
     const name = (sel && sel.value ? sel.value : "diffusion-metric").replace(/[^\w.-]+/g, "_");
-    downloadChartPng(canvas, name + ".png");
+    downloadChartPng(chart, name + ".png");
 });
 $("btn-diffmetric-csv").addEventListener("click", downloadDiffMetricsCsv);
 
@@ -8909,19 +7956,16 @@ $("comm-scatter-rec").addEventListener("change", drawCommScatter);
 
 window.addEventListener("resize", () => {
     if (state.activeTab === "network") { scheduleRecOverlay(); return; }
+    ECHARTS.forEach((chart) => {
+        const el = chart.getDom();
+        if (!chart.isDisposed() && el && el.getBoundingClientRect().width > 0) chart.resize();
+    });
     if (state.activeTab === "diffusion") {
-        if (state.diffusion.subview === "metrics") { renderDiffMetrics(); return; }
+        if (state.diffusion.subview === "metrics") return;
         if (state.diffusion.renderer) state.diffusion.renderer.refresh();
         drawDiffOverlay();
         return;
     }
-    if (state.activeTab !== "metrics") return;
-    if (state.activeSubtab === "nodes") { drawNodeChart(); drawNodeScatter(); }
-    if (state.activeSubtab === "edges") { drawEdgeChart(); drawEdgeScatter(); }
-    if (state.activeSubtab === "pairs") drawPairChart();
-    if (state.activeSubtab === "comm") { drawCommChart(); drawCommScatter(); }
-    if (state.activeSubtab === "attrcomm") drawAttributeCommChart();
-    if (state.activeSubtab === "edgeattr") drawEdgeAttributeChart();
 });
 
 document.addEventListener("keydown", (e) => {
