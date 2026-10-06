@@ -73,6 +73,7 @@ public class GuiServer
         CommunityController communityController = new CommunityController(store, jobs);
         EditController editController = new EditController(store);
         PathController pathController = new PathController(store);
+        LayoutController layoutController = new LayoutController(store);
         AttributeController attributeController = new AttributeController(store);
         RecommendationController recommendationController = new RecommendationController(store, jobs);
         DiffusionController diffusionController = new DiffusionController(store, jobs);
@@ -128,6 +129,7 @@ public class GuiServer
             config.routes.post("/api/graph/load", graphController::load);
             config.routes.post("/api/graph/generate", graphController::generate);
             config.routes.get("/api/graph/{id}", graphController::get);
+            config.routes.post("/api/layout", layoutController::apply);
 
             // Metrics.
             config.routes.get("/api/metrics", metricController::catalog);

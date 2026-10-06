@@ -8,6 +8,14 @@ interactive visualization.
 - **Load** a tab-separated edge list (`source⇥target[⇥weight]`) as a directed/undirected, weighted, multigraph
   and/or self-looping network.
 - **Visualize** with sigma.js: pan/zoom, hover, ForceAtlas2 layout (start/stop), circular reset.
+- **Layouts**: circular, seeded random, grid, shell, concentric, and saved positions
+  computed by `RELISON-viz` through the layout selector. Shell groups use community
+  partitions or node attributes; concentric scores use degree, a computed vertex
+  metric, or a numeric node attribute. Animated layouts and circle packing remain
+  available. Static layouts refresh both Sigma and Cosmograph.
+- **Structural layouts**: radial/ego with root and traversal direction, automatic
+  or grouped bipartite, grouped multipartite, and tidy tree/forest. Optional
+  disconnected-component packing preserves each component's internal shape.
 - **Appearance**: size and colour nodes by any computed vertex metric or by community membership.
 - **Metrics** (computed by RELISON, not re-implemented):
   - *Vertex*: degree, inverse degree, reciprocity rate, coreness, eigenvector, length, free discovery, PageRank,
@@ -37,6 +45,61 @@ mvn -pl RELISON-gui -am package
 
 This produces a runnable fat jar at `RELISON-gui/target/RELISON-gui.jar`.
 
+Layout integration tests:
+
+```sh
+mvn -pl RELISON-gui -am -Dtest=BasicLayoutsTest,StructuralLayoutsTest,LayoutControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
+node --test RELISON-gui/src/test/js/layouts.test.cjs
+```
+
+## Using the basic layouts
+
+Choose an algorithm in **Layout**, adjust its visible parameters, and click
+**Apply layout**. Use **Save positions** to capture the current arrangement;
+choose **Saved positions** to restore it after trying other layouts. Saved
+positions also lets you select numeric node attributes
+independently for **X coordinate** and **Y coordinate**. Their values become the
+coordinates directly, without normalization. Selecting features for both axes
+does not require saving positions first; a saved axis can also be combined with
+a feature axis. Each feature must have a finite numeric value for every node.
+Axis selections are saved with the session. Saved
+coordinates and layout controls are included in `.relison` sessions. Adding or
+removing nodes requires saving a new arrangement before restoring it.
+
+Shell groups are ordered lexicographically by their labels from inside to outside.
+Concentric scores must be finite and available for every node. Neither option
+represents hop distance. **Reset (circular)** also uses the RELISON-viz backend.
+
+The `POST /api/layout` endpoint accepts `graphId`, `algorithm`, optional `params`,
+`nodeOrder`, `positions`, `pinnedNodes`, `shells`, and `scores`. It returns a
+node-ID-keyed coordinate map, bounds, algorithm ID, and termination reason.
+Unknown graphs return 404; invalid layout inputs return 400. Coordinates stay
+client-owned and do not change the stored graph's structure or attributes.
+
+## Structural layouts
+
+- **Radial / ego** accepts a root node ID (blank chooses the first ordered node),
+  traversal direction, and spacing per hop. Unreachable nodes share an extra
+  outer ring that does not represent a hop distance.
+- **Bipartite** automatically detects two sides unless a grouping is selected.
+  Explicit grouping must have exactly two groups. **Multipartite** requires a
+  grouping with at least two groups. Groups become columns in label order.
+  Edges within a group are rejected. Ordering passes use a crossing-reduction
+  heuristic; zero passes keeps node order within each column.
+- **Tidy tree / forest** requires acyclic topology. Directed edges must point
+  from parents to children and every node has at most one distinct parent.
+  The chosen directed root must have no parent. Undirected trees can be rerooted.
+  Disconnected forests and isolates are supported.
+- **Pack disconnected components** translates entire weak components onto
+  shelves. It is off by default, so saved/attribute coordinates retain their
+  original meaning. Packing can move global columns or axis origins between
+  components; their internal shapes remain unchanged. The library/API preserves
+  pinned components in place and rejects conflicting anchored boxes.
+
+Structural endpoint options include `partitions` (ordered node arrays) and
+parameters `root`, `direction` (`OUT`, `IN`, `UND`), `spacing`,
+`columnSpacing`, `levelSpacing`, `sweeps`, `packComponents`, and `packingGap`.
+
 ## Run
 ```
 java -jar RELISON-gui/target/RELISON-gui.jar [port]
@@ -60,3 +123,5 @@ Load an edge list (e.g. the repository's `data/train.txt`, directed + weighted) 
 - `Infomap` requires an external binary and the spectral algorithms need extra numeric libraries; they are listed
   in the UI but report a clear error if their prerequisites are missing.
 - The frontend currently loads sigma.js / graphology from a CDN, so the first run needs internet access.
+
+Additional layouts: `feature-grid` (`FeatureGridLayout`) places feature-value groups in columns and permits within-group edges; one group is valid. `ego-grid` (`EgoGridLayout`) places hop distances in columns, with a selectable root and `EdgeOrientation` traversal. Unreachable nodes occupy a final column. Both accept column spacing and row spacing; feature grids also support ordering passes.

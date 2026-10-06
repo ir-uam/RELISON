@@ -134,7 +134,7 @@ body.focus-mode #left .params { margin: 5px 0 7px; }
 .params:empty { margin: 0; }
 .params label { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
 .params label > span { white-space: nowrap; }
-.params select, .params input[type="number"] { width: 130px; }
+.params select, .params input[type="number"], .params input[type="text"] { width: 130px; }
 .params input[type="checkbox"] { width: auto; }
 .params input[type="color"] { width: 44px; height: 26px; padding: 0; cursor: pointer; }
 #right select { margin-bottom: 6px; }
@@ -201,6 +201,11 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
 .tabpane { position: absolute; inset: 0; display: none; }
 .tabpane.active { display: block; }
 
+/* Keep the two WebGL graph panes laid out while inactive. Cosmograph otherwise
+   observes a zero-sized canvas and can lose its drawing when the pane returns. */
+#pane-network, #pane-diffusion { display: block; visibility: hidden; pointer-events: none; z-index: 0; }
+#pane-network.active, #pane-diffusion.active { visibility: visible; pointer-events: auto; z-index: 1; }
+
 #pane-network { background: var(--canvas-bg); }
 #sigma-container { position: absolute; inset: 0; }
 
@@ -249,6 +254,9 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
 .diff-views { position: relative; flex: 1 1 auto; }
 .diff-view { display: none; position: absolute; inset: 0; }
 .diff-view.active { display: block; }
+/* Keep the diffusion graph's viewport alive while metrics/pieces are open. */
+#diff-view-graph { display: block; visibility: hidden; pointer-events: none; }
+#pane-diffusion.active #diff-view-graph.active { visibility: visible; pointer-events: auto; }
 #diff-view-metrics { overflow: auto; background: var(--bg); }
 #diff-sigma-container { position: absolute; inset: 0; }
 #diff-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
@@ -278,7 +286,7 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
 .dist-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 4px 0 2px; border: 1px solid var(--border); }
 .dist-seg { flex-grow: 0; flex-shrink: 0; min-width: 1px; }
 .node-feats { margin-bottom: 12px; }
-.diff-legend { position: absolute; top: 12px; left: 12px; z-index: 6; background: var(--panel); border: 1px solid var(--border);
+.diff-legend { position: absolute; top: 58px; left: 12px; z-index: 6; background: var(--panel); border: 1px solid var(--border);
     border-radius: 6px; padding: 8px 10px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
 .diff-legend .legend-row { display: flex; align-items: center; gap: 6px; }
 .diff-legend .legend-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
@@ -641,6 +649,13 @@ body.quiet-light { --bg: #f6f7f4; --panel: #ffffff; --panel-2: #eef0ec; --border
 
 /* The Cosmograph proof-of-concept only replaces the Network-tab pixels; Sigma remains the functional renderer. */
 #cosmograph-container { position: absolute; inset: 0; z-index: 3; background: var(--canvas-bg); }
+#diff-cosmograph-container { position:absolute; inset:0; z-index:3; background:var(--canvas-bg); }
+/* The hidden attribute switches renderers visually, but shouldn't collapse the WebGL canvas. */
+#cosmograph-container[hidden], #diff-cosmograph-container[hidden] { display: block !important; visibility: hidden; pointer-events: none; }
+#diff-view-graph.cosmograph-active #diff-sigma-container,
+#diff-view-graph.cosmograph-active #diff-overlay { visibility:hidden; }
+.diff-renderer-picker { position:absolute; z-index:7; top:10px; left:10px; display:flex; align-items:center; gap:6px; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--panel); color:var(--muted); font-size:11px; }
+.diff-renderer-picker select { width:auto; margin:0; padding:3px 5px; font-size:11px; }
 #pane-network.cosmograph-active #rec-overlay { display: none !important; }
 #pane-network.cosmograph-active #sigma-container { visibility: hidden; }
 .renderer-picker { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--muted); font-size: 10px; box-shadow: 0 2px 6px rgba(0, 0, 0, .18); }
@@ -649,6 +664,10 @@ body.quiet-light { --bg: #f6f7f4; --panel: #ffffff; --panel-2: #eef0ec; --border
 #selection-block .selection-context { display:flex; align-items:center; gap:8px; margin:0 0 12px; }
 .selection-kind { padding:3px 8px; border:1px solid var(--accent); border-radius:999px; color:var(--accent); font-size:10px; font-weight:700; text-transform:uppercase; }
 .selection-summary { color:var(--muted); font-size:12px; }
+#select-path-fields .scroll-table { max-height:22vh; margin:6px 0; }
+#select-path-fields .data { min-width:0; font-size:11px; }
+#select-path-fields .data td, #select-path-fields .data th { padding:4px 5px; }
+#select-path-fields #btn-select-paths { width:100%; }
 .edge-preview { display:flex; align-items:center; gap:6px; margin:2px 0 9px; padding:8px; border:1px solid var(--border); border-radius:7px; background:var(--panel); overflow:hidden; }
 .edge-endpoint { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:600; }
 .edge-direction { color:var(--accent); font-size:15px; }

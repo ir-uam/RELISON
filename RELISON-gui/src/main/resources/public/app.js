@@ -57,18 +57,24 @@ const state = {
     fa2Running: false,
     fa2Raf: null,
     layoutTemp: 50,
+    layoutRequest: null,
+    savedLayoutPositions: null,
     dragNodes: false,     // when on, dragging a node repositions it instead of panning the canvas
     cosmographLayoutRunning: false,
     cosmographDirty: true,
     cosmographTimelineActive: false,
     cosmographFocusActive: false,
+    cosmographPathActive: false,
+    cosmographPathSignature: "",
     cosmographLabelDefaultsApplied: false,
     selectedNode: null,
     selectedEdge: null,
+    edgeSelectionPair: null,
     cosmographEdgeStart: null,
     editFirstNode: null,
     selection: { type: "node", node: null, mode: "highlight", partition: null, edgeAttribute: null },
-    pathFocus: null,   // { nodes: Set, edges: Set("s|t") } highlighted from the Paths tab
+    pathFocus: null,   // { nodes: Set, edges: Set("s|t") } focused from the right-panel path selector
+    pathEndpointFocusActive: true,
     lastPaths: [],     // most recent shortest-path result (array of node-id arrays)
 
     // Computed results.
@@ -130,6 +136,8 @@ const state = {
         iteration: 0,
         graph: null,       // graphology copy rendered in the diffusion canvas
         renderer: null,    // its sigma renderer
+        cosmograph: null,  // independent Cosmograph instance for diffusion
+        rendererType: "sigma",
         selectedNode: null,
         hoverNode: null,   // node currently hovered on the diffusion canvas (redrawn on top of the spread edges)
         playing: null,     // setInterval handle when playing
@@ -417,6 +425,9 @@ function compositeCanvasFrame(containerId, overlayId, maxWidth) {
 
 // Advances an animation to one frame and resolves with its composited image, captured inside the renderer's afterRender.
 function captureRendererFrame(spec, arg) {
+    if (spec.captureFrame) {
+        return Promise.resolve(spec.setFrame(arg)).then(() => spec.captureFrame());
+    }
     return new Promise((resolve) => {
         const r = spec.renderer;
         const onRender = () => {
@@ -563,7 +574,8 @@ function diffusionRecordSpec(button, cap, maxWidth) {
     return {
         name: "diffusion",
         button,
-        renderer: state.diffusion.renderer,
+        renderer: state.diffusion.rendererType === "cosmograph" ? state.diffusion.cosmograph?.instance : state.diffusion.renderer,
+        captureFrame: state.diffusion.rendererType === "cosmograph" ? () => state.diffusion.cosmograph?.captureFrame(maxWidth) : null,
         containerId: "diff-sigma-container",
         overlayId: "diff-overlay",
         drawOverlay: drawDiffOverlay,
@@ -575,7 +587,7 @@ function diffusionRecordSpec(button, cap, maxWidth) {
 }
 
 async function prepareDiffusionRecording() {
-    if (!state.diffusion.result || !state.diffusion.renderer) { setStatus("Run a diffusion simulation first.", "error"); return false; }
+    if (!state.diffusion.result || !(state.diffusion.rendererType === "cosmograph" ? state.diffusion.cosmograph : state.diffusion.renderer)) { setStatus("Run a diffusion simulation first.", "error"); return false; }
     diffStop();
     if (state.activeTab !== "diffusion") switchTab("diffusion");
     if (state.diffusion.subview !== "graph") switchDiffSubtab("graph");
@@ -754,6 +766,7 @@ async function loadGraph() {
 // Installs a freshly loaded/generated network session: resets every per-graph result, renders the graph and switches
 // to the Network tab. Shared by the file-upload and the generator paths (both return the same payload).
 function applyLoadedGraph(data, multigraph) {
+    if (state.graphId !== data.graphId) state.savedLayoutPositions = null;
     state.graphId = data.graphId;
     state.directed = data.stats.directed;
     state.weighted = data.stats.weighted;
@@ -791,11 +804,12 @@ function applyLoadedGraph(data, multigraph) {
     $("indiv-comm-partition").innerHTML = "";
     $("global-comm-partition").innerHTML = "";
     state.pathFocus = null;
+    state.pathEndpointFocusActive = false;
     state.lastPaths = [];
-    $("paths-table").innerHTML = "";
-    $("path-source").value = "";
-    $("path-target").value = "";
-    $("path-summary").textContent = "Pick a source and a target, then find their shortest paths.";
+    $("select-path-source").value = "";
+    $("select-path-target").value = "";
+    $("select-paths-table").replaceChildren();
+    $("select-path-summary").textContent = "Choose a source and target to find all shortest paths.";
     switchTab("network");          // ensure the (sized) network pane is visible before rendering
     renderGraph(data.graph);
     rebuildAppearanceOptions();    // surface any imported attributes in the appearance menus
@@ -924,9 +938,8 @@ function renderGraph(serialized) {
     // panning/zooming a large overlay stays smooth and the dashed lines never lag behind the moving graph.
     state.renderer.on("afterRender", scheduleRecOverlay);
 
-    state.renderer.on("clickNode", ({ node }) => {
-        if ($("edit-mode").checked) handleEditNodeClick(node);
-        else selectNode(node);
+    state.renderer.on("clickNode", ({ node, event }) => {
+        handleNetworkPointClick(node, event);
     });
     state.renderer.on("clickStage", (e) => {
         if ($("edit-mode").checked) {
@@ -965,7 +978,23 @@ function renderGraph(serialized) {
     if ($("network-renderer").value === "cosmograph") setTimeout(() => setNetworkRenderer("cosmograph"), 0);
 }
 
-function handleEditNodeClick(node) {
+function handleEditNodeClick(node, event) {
+    const nativeEvent = event?.originalEvent || event?.original || event?.event || event;
+    if (nativeEvent?.ctrlKey || nativeEvent?.metaKey) {
+        if (state.editFirstNode == null) {
+            state.editFirstNode = node;
+            selectNode(node);
+            setStatus("Edge source: " + node + ". Ctrl-click a target node to add the edge.");
+        } else if (state.editFirstNode === node) {
+            state.editFirstNode = null;
+            setStatus("Edge creation cancelled.");
+        } else {
+            const source = state.editFirstNode;
+            state.editFirstNode = null;
+            editAddEdge(source, node);
+        }
+        return;
+    }
     if (state.editFirstNode == null) {
         state.editFirstNode = node;
         selectNode(node);
@@ -1492,27 +1521,32 @@ async function setNetworkRenderer(name) {
     }
 }
 window.addEventListener("relison-cosmograph-ready", () => { if ($("network-renderer").value === "cosmograph") setNetworkRenderer("cosmograph"); });
+window.addEventListener("relison-diffusion-cosmograph-ready", () => {
+    if (state.diffusion.graph && $("diff-renderer").value === "cosmograph" && !state.diffusion.cosmograph) initDiffCosmograph();
+});
 /* ----------------------------- selection ---------------------------- */
 
 function syncCosmographSelection() {
     if (!usingCosmograph() || !window.relisonCosmograph?.isRendered()) return;
-    window.relisonCosmograph.setFocusedSelection(state.selection.type === "node" ? state.selectedNode : null, state.selectedEdge)
+    window.relisonCosmograph.setFocusedSelection(state.selection.type === "node" ? state.selectedNode : null, state.selection.type === "edge" ? state.selectedEdge : null)
         .catch((error) => console.warn("Cosmograph selection sync failed.", error));
 }
 
 function updateSelectionSummary() {
-    const edge = state.selection.type === "edge", kind = $("selection-kind"), summary = $("selection-summary");
+    const edge = state.selection.type === "edge", path = state.selection.type === "path", kind = $("selection-kind"), summary = $("selection-summary");
     if (!kind || !summary) return;
-    kind.textContent = edge ? "Edge" : "Node";
+    kind.textContent = edge ? "Edge" : path ? "Path" : "Node";
     if (edge && state.selectedEdge && state.graph?.hasEdge(state.selectedEdge)) {
         const source = state.graph.source(state.selectedEdge), target = state.graph.target(state.selectedEdge);
         const focus = selectionFocus();
         summary.textContent = source + " → " + target + (focus ? " · " + focus.nodes.size + " nodes in focus" : "");
-    } else if (!edge && state.selectedNode) {
+    } else if (path && $("select-path-source").value && $("select-path-target").value) {
+        summary.textContent = $("select-path-source").value + " → " + $("select-path-target").value + (state.lastPaths.length ? " · " + state.lastPaths.length + " shortest path(s)" : "");
+    } else if (!edge && !path && state.selectedNode) {
         const focus = selectionFocus();
         summary.textContent = state.selectedNode + (focus ? " · " + focus.nodes.size + " nodes in focus" : "");
     } else {
-        summary.textContent = edge ? "Click a link to inspect both endpoints." : "Select a node to inspect it.";
+        summary.textContent = edge ? "Click a link to inspect both endpoints." : path ? "Choose path endpoints to explore connections." : "Select a node to inspect it.";
     }
 }
 function populateEdgeSelector() {
@@ -1521,7 +1555,10 @@ function populateEdgeSelector() {
     const current = state.selectedEdge || select.value;
     select.innerHTML = '<option value="">— choose an edge —</option>';
     if (!graph) return;
-    graph.edges().slice().sort((a, b) => String(a).localeCompare(String(b))).forEach((edge) => {
+    const candidates = state.edgeSelectionPair
+        ? edgeIdsBetween(state.edgeSelectionPair.source, state.edgeSelectionPair.target)
+        : graph.edges();
+    candidates.slice().sort((a, b) => String(a).localeCompare(String(b))).forEach((edge) => {
         const source = graph.source(edge), target = graph.target(edge);
         const suffix = graph.multi ? " · " + edge : "";
         select.appendChild(option(edge, source + " → " + target + suffix));
@@ -1530,13 +1567,26 @@ function populateEdgeSelector() {
 }
 function updateSelectionTargetUI() {
     const edge = state.selection.type === "edge";
-    $("select-type").value = edge ? "edge" : "node";
-    toggleHidden("select-node-field", edge);
+    const path = state.selection.type === "path";
+    $("select-type").value = path ? "path" : edge ? "edge" : "node";
+    toggleHidden("select-node-field", edge || path);
     toggleHidden("select-edge-field", !edge);
+    toggleHidden("select-path-fields", !path);
+    toggleHidden("select-view-mode-field", false);
     if (edge) populateEdgeSelector();
-    $("node-info-table").hidden = edge;
+    $("node-info-table").hidden = edge || path;
+    const options = Array.from($("select-mode").options);
+    options.forEach((option) => {
+        const value = option.value;
+        const isPathMode = value === "path-highlight" || value === "path-only";
+        const isEdgeMode = value === "edge-highlight" || value.startsWith("edge-attribute-");
+        const isNodeEdgeMode = value.startsWith("ego-") || value.startsWith("community-");
+        const visible = value === "none" || (path ? isPathMode : edge ? isEdgeMode || isNodeEdgeMode : value === "highlight" || isNodeEdgeMode);
+        option.hidden = !visible;
+        option.disabled = !visible;
+    });
     const highlight = $("select-mode").querySelector('option[value="highlight"]');
-    if (highlight) { highlight.hidden = edge; highlight.disabled = edge; highlight.textContent = edge ? "Highlight endpoints" : "Highlight node"; }
+    if (highlight) highlight.textContent = edge ? "Highlight endpoints" : "Highlight node";
     const edgeHighlight = $("select-mode").querySelector('option[value="edge-highlight"]');
     if (edgeHighlight) { edgeHighlight.hidden = !edge; edgeHighlight.disabled = !edge; }
     ["edge-attribute-highlight", "edge-attribute-only"].forEach((value) => {
@@ -1549,20 +1599,55 @@ function updateSelectionTargetUI() {
     setSelectOptions("select-edge-attribute", edgeAttributes, edgeAttributes);
     if (!state.selection.edgeAttribute || !edgeAttributes.includes(state.selection.edgeAttribute)) state.selection.edgeAttribute = edgeAttributes[0] || null;
     if (state.selection.edgeAttribute) $("select-edge-attribute").value = state.selection.edgeAttribute;
-    if (edge && state.selection.mode === "highlight") state.selection.mode = "edge-highlight";
-    if (!edge && ["edge-highlight", "edge-attribute-highlight", "edge-attribute-only"].includes(state.selection.mode)) state.selection.mode = "highlight";
+    if (path && !["path-highlight", "path-only", "none"].includes(state.selection.mode)) state.selection.mode = "path-highlight";
+    if (edge && !["edge-highlight", "edge-attribute-highlight", "edge-attribute-only", "ego-highlight", "ego-only", "community-highlight", "community-only", "none"].includes(state.selection.mode)) state.selection.mode = "edge-highlight";
+    if (!edge && !path && ["edge-highlight", "edge-attribute-highlight", "edge-attribute-only", "path-highlight", "path-only"].includes(state.selection.mode)) state.selection.mode = "highlight";
     $("select-mode").value = state.selection.mode;
     const labels = edge ? { "ego-highlight": "Highlight both ego-networks", "ego-only": "Show only both ego-networks", "community-highlight": "Highlight both communities", "community-only": "Show only both communities" } : { "ego-highlight": "Highlight ego-network", "ego-only": "Show only ego-network", "community-highlight": "Highlight community", "community-only": "Show only community" };
     Object.entries(labels).forEach(([value, text]) => { const option = $("select-mode").querySelector('option[value="' + value + '"]'); if (option) option.textContent = text; });
     const details = $("edge-selection-details");
     if (details) details.hidden = !edge;
-    if (edge && !state.selectedEdge) $("edge-info-table").innerHTML = '<tr><td class="muted" colspan="2">Click a link, or Ctrl/Cmd-click its two endpoints.</td></tr>';
+    if (edge && !state.selectedEdge) {
+        const prompt = state.edgeSelectionPair
+            ? "Choose the desired link between " + state.edgeSelectionPair.source + " and " + state.edgeSelectionPair.target + " from the selector above."
+            : "Click a link, or Ctrl/Cmd-click its two endpoints.";
+        $("edge-info-table").innerHTML = '<tr><td class="muted" colspan="2">' + prompt + '</td></tr>';
+    }
+    updateSelectionSummary();
     updatePartitionField();
 }
 
 function setSelectionType(type) {
-    state.selection.type = type === "edge" ? "edge" : "node";
-    if (state.selection.type === "node") clearEdgeSelection();
+    const previousType = state.selection.type;
+    state.selection.type = type === "edge" ? "edge" : type === "path" ? "path" : "node";
+    if (previousType === "path" && state.selection.type !== "path") {
+        state.pathFocus = null;
+        state.pathEndpointFocusActive = false;
+    }
+    if (state.selection.type === "path") {
+        const previousNode = state.selectedNode;
+        state.selectedNode = null;
+        state.selection.node = null;
+        state.selectedEdge = null;
+        state.edgeSelectionPair = null;
+        state.cosmographEdgeStart = null;
+        state.pathFocus = null;
+        state.pathEndpointFocusActive = false;
+        state.selection.mode = "path-highlight";
+        $("select-node-input").value = "";
+        if (!$("select-path-source").value) $("select-path-source").value = previousNode || "";
+        renderNodeInfo(null);
+        clearEdgeSelection();
+        state.lastPaths = [];
+        $("select-paths-table").replaceChildren();
+        $("select-path-summary").textContent = "Choose a source and target to find all shortest paths.";
+    } else if (state.selection.type === "node") clearEdgeSelection();
+    else {
+        state.selectedNode = null;
+        state.selection.node = null;
+        $("select-node-input").value = "";
+        renderNodeInfo(null);
+    }
     updateSelectionTargetUI();
     applyReducers();
     syncCosmographSelection();
@@ -1570,6 +1655,7 @@ function setSelectionType(type) {
 }
 function clearEdgeSelection() {
     state.selectedEdge = null;
+    state.edgeSelectionPair = null;
     const details = $("edge-selection-details");
     if (details) details.hidden = true;
     const table = $("edge-info-table");
@@ -1607,6 +1693,7 @@ function selectEdge(edge) {
     $("select-node-input").value = "";
     renderNodeInfo(null);
     state.selectedEdge = edge;
+    state.edgeSelectionPair = null;
     state.selection.type = "edge";
     state.cosmographEdgeStart = null;
     updateSelectionTargetUI();
@@ -1626,10 +1713,30 @@ function edgeIdsBetween(source, target) {
 }
 
 function handleCosmographPointClick(node, event) {
+    handleNetworkPointClick(node, event);
+}
+
+function chooseEdgeBetween(source, target) {
+    state.selectedNode = null;
+    state.selection.node = null;
+    state.selectedEdge = null;
+    state.edgeSelectionPair = { source, target };
+    state.selection.type = "edge";
+    state.cosmographEdgeStart = null;
+    $("select-node-input").value = "";
+    renderNodeInfo(null);
+    updateSelectionTargetUI();
+    applyReducers();
+    syncCosmographSelection();
+    setStatus("Choose the desired edge between " + source + " and " + target + " in the Edge selector.");
+}
+
+function handleNetworkPointClick(node, event) {
     if (!state.graph || !state.graph.hasNode(node)) return;
-    if ($("edit-mode").checked) { handleEditNodeClick(node); return; }
-    const additive = Boolean(event?.ctrlKey || event?.metaKey);
-    const source = state.cosmographEdgeStart || state.selectedNode;
+    if ($("edit-mode").checked) { handleEditNodeClick(node, event); return; }
+    const nativeEvent = event?.originalEvent || event?.original || event?.event || event;
+    const additive = Boolean(nativeEvent?.ctrlKey || nativeEvent?.metaKey);
+    const source = state.selectedNode;
     if (additive && source && source !== node) {
         const edges = edgeIdsBetween(source, node);
         if (edges.length === 1) {
@@ -1637,8 +1744,9 @@ function handleCosmographPointClick(node, event) {
             selectEdge(edges[0]);
             return;
         }
-        if (edges.length > 1) { setStatus("Several edges join these nodes; click the desired link to select it."); return; }
-        setStatus("No edge joins " + source + " and " + node + ".", "error");
+        if (edges.length > 1) { chooseEdgeBetween(source, node); return; }
+        selectNode(node);
+        showPathsBetween(source, node);
         return;
     }
     clearEdgeSelection();
@@ -1650,8 +1758,19 @@ function handleCosmographLinkClick(edge) {
     if (!$("edit-mode").checked) selectEdge(edge);
 }
 
-function handleCosmographStageClick() {
-    if (!$("edit-mode").checked) clearSelection();
+function handleCosmographStageClick(event) {
+    if (!$("edit-mode").checked) { clearSelection(); return; }
+    const container = $("cosmograph-container");
+    const nativeEvent = event?.sourceEvent || event?.originalEvent || event?.original || event;
+    if (!container || !nativeEvent || !window.relisonCosmograph?.screenToSpacePosition) return;
+    const bounds = container.getBoundingClientRect();
+    const position = window.relisonCosmograph.screenToSpacePosition([
+        nativeEvent.clientX - bounds.left,
+        nativeEvent.clientY - bounds.top,
+    ]);
+    if (position && Number.isFinite(position[0]) && Number.isFinite(position[1])) {
+        editAddNodeAt({ x: position[0], y: position[1] });
+    }
 }
 
 function cosmographInteractionCallbacks() {
@@ -1705,11 +1824,20 @@ function renderNodeInfo(node) {
 }
 
 function clearSelection() {
+    const clearingPath = state.selection.type === "path";
     state.selectedNode = null;
     state.selection.type = "node";
     state.selection.node = null;
     state.cosmographEdgeStart = null;
     $("select-node-input").value = "";
+    if (clearingPath) {
+        state.pathFocus = null;
+        state.pathEndpointFocusActive = false;
+        state.lastPaths = [];
+        $("select-path-source").value = $("select-path-target").value = "";
+        $("select-path-summary").textContent = "Choose a source and target to find all shortest paths.";
+        $("select-paths-table").replaceChildren();
+    }
     renderNodeInfo(null);
     clearEdgeSelection();
     updateSelectionTargetUI();
@@ -1735,6 +1863,7 @@ function groupingKey(value) {
     return value === undefined || value === null || value === "" ? null : typeof value + ":" + String(value);
 }
 function updatePartitionField() {
+    if (state.selection.type === "path") { $("select-partition-field").hidden = true; return; }
     const mode = state.selection.mode;
     const isCommunity = mode === "community-highlight" || mode === "community-only";
     $("select-partition-field").hidden = !isCommunity;
@@ -1779,6 +1908,19 @@ function selectionFocus() {
 }
 function setSelectionMode(mode) {
     state.selection.mode = mode;
+    if (state.selection.type === "path") {
+        if (mode === "none") {
+            state.pathFocus = null;
+            state.pathEndpointFocusActive = false;
+        } else if (state.pathFocus) {
+            state.pathFocus.only = mode === "path-only";
+        }
+        updateSelectionTargetUI();
+        applyReducers();
+        renderPathsTable(state.lastPaths);
+        renderTable(state.activeTableSubtab);
+        return;
+    }
     updatePartitionField();
     applyReducers();
     renderTable(state.activeTableSubtab); // "show only" modes restrict the tables
@@ -1899,7 +2041,7 @@ function attachNodeCombo(input) {
 
 // Upgrades every node-id input into a searchable selector. Safe to call repeatedly (each input is wired once).
 function initNodeCombos() {
-    ["select-node-input", "path-source", "path-target", "add-edge-source", "add-edge-target", "diff-node-input", "diff-traj-node"]
+    ["select-node-input", "select-path-source", "select-path-target", "add-edge-source", "add-edge-target", "diff-node-input", "diff-traj-node", "layout-root"]
         .forEach((id) => attachNodeCombo($(id)));
 }
 
@@ -1907,6 +2049,7 @@ function initNodeCombos() {
 
 // Layouts that run continuously (animated) vs. one-shot layouts that are applied once.
 const ITERATIVE_LAYOUTS = new Set(["forceatlas2", "force"]);
+const RELISON_LAYOUTS = new Set(["feature-grid", "ego-grid", "preset", "random", "grid", "circular", "shell", "concentric", "radial", "bipartite", "multipartite", "tree"]);
 
 function currentLayoutType() {
     const sel = $("layout-type");
@@ -1915,6 +2058,8 @@ function currentLayoutType() {
 
 // Keeps the layout button label in sync with the selected algorithm / running state.
 function updateLayoutButton() {
+    $("btn-layout").disabled = !!state.layoutRequest;
+    if (state.layoutRequest) { $("btn-layout").textContent = "Applying layout…"; return; }
     if (state.fa2Running) { $("btn-layout").textContent = "Stop layout"; return; }
     if (currentLayoutType() === "cosmograph-force") {
         $("btn-layout").textContent = state.cosmographLayoutRunning ? "Stop layout" : "Start layout";
@@ -1961,7 +2106,7 @@ function syncLayoutOptionsForRenderer() {
     updateLayoutTypeUI();
 }
 
-function toggleCosmographForceLayout() {
+async function toggleCosmographForceLayout() {
     if (!window.relisonCosmograph) return;
     if (state.cosmographLayoutRunning) {
         const saved = window.relisonCosmograph.stopForceLayout();
@@ -1969,9 +2114,16 @@ function toggleCosmographForceLayout() {
         if (state.renderer) state.renderer.refresh();
         drawRecOverlay();
         setStatus("Cosmograph force layout stopped; saved positions for " + saved + " nodes.");
-    } else if (window.relisonCosmograph.startForceLayout()) {
-        state.cosmographLayoutRunning = true;
-        setStatus("Cosmograph force layout running.");
+    } else {
+        try {
+            if (await window.relisonCosmograph.startForceLayout()) {
+                state.cosmographLayoutRunning = true;
+                setStatus("Cosmograph force layout running.");
+            }
+        } catch (error) {
+            state.cosmographLayoutRunning = false;
+            setStatus("Could not start Cosmograph force layout: " + error.message, "error");
+        }
     }
     updateLayoutButton();
 }
@@ -2028,46 +2180,143 @@ function startIterativeLayout(type) {
     step();
 }
 
-// Applies a one-shot geometric layout (circular / circle packing / random). These are computed natively (they are
-// trivial and dependency-free), so they work regardless of what the graphology UMD bundle exposes. Circle packing can
-// group nodes by a community partition or a node attribute.
-function applyStaticLayout(type) {
+// RELISON-viz computes Stage A layouts on the server; circle packing remains a client layout.
+async function applyStaticLayout(type) {
     stopLayout();
     const g = state.graph;
+    const graphId = state.graphId;
+    let controller = null;
     try {
-        if (type === "circular") nativeCircular(g);
-        else if (type === "random") nativeRandom(g);
-        else if (type === "circlepack") nativeCirclepack(g, $("circlepack-group") ? $("circlepack-group").value : "");
+        if (RELISON_LAYOUTS.has(type)) {
+            const nodes = g.nodes().sort();
+            const body = { graphId, algorithm: type, nodeOrder: nodes, params: staticLayoutParams(type) };
+            body.params.packComponents = $("layout-pack-components").checked;
+            if (body.params.packComponents) {
+                const gap = Number($("layout-packing-gap").value);
+                if (!Number.isFinite(gap) || gap <= 0) throw new Error("Component gap must be positive and finite.");
+                body.params.packingGap = gap;
+            }
+            if (type === "preset") {
+                const xFeature = $("layout-preset-x").value;
+                const yFeature = $("layout-preset-y").value;
+                const saved = state.savedLayoutPositions;
+                if (!xFeature || !yFeature) {
+                    if (!saved || saved.graphId !== graphId) throw new Error("Save positions for this network first, or choose a numeric feature for both axes.");
+                    if (Object.keys(saved.positions).length !== nodes.length || nodes.some(node => !Object.hasOwn(saved.positions, node)))
+                        throw new Error("The network's nodes changed. Save positions again before restoring them.");
+                }
+                body.positions = Object.fromEntries(nodes.map(node => [node, {
+                    x: xFeature ? layoutCoordinateFeature(xFeature, node, "X") : saved.positions[node].x,
+                    y: yFeature ? layoutCoordinateFeature(yFeature, node, "Y") : saved.positions[node].y,
+                }]));
+            }
+            if (["shell", "bipartite", "multipartite", "feature-grid"].includes(type)) {
+                const groupBy = $("circlepack-group").value;
+                if ((type === "multipartite" || type === "feature-grid") && !groupBy) throw new Error("Choose a grouping for this column layout.");
+                const groups = new Map();
+                for (const node of nodes) {
+                    const key = groupBy ? String(nodeGroupKey(groupBy, node) ?? "?") : "all";
+                    if (!groups.has(key)) groups.set(key, []);
+                    groups.get(key).push(node);
+                }
+                const parts = [...groups.keys()].sort().map(key => groups.get(key));
+                if (type === "shell") body.shells = parts;
+                else if (type === "multipartite" || type === "feature-grid" || groupBy) {
+                    if (nodes.length === 0) parts.push([], []);
+                    if (type === "bipartite" && parts.length !== 2) throw new Error("Bipartite grouping must have exactly two groups.");
+                    if (type === "multipartite" && parts.length < 2) throw new Error("Multipartite grouping must have at least two groups.");
+                    body.partitions = parts;
+                }
+            }
+            if (type === "concentric" && $("layout-score").value !== "degree") {
+                const spec = $("layout-score").value;
+                body.scores = Object.fromEntries(nodes.map(node => {
+                    const value = spec.startsWith("attr:") ? nodeAttrVal(node, spec.slice(5))
+                        : state.metricData[spec.slice(7)]?.[node];
+                    if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value)))
+                        throw new Error("Score is missing or non-finite for node " + node + ". Choose a score available for every node.");
+                    return [node, Number(value)];
+                }));
+            }
+            controller = new AbortController();
+            state.layoutRequest = controller;
+            updateLayoutButton();
+            const response = await api("/api/layout", { ...jsonBody(body), signal: controller.signal });
+            // A replaced graph or cancelled request must never receive stale coordinates.
+            if (controller.signal.aborted || state.layoutRequest !== controller || state.graph !== g || state.graphId !== graphId) return;
+            const positions = response.positions;
+            if (!positions || Object.keys(positions).length !== g.order || nodes.length !== g.order
+                || nodes.some(node => !g.hasNode(node) || !Object.hasOwn(positions, node)
+                    || !Number.isFinite(positions[node]?.x) || !Number.isFinite(positions[node]?.y)))
+                throw new Error("The network changed or the layout returned incomplete coordinates. Apply it again.");
+            for (const node of nodes) {
+                g.setNodeAttribute(node, "x", positions[node].x);
+                g.setNodeAttribute(node, "y", positions[node].y);
+            }
+        } else if (type === "circlepack") nativeCirclepack(g, $("circlepack-group") ? $("circlepack-group").value : "");
         else { setStatus("Unknown layout: " + type, "error"); return; }
+        if (state.renderer) {
+            state.renderer.setCustomBBox(null);
+            state.renderer.refresh();
+        }
+        drawRecOverlay();
+        queueCosmographAppearanceRefresh();
+        const label = $("layout-type").selectedOptions[0]?.textContent || type;
+        setStatus(label + " layout applied.");
     } catch (e) {
-        setStatus("Layout failed: " + e.message, "error");
-        return;
+        if (!isAbort(e)) setStatus("Layout failed: " + e.message, "error");
+    } finally {
+        if (controller && state.layoutRequest === controller) {
+            state.layoutRequest = null;
+            updateLayoutButton();
+        }
     }
-    if (state.renderer) state.renderer.refresh();
-    drawRecOverlay();
-    queueCosmographAppearanceRefresh();
-    setStatus(type + " layout applied.");
 }
 
-// Places nodes evenly on a circle whose radius grows with the node count.
-function nativeCircular(g) {
-    const nodes = g.nodes(), n = nodes.length;
-    const R = Math.max(50, n * 8);
-    nodes.forEach((nd, i) => {
-        const a = (2 * Math.PI * i) / Math.max(1, n);
-        g.setNodeAttribute(nd, "x", Math.cos(a) * R);
-        g.setNodeAttribute(nd, "y", Math.sin(a) * R);
-    });
+function staticLayoutParams(type) {
+    const read = (id, integer = false, minimum = Number.MIN_VALUE) => {
+        const input = $(id);
+        const value = input.value === "" ? NaN : Number(input.value);
+        if (!Number.isFinite(value) || value < minimum || (integer && !Number.isSafeInteger(value)))
+            throw new Error(input.closest("label").querySelector("span").textContent + " is invalid.");
+        return value;
+    };
+    if (type === "circular") return { radius: read("layout-radius") };
+    if (type === "random") return { width: read("layout-width"), height: read("layout-height"), seed: read("layout-seed", true, -Number.MAX_SAFE_INTEGER) };
+    if (type === "grid") return { columns: read("layout-columns", true, 0), spacing: read("layout-spacing") };
+    if (type === "shell" || type === "concentric") return { spacing: read("layout-spacing") };
+    if (type === "radial") return { root: $("layout-root").value || null, direction: $("layout-direction").value, spacing: read("layout-spacing") };
+    if (type === "ego-grid") return { root: $("layout-root").value || null, direction: $("layout-direction").value, columnSpacing: read("layout-column-spacing"), spacing: read("layout-spacing") };
+    if (type === "tree") return { root: $("layout-root").value || null, spacing: read("layout-spacing"), levelSpacing: read("layout-level-spacing") };
+    if (type === "bipartite" || type === "multipartite" || type === "feature-grid") return {
+        columnSpacing: read("layout-column-spacing"), spacing: read("layout-spacing"), sweeps: read("layout-sweeps", true, 0),
+    };
+    return {};
 }
 
-// Scatters nodes uniformly in a square sized to the node count.
-function nativeRandom(g) {
-    const nodes = g.nodes();
-    const S = Math.max(100, Math.sqrt(nodes.length) * 60);
-    nodes.forEach((nd) => {
-        g.setNodeAttribute(nd, "x", (Math.random() - 0.5) * S);
-        g.setNodeAttribute(nd, "y", (Math.random() - 0.5) * S);
-    });
+// Coordinate features retain their original units and are never silently filled or normalized.
+function layoutCoordinateFeature(spec, node, axis) {
+    let value;
+    if (spec.startsWith("attr:")) value = nodeAttrVal(node, spec.slice(5));
+    else throw new Error("Choose a numeric node attribute or saved coordinate for the " + axis + " axis.");
+    if ((typeof value !== "number" && typeof value !== "string")
+        || (typeof value === "string" && value.trim() === "") || !Number.isFinite(Number(value)))
+        throw new Error(axis + " feature is missing or non-finite for node " + node + ". Choose a feature available for every node.");
+    return Number(value);
+}
+
+function saveLayoutPositions() {
+    if (!state.graph) { setStatus("Load a network first.", "error"); return; }
+    stopLayout();
+    if (usingCosmograph()) window.relisonCosmograph?.savePointPositions();
+    const entries = state.graph.nodes().map(node => [node, {
+        x: state.graph.getNodeAttribute(node, "x"), y: state.graph.getNodeAttribute(node, "y"),
+    }]);
+    if (entries.some(([, point]) => !Number.isFinite(point.x) || !Number.isFinite(point.y))) {
+        setStatus("Apply a layout before saving positions.", "error"); return;
+    }
+    state.savedLayoutPositions = { graphId: state.graphId, positions: Object.fromEntries(entries) };
+    setStatus("Saved positions for " + entries.length + " nodes.");
 }
 
 // Lays out a set of nodes around (cx, cy) in a sunflower/phyllotaxis spiral (a compact, even disc).
@@ -2142,7 +2391,7 @@ function nodeGroupKey(spec, node) {
     return undefined;
 }
 
-// Populates the circle-packing "Group by" selector with the detected partitions and node attributes.
+// Populates layout grouping and scoring choices from the available analysis results.
 function rebuildLayoutGroupOptions() {
     const sel = $("circlepack-group");
     if (!sel) return;
@@ -2151,14 +2400,49 @@ function rebuildLayoutGroupOptions() {
     Object.keys(state.communityData).forEach((a) => sel.appendChild(option("community:" + a, "community: " + a)));
     nodeAttrDefs().forEach((d) => sel.appendChild(option("attr:" + d.name, "attr: " + d.name)));
     restoreSelect(sel, current);
+    const score = $("layout-score");
+    const previousScore = score.value;
+    score.innerHTML = '<option value="degree">Degree</option>';
+    state.metricOrder.forEach(name => score.appendChild(option("metric:" + name, "metric: " + name)));
+    nodeAttrDefs().filter(def => def.numeric).forEach(def => score.appendChild(option("attr:" + def.name, "attr: " + def.name)));
+    score.value = Array.from(score.options).some(item => item.value === previousScore) ? previousScore : "degree";
+    for (const axis of ["x", "y"]) {
+        const coordinate = $("layout-preset-" + axis);
+        const previous = coordinate.value;
+        coordinate.innerHTML = '<option value="">Saved ' + axis.toUpperCase() + ' coordinate</option>';
+        nodeAttrDefs().filter(def => def.numeric).forEach(def => coordinate.appendChild(option("attr:" + def.name, "attr: " + def.name)));
+        restoreSelect(coordinate, previous);
+    }
 }
 
-// Shows only the controls relevant to the selected layout: the FA2 tuning parameters and the circle-packing grouping.
+// Shows only the controls relevant to the selected layout.
 function updateLayoutTypeUI() {
     const type = currentLayoutType();
     toggleHidden("layout-params", type !== "forceatlas2" || usingCosmograph());
     toggleHidden("layout-params-hint", type !== "forceatlas2" || usingCosmograph());
-    toggleHidden("circlepack-group-field", type !== "circlepack");
+    toggleHidden("circlepack-group-field", !["circlepack", "shell", "bipartite", "multipartite", "feature-grid"].includes(type));
+    toggleHidden("static-layout-params", !RELISON_LAYOUTS.has(type) || type === "preset");
+    toggleHidden("layout-radius-field", type !== "circular");
+    toggleHidden("layout-spacing-field", !["grid", "shell", "concentric", "radial", "bipartite", "multipartite", "tree", "feature-grid", "ego-grid"].includes(type));
+    toggleHidden("layout-root-field", type !== "radial" && type !== "ego-grid" && type !== "tree");
+    toggleHidden("layout-direction-field", type !== "radial" && type !== "ego-grid");
+    toggleHidden("layout-column-spacing-field", !["bipartite", "multipartite", "feature-grid", "ego-grid"].includes(type));
+    toggleHidden("layout-sweeps-field", !["bipartite", "multipartite", "feature-grid"].includes(type));
+    toggleHidden("layout-level-spacing-field", type !== "tree");
+    toggleHidden("layout-columns-field", type !== "grid");
+    for (const id of ["layout-width-field", "layout-height-field", "layout-seed-field"]) toggleHidden(id, type !== "random");
+    toggleHidden("layout-score-field", type !== "concentric");
+    toggleHidden("layout-shell-hint", type !== "shell");
+    toggleHidden("layout-preset-hint", type !== "preset");
+    toggleHidden("layout-preset-x-field", type !== "preset");
+    toggleHidden("layout-preset-y-field", type !== "preset");
+    toggleHidden("layout-radial-hint", type !== "radial");
+    toggleHidden("layout-ego-grid-hint", type !== "ego-grid");
+    toggleHidden("layout-feature-grid-hint", type !== "feature-grid");
+    toggleHidden("layout-partition-hint", type !== "bipartite" && type !== "multipartite");
+    toggleHidden("layout-tree-hint", type !== "tree");
+    toggleHidden("layout-packing-controls", !RELISON_LAYOUTS.has(type));
+    toggleHidden("layout-packing-gap-field", !$("layout-pack-components").checked);
 }
 
 // Spreads overlapping nodes apart. Uses graphology-layout-noverlap when the bundle exposes it, otherwise a native pass.
@@ -2244,6 +2528,14 @@ function builtinForceStep() {
 }
 
 function stopLayout() {
+    if (state.layoutRequest) {
+        state.layoutRequest.abort();
+        state.layoutRequest = null;
+    }
+    if (state.cosmographLayoutRunning) {
+        window.relisonCosmograph?.stopForceLayout();
+        state.cosmographLayoutRunning = false;
+    }
     const wasRunning = state.fa2Running;
     state.fa2Running = false;
     if (state.fa2Raf) cancelAnimationFrame(state.fa2Raf);
@@ -2255,16 +2547,9 @@ function stopLayout() {
 function resetLayout() {
     const graph = state.graph;
     if (!graph) return;
-    stopLayout();
-    const nodes = graph.nodes();
-    const n = nodes.length;
-    nodes.forEach((node, i) => {
-        const angle = (2 * Math.PI * i) / Math.max(1, n);
-        graph.setNodeAttribute(node, "x", Math.cos(angle) * 100);
-        graph.setNodeAttribute(node, "y", Math.sin(angle) * 100);
-    });
-    if (state.renderer) state.renderer.refresh();
-    queueCosmographAppearanceRefresh();
+    $("layout-type").value = "circular";
+    updateLayoutTypeUI();
+    applyStaticLayout("circular");
 }
 
 /* ------------------------------ catalog ----------------------------- */
@@ -2719,35 +3004,43 @@ async function runEdgeAttributeMetric(metric, global) {
 }
 /* ------------------------------- paths ------------------------------ */
 
-async function findPaths() {
+async function findPaths(options = {}) {
     if (!requireGraph()) return;
-    const source = $("path-source").value.trim();
-    const target = $("path-target").value.trim();
+    const source = String(options.source ?? $("select-path-source").value).trim();
+    const target = String(options.target ?? $("select-path-target").value).trim();
     if (!source || !target) { setStatus("Enter both source and target.", "error"); return; }
-    const withRecommendation = !!(state.rec.active && $("path-graph") && $("path-graph").value === "rec");
+    $("select-path-source").value = source;
+    $("select-path-target").value = target;
+    applyReducers();
+    const withRecommendation = false;
     setStatus("Finding shortest paths…", "busy");
-    $("btn-find-paths").disabled = true;
+    $("btn-select-paths").disabled = true;
     try {
         const res = await api("/api/paths", jsonBody({ graphId: state.graphId, source, target, withRecommendation }));
         state.lastPaths = res.paths || [];
         if (res.length < 0) {
-            $("path-summary").textContent = "No path from " + source + " to " + target + ".";
+            $("select-path-summary").textContent = "No path from " + source + " to " + target + ".";
         } else {
-            $("path-summary").textContent =
-                res.count + (res.truncated ? "+" : "") + " shortest path(s) of length " + res.length +
+            const resultText = res.count + (res.truncated ? "+" : "") + " shortest path(s) of length " + res.length +
                 " from " + source + " to " + target + (res.truncated ? " (showing first " + res.count + ")" : "") + ".";
+            $("select-path-summary").textContent = resultText;
         }
-        renderPathsTable(state.lastPaths);
+        renderPathsTable(state.lastPaths, "select-paths-table");
+        if (state.selection.type === "path") {
+            if (state.lastPaths.length) highlightPaths(state.lastPaths);
+            else { state.pathFocus = null; state.pathEndpointFocusActive = false; applyReducers(); }
+        }
+        updateSelectionSummary();
         setStatus("Found " + res.count + " path(s).");
     } catch (e) {
         setStatus(e.message, "error");
     } finally {
-        $("btn-find-paths").disabled = false;
+        $("btn-select-paths").disabled = false;
     }
 }
 
-function renderPathsTable(paths) {
-    const table = $("paths-table");
+function renderPathsTable(paths, tableId = "select-paths-table") {
+    const table = $(tableId);
     table.innerHTML = "";
     const thead = document.createElement("thead");
     thead.innerHTML = "<tr><th>#</th><th>path</th><th>action</th></tr>";
@@ -2759,9 +3052,10 @@ function renderPathsTable(paths) {
         const path = document.createElement("td"); path.textContent = p.join(" → "); path.style.textAlign = "left";
         const act = document.createElement("td");
         const btn = document.createElement("button");
-        btn.textContent = "Highlight";
+        const highlighted = (state.pathFocus?.paths || []).some((activePath) => JSON.stringify(activePath) === JSON.stringify(p));
+        btn.textContent = highlighted ? "De-highlight" : "Highlight";
         btn.style.width = "auto"; btn.style.margin = "0"; btn.style.padding = "2px 8px";
-        btn.addEventListener("click", () => highlightPaths([p]));
+        btn.addEventListener("click", () => togglePathHighlight(p));
         act.appendChild(btn);
         tr.append(idx, path, act);
         tbody.appendChild(tr);
@@ -2769,9 +3063,45 @@ function renderPathsTable(paths) {
     table.appendChild(tbody);
 }
 
-// Highlights one or more paths on the network (dims everything else) and switches to the Network tab.
+function togglePathHighlight(path) {
+    const key = JSON.stringify(path);
+    const activePaths = state.pathFocus?.paths || [];
+    const remaining = activePaths.filter((activePath) => JSON.stringify(activePath) !== key);
+    if (remaining.length !== activePaths.length) {
+        if (remaining.length) highlightPaths(remaining);
+        else {
+            state.pathFocus = null;
+            state.pathEndpointFocusActive = false;
+            applyReducers();
+        }
+    } else {
+        highlightPaths([...activePaths, path]);
+    }
+    renderPathsTable(state.lastPaths);
+}
+
+// Highlights one or more paths on the network (dims everything else).
 function highlightPaths(paths) {
     if (!paths.length) return;
+    if (state.selection.type !== "path") {
+        state.selection.type = "path";
+        state.selection.mode = "path-highlight";
+        state.selectedNode = null;
+        state.selection.node = null;
+        state.selectedEdge = null;
+        state.edgeSelectionPair = null;
+        $("select-node-input").value = "";
+        renderNodeInfo(null);
+        clearEdgeSelection();
+    }
+    if (state.selection.mode === "none") {
+        state.pathFocus = null;
+        state.pathEndpointFocusActive = false;
+        updateSelectionTargetUI();
+        syncCosmographSelection();
+        applyReducers();
+        return;
+    }
     const nodes = new Set();
     const edges = new Set();
     for (const p of paths) {
@@ -2783,14 +3113,40 @@ function highlightPaths(paths) {
             }
         }
     }
-    state.pathFocus = { nodes, edges, only: $("path-display").value === "only" };
-    switchTab("network");
+    const only = state.selection.mode === "path-only";
+    state.selection.mode = only ? "path-only" : "path-highlight";
+    state.pathFocus = { nodes, edges, only, paths: paths.map((path) => [...path]) };
+    state.pathEndpointFocusActive = false;
+    updateSelectionTargetUI();
+    syncCosmographSelection();
     applyReducers();
+    renderPathsTable(state.lastPaths);
 }
 
-function clearPathHighlight() {
+function showPathsBetween(source, target) {
+    $("select-path-source").value = source;
+    $("select-path-target").value = target;
+    state.selection.type = "path";
+    state.selection.mode = "path-highlight";
+    state.selectedNode = null;
+    state.selection.node = null;
+    state.selectedEdge = null;
+    state.edgeSelectionPair = null;
+    $("select-node-input").value = "";
+    renderNodeInfo(null);
+    clearEdgeSelection();
+    updateSelectionTargetUI();
     state.pathFocus = null;
-    applyReducers();
+    state.pathEndpointFocusActive = true;
+    syncCosmographSelection();
+    return findPaths({ source, target });
+}
+
+function findSelectedPaths() {
+    state.selection.type = "path";
+    state.pathEndpointFocusActive = true;
+    updateSelectionTargetUI();
+    return findPaths({ source: $("select-path-source").value, target: $("select-path-target").value });
 }
 
 /* ------------------------------ editing ----------------------------- */
@@ -2939,10 +3295,16 @@ function onGraphEdited(stats) {
     $("btn-global-comm").disabled = true;
     $("btn-indiv-comm").disabled = true;
     state.pathFocus = null;
+    state.cosmographDirty = true;
     if (state.selectedNode != null && !state.graph.hasNode(state.selectedNode)) clearSelection();
     refreshAfterCompute();
     applyReducers();
     if (state.renderer) state.renderer.refresh();
+    if (usingCosmograph() && window.relisonCosmograph?.isRendered()) {
+        window.relisonCosmograph.render(state.graph, cosmographInteractionCallbacks())
+            .then(() => { state.cosmographDirty = false; })
+            .catch((error) => setStatus("Cosmograph could not refresh after graph editing: " + error.message, "error"));
+    }
 }
 
 /* --------------------------- edit history (undo/redo) --------------------------- */
@@ -3105,7 +3467,6 @@ function switchTab(tab) {
     $("pane-network").classList.toggle("active", tab === "network");
     $("pane-tables").classList.toggle("active", tab === "tables");
     $("pane-metrics").classList.toggle("active", tab === "metrics");
-    $("pane-paths").classList.toggle("active", tab === "paths");
     $("pane-recommend").classList.toggle("active", tab === "recommend");
     $("pane-diffusion").classList.toggle("active", tab === "diffusion");
 
@@ -3123,7 +3484,6 @@ function switchTab(tab) {
     }, 0);
     if (tab === "tables") renderTable(state.activeTableSubtab);
     if (tab === "metrics") renderMetricsDashboard();
-    if (tab === "paths" && state.selectedNode && !$("path-source").value) $("path-source").value = state.selectedNode;
     if (tab === "recommend") { loadRecCatalog(); renderTable("rec"); }
     if (tab === "diffusion") enterDiffusionTab();
 }
@@ -3142,6 +3502,7 @@ function switchDiffSubtab(sub) {
     document.querySelector(".diff-layout").classList.toggle("no-state", !onGraph);
     if (sub === "graph") {
         if (state.diffusion.renderer) setTimeout(() => { state.diffusion.renderer.refresh(); drawDiffOverlay(); }, 0);
+        if (state.diffusion.rendererType === "cosmograph") restoreDiffCosmograph();
     } else if (sub === "metrics") {
         renderDiffMetrics();
     } else if (sub === "pieces") {
@@ -3858,11 +4219,11 @@ function applyReducers() {
             if (path.nodes.has(node)) return { ...data, zIndex: 2 };
             return path.only
                 ? { ...data, hidden: true }
-                : { ...data, color: dimColor, label: "", size: Math.max(1, (data.size || 3) * 0.6), zIndex: 0 };
+                : { ...data, color: dimColor, zIndex: 0 };
         }
         if (isolate && !focus.nodes.has(node)) return { ...data, hidden: true };
         if (focus && node === focus.selected) return { ...data, highlighted: true, zIndex: 2 };
-        if (dim && !focus.nodes.has(node)) return { ...data, color: dimColor, label: "", size: Math.max(1, (data.size || 3) * 0.6), zIndex: 0 };
+        if (dim && !focus.nodes.has(node)) return { ...data, color: dimColor, zIndex: 0 };
         if (focus && focus.nodes.has(node)) return { ...data, zIndex: 1 };
         return data;
     } : null);
@@ -3903,10 +4264,30 @@ function applyReducers() {
         matchingEdges: focus.matchingEdges ? new Set([...focus.matchingEdges].map(String)) : null,
         dimColor,
     } : null;
+    const pathSelectionNodes = new Set((state.pathEndpointFocusActive ? [$("select-path-source").value.trim(), $("select-path-target").value.trim()] : [])
+        .filter((node) => node && g.hasNode(node)));
+    window.relisonCosmographPath = path ? {
+        nodes: new Set([...path.nodes].map(String)),
+        edges: new Set([...path.edges].map(String)),
+        only: Boolean(path.only),
+        color: "#ff9f43",
+        dimColor,
+    } : null;
+    window.relisonCosmographPathSelection = !path && pathSelectionNodes.size ? {
+        nodes: pathSelectionNodes,
+        dimColor,
+    } : null;
+    const pathSignature = JSON.stringify({
+        path: path ? { nodes: [...path.nodes].map(String).sort(), edges: [...path.edges].map(String).sort(), only: Boolean(path.only) } : null,
+        endpoints: [...pathSelectionNodes].sort(),
+    });
+    const cosmographPathChanged = pathSignature !== state.cosmographPathSignature;
+    state.cosmographPathSignature = pathSignature;
+    state.cosmographPathActive = Boolean(path || pathSelectionNodes.size);
     // A focus change changes colours and, in show-only mode, the active data.
     // Use the regular projection refresh rather than a timeline-only delta so
     // retained points receive their new dimmed/visible mapping too.
-    if (cosmographFocusActive || state.cosmographFocusActive) {
+    if (cosmographFocusActive || state.cosmographFocusActive || cosmographPathChanged) {
         queueCosmographAppearanceRefresh();
     } else if (cosmographTimelineActive || state.cosmographTimelineActive) {
         queueCosmographTimelineRefresh();
@@ -4280,6 +4661,9 @@ const SESSION_CONTROLS = [
     "size-by", "color-by", "node-size-uniform", "node-size-min", "node-size-max", "node-size-scale", "node-color-low", "node-color-high",
     "edge-size-by", "edge-size-uniform", "edge-size-min", "edge-size-max", "edge-size-scale", "edge-color-mode", "edge-color-single",
     "node-border-on", "node-border-color", "node-border-width", "layout-type",
+    "layout-radius", "layout-spacing", "layout-columns", "layout-width", "layout-height", "layout-seed", "layout-score", "circlepack-group",
+    "layout-preset-x", "layout-preset-y",
+    "layout-root", "layout-direction", "layout-column-spacing", "layout-level-spacing", "layout-sweeps", "layout-pack-components", "layout-packing-gap",
 ];
 
 function collectSessionClientState() {
@@ -4295,6 +4679,7 @@ function collectSessionClientState() {
 
     return {
         positions,
+        savedLayoutPositions: state.savedLayoutPositions?.graphId === state.graphId ? state.savedLayoutPositions.positions : null,
         controls,
         metrics: {
             metricData: state.metricData, metricOrder: state.metricOrder,
@@ -4318,6 +4703,7 @@ function collectSessionClientState() {
 // everything, so this only ever adds state back).
 function applySessionClientState(c) {
     if (!c) return;
+    state.savedLayoutPositions = c.savedLayoutPositions ? { graphId: state.graphId, positions: c.savedLayoutPositions } : null;
 
     if (c.positions && state.graph) {
         state.graph.forEachNode((n) => {
@@ -4378,6 +4764,7 @@ function applySessionClientState(c) {
         else el.value = c.controls[id];
     }
     applyAppearance();
+    syncLayoutOptionsForRenderer();
 
     if (state.recEval.result) renderRecEvalTable(state.recEval.result);
     if (state.recEval.test) {
@@ -5720,7 +6107,7 @@ function drawRecOverlay() {
                 const p = pos(node);
                 let radius = nodeRadius(node);
                 let color = g.getNodeAttribute(node, "color") || "#4f9dff";
-                if (verdict === "dim") { color = c.dimColor; radius = Math.max(1, radius * 0.6); }
+                if (verdict === "dim") color = c.dimColor;
                 ctx.fillStyle = color;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, radius, 0, 2 * Math.PI);
@@ -5739,7 +6126,6 @@ function drawRecOverlay() {
                 if (x == null) return;
                 const p = pos(node);
                 let radius = nodeRadius(node);
-                if (verdict === "dim") radius = Math.max(1, radius * 0.6);
                 ctx.strokeStyle = verdict === "dim" ? c.dimColor : state.nodeBorder.color;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, radius, 0, 2 * Math.PI);
@@ -5827,7 +6213,8 @@ function enterDiffusionTab() {
     if (!state.diffusion.graph) initDiffGraph();
     else syncDiffAppearance();   // mirror any appearance changes made on the Network tab while we were away
     if (state.diffusion.renderer) setTimeout(() => { state.diffusion.renderer.refresh(); drawDiffOverlay(); }, 0);
-    if (state.diffusion.result) setDiffIteration(state.diffusion.iteration);
+    if (state.diffusion.rendererType === "cosmograph" && state.diffusion.subview === "graph") restoreDiffCosmograph();
+    if (state.diffusion.result && state.diffusion.rendererType !== "cosmograph") setDiffIteration(state.diffusion.iteration);
     if (state.diffusion.subview === "metrics") renderDiffMetrics();
     if (state.diffusion.subview === "pieces") renderActivePiecesMode();
 }
@@ -5864,6 +6251,67 @@ function initDiffGraph() {
     state.diffusion.renderer.on("leaveNode", () => { state.diffusion.hoverNode = null; drawDiffOverlay(); });
     syncDiffAppearance();
     buildDiffLegend();
+    initDiffCosmograph();
+}
+
+// Hidden app tabs can give the WebGL canvas a zero-sized viewport. Restore its
+// dimensions only after the diffusion pane and graph subtab have become visible.
+function restoreDiffCosmograph() {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (state.activeTab !== "diffusion" || state.diffusion.subview !== "graph" || state.diffusion.rendererType !== "cosmograph") return;
+        if (!state.diffusion.cosmograph) {
+            initDiffCosmograph();
+            return;
+        }
+        state.diffusion.cosmograph.resize();
+    }));
+}
+
+async function initDiffCosmograph() {
+    if (state.diffusion.rendererType !== "cosmograph" || !state.diffusion.graph || !window.relisonDiffusionCosmograph) return;
+    try {
+        if (state.diffusion.cosmograph) state.diffusion.cosmograph.destroy();
+        state.diffusion.cosmograph = null;
+        const graph = state.diffusion.graph;
+        const recModel = state.diffusion.recKey && state.rec.models[state.diffusion.recKey];
+        window.relisonDiffusionRecModel = recModel || null;
+        window.relisonDiffusionRecColor = state.rec.color;
+        window.relisonDiffusionRecDashed = state.rec.diff;
+        window.relisonDiffusionDirected = state.directed;
+        const cosmograph = await window.relisonDiffusionCosmograph.create(
+            graph,
+            $("diff-cosmograph-container"),
+            (node) => selectDiffNode(node),
+        );
+        // The user may have switched renderers or loaded another graph while the
+        // asynchronous Cosmograph upload was in flight. Never publish a stale instance.
+        if (state.diffusion.rendererType !== "cosmograph" || state.diffusion.graph !== graph) {
+            cosmograph.destroy();
+            return;
+        }
+        state.diffusion.cosmograph = cosmograph;
+        await cosmograph.setIteration(state.diffusion.iteration || 0, state.diffusion.result, DIFF_COL);
+    } catch (error) {
+        console.error("Could not initialize diffusion Cosmograph.", error);
+        setStatus("Cosmograph could not render the diffusion graph: " + error.message, "error");
+        $("diff-renderer").value = "sigma";
+        setDiffRenderer("sigma");
+    }
+}
+
+function setDiffRenderer(type) {
+    const view = $("diff-view-graph");
+    state.diffusion.rendererType = type === "cosmograph" ? "cosmograph" : "sigma";
+    view.classList.toggle("cosmograph-active", state.diffusion.rendererType === "cosmograph");
+    $("diff-cosmograph-container").hidden = state.diffusion.rendererType !== "cosmograph";
+    if (state.diffusion.rendererType === "cosmograph") {
+        if (!state.diffusion.cosmograph) initDiffCosmograph();
+        else state.diffusion.cosmograph.resize();
+        if (state.diffusion.result) state.diffusion.cosmograph?.setIteration(state.diffusion.iteration, state.diffusion.result, DIFF_COL);
+    } else {
+        if (state.diffusion.renderer) state.diffusion.renderer.refresh();
+        drawDiffOverlay();
+    }
 }
 
 // Mirrors the main display's drawing into the diffusion canvas — node sizes/positions, edge thickness/colour, labels
@@ -5897,6 +6345,7 @@ function syncDiffAppearance() {
         r.setSetting("edgeLabelFont", o.edgeFont);
         r.refresh();
     }
+    state.diffusion.cosmograph?.syncAppearance(g);
     drawDiffOverlay();
 }
 
@@ -6109,6 +6558,7 @@ async function runDiffusion() {
             state.diffusion.runs.push({ label: uniqueRunLabel(baseLabel), detail: runDetail, numIterations: res.numIterations, metrics: res.metrics });
         }
         $("diff-empty-hint").style.display = "none";
+        if (state.diffusion.rendererType === "cosmograph") await initDiffCosmograph();
         toggleHidden("diff-timebar", res.numIterations <= 0);
         const slider = $("diff-slider");
         slider.min = 0; slider.max = Math.max(0, res.numIterations - 1); slider.value = 0;
@@ -6165,6 +6615,7 @@ function setDiffIteration(i) {
     if (statsActive("node") && state.diffusion.traj) drawTrajectoryChart();
     if (statsActive("piece") && state.diffusion.ptraj) drawPieceTimeline();
     if (statsActive("feat") && state.diffusion.ftraj) drawFeatureTimeline();
+    return state.diffusion.cosmograph?.setIteration(i, res, DIFF_COL);
 }
 
 // Draws, for the current iteration, dashed spread edges from each propagating user to its neighbours.
@@ -6180,7 +6631,7 @@ function drawDiffOverlay() {
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    if (!r || !g || state.activeTab !== "diffusion") return;
+    if (!r || !g || state.activeTab !== "diffusion" || state.diffusion.rendererType === "cosmograph") return;
 
     try {
         const pos = (n) => r.graphToViewport({ x: g.getNodeAttribute(n, "x"), y: g.getNodeAttribute(n, "y") });
@@ -6529,6 +6980,11 @@ async function clearDiffusion() {
 
 function resetDiffusion() {
     diffStop();
+    if (state.diffusion.cosmograph) { state.diffusion.cosmograph.destroy(); state.diffusion.cosmograph = null; }
+    state.diffusion.rendererType = "sigma";
+    const rendererSelect = $("diff-renderer"); if (rendererSelect) rendererSelect.value = "sigma";
+    const graphView = $("diff-view-graph"); if (graphView) graphView.classList.remove("cosmograph-active");
+    const cosmographContainer = $("diff-cosmograph-container"); if (cosmographContainer) cosmographContainer.hidden = true;
     if (state.diffusion.renderer) { try { state.diffusion.renderer.kill(); } catch (e) { /* ignore */ } state.diffusion.renderer = null; }
     state.diffusion.graph = null;
     state.diffusion.result = null;
@@ -7649,10 +8105,18 @@ $("tl-step-fwd").addEventListener("click", () => stepTimeline(1));
 $("btn-tl-gif").addEventListener("click", downloadTimelineGif);
 $("btn-tl-webm").addEventListener("click", downloadTimelineWebm);
 $("btn-layout").addEventListener("click", onLayoutButton);
+$("btn-save-layout").addEventListener("click", saveLayoutPositions);
+$("layout-pack-components").addEventListener("change", updateLayoutTypeUI);
 $("btn-noverlap").addEventListener("click", removeOverlaps);
 $("btn-reset-layout").addEventListener("click", resetLayout);
-$("layout-type").addEventListener("change", () => { if (state.fa2Running) stopLayout(); updateLayoutButton(); updateLayoutTypeUI(); });
-$("drag-nodes").addEventListener("change", (e) => { state.dragNodes = e.target.checked; });
+$("layout-type").addEventListener("change", () => { stopLayout(); updateLayoutButton(); updateLayoutTypeUI(); });
+$("drag-nodes").addEventListener("change", (e) => {
+    state.dragNodes = e.target.checked;
+    if (usingCosmograph() && window.relisonCosmograph?.setDragEnabled) {
+        window.relisonCosmograph.setDragEnabled(state.dragNodes)
+            .catch((error) => setStatus("Could not update Cosmograph node dragging: " + error.message, "error"));
+    }
+});
 updateLayoutButton();
 updateLayoutTypeUI();
 
@@ -7684,6 +8148,7 @@ $("diff-node-input").addEventListener("change", () => {
 });
 $("diffmetric-select").addEventListener("change", renderDiffMetrics);
 $("diff-feature-view").addEventListener("change", () => { if (state.diffusion.lastState) renderDiffState(state.diffusion.lastState); });
+$("diff-renderer").addEventListener("change", (event) => setDiffRenderer(event.target.value));
 // Node timeline subtab controls.
 $("diff-traj-node").addEventListener("change", () => {
     const v = $("diff-traj-node").value.trim();
@@ -7862,12 +8327,9 @@ $("btn-clear-selection").addEventListener("click", clearSelection);
 $("select-mode").value = state.selection.mode;
 updateSelectionTargetUI();
 
-$("btn-find-paths").addEventListener("click", findPaths);
-$("btn-highlight-all-paths").addEventListener("click", () => highlightPaths(state.lastPaths));
-$("btn-clear-path-hl").addEventListener("click", clearPathHighlight);
-$("path-display").addEventListener("change", () => {
-    if (state.pathFocus) { state.pathFocus.only = $("path-display").value === "only"; applyReducers(); }
-});
+$("btn-select-paths").addEventListener("click", findSelectedPaths);
+$("select-path-source").addEventListener("change", () => { state.pathFocus = null; state.pathEndpointFocusActive = true; updateSelectionSummary(); renderPathsTable(state.lastPaths); applyReducers(); });
+$("select-path-target").addEventListener("change", () => { state.pathFocus = null; state.pathEndpointFocusActive = true; updateSelectionSummary(); renderPathsTable(state.lastPaths); applyReducers(); });
 
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 document.querySelectorAll(".subtab").forEach((b) => b.addEventListener("click", () => switchSubtab(b.dataset.subtab)));

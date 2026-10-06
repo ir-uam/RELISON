@@ -17,22 +17,34 @@ function projectGraph(graph) {
     // this filter at projection time updates only Cosmograph's active snapshot;
     // it never changes the underlying Graphology graph.
     const temporal = window.relisonCosmographTemporal || {};
-    const focus = window.relisonCosmographFocus;
+    const path = window.relisonCosmographPath;
+    const pathSelection = path ? null : window.relisonCosmographPathSelection;
+    const focus = path || pathSelection ? null : window.relisonCosmographFocus;
     // Cosmograph only reprocesses link styles when the configured column name
     // changes. A fresh internal name ensures a data update (such as showing a
     // recommendation) rebuilds the native style buffer as well.
     const styleColumn = "__relison_link_style_" + (++linkStyleColumnRevision);
     const isFocused = (id) => !focus || !focus.nodes || focus.nodes.has(String(id));
-    const isVisibleNode = (id) => (!temporal.nodes || temporal.nodes.has(String(id))) && (!focus?.only || isFocused(id));
+    const isPathNode = (id) => Boolean(path?.nodes?.has(String(id)));
+    const isPathEndpoint = (id) => Boolean(pathSelection?.nodes?.has(String(id)));
+    const isVisibleNode = (id) => (!temporal.nodes || temporal.nodes.has(String(id))) &&
+        (!focus?.only || isFocused(id)) && (!path?.only || isPathNode(id));
+    const pathEdgeKey = (source, target) => String(source) + "|" + String(target);
+    const isPathEdge = (source, target) => Boolean(path?.edges?.has(pathEdgeKey(source, target)) || path?.edges?.has(pathEdgeKey(target, source)));
     const isVisibleEdge = (id) => !temporal.edges || temporal.edges.has(String(id));
     const points = graph.nodes().filter(isVisibleNode).map((id) => {
         const attrs = graph.getNodeAttributes(id);
-        const dimmed = Boolean(focus && !focus.only && !isFocused(id));
+        const dimmed = path
+            ? Boolean(!path.only && !isPathNode(id))
+            : pathSelection
+                ? !isPathEndpoint(id)
+                : Boolean(focus && !focus.only && !isFocused(id));
+        const baseSize = Number.isFinite(attrs.size) ? attrs.size : 4;
         return {
             id: String(id),
-            label: dimmed ? "" : (attrs.label == null ? String(id) : String(attrs.label)),
-            color: dimmed ? (focus.dimColor || "#3a3c41") : (attrs.color || "#4f9dff"),
-            size: dimmed ? Math.max(1, (Number.isFinite(attrs.size) ? attrs.size : 4) * 0.6) : (Number.isFinite(attrs.size) ? attrs.size : 4),
+            label: attrs.label == null ? String(id) : String(attrs.label),
+            color: dimmed ? ((path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : (attrs.color || "#4f9dff"),
+            size: baseSize,
             x: Number.isFinite(attrs.x) ? attrs.x : undefined,
             y: Number.isFinite(attrs.y) ? attrs.y : undefined,
         };
@@ -40,16 +52,27 @@ function projectGraph(graph) {
     pointLabelSizes = points.map((point) => point.size);
     pointIds = points.map((point) => point.id);
 
-    const links = graph.edges().filter((edge) => isVisibleEdge(edge) && isVisibleNode(graph.source(edge)) && isVisibleNode(graph.target(edge)) && (!focus?.only || !focus?.matchingEdges || focus.matchingEdges.has(String(edge)))).map((edge) => {
+    const links = graph.edges().filter((edge) => {
+        const source = graph.source(edge), target = graph.target(edge);
+        return isVisibleEdge(edge) && isVisibleNode(source) && isVisibleNode(target) &&
+            (!focus?.only || !focus?.matchingEdges || focus.matchingEdges.has(String(edge))) &&
+            (!path?.only || isPathEdge(source, target));
+    }).map((edge) => {
         const directed = graph.type === "directed" || (graph.type === "mixed" && !graph.isUndirected(edge));
         const attrs = graph.getEdgeAttributes(edge);
         const source = graph.source(edge), target = graph.target(edge);
-        const dimmed = Boolean(focus && !focus.only && (focus.matchingEdges ? !focus.matchingEdges.has(String(edge)) : (focus.edgeOnly ? String(edge) !== focus.edge : (!isFocused(source) || !isFocused(target)))))
+        const pathLink = isPathEdge(source, target);
+        const pathEndpointsLink = isPathEndpoint(source) && isPathEndpoint(target);
+        const dimmed = path
+            ? Boolean(!path.only && !pathLink)
+            : pathSelection
+                ? !pathEndpointsLink
+                : Boolean(focus && !focus.only && (focus.matchingEdges ? !focus.matchingEdges.has(String(edge)) : (focus.edgeOnly ? String(edge) !== focus.edge : (!isFocused(source) || !isFocused(target)))));
         return {
             id: String(edge),
             source: String(source),
             target: String(target),
-            color: dimmed ? (focus.dimColor || "#3a3c41") : (attrs.color || "#888888"),
+            color: dimmed ? ((path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : (attrs.color || "#888888"),
             arrow: directed,
             width: Number.isFinite(attrs.size) ? attrs.size : 1,
             // Base Graphology links are always continuous. Only the separate
@@ -57,7 +80,7 @@ function projectGraph(graph) {
             style: 0,
             [styleColumn]: 0,
             // applyLabels() keeps this in sync with RELISON's edge-label attribute.
-            label: dimmed ? "" : (attrs.label == null ? "" : String(attrs.label)),
+            label: attrs.label == null ? "" : String(attrs.label),
         };
     });
     // Recommendation results are intentionally not written into Graphology:
@@ -77,12 +100,19 @@ function projectGraph(graph) {
         recommendation.edges.forEach((edge, index) => {
             const source = String(edge.source), target = String(edge.target);
             if (!graph.hasNode(edge.source) || !graph.hasNode(edge.target) || !isVisibleNode(edge.source) || !isVisibleNode(edge.target)) return;
-            const dimmed = Boolean(focus && !focus.only && (!isFocused(edge.source) || !isFocused(edge.target)));
+            const pathLink = isPathEdge(source, target);
+            if (path?.only && !pathLink) return;
+            const pathEndpointsLink = isPathEndpoint(source) && isPathEndpoint(target);
+            const dimmed = path
+                ? Boolean(!path.only && !pathLink)
+                : pathSelection
+                    ? !pathEndpointsLink
+                    : Boolean(focus && !focus.only && (!isFocused(edge.source) || !isFocused(edge.target)));
             links.push({
                 id: "__relison_recommendation__" + index,
                 source,
                 target,
-                color: dimmed ? (focus.dimColor || "#3a3c41") : recommendation.color,
+                color: dimmed ? ((path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : recommendation.color,
                 width: baseWidth,
                 style: recommendation.diff ? 1 : 0,
                 [styleColumn]: recommendation.diff ? 1 : 0,
@@ -191,6 +221,18 @@ function rememberSnapshot(snapshot) {
 // The data-preparation layer accepts linkStyleBy, but Cosmograph 2.5.1 can
 // drop that optional column during a config update. Set the renderer's native
 // style buffer explicitly after each upload: 0 = solid, 1 = dashed, 2 = dotted.
+function findGraphApi() {
+    const candidates = [instance?.graph, instance?._graph, instance?.cosmos, instance?._cosmos, ...Object.values(instance || {})];
+    return candidates.find((candidate) => candidate && typeof candidate.setPointSizes === "function") || null;
+}
+
+function applyPointSizes(snapshot) {
+    const graphApi = findGraphApi();
+    if (!graphApi) return;
+    graphApi.setPointSizes(Float32Array.from(snapshot.points, (point) => Number.isFinite(point.size) ? point.size : 4));
+    graphApi.render?.();
+}
+
 function applyLinkStyles(snapshot) {
     if (!instance || typeof instance.setLinkStyles !== "function") return;
     instance.setLinkStyles(Float32Array.from(snapshot.links, (link) => Number.isInteger(link.style) && link.style >= 0 && link.style <= 2 ? link.style : 0));
@@ -250,9 +292,11 @@ function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStage
         linkDefaultWidth: 1,
         linkWidthScale: 1,
         linkDefaultArrows: graphHasDirectedLinks,
-        // Keep the simulation available for the explicit force-layout control.
-        // render() stops it immediately unless that layout is running.
-        enableSimulation: true,
+        // Never let data edits or renderer refreshes wake the force layout.
+        // The explicit Cosmograph force-layout control enables it on demand.
+        enableSimulation: forceLayoutRunning,
+        // The UI checkbox controls native Cosmograph point dragging.
+        enableDrag: Boolean(document.getElementById("drag-nodes")?.checked),
         rescalePositions: false,
         fitViewOnInit: true,
         fitViewDelay: 0,
@@ -274,6 +318,9 @@ function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStage
             const point = snapshot.points[index];
             if (point && onPointClick) onPointClick(point.id, event);
         },
+        // Keep RELISON's shared Graphology positions (and exports) in sync with
+        // the point positions chosen by the user in Cosmograph.
+        onDragEnd: () => savePointPositions(),
         onLinkClick: (index, event) => {
             const link = snapshot.links[index];
             if (link && onLinkClick) onLinkClick(link.id, event);
@@ -299,6 +346,7 @@ async function render(graph, { onPointClick, onLinkClick, onStageClick } = {}) {
         // during a normal renderer change.
         if (!forceLayoutRunning) instance.stop();
         await instance.dataUploaded();
+        applyPointSizes(snapshot);
         applyLinkStyles(snapshot);
         rememberSnapshot(snapshot);
         if (forceLayoutRunning) startEdgeLabelTracking(); else stopEdgeLabelTracking();
@@ -310,6 +358,7 @@ async function render(graph, { onPointClick, onLinkClick, onStageClick } = {}) {
     // render frame, which is too late to prevent the visible layout jump.
     if (!forceLayoutRunning) instance.stop();
     await instance.dataUploaded();
+    applyPointSizes(snapshot);
     applyLinkStyles(snapshot);
     rememberSnapshot(snapshot);
     if (forceLayoutRunning) startEdgeLabelTracking(); else stopEdgeLabelTracking();
@@ -353,6 +402,7 @@ async function applyTimelineDelta(graph) {
     if (linksToAdd.length) await instance.addLinks(linksToAdd);
     if (!forceLayoutRunning && typeof instance.stop === "function") instance.stop();
     if (typeof instance.dataUploaded === "function") await instance.dataUploaded();
+    applyPointSizes(snapshot);
     applyLinkStyles(snapshot);
     rememberSnapshot(snapshot);
     await refreshEdgeLabels();
@@ -381,9 +431,17 @@ function destroy() {
     if (container) container.replaceChildren();
 }
 
-function startForceLayout() {
+async function startForceLayout() {
     if (!instance || typeof instance.start !== "function") return false;
     forceLayoutRunning = true;
+    if (typeof instance.setConfigPartial === "function") {
+        await instance.setConfigPartial({ enableSimulation: true });
+    } else if (typeof instance.getConfig === "function" && typeof instance.setConfig === "function") {
+        const config = await instance.getConfig();
+        await instance.setConfig({ ...config, enableSimulation: true });
+        await instance.dataUploaded?.();
+    }
+    if (!forceLayoutRunning) return false;
     instance.start();
     startEdgeLabelTracking();
     // Let the simulation establish its initial structure before fitting. Fitting
@@ -412,6 +470,10 @@ function stopForceLayout() {
     if (forceFitTimer) { clearTimeout(forceFitTimer); forceFitTimer = null; }
     if (instance && typeof instance.stop === "function") instance.stop();
     forceLayoutRunning = false;
+    if (instance && typeof instance.setConfigPartial === "function") {
+        Promise.resolve(instance.setConfigPartial({ enableSimulation: false }))
+            .catch((error) => console.warn("Could not disable Cosmograph simulation.", error));
+    }
     stopEdgeLabelTracking();
     refreshEdgeLabels().catch((error) => console.warn("Cosmograph edge-label refresh failed.", error));
     return savePointPositions();
@@ -594,5 +656,17 @@ async function setFocusedSelection(nodeId, edgeId) {
         focusedLinkIndex: linkIndex >= 0 ? linkIndex : undefined,
     });
 }
-window.relisonCosmograph = { render, syncTimeline, destroy, isRendered: () => instance !== null, startForceLayout, stopForceLayout, savePointPositions, exportPng, exportSvg, zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8), fitView, setFocusedSelection };
+async function setDragEnabled(enabled) {
+    if (!instance) return;
+    const value = Boolean(enabled);
+    if (typeof instance.setConfigPartial === "function") {
+        await instance.setConfigPartial({ enableDrag: value });
+    } else if (typeof instance.getConfig === "function" && typeof instance.setConfig === "function") {
+        const config = await instance.getConfig();
+        await instance.setConfig({ ...config, enableDrag: value });
+        if (!forceLayoutRunning) instance.stop?.();
+        await instance.dataUploaded?.();
+    }
+}
+window.relisonCosmograph = { render, syncTimeline, destroy, isRendered: () => instance !== null, startForceLayout, stopForceLayout, savePointPositions, exportPng, exportSvg, zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8), fitView, setFocusedSelection, setDragEnabled, screenToSpacePosition: (position) => instance?.screenToSpacePosition?.(position) };
 window.dispatchEvent(new CustomEvent("relison-cosmograph-ready"));

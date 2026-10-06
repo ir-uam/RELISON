@@ -87,7 +87,6 @@
     <button class="tab" data-tab="network">Network</button>
     <button class="tab" data-tab="tables">Nodes &amp; Edges</button>
     <button class="tab" data-tab="metrics">Metrics</button>
-    <button class="tab" data-tab="paths">Paths</button>
     <button class="tab" data-tab="recommend" id="tab-recommend">Recommendation</button>
     <button class="tab" data-tab="diffusion" id="tab-diffusion">Diffusion</button>
 </nav>
@@ -107,6 +106,16 @@
                     <option value="force">Force-directed (animated)</option>
                     <option value="cosmograph-force" hidden>Cosmograph force (animated)</option>
                     <option value="circular">Circular</option>
+                    <option value="grid">Grid</option>
+                    <option value="feature-grid">Grid by feature</option>
+                    <option value="ego-grid">Grid / ego</option>
+                    <option value="shell">Shell (groups on rings)</option>
+                    <option value="concentric">Concentric by score</option>
+                    <option value="radial">Radial / ego</option>
+                    <option value="bipartite">Bipartite</option>
+                    <option value="multipartite">Multipartite</option>
+                    <option value="tree">Tidy tree / forest</option>
+                    <option value="preset">Saved positions</option>
                     <option value="circlepack">Circle packing</option>
                     <option value="random">Random</option>
                 </select>
@@ -115,7 +124,45 @@
                 <span>Group by</span>
                 <select id="circlepack-group"><option value="">— none —</option></select>
             </label>
+            <div class="params" id="static-layout-params" hidden>
+                <label id="layout-radius-field"><span>Radius</span><input type="number" id="layout-radius" min="1" step="1" value="100"/></label>
+                <label id="layout-spacing-field"><span>Spacing</span><input type="number" id="layout-spacing" min="1" step="1" value="50"/></label>
+                <label id="layout-root-field"><span>Root node</span><input type="text" id="layout-root" value="" placeholder="Search node (or automatic)"/></label>
+                <label id="layout-direction-field"><span>Traversal</span><select id="layout-direction"><option value="UND">Ignore direction</option><option value="OUT">Outgoing</option><option value="IN">Incoming</option><option value="MUTUAL">Mutual</option></select></label>
+                <label id="layout-column-spacing-field"><span>Column spacing</span><input type="number" id="layout-column-spacing" min="1" step="1" value="150"/></label>
+                <label id="layout-level-spacing-field"><span>Level spacing</span><input type="number" id="layout-level-spacing" min="1" step="1" value="75"/></label>
+                <label id="layout-sweeps-field"><span>Ordering passes</span><input type="number" id="layout-sweeps" min="0" max="100" step="1" value="4"/></label>
+                <label id="layout-columns-field"><span>Columns (0 = auto)</span><input type="number" id="layout-columns" min="0" step="1" value="0"/></label>
+                <label id="layout-width-field"><span>Width</span><input type="number" id="layout-width" min="1" step="1" value="600"/></label>
+                <label id="layout-height-field"><span>Height</span><input type="number" id="layout-height" min="1" step="1" value="600"/></label>
+                <label id="layout-seed-field"><span>Random seed</span><input type="number" id="layout-seed" step="1" value="42"/></label>
+            </div>
+            <label class="field" id="layout-score-field" hidden>
+                <span>Score by</span>
+                <select id="layout-score"><option value="degree">Degree</option></select>
+            </label>
+            <p class="muted" id="layout-shell-hint" hidden>Groups occupy rings from inside to outside, ordered by group label. Without grouping, all nodes share a ring.</p>
+            <p class="muted" id="layout-feature-grid-hint" hidden>Each feature value occupies a column, ordered by group label. Edges within a column are allowed.</p>
+            <p class="muted" id="layout-ego-grid-hint" hidden>Columns show hop distance from the root. Unreachable nodes share a final column.</p>
+            <p class="muted" id="layout-radial-hint" hidden>Rings show hop distance from the root. Unreachable nodes share an extra outer ring.</p>
+            <p class="muted" id="layout-partition-hint" hidden>Bipartite can detect two sides automatically. Multipartite requires grouping. Groups must not contain an edge between their own nodes.</p>
+            <p class="muted" id="layout-tree-hint" hidden>Requires a tree or forest. Directed edges must point from parent to child, with one parent per node. Cycles are rejected.</p>
+            <label class="field" id="layout-preset-x-field" hidden>
+                <span>X coordinate</span>
+                <select id="layout-preset-x"><option value="">Saved X coordinate</option></select>
+            </label>
+            <label class="field" id="layout-preset-y-field" hidden>
+                <span>Y coordinate</span>
+                <select id="layout-preset-y"><option value="">Saved Y coordinate</option></select>
+            </label>
+            <p class="muted" id="layout-preset-hint" hidden>Restore saved coordinates or choose a numeric node attribute for each axis. Attribute values are used directly and must be finite for every node. Save positions first when using a saved axis.</p>
+            <div id="layout-packing-controls" hidden>
+                <label class="inline-check"><input type="checkbox" id="layout-pack-components"/> Pack disconnected components</label>
+                <div class="params" id="layout-packing-gap-field" hidden><label><span>Component gap</span><input type="number" id="layout-packing-gap" min="1" step="1" value="50"/></label></div>
+                <p class="muted">Moves each component as a unit, preserving its internal shape. Separate components may no longer share the same columns or coordinate axes.</p>
+            </div>
             <button id="btn-layout">Start layout</button>
+            <button id="btn-save-layout">Save positions</button>
             <button id="btn-noverlap">Remove overlaps</button>
             <button id="btn-reset-layout">Reset (circular)</button>
             <div class="params" id="layout-params">
@@ -298,7 +345,7 @@
             <h2>Edit mode</h2>
             <label><input type="checkbox" id="edit-mode"/> Enable editing</label>
             <p class="muted" id="edit-help" hidden>
-                Click empty space to add a node. Click a node then another to add an edge.
+                Click empty space to add a node. Click a node then another, or Ctrl-click two nodes, to add an edge.
                 Select a node and press Delete to remove it.
             </p>
         </section>
@@ -707,31 +754,6 @@
             </div>
         </div>
 
-        <!-- TAB 4: shortest paths -->
-        <div class="tabpane" id="pane-paths">
-            <div class="paths-controls">
-                <label>Source <input type="text" id="path-source" placeholder="type to search node"/></label>
-                <label>Target <input type="text" id="path-target" placeholder="type to search node"/></label>
-                <label>Display
-                    <select id="path-display">
-                        <option value="highlight">Highlight (dim rest)</option>
-                        <option value="only">Show only</option>
-                    </select>
-                </label>
-                <label class="rec-include-field" id="path-graph-field" hidden>Graph
-                    <select id="path-graph">
-                        <option value="original">Original</option>
-                        <option value="rec">With recommendation</option>
-                    </select>
-                </label>
-                <button id="btn-find-paths">Find shortest paths</button>
-                <button id="btn-highlight-all-paths">Show all</button>
-                <button id="btn-clear-path-hl">Clear</button>
-            </div>
-            <p class="muted" id="path-summary">Pick a source and a target, then find their shortest paths.</p>
-            <div class="scroll-table tall"><table id="paths-table" class="data"></table></div>
-        </div>
-
         <!-- TAB 5: link recommendation / prediction -->
         <div class="tabpane" id="pane-recommend">
             <div class="rec-layout">
@@ -895,7 +917,9 @@
                     </nav>
                     <div class="diff-views">
                         <div class="diff-view" id="diff-view-graph">
+                            <label class="diff-renderer-picker"><span>Renderer</span><select id="diff-renderer"><option value="sigma">Sigma</option><option value="cosmograph">Cosmograph (experimental)</option></select></label>
                             <div id="diff-sigma-container"></div>
+                            <div id="diff-cosmograph-container" hidden></div>
                             <canvas id="diff-overlay"></canvas>
                             <div id="diff-legend" class="diff-legend" hidden></div>
                             <div id="diff-empty-hint">Configure and run a simulation to begin.</div>
@@ -1196,19 +1220,29 @@
             <div class="selection-context" aria-live="polite"><span class="selection-kind" id="selection-kind">Node</span><span class="selection-summary" id="selection-summary">Select a node to inspect it.</span></div>
             <label class="field">
                 <span>Selection</span>
-                <select id="select-type"><option value="node">Node</option><option value="edge">Edge</option></select>
+                <select id="select-type"><option value="node">Node</option><option value="edge">Edge</option><option value="path">Path</option></select>
             </label>
             <label class="field" id="select-edge-field" hidden>
                 <span>Edge</span>
                 <select id="select-edge-input"><option value="">— choose an edge —</option></select>
-            </label>            <label class="field" id="select-node-field">
+            </label>
+            <label class="field" id="select-node-field">
                 <span>Node</span>
                 <input type="text" id="select-node-input" placeholder="type or click a node"/>
             </label>
-            <label class="field">
+            <div id="select-path-fields" hidden>
+                <label class="field"><span>Source</span><input type="text" id="select-path-source" placeholder="type to search node"/></label>
+                <label class="field"><span>Target</span><input type="text" id="select-path-target" placeholder="type to search node"/></label>
+                <button id="btn-select-paths">Find all shortest paths</button>
+                <p class="muted" id="select-path-summary">Choose a source and target to find all shortest paths.</p>
+                <div class="scroll-table"><table id="select-paths-table" class="data"></table></div>
+            </div>
+            <label class="field" id="select-view-mode-field">
                 <span>View mode</span>
                 <select id="select-mode">
                     <option value="highlight">Highlight node</option>
+                    <option value="path-highlight" hidden>Highlight all paths</option>
+                    <option value="path-only" hidden>Show all paths</option>
                     <option value="edge-highlight" hidden>Highlight only edge</option>
                     <option value="edge-attribute-highlight" hidden>Highlight matching edge attributes</option>
                     <option value="edge-attribute-only" hidden>Show only matching edge attributes</option>
@@ -1241,5 +1275,6 @@
 <script src="chart-settings.js"></script>
 <script src="app.js"></script>
 <script type="module" src="cosmograph-spike.js"></script>
+<script type="module" src="diffusion-cosmograph.js"></script>
 </body>
 </html>
