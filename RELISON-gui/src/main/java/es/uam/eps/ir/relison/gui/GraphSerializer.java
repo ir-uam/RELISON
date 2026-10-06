@@ -65,7 +65,7 @@ public final class GraphSerializer
         List<String> edgeAttrNames = new ArrayList<>();
         graph.getEdgeAttributeNames().forEach(edgeAttrNames::add);
 
-        // Nodes: lay them out on a circle as an initial position; ForceAtlas2 refines this on the client.
+        // Nodes: lay them out on a circle as an initial position; the client force layout refines this.
         List<Map<String, Object>> nodes = new ArrayList<>();
         List<String> nodeList = new ArrayList<>();
         graph.getAllNodes().forEach(nodeList::add);

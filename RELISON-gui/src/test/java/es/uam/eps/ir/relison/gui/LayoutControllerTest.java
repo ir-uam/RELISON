@@ -145,4 +145,34 @@ public class LayoutControllerTest
         assertNotEquals(result.get("a"), result.get("c"));
         assertThrows(IllegalArgumentException.class, () -> LayoutController.compute(graph(), Map.of("algorithm", "grid", "params", Map.of("packComponents", "true"))));
     }
+
+    @Test
+    public void batchForcesReturnProgressAndRespectPins() {
+        for(String algorithm:Arrays.asList("fruchterman-reingold","relison-forceatlas2")) {
+            Map<String,Object> request=Map.of("algorithm",algorithm,"params",Map.of("iterations",10,"theta",0.8,"seed",42),
+                "positions",Map.of("a",Map.of("x",100,"y",-20)),"pinnedNodes",List.of("a"));
+            Map<String,Object> response=LayoutController.compute(graph(),request);
+            assertEquals(algorithm,response.get("algorithm"));
+            assertEquals(10,response.get("iterations"));
+            assertEquals("LIMIT_REACHED",response.get("termination"));
+            assertEquals(100,positions(response).get("a").get("x"),0);
+            assertEquals(-20,positions(response).get("a").get("y"),0);
+            assertEquals(positions(response),positions(LayoutController.compute(graph(),request)));
+        }
+        assertThrows(IllegalArgumentException.class,()->LayoutController.compute(graph(),
+            Map.of("algorithm","fruchterman-reingold","params",Map.of("iterations",5001))));
+        assertThrows(IllegalArgumentException.class,()->LayoutController.compute(graph(),
+            Map.of("algorithm","relison-forceatlas2","params",Map.of("linLog","true"))));
+    }
+
+    @Test
+    public void overlapRequestReachesPostprocessor() {
+        Map<String,Object> request=Map.of("algorithm","fruchterman-reingold","params",Map.of("iterations",0,"removeOverlap",true,"overlapGap",2),
+            "positions",Map.of("a",Map.of("x",0,"y",0),"b",Map.of("x",0,"y",0),"c",Map.of("x",0,"y",0)),
+            "nodeSizes",Map.of("a",3,"b",3,"c",3));
+        Map<String,Map<String,Double>> points=positions(LayoutController.compute(graph(),request));
+        for(String a:points.keySet()) for(String b:points.keySet()) if(!a.equals(b))
+            assertTrue(Math.hypot(points.get(a).get("x")-points.get(b).get("x"),points.get(a).get("y")-points.get(b).get("y"))>=8-1e-8);
+    }
+
 }

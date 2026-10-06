@@ -41,7 +41,6 @@
 
 const Graph = (window.graphology && window.graphology.Graph) || window.graphology;
 const lib = window.graphologyLibrary || {};
-const FA2 = lib.layoutForceAtlas2 || window.graphologyLayoutForceAtlas2;
 const Sigma = window.Sigma;
 
 /* ------------------------------- state ------------------------------ */
@@ -54,10 +53,11 @@ const state = {
     weighted: false,
     stats: null,          // server-reported graph stats ({nodes, edges, directed, weighted}); used by the report export
     reportPlots: new Map(),  // every chart drawn this session, keyed for de-dup: key -> {section, title, url}; for the report
-    fa2Running: false,
-    fa2Raf: null,
+    iterativeLayoutRunning: false,
+    iterativeLayoutRaf: null,
     layoutTemp: 50,
     layoutRequest: null,
+    relisonLayout: null,
     savedLayoutPositions: null,
     dragNodes: false,     // when on, dragging a node repositions it instead of panning the canvas
     cosmographLayoutRunning: false,
@@ -283,6 +283,7 @@ function updateTimelineUI() {
     const on = !!(state.graph && (tl.nodeAttr || tl.edgeAttr));
     const bounds = on ? timelineBounds() : null;
     toggleHidden("tl-controls", !bounds);
+    toggleHidden("network-timeline", !bounds);
     if (!bounds) {
         stopTimeline();
         tl.min = tl.max = tl.t = tl.rangeStart = null;
@@ -921,7 +922,8 @@ function renderGraph(serialized) {
     // Sigma v3 uses `defaultDrawNodeLabel` and `defaultDrawEdgeLabel` instead of the older
     // `labelRenderer` / `edgeLabelRenderer` options. Update the renderer configuration accordingly.
     state.renderer = new Sigma(graph, $("sigma-container"), {
-        defaultEdgeType: state.directed ? "arrow" : "line",
+        defaultEdgeType: sigmaDefaultEdgeType(),
+        edgeProgramClasses: window.relisonSigmaEdgePrograms || {},
         renderLabels: state.labelOpts.nodeShow,
         renderEdgeLabels: state.labelOpts.edgeShow,
         defaultDrawNodeLabel: drawNodeLabel,
@@ -1031,12 +1033,18 @@ function rebuildAppearanceOptions() {
 
     const colorSelect = $("color-by");
     const colorCurrent = colorSelect.value;
-    colorSelect.innerHTML = '<option value="">— none —</option>';
+    colorSelect.innerHTML = '<option value="">Choose an attribute</option>';
     for (const name of metricNames) colorSelect.appendChild(option("metric:" + name, name));
     for (const algo of communityNames) colorSelect.appendChild(option("community:" + algo, "community: " + algo));
     // Node attributes: numeric ones use the colour ramp, the rest are coloured categorically.
     for (const d of nodeAttrDefs()) colorSelect.appendChild(option((d.numeric ? "attr:" : "attrcat:") + d.name, "attr: " + d.name));
     restoreSelect(colorSelect, colorCurrent);
+
+    const edgeColorSelect = $("edge-color-by");
+    const edgeColorCurrent = edgeColorSelect.value;
+    edgeColorSelect.innerHTML = '<option value="">Choose an attribute</option>';
+    for (const d of edgeAttrDefs()) edgeColorSelect.appendChild(option(d.name, "attr: " + d.name));
+    restoreSelect(edgeColorSelect, edgeColorCurrent);
 
     // Edge thickness: uniform + each computed edge (link) metric + numeric edge attributes.
     const edgeSizeSelect = $("edge-size-by");
@@ -1050,6 +1058,8 @@ function rebuildAppearanceOptions() {
     rebuildTimelineOptions();      // keep the timeline's time-attribute selectors in sync with the schema
     syncAttributeCommunityMetricControls();
     syncEdgeAttributeMetricControls();
+    syncNodeColorControls();
+    syncEdgeColorControls();
 }
 
 // Restores a select's value if the option still exists, otherwise falls back to the first (default) option.
@@ -1090,6 +1100,8 @@ function applyAppearance() {
     const graph = state.graph;
     if (!graph) return;
     syncSizeControlVisibility();
+    syncNodeColorControls();
+    syncEdgeColorControls();
 
     const sizeBy = $("size-by").value;
     if (!sizeBy) {
@@ -1102,9 +1114,16 @@ function applyAppearance() {
         const sizes = scaleVisualValues(nodes, (node) => sizeValues[node], minSize, maxSize, $("node-size-scale").value);
         nodes.forEach((node, index) => graph.setNodeAttribute(node, "size", sizes[index]));
     }
+    const colorMode = $("node-color-mode").value;
     const colorSel = $("color-by").value;
-    if (!colorSel) { graph.forEachNode((n) => graph.setNodeAttribute(n, "color", "#4f9dff")); state.colorLegend = { type: "none" }; }
-    else if (colorSel.startsWith("community:")) colorByCommunity(colorSel.slice("community:".length));
+    if (colorMode === "single") {
+        const color = $("node-color-single").value || "#4f9dff";
+        graph.forEachNode((node) => graph.setNodeAttribute(node, "color", color));
+        state.colorLegend = { type: "none" };
+    } else if (colorMode !== "attribute" || !colorSel) {
+        graph.forEachNode((node) => graph.setNodeAttribute(node, "color", "#4f9dff"));
+        state.colorLegend = { type: "none" };
+    } else if (colorSel.startsWith("community:")) colorByCommunity(colorSel.slice("community:".length));
     else if (colorSel.startsWith("metric:")) colorByMetric(colorSel.slice("metric:".length));
     else if (colorSel.startsWith("attrcat:")) colorByNodeCategorical(colorSel.slice("attrcat:".length));
     else if (colorSel.startsWith("attr:")) colorByNodeAttr(colorSel.slice("attr:".length));
@@ -1209,11 +1228,37 @@ function applyEdgeAppearance() {
     const uniform = numInput("edge-size-uniform", 0.5);
     const colorMode = $("edge-color-mode").value;
     const single = $("edge-color-single").value;
+    const edgeColorAttribute = $("edge-color-by").value;
+    const edgeColorDefinition = edgeAttrDefs().find((attribute) => attribute.name === edgeColorAttribute);
+    const edgeColors = new Map();
+    if (colorMode === "attribute" && edgeColorAttribute && edgeColorDefinition?.numeric) {
+        const values = edges.map((edge) => {
+            const value = edgeAttrVal(edge, edgeColorAttribute);
+            return value == null ? NaN : Number(value);
+        });
+        const finiteValues = values.filter(Number.isFinite);
+        const min = finiteValues.length ? Math.min(...finiteValues) : 0;
+        const max = finiteValues.length ? Math.max(...finiteValues) : 1;
+        const span = max - min || 1;
+        values.forEach((value, index) => edgeColors.set(edges[index], Number.isFinite(value)
+            ? lerpHex($("edge-color-low").value, $("edge-color-high").value, max === min ? 0.5 : (value - min) / span)
+            : "#888888"));
+    } else if (colorMode === "attribute" && edgeColorAttribute) {
+        const categories = new Map();
+        edges.forEach((edge) => {
+            const value = edgeAttrVal(edge, edgeColorAttribute);
+            if (value == null) { edgeColors.set(edge, "#888888"); return; }
+            const key = String(value);
+            if (!categories.has(key)) categories.set(key, categoricalHex(categories.size));
+            edgeColors.set(edge, categories.get(key));
+        });
+    }
 
     edges.forEach((edge, index) => {
         const source = graph.source(edge), target = graph.target(edge);
         graph.setEdgeAttribute(edge, "size", widths ? widths[index] : uniform);
         if (colorMode === "single") graph.setEdgeAttribute(edge, "color", single);
+        else if (colorMode === "attribute") graph.setEdgeAttribute(edge, "color", edgeColors.get(edge) || "#888888");
         else if (colorMode === "endpoints") graph.setEdgeAttribute(edge, "color", averageColor(graph.getNodeAttribute(source, "color"), graph.getNodeAttribute(target, "color")));
         else graph.setEdgeAttribute(edge, "color", "#888888");
     });
@@ -1481,12 +1526,10 @@ async function setNetworkRenderer(name) {
         return;
     }
     if (!state.graph) {
-        select.value = "sigma";
         setStatus("Load a network before selecting Cosmograph.", "error");
         return;
     }
     if (!window.relisonCosmograph) {
-        select.value = "sigma";
         setStatus("Cosmograph is still loading; try again in a moment.", "error");
         return;
     }
@@ -1512,7 +1555,7 @@ async function setNetworkRenderer(name) {
         }
         pane.classList.add("cosmograph-active");
         select.value = "cosmograph";
-        setStatus("Cosmograph experimental view: browsing and node selection only.");
+        setStatus("Cosmograph visualization ready.");
     } catch (e) {
         container.hidden = true;
         pane.classList.remove("cosmograph-active");
@@ -1531,6 +1574,53 @@ function syncCosmographSelection() {
     window.relisonCosmograph.setFocusedSelection(state.selection.type === "node" ? state.selectedNode : null, state.selection.type === "edge" ? state.selectedEdge : null)
         .catch((error) => console.warn("Cosmograph selection sync failed.", error));
 }
+
+function syncNodeColorControls() {
+    const mode = $("node-color-mode").value;
+    const selection = $("color-by").value;
+    toggleHidden("node-color-single-field", mode !== "single");
+    toggleHidden("node-color-attribute-field", mode !== "attribute");
+    const metric = selection.startsWith("metric:");
+    toggleHidden("node-color-range-field", mode !== "attribute" || !metric);
+}
+
+function syncEdgeColorControls() {
+    const mode = $("edge-color-mode").value;
+    const name = $("edge-color-by").value;
+    const definition = edgeAttrDefs().find((attribute) => attribute.name === name);
+    toggleHidden("edge-color-single-field", mode !== "single");
+    toggleHidden("edge-color-attribute-field", mode !== "attribute");
+    toggleHidden("edge-color-range-field", mode !== "attribute" || !definition?.numeric);
+}
+
+function sigmaDefaultEdgeType() {
+    const curved = $("edge-shape")?.value === "curved" && window.relisonSigmaEdgePrograms;
+    return curved ? (state.directed ? "curvedArrow" : "curve") : (state.directed ? "arrow" : "line");
+}
+
+function applyEdgeShape() {
+    if (usingCosmograph()) {
+        queueCosmographAppearanceRefresh();
+        return;
+    }
+    if (state.renderer) {
+        state.renderer.setSetting("defaultEdgeType", sigmaDefaultEdgeType());
+        state.renderer.refresh();
+        drawRecOverlay();
+        if ($("edge-shape").value === "curved" && !window.relisonSigmaEdgePrograms) {
+            setStatus("Curved Sigma edges are still loading.", "error");
+        }
+    }
+}
+
+window.addEventListener("relison-sigma-edge-curve-ready", () => {
+    if (state.renderer && !usingCosmograph() && $("edge-shape").value === "curved") {
+        // Sigma creates edge programs with the renderer. Recreate only in the
+        // rare case the user loaded a graph before the curve extension arrived.
+        const graphData = state.graph?.export();
+        if (graphData) renderGraph(graphData);
+    }
+});
 
 function updateSelectionSummary() {
     const edge = state.selection.type === "edge", path = state.selection.type === "path", kind = $("selection-kind"), summary = $("selection-summary");
@@ -1572,6 +1662,7 @@ function updateSelectionTargetUI() {
     toggleHidden("select-node-field", edge || path);
     toggleHidden("select-edge-field", !edge);
     toggleHidden("select-path-fields", !path);
+    toggleHidden("select-path-results", !path);
     toggleHidden("select-view-mode-field", false);
     if (edge) populateEdgeSelector();
     $("node-info-table").hidden = edge || path;
@@ -2048,24 +2139,30 @@ function initNodeCombos() {
 /* ------------------------------ layout ------------------------------ */
 
 // Layouts that run continuously (animated) vs. one-shot layouts that are applied once.
-const ITERATIVE_LAYOUTS = new Set(["forceatlas2", "force"]);
-const RELISON_LAYOUTS = new Set(["feature-grid", "ego-grid", "preset", "random", "grid", "circular", "shell", "concentric", "radial", "bipartite", "multipartite", "tree"]);
+const ITERATIVE_LAYOUTS = new Set(["force"]);
+const RELISON_FORCE_LAYOUTS = new Set(["fruchterman-reingold", "relison-forceatlas2"]);
+const RELISON_LAYOUTS = new Set(["fruchterman-reingold", "relison-forceatlas2", "feature-grid", "ego-grid", "preset", "random", "grid", "circular", "shell", "concentric", "radial", "bipartite", "multipartite", "tree"]);
 
 function currentLayoutType() {
     const sel = $("layout-type");
-    return sel ? sel.value : "forceatlas2";
+    return sel ? sel.value : "force";
 }
 
 // Keeps the layout button label in sync with the selected algorithm / running state.
 function updateLayoutButton() {
-    $("btn-layout").disabled = !!state.layoutRequest;
-    if (state.layoutRequest) { $("btn-layout").textContent = "Applying layout…"; return; }
-    if (state.fa2Running) { $("btn-layout").textContent = "Stop layout"; return; }
+    const button = $("btn-layout");
+    const running = Boolean(state.relisonLayout || state.iterativeLayoutRunning ||
+        (currentLayoutType() === "cosmograph-force" && state.cosmographLayoutRunning));
+    button.classList.add("primary");
+    button.classList.toggle("btn-stop", running);
+    button.disabled = Boolean(state.layoutRequest) && !running;
+    if (running) { button.textContent = "⏹ Stop layout"; return; }
+    if (state.layoutRequest) { button.textContent = "Applying layout…"; return; }
     if (currentLayoutType() === "cosmograph-force") {
-        $("btn-layout").textContent = state.cosmographLayoutRunning ? "Stop layout" : "Start layout";
+        button.textContent = "Start layout";
         return;
     }
-    $("btn-layout").textContent = ITERATIVE_LAYOUTS.has(currentLayoutType()) ? "Start layout" : "Apply layout";
+    button.textContent = (ITERATIVE_LAYOUTS.has(currentLayoutType()) || RELISON_FORCE_LAYOUTS.has(currentLayoutType())) ? "Start layout" : "Apply layout";
 }
 
 // Button handler: toggles animated layouts, or applies a static layout once.
@@ -2098,7 +2195,7 @@ function syncLayoutOptionsForRenderer() {
     cosmographForce.disabled = !active;
     for (const value of ITERATIVE_LAYOUTS) {
         const option = select.querySelector('option[value="' + value + '"]');
-        if (option) option.disabled = active;
+        if (option) { option.hidden = active; option.disabled = active; }
     }
     if (active && ITERATIVE_LAYOUTS.has(select.value)) select.value = "circular";
     if (!active && select.value === "cosmograph-force") select.value = "circular";
@@ -2131,37 +2228,33 @@ async function toggleCosmographForceLayout() {
 function onLayoutButton() {
     if (!state.graph) { setStatus("Load a network first.", "error"); return; }
     const type = currentLayoutType();
+    if (RELISON_FORCE_LAYOUTS.has(type)) {
+        if (state.relisonLayout) stopLayout();
+        else return startRelisonAnimation(type);
+        return;
+    }
     if (usingCosmograph()) {
         if (type === "cosmograph-force") { toggleCosmographForceLayout(); return; }
         if (ITERATIVE_LAYOUTS.has(type)) { setStatus("Use Cosmograph force layout or a static layout in this view.", "error"); return; }
     }
     if (ITERATIVE_LAYOUTS.has(type)) {
-        if (state.fa2Running) { stopLayout(); return; }
+        if (state.iterativeLayoutRunning) { stopLayout(); return; }
         startIterativeLayout(type);
     } else {
         applyStaticLayout(type);
     }
 }
 
-// Starts an animated force layout (ForceAtlas2 or graphology's force layout), falling back to the built-in stepper.
+// Starts the generic graphology force layout, falling back to the built-in stepper.
 function startIterativeLayout(type) {
     let stepFn;
     if (type === "force" && lib.layoutForce && typeof lib.layoutForce.assign === "function") {
         stepFn = () => lib.layoutForce.assign(state.graph, { maxIterations: 1 });
-    } else if (FA2 && typeof FA2.assign === "function") {
-        let settings;
-        try { settings = FA2.inferSettings ? FA2.inferSettings(state.graph) : {}; }
-        catch (e) { console.warn("inferSettings failed, using defaults", e); settings = {}; }
-        const lp = layoutParams();
-        settings.scalingRatio = (settings.scalingRatio || 1) * lp.scaling;
-        settings.gravity = lp.gravity;
-        settings.slowDown = 1 / Math.max(0.1, lp.speed);
-        stepFn = () => FA2.assign(state.graph, { iterations: 1, settings });
     } else {
         stepFn = builtinForceStep;
     }
 
-    state.fa2Running = true;
+    state.iterativeLayoutRunning = true;
     state.layoutTemp = 50;
     updateLayoutButton();
 
@@ -2175,9 +2268,104 @@ function startIterativeLayout(type) {
             return;
         }
         if (state.renderer) state.renderer.refresh();
-        if (state.fa2Running) state.fa2Raf = requestAnimationFrame(step);
+        if (state.iterativeLayoutRunning) state.iterativeLayoutRaf = requestAnimationFrame(step);
     };
     step();
+}
+
+// Advance one server session sequentially; each response becomes a displayed frame.
+function relisonForceBody(type, g, graphId) {
+    const nodes = g.nodes().sort();
+    const body = { graphId, algorithm: type, nodeOrder: nodes, params: staticLayoutParams(type) };
+    if ($("layout-warm-start").checked) {
+        body.positions = Object.fromEntries(nodes.map(node => [node, {
+            x: g.getNodeAttribute(node, "x"), y: g.getNodeAttribute(node, "y"),
+        }]));
+        if (nodes.some(node => !Number.isFinite(body.positions[node].x) || !Number.isFinite(body.positions[node].y)))
+            throw new Error("Apply a layout before using current positions.");
+    }
+    body.params.removeOverlap = $("layout-remove-overlap").checked;
+    if (body.params.removeOverlap || body.params.adjustSizes) {
+        const radius = Number($("layout-node-radius").value), gap = Number($("layout-overlap-gap").value);
+        if (!Number.isFinite(radius) || radius < 0 || !Number.isFinite(gap) || gap < 0)
+            throw new Error("Node radius and overlap gap must be finite and non-negative.");
+        body.nodeSizes = Object.fromEntries(nodes.map(node => [node, radius]));
+        body.params.overlapGap = gap;
+    }
+    body.params.packComponents = $("layout-pack-components").checked;
+    if (body.params.packComponents) {
+        const gap = Number($("layout-packing-gap").value);
+        if (!Number.isFinite(gap) || gap <= 0) throw new Error("Component gap must be positive and finite.");
+        body.params.packingGap = gap;
+    }
+    return body;
+}
+
+function cancelRelisonSession(run) {
+    if (!run.id || run.remoteCancelled) return Promise.resolve();
+    run.remoteCancelled = true;
+    return api("/api/layout/session/" + encodeURIComponent(run.id), { method: "DELETE" }).catch(() => {});
+}
+
+function waitRelisonFrame(run) {
+    return new Promise(resolve => {
+        run.resolveFrame = resolve;
+        run.raf = requestAnimationFrame(() => { run.resolveFrame = null; run.raf = null; resolve(); });
+    });
+}
+
+async function startRelisonAnimation(type) {
+    stopLayout();
+    const g = state.graph, graphId = state.graphId;
+    const run = { controller: new AbortController(), id: null, raf: null, resolveFrame: null, remoteCancelled: false };
+    const current = () => state.relisonLayout === run && !run.controller.signal.aborted && state.graph === g && state.graphId === graphId;
+    try {
+        const body = relisonForceBody(type, g, graphId), nodes = body.nodeOrder;
+        state.relisonLayout = run;
+        updateLayoutButton();
+        setStatus("Starting " + type + " layout…");
+        // Keep the start response readable after Stop, so its allocated session can be cancelled.
+        let frame = await api("/api/layout/session", jsonBody(body));
+        if (typeof frame.sessionId !== "string") throw new Error("Missing layout session identifier.");
+        run.id = frame.sessionId;
+        while (current()) {
+            const positions = frame.positions;
+            if (!positions || Object.keys(positions).length !== g.order || nodes.length !== g.order
+                || nodes.some(node => !g.hasNode(node) || !Object.hasOwn(positions, node)
+                    || !Number.isFinite(positions[node]?.x) || !Number.isFinite(positions[node]?.y)))
+                throw new Error("The network changed or an animation frame has incomplete coordinates.");
+            for (const node of nodes) {
+                g.setNodeAttribute(node, "x", positions[node].x);
+                g.setNodeAttribute(node, "y", positions[node].y);
+            }
+            const cosmographVisible = usingCosmograph() && window.relisonCosmograph
+                && $("pane-network").classList.contains("active");
+            if (cosmographVisible) {
+                const updated = window.relisonCosmograph.setNodePositions(positions);
+                if (!updated) {
+                    clearTimeout(cosmographAppearanceRefreshTimer);
+                    await window.relisonCosmograph.render(g, { ...cosmographInteractionCallbacks() });
+                }
+            } else if (usingCosmograph()) state.cosmographDirty = true;
+            // Graphology coordinate events schedule Sigma's render. No full refresh
+            // or viewport rescale is needed for a frame that changes positions only.
+            drawRecOverlay();
+            if (!current()) break;
+            setStatus(type + ": " + frame.iterations + " iterations" + (frame.finished
+                ? " (" + String(frame.termination).toLowerCase().replaceAll("_", " ") + ")." : "…"));
+            if (frame.finished) break;
+            await waitRelisonFrame(run);
+            if (!current()) break;
+            frame = await api("/api/layout/session/" + encodeURIComponent(run.id) + "/step",
+                { ...jsonBody({ iterations: 1 }), signal: run.controller.signal });
+        }
+    } catch (error) {
+        if (current() && !isAbort(error)) setStatus("Layout failed: " + error.message, "error");
+    } finally {
+        if (run.raf) cancelAnimationFrame(run.raf);
+        await cancelRelisonSession(run);
+        if (state.relisonLayout === run) { state.relisonLayout = null; updateLayoutButton(); }
+    }
 }
 
 // RELISON-viz computes Stage A layouts on the server; circle packing remains a client layout.
@@ -2186,10 +2374,25 @@ async function applyStaticLayout(type) {
     const g = state.graph;
     const graphId = state.graphId;
     let controller = null;
+    let forceSummary = "";
     try {
         if (RELISON_LAYOUTS.has(type)) {
             const nodes = g.nodes().sort();
             const body = { graphId, algorithm: type, nodeOrder: nodes, params: staticLayoutParams(type) };
+            if (RELISON_FORCE_LAYOUTS.has(type)) {
+                if ($("layout-warm-start").checked) body.positions = Object.fromEntries(nodes.map(node => [node, {
+                    x: g.getNodeAttribute(node, "x"), y: g.getNodeAttribute(node, "y"),
+                }]));
+                body.params.removeOverlap = $("layout-remove-overlap").checked;
+                if (body.params.removeOverlap || body.params.adjustSizes) {
+                    const radius = Number($("layout-node-radius").value);
+                    const gap = Number($("layout-overlap-gap").value);
+                    if (!Number.isFinite(radius) || radius < 0 || !Number.isFinite(gap) || gap < 0)
+                        throw new Error("Node radius and overlap gap must be finite and non-negative.");
+                    body.nodeSizes = Object.fromEntries(nodes.map(node => [node, radius]));
+                    body.params.overlapGap = gap;
+                }
+            }
             body.params.packComponents = $("layout-pack-components").checked;
             if (body.params.packComponents) {
                 const gap = Number($("layout-packing-gap").value);
@@ -2244,6 +2447,8 @@ async function applyStaticLayout(type) {
             const response = await api("/api/layout", { ...jsonBody(body), signal: controller.signal });
             // A replaced graph or cancelled request must never receive stale coordinates.
             if (controller.signal.aborted || state.layoutRequest !== controller || state.graph !== g || state.graphId !== graphId) return;
+            if (RELISON_FORCE_LAYOUTS.has(type) && Number.isInteger(response.iterations))
+                forceSummary = " (" + response.iterations + " iterations, " + String(response.termination).toLowerCase().replaceAll("_", " ") + ")";
             const positions = response.positions;
             if (!positions || Object.keys(positions).length !== g.order || nodes.length !== g.order
                 || nodes.some(node => !g.hasNode(node) || !Object.hasOwn(positions, node)
@@ -2262,7 +2467,7 @@ async function applyStaticLayout(type) {
         drawRecOverlay();
         queueCosmographAppearanceRefresh();
         const label = $("layout-type").selectedOptions[0]?.textContent || type;
-        setStatus(label + " layout applied.");
+        setStatus(label + " layout applied" + forceSummary + ".");
     } catch (e) {
         if (!isAbort(e)) setStatus("Layout failed: " + e.message, "error");
     } finally {
@@ -2281,6 +2486,24 @@ function staticLayoutParams(type) {
             throw new Error(input.closest("label").querySelector("span").textContent + " is invalid.");
         return value;
     };
+    if (RELISON_FORCE_LAYOUTS.has(type)) {
+        const common = { iterations: read("layout-iterations", true, 0), seed: read("layout-seed", true, -Number.MAX_SAFE_INTEGER),
+            theta: read("layout-theta", false, 0), tolerance: read("layout-tolerance", false, 0) };
+        if (common.iterations > 5000 || common.theta > 2) throw new Error("Iterations must be at most 5000 and theta at most 2.");
+        if (type === "fruchterman-reingold") {
+            if ($("layout-fr-bounded").checked) return { ...common, bounded: true,
+                width: read("layout-fr-width"), height: read("layout-fr-height"),
+                initialTemperature: read("layout-fr-temperature"), weighted: $("layout-weighted").checked };
+            const cooling = read("layout-cooling");
+            if (cooling >= 1) throw new Error("Cooling must be less than one.");
+            return { ...common, bounded: false, idealLength: read("layout-ideal-length"), cooling, weighted: $("layout-weighted").checked };
+        }
+        return { ...common, scaling: read("layout-fa-scaling"), gravity: read("layout-fa-gravity", false, 0),
+            jitterTolerance: read("layout-jitter"), weightInfluence: read("layout-weight-influence", false, 0),
+            linLog: $("layout-linlog").checked, strongGravity: $("layout-strong-gravity").checked,
+            outboundAttractionDistribution: $("layout-outbound").checked, adjustSizes: $("layout-adjust-sizes").checked,
+            normalizeWeights: $("layout-normalize-weights").checked, invertWeights: $("layout-invert-weights").checked };
+    }
     if (type === "circular") return { radius: read("layout-radius") };
     if (type === "random") return { width: read("layout-width"), height: read("layout-height"), seed: read("layout-seed", true, -Number.MAX_SAFE_INTEGER) };
     if (type === "grid") return { columns: read("layout-columns", true, 0), spacing: read("layout-spacing") };
@@ -2418,8 +2641,17 @@ function rebuildLayoutGroupOptions() {
 // Shows only the controls relevant to the selected layout.
 function updateLayoutTypeUI() {
     const type = currentLayoutType();
-    toggleHidden("layout-params", type !== "forceatlas2" || usingCosmograph());
-    toggleHidden("layout-params-hint", type !== "forceatlas2" || usingCosmograph());
+    const force = RELISON_FORCE_LAYOUTS.has(type);
+    toggleHidden("layout-force-controls", !force);
+    toggleHidden("layout-fr-controls", type !== "fruchterman-reingold");
+    const framedFR = $("layout-fr-bounded").checked;
+    for (const id of ["layout-fr-width", "layout-fr-height", "layout-fr-temperature"])
+        $(id).closest("label").hidden = !framedFR;
+    for (const id of ["layout-ideal-length", "layout-cooling"])
+        $(id).closest("label").hidden = framedFR;
+    toggleHidden("layout-fa-controls", type !== "relison-forceatlas2");
+    toggleHidden("layout-force-hint", !force);
+    toggleHidden("layout-advanced", !RELISON_LAYOUTS.has(type) && type !== "circlepack");
     toggleHidden("circlepack-group-field", !["circlepack", "shell", "bipartite", "multipartite", "feature-grid"].includes(type));
     toggleHidden("static-layout-params", !RELISON_LAYOUTS.has(type) || type === "preset");
     toggleHidden("layout-radius-field", type !== "circular");
@@ -2430,7 +2662,8 @@ function updateLayoutTypeUI() {
     toggleHidden("layout-sweeps-field", !["bipartite", "multipartite", "feature-grid"].includes(type));
     toggleHidden("layout-level-spacing-field", type !== "tree");
     toggleHidden("layout-columns-field", type !== "grid");
-    for (const id of ["layout-width-field", "layout-height-field", "layout-seed-field"]) toggleHidden(id, type !== "random");
+    for (const id of ["layout-width-field", "layout-height-field"]) toggleHidden(id, type !== "random");
+    toggleHidden("layout-seed-field", type !== "random" && !force);
     toggleHidden("layout-score-field", type !== "concentric");
     toggleHidden("layout-shell-hint", type !== "shell");
     toggleHidden("layout-preset-hint", type !== "preset");
@@ -2465,20 +2698,11 @@ function removeOverlaps() {
     setStatus("Removed node overlaps.");
 }
 
-function layoutParams() {
-    return {
-        scaling: parseFloat($("layout-scaling").value) || 1,
-        gravity: parseFloat($("layout-gravity").value) || 0,
-        speed: parseFloat($("layout-speed").value) || 1,
-    };
-}
-
 function builtinForceStep() {
     const g = state.graph;
     const nodes = g.nodes();
     const n = nodes.length || 1;
-    const lp = layoutParams();
-    const k = Math.max(10, Math.sqrt(250000 / n)) * lp.scaling;
+    const k = Math.max(10, Math.sqrt(250000 / n));
     const disp = new Map(), x = new Map(), y = new Map();
     for (const v of nodes) {
         disp.set(v, { x: 0, y: 0 });
@@ -2507,7 +2731,7 @@ function builtinForceStep() {
         ds.x -= fx; ds.y -= fy; dt.x += fx; dt.y += fy;
     });
     // Gravity: pull every node toward the centre, proportional to its distance.
-    const gpull = 0.01 * lp.gravity;
+    const gpull = 0.01;
     if (gpull > 0) {
         for (const v of nodes) {
             const d = disp.get(v);
@@ -2528,6 +2752,15 @@ function builtinForceStep() {
 }
 
 function stopLayout() {
+    if (state.relisonLayout) {
+        const run = state.relisonLayout;
+        state.relisonLayout = null;
+        run.controller.abort();
+        if (run.raf) cancelAnimationFrame(run.raf);
+        if (run.resolveFrame) { run.resolveFrame(); run.resolveFrame = null; }
+        cancelRelisonSession(run);
+        setStatus("Layout stopped; keeping displayed positions.");
+    }
     if (state.layoutRequest) {
         state.layoutRequest.abort();
         state.layoutRequest = null;
@@ -2536,10 +2769,10 @@ function stopLayout() {
         window.relisonCosmograph?.stopForceLayout();
         state.cosmographLayoutRunning = false;
     }
-    const wasRunning = state.fa2Running;
-    state.fa2Running = false;
-    if (state.fa2Raf) cancelAnimationFrame(state.fa2Raf);
-    state.fa2Raf = null;
+    const wasRunning = state.iterativeLayoutRunning;
+    state.iterativeLayoutRunning = false;
+    if (state.iterativeLayoutRaf) cancelAnimationFrame(state.iterativeLayoutRaf);
+    state.iterativeLayoutRaf = null;
     updateLayoutButton();
     if (wasRunning) queueCosmographAppearanceRefresh();
 }
@@ -2712,7 +2945,9 @@ async function runVertexMetric() {
         state.metricData[res.label] = values;
         rebuildAppearanceOptions();
         $("size-by").value = res.label;
+        $("node-color-mode").value = "attribute";
         $("color-by").value = "metric:" + res.label;
+        syncNodeColorControls();
         applyAppearance();
         $("vertex-result").textContent = res.label + " — avg " + fmt(res.average);
         if (state.rec.active && $("vertex-rec").checked) {
@@ -2830,7 +3065,9 @@ async function detectCommunity() {
         if (res.cancelled) { setStatus("Stopped."); return; }
         state.communityData[res.algorithm] = res.values;
         rebuildAppearanceOptions();
+        $("node-color-mode").value = "attribute";
         $("color-by").value = "community:" + res.algorithm;
+        syncNodeColorControls();
         applyAppearance();
         $("community-result").textContent = res.label + " — " + res.numCommunities + " communities";
         $("btn-global-comm").disabled = false;
@@ -3350,9 +3587,15 @@ async function historyRedo() {
 }
 
 function updateHistoryUI() {
-    const u = $("btn-undo"), r = $("btn-redo"), h = state.history;
-    if (u) { u.disabled = h.applying || !h.undo.length; u.title = h.undo.length ? "Undo: " + h.undo[h.undo.length - 1].label + " (Ctrl+Z)" : "Nothing to undo"; }
-    if (r) { r.disabled = h.applying || !h.redo.length; r.title = h.redo.length ? "Redo: " + h.redo[h.redo.length - 1].label + " (Ctrl+Y)" : "Nothing to redo"; }
+    const h = state.history;
+    ["btn-undo", "btn-network-undo"].forEach((id) => {
+        const button = $(id);
+        if (button) { button.disabled = h.applying || !h.undo.length; button.title = h.undo.length ? "Undo: " + h.undo[h.undo.length - 1].label + " (Ctrl+Z)" : "Nothing to undo"; }
+    });
+    ["btn-redo", "btn-network-redo"].forEach((id) => {
+        const button = $(id);
+        if (button) { button.disabled = h.applying || !h.redo.length; button.title = h.redo.length ? "Redo: " + h.redo[h.redo.length - 1].label + " (Ctrl+Y)" : "Nothing to redo"; }
+    });
 }
 
 function defaultNodeAttrs(id) {
@@ -4602,10 +4845,133 @@ async function exportPng() {
 }
 
 async function exportSvg() {
-    if (!usingCosmograph()) { setStatus("SVG export is currently available for the Cosmograph view.", "error"); return; }
-    const exported = await window.relisonCosmograph?.exportSvg("network.svg");
-    if (!exported) { setStatus("Cosmograph is not ready to export yet.", "error"); return; }
-    setStatus("Cosmograph SVG downloaded.");
+    if (usingCosmograph()) {
+        const exported = await window.relisonCosmograph?.exportSvg("network.svg");
+        if (!exported) { setStatus("Cosmograph is not ready to export yet.", "error"); return; }
+        setStatus("Cosmograph SVG downloaded.");
+        return;
+    }
+    try {
+        const svg = buildSigmaSvg();
+        if (!svg) { setStatus("Sigma is not ready to export yet.", "error"); return; }
+        download("network.svg", svg, "image/svg+xml;charset=utf-8");
+        setStatus("Sigma SVG downloaded.");
+    } catch (error) {
+        console.error("Sigma SVG export failed", error);
+        setStatus("SVG export failed: " + error.message, "error");
+    }
+}
+
+// Reconstruct Sigma's current viewport as vector primitives. Display data is
+// resolved after node/edge reducers, so hidden and dimmed selections match the
+// live graph without rasterizing Sigma's WebGL canvas.
+function buildSigmaSvg() {
+    const renderer = state.renderer, graph = state.graph;
+    if (!renderer || !graph || !renderer.getNodeDisplayData || !renderer.getEdgeDisplayData) return null;
+    const container = $("sigma-container");
+    const width = container.clientWidth, height = container.clientHeight;
+    if (!width || !height) return null;
+    const sizeScale = renderer.getGraphToViewportRatio?.() || 1;
+    const esc = (value) => String(value ?? "").replace(/[&<>\"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&apos;" })[ch]);
+    const point = (data) => renderer.graphToViewport({ x: data.x, y: data.y });
+    const positions = new Map();
+    graph.forEachNode((node) => {
+        const d = renderer.getNodeDisplayData(node);
+        if (!d || d.hidden || !Number.isFinite(d.x) || !Number.isFinite(d.y)) return;
+        positions.set(node, { ...point(d), radius: Math.max(0, (d.size || 0) * sizeScale), data: d });
+    });
+    const background = cssVar("--canvas-bg", "#18191c");
+    const edgeLabels = renderer.getEdgeDisplayedLabels?.() || new Set();
+    const nodeLabels = renderer.getNodeDisplayedLabels?.() || new Set();
+    const edgeMarkup = [];
+    graph.forEachEdge((edge, attrs, source, target) => {
+        const s = positions.get(source), t = positions.get(target);
+        const d = renderer.getEdgeDisplayData(edge);
+        if (!s || !t || !d || d.hidden) return;
+        const dx = t.x - s.x, dy = t.y - s.y, distance = Math.hypot(dx, dy) || 1;
+        const ux = dx / distance, uy = dy / distance;
+        const strokeWidth = Math.max(0.25, (d.size || 1) * sizeScale);
+        const color = d.color || attrs.color || "#999999";
+        const curved = $("edge-shape").value === "curved" && window.relisonSigmaEdgePrograms;
+        const controlX = (s.x + t.x) / 2 - uy * distance * 0.25;
+        const controlY = (s.y + t.y) / 2 + ux * distance * 0.25;
+        const tangentLength = curved ? (Math.hypot(t.x - controlX, t.y - controlY) || 1) : distance;
+        const arrowUx = curved ? (t.x - controlX) / tangentLength : ux;
+        const arrowUy = curved ? (t.y - controlY) / tangentLength : uy;
+        const arrow = state.directed;
+        const arrowLength = arrow ? Math.max(6, strokeWidth * 4) : 0;
+        const lineEnd = Math.max(0, t.radius - (arrow ? arrowLength * 0.65 : 0));
+        const x2 = t.x - arrowUx * lineEnd, y2 = t.y - arrowUy * lineEnd;
+        edgeMarkup.push(curved
+            ? '<path d="M ' + s.x + ' ' + s.y + ' Q ' + controlX + ' ' + controlY + ' ' + x2 + ' ' + y2
+                + '" fill="none" stroke="' + esc(color) + '" stroke-width="' + strokeWidth + '"/>'
+            : '<line x1="' + s.x + '" y1="' + s.y + '" x2="' + x2 + '" y2="' + y2
+                + '" stroke="' + esc(color) + '" stroke-width="' + strokeWidth + '"/>');
+        if (arrow && distance > 1) {
+            const tipX = t.x - arrowUx * Math.max(1, t.radius * 0.45), tipY = t.y - arrowUy * Math.max(1, t.radius * 0.45);
+            const baseX = tipX - arrowUx * arrowLength, baseY = tipY - arrowUy * arrowLength;
+            const half = Math.max(2.5, arrowLength * 0.34);
+            edgeMarkup.push('<polygon points="' + tipX + ',' + tipY + ' ' + (baseX - arrowUy * half) + ',' + (baseY + arrowUx * half)
+                + ' ' + (baseX + arrowUy * half) + ',' + (baseY - arrowUx * half) + '" fill="' + esc(color) + '"/>');
+        }
+        const label = attrs.label;
+        if (label != null && label !== "" && (edgeLabels.has(edge) || (edgeLabels.size === 0 && state.labelOpts.edgeShow))) {
+            const fontSize = state.labelOpts.edgeProp ? Math.max(5, (d.size || 1) * (state.labelOpts.edgeSize / 2)) : state.labelOpts.edgeSize;
+            const labelX = curved ? ((s.x + 2 * controlX + t.x) / 4) : ((s.x + t.x) / 2);
+            const labelY = curved ? ((s.y + 2 * controlY + t.y) / 4) : ((s.y + t.y) / 2);
+            edgeMarkup.push('<text x="' + labelX + '" y="' + labelY
+                + '" text-anchor="middle" fill="' + esc(state.labelOpts.edgeColor || labelTextColor()) + '" font-family="' + esc(state.labelOpts.edgeFont || "sans-serif")
+                + '" font-size="' + fontSize + '">' + esc(label) + '</text>');
+        }
+    });
+    const nodeMarkup = [];
+    for (const [node, p] of positions) {
+        const d = p.data;
+        nodeMarkup.push('<circle cx="' + p.x + '" cy="' + p.y + '" r="' + p.radius + '" fill="' + esc(d.color || "#4f9dff") + '"/>');
+        if (state.nodeBorder.on) {
+            const verdict = overlayNodeVerdict(node, focusContext());
+            if (verdict !== "hidden") nodeMarkup.push('<circle cx="' + p.x + '" cy="' + p.y + '" r="' + p.radius
+                + '" fill="none" stroke="' + esc(verdict === "dim" ? cssVar("--border", "#3a3c41") : state.nodeBorder.color)
+                + '" stroke-width="' + state.nodeBorder.width + '"/>');
+        }
+        const label = graph.getNodeAttribute(node, "label");
+        if (label != null && label !== "" && (nodeLabels.has(node) || (nodeLabels.size === 0 && state.labelOpts.nodeShow))) {
+            const fontSize = state.labelOpts.nodeProp ? Math.max(6, d.size * (state.labelOpts.nodeSize / 8)) : state.labelOpts.nodeSize;
+            nodeMarkup.push('<text x="' + (p.x + p.radius + 3) + '" y="' + (p.y + fontSize / 3)
+                + '" fill="' + esc(state.labelOpts.nodeColor || labelTextColor()) + '" font-family="' + esc(state.labelOpts.nodeFont || "sans-serif")
+                + '" font-size="' + fontSize + '">' + esc(label) + '</text>');
+        }
+    }
+    const overlayMarkup = [];
+    const model = state.rec.active && state.rec.models[state.rec.active];
+    if (model && state.rec.show) {
+        const context = focusContext();
+        for (const link of model.edges) {
+            const s = positions.get(link.source), t = positions.get(link.target);
+            if (!s || !t) continue;
+            const verdict = overlayEdgeVerdict(link.source, link.target, context);
+            if (verdict === "hidden") continue;
+            const color = verdict === "dim" ? context.dimColor : state.rec.color;
+            const dash = state.rec.diff ? ' stroke-dasharray="6 4"' : "";
+            if ($("edge-shape").value === "curved") {
+                const dx = t.x - s.x, dy = t.y - s.y, length = Math.hypot(dx, dy) || 1;
+                const cx = (s.x + t.x) / 2 - dy / length * length * 0.25;
+                const cy = (s.y + t.y) / 2 + dx / length * length * 0.25;
+                overlayMarkup.push('<path d="M ' + s.x + ' ' + s.y + ' Q ' + cx + ' ' + cy + ' ' + t.x + ' ' + t.y
+                    + '" fill="none" stroke="' + esc(color) + '" stroke-width="1.5"' + dash + '/>');
+            } else overlayMarkup.push('<line x1="' + s.x + '" y1="' + s.y + '" x2="' + t.x + '" y2="' + t.y
+                + '" stroke="' + esc(color) + '" stroke-width="1.5"' + dash + '/>');
+            if (state.directed && model.edges.length <= 1500 && verdict !== "dim") {
+                const angle = Math.atan2(t.y - s.y, t.x - s.x), len = 7, off = 10;
+                const tx = t.x - Math.cos(angle) * off, ty = t.y - Math.sin(angle) * off;
+                overlayMarkup.push('<polygon points="' + tx + ',' + ty + ' ' + (tx - len * Math.cos(angle - Math.PI / 7)) + ',' + (ty - len * Math.sin(angle - Math.PI / 7))
+                    + ' ' + (tx - len * Math.cos(angle + Math.PI / 7)) + ',' + (ty - len * Math.sin(angle + Math.PI / 7)) + '" fill="' + esc(color) + '"/>');
+            }
+        }
+    }
+    return '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height
+        + '" viewBox="0 0 ' + width + ' ' + height + '"><rect width="100%" height="100%" fill="' + esc(background) + '"/>'
+        + edgeMarkup.join("") + overlayMarkup.join("") + nodeMarkup.join("") + '</svg>';
 }
 
 function compositePng() {
@@ -4658,11 +5024,17 @@ function exportAveragesCsv(name, order, data) {
 
 // Appearance controls captured by value, so the visual state returns exactly as it was left.
 const SESSION_CONTROLS = [
-    "size-by", "color-by", "node-size-uniform", "node-size-min", "node-size-max", "node-size-scale", "node-color-low", "node-color-high",
-    "edge-size-by", "edge-size-uniform", "edge-size-min", "edge-size-max", "edge-size-scale", "edge-color-mode", "edge-color-single",
+    "edge-shape",
+    "size-by", "node-color-mode", "node-color-single", "color-by", "node-size-uniform", "node-size-min", "node-size-max", "node-size-scale", "node-color-low", "node-color-high",
+    "edge-size-by", "edge-size-uniform", "edge-size-min", "edge-size-max", "edge-size-scale", "edge-color-mode", "edge-color-single", "edge-color-by", "edge-color-low", "edge-color-high",
     "node-border-on", "node-border-color", "node-border-width", "layout-type",
     "layout-radius", "layout-spacing", "layout-columns", "layout-width", "layout-height", "layout-seed", "layout-score", "circlepack-group",
     "layout-preset-x", "layout-preset-y",
+    "layout-iterations", "layout-theta", "layout-tolerance", "layout-fr-bounded", "layout-fr-width", "layout-fr-height", "layout-fr-temperature",
+    "layout-ideal-length", "layout-cooling", "layout-weighted",
+    "layout-fa-scaling", "layout-fa-gravity", "layout-jitter", "layout-weight-influence", "layout-linlog", "layout-strong-gravity",
+    "layout-outbound", "layout-adjust-sizes", "layout-normalize-weights", "layout-invert-weights",
+    "layout-warm-start", "layout-remove-overlap", "layout-node-radius", "layout-overlap-gap",
     "layout-root", "layout-direction", "layout-column-spacing", "layout-level-spacing", "layout-sweeps", "layout-pack-components", "layout-packing-gap",
 ];
 
@@ -6092,9 +6464,13 @@ function drawRecOverlay() {
                 ctx.strokeStyle = dimmed ? c.dimColor : state.rec.color;
                 ctx.beginPath();
                 ctx.moveTo(ps.x, ps.y);
-                ctx.lineTo(pt.x, pt.y);
+                if ($("edge-shape").value === "curved") {
+                    const dx = pt.x - ps.x, dy = pt.y - ps.y, length = Math.hypot(dx, dy) || 1;
+                    ctx.quadraticCurveTo((ps.x + pt.x) / 2 - dy / length * length * 0.25,
+                        (ps.y + pt.y) / 2 + dx / length * length * 0.25, pt.x, pt.y);
+                } else ctx.lineTo(pt.x, pt.y);
                 ctx.stroke();
-                if (arrows && !dimmed) { ctx.fillStyle = state.rec.color; drawRecArrow(ctx, ps, pt); }
+                if (arrows && !dimmed) { ctx.fillStyle = state.rec.color; drawRecArrow(ctx, ps, pt, $("edge-shape").value === "curved"); }
             }
             ctx.setLineDash([]);
 
@@ -6138,8 +6514,10 @@ function drawRecOverlay() {
 }
 
 // Small filled arrowhead near the target endpoint, to convey direction on the dashed overlay.
-function drawRecArrow(ctx, from, to) {
-    const ang = Math.atan2(to.y - from.y, to.x - from.x);
+function drawRecArrow(ctx, from, to, curved = false) {
+    let dx = to.x - from.x, dy = to.y - from.y;
+    if (curved) { const x = dx; dx = x * 0.5 + dy * 0.25; dy = dy * 0.5 - x * 0.25; }
+    const ang = Math.atan2(dy, dx);
     const len = 7, off = 10;   // pull the head slightly back from the node
     const tx = to.x - Math.cos(ang) * off, ty = to.y - Math.sin(ang) * off;
     ctx.save();
@@ -8107,18 +8485,19 @@ $("btn-tl-webm").addEventListener("click", downloadTimelineWebm);
 $("btn-layout").addEventListener("click", onLayoutButton);
 $("btn-save-layout").addEventListener("click", saveLayoutPositions);
 $("layout-pack-components").addEventListener("change", updateLayoutTypeUI);
+$("layout-fr-bounded").addEventListener("change", updateLayoutTypeUI);
 $("btn-noverlap").addEventListener("click", removeOverlaps);
 $("btn-reset-layout").addEventListener("click", resetLayout);
 $("layout-type").addEventListener("change", () => { stopLayout(); updateLayoutButton(); updateLayoutTypeUI(); });
 $("drag-nodes").addEventListener("change", (e) => {
     state.dragNodes = e.target.checked;
+    $("network-drag-hint").hidden = !state.dragNodes;
     if (usingCosmograph() && window.relisonCosmograph?.setDragEnabled) {
         window.relisonCosmograph.setDragEnabled(state.dragNodes)
             .catch((error) => setStatus("Could not update Cosmograph node dragging: " + error.message, "error"));
     }
 });
-updateLayoutButton();
-updateLayoutTypeUI();
+syncLayoutOptionsForRenderer();
 
 // Make the left/right panel blocks collapsible by clicking their headings.
 document.querySelectorAll(".panel .block > h2").forEach((h) => {
@@ -8206,15 +8585,24 @@ $("btn-diff-piece-clear-filters").addEventListener("click", clearPieceFilters);
 $("diff-apply-filters").addEventListener("change", (e) => { state.diffusion.applyFiltersToSim = e.target.checked; });
 updateDiffRunEnabled();   // starts disabled until at least one piece exists
 $("size-by").addEventListener("change", () => { syncSizeControlVisibility(); applyAppearance(); });
-$("color-by").addEventListener("change", applyAppearance);
+$("node-color-mode").addEventListener("change", () => { syncNodeColorControls(); applyAppearance(); });
+$("node-color-single").addEventListener("input", applyAppearance);
+$("color-by").addEventListener("change", () => {
+    $("node-color-mode").value = "attribute";
+    syncNodeColorControls();
+    applyAppearance();
+});
 $("node-color-low").addEventListener("input", applyAppearance);
 $("node-color-high").addEventListener("input", applyAppearance);
 $("edge-size-by").addEventListener("change", () => { syncSizeControlVisibility(); applyAppearance(); });
 $("edge-color-mode").addEventListener("change", (e) => {
-    $("edge-color-single-field").hidden = e.target.value !== "single";
+    syncEdgeColorControls();
     applyAppearance();
 });
 $("edge-color-single").addEventListener("input", applyAppearance);
+$("edge-color-by").addEventListener("change", () => { syncEdgeColorControls(); applyAppearance(); });
+$("edge-color-low").addEventListener("input", applyAppearance);
+$("edge-color-high").addEventListener("input", applyAppearance);
 ["node-size-uniform", "node-size-min", "node-size-max", "edge-size-uniform", "edge-size-min", "edge-size-max"].forEach((id) => $(id).addEventListener("input", applyAppearance));
 ["node-size-scale", "edge-size-scale"].forEach((id) => $(id).addEventListener("change", applyAppearance));
 
@@ -8243,6 +8631,7 @@ $("btn-zoom-in").addEventListener("click", zoomIn);
 $("btn-zoom-out").addEventListener("click", zoomOut);
 $("btn-zoom-fit").addEventListener("click", zoomFit);
 $("network-renderer").addEventListener("change", (e) => setNetworkRenderer(e.target.value));
+$("edge-shape").addEventListener("change", applyEdgeShape);
 $("network-renderer").addEventListener("change", () => setTimeout(syncCosmographLabelColorControls, 0));
 $("btn-vertex").addEventListener("click", runVertexMetric);
 $("network-renderer").addEventListener("change", (e) => {
@@ -8306,6 +8695,8 @@ $("session-file").addEventListener("change", (e) => {
 
 $("btn-undo").addEventListener("click", historyUndo);
 $("btn-redo").addEventListener("click", historyRedo);
+$("btn-network-undo").addEventListener("click", historyUndo);
+$("btn-network-redo").addEventListener("click", historyRedo);
 // Keyboard: Ctrl/Cmd+Z undo, Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z redo. Ignored while typing so native field undo still works.
 document.addEventListener("keydown", (e) => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;

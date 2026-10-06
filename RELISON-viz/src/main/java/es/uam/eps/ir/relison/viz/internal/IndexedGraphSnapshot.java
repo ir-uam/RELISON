@@ -34,6 +34,8 @@ public final class IndexedGraphSnapshot<U>
             throw new IllegalArgumentException("Node order must contain exactly the graph nodes");
         if (!unique.containsAll(request.getInitialPositions().keySet()))
             throw new IllegalArgumentException("Initial positions refer to nodes outside the graph");
+        if (!unique.containsAll(request.getNodeSizes().keySet()))
+            throw new IllegalArgumentException("Node sizes refer to nodes outside the graph");
         nodes = Collections.unmodifiableList(new ArrayList<>(ordered));
         indices = new HashMap<>();
         for (int i = 0; i < nodes.size(); i++) indices.put(nodes.get(i), i);

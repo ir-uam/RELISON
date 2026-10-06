@@ -14,6 +14,9 @@ function setup() {
     const inputs = new Map();
     const defaults = { "layout-type": "grid", "layout-radius": "100", "layout-spacing": "50", "layout-columns": "0",
         "layout-width": "600", "layout-height": "600", "layout-seed": "42", "layout-score": "degree", "circlepack-group": "",
+        "layout-iterations": "10", "layout-theta": "0.8", "layout-tolerance": "0.001",
+        "layout-ideal-length": "50", "layout-cooling": "0.95", "layout-fa-scaling": "100", "layout-fa-gravity": "1",
+        "layout-jitter": "1", "layout-weight-influence": "0", "layout-node-radius": "5", "layout-overlap-gap": "5",
         "layout-root": "", "layout-direction": "UND", "layout-level-spacing": "75", "layout-column-spacing": "150",
         "layout-sweeps": "4", "layout-packing-gap": "50" };
     const $ = id => {
@@ -26,11 +29,11 @@ function setup() {
     const graph = { nodes: () => [...data.keys()], hasNode: id => data.has(id), get order() { return data.size; },
         getNodeAttribute: (id, name) => data.get(id)[name], setNodeAttribute: (id, name, value) => { data.get(id)[name] = value; } };
     const state = { graph, graphId: "network", layoutRequest: null, savedLayoutPositions: null,
-        fa2Running: false, cosmographLayoutRunning: false, communityData: {}, metricData: {},
+        iterativeLayoutRunning: false, cosmographLayoutRunning: false, communityData: {}, metricData: {},
         renderer: { refresh() {}, setCustomBBox() {} } };
     const requests = [], statuses = [];
     const context = vm.createContext({ state, $, AbortController, console, window: {},
-        cancelAnimationFrame() {}, drawRecOverlay() {}, queueCosmographAppearanceRefresh() {},
+        requestAnimationFrame: callback => setImmediate(callback), cancelAnimationFrame: id => clearImmediate(id), drawRecOverlay() {}, queueCosmographAppearanceRefresh() {},
         setStatus: (...args) => statuses.push(args), isAbort: error => error?.name === "AbortError",
         jsonBody: body => ({ method: "POST", body: JSON.stringify(body) }),
         api: async (url, options) => {
@@ -39,7 +42,7 @@ function setup() {
         }, toggleHidden: (id, hidden) => { $(id).hidden = hidden; },
         nodeAttrVal: (node, name) => data.get(node).attrs?.[name],
     });
-    const handlers = vm.runInContext(section + "\n({applyStaticLayout, staticLayoutParams, saveLayoutPositions, updateLayoutTypeUI, rebuildLayoutGroupOptions, stopLayout, resetLayout})", context);
+    const handlers = vm.runInContext(section + "\n({applyStaticLayout, startRelisonAnimation, onLayoutButton, updateLayoutButton, staticLayoutParams, saveLayoutPositions, updateLayoutTypeUI, rebuildLayoutGroupOptions, stopLayout, resetLayout})", context);
     return { handlers, context, state, graph, data, $, requests, statuses };
 }
 
@@ -336,4 +339,198 @@ test("ego grid exposes the searchable root and sends traversal and column spacin
     assert.equal(h.requests[0].body.params.direction, "MUTUAL");
     assert.equal(h.requests[0].body.params.columnSpacing, 150);
     assert.equal(h.requests[0].body.params.spacing, 50);
+});
+
+test("RELISON force layouts send validated controls and optional warm starts and glyph radii", async () => {
+    for (const type of ["fruchterman-reingold", "relison-forceatlas2"]) {
+        const h = setup();
+        h.$("layout-type").value = type;
+        h.$("layout-warm-start").checked = true;
+        h.$("layout-remove-overlap").checked = true;
+        h.handlers.updateLayoutTypeUI();
+        assert.equal(h.$("layout-force-controls").hidden, false);
+        assert.equal(h.$("layout-seed-field").hidden, false);
+        await h.handlers.applyStaticLayout(type);
+        assert.equal(h.requests[0].body.params.iterations, 10);
+        assert.equal(h.requests[0].body.params.theta, 0.8);
+        assert.deepEqual(h.requests[0].body.positions.a, { x: 3, y: 4 });
+        assert.deepEqual(h.requests[0].body.nodeSizes, { a: 5, b: 5 });
+        h.$("layout-theta").value = "3";
+        await h.handlers.applyStaticLayout(type);
+        assert.equal(h.requests.length, 1);
+    }
+});
+
+function animationFrame(iterations, finished = false) {
+    return { sessionId: "session-one", positions: { a: { x: 10 + iterations, y: 20 }, b: { x: 30 + iterations, y: 40 } },
+        iterations, termination: finished ? "LIMIT_REACHED" : "RUNNING", finished };
+}
+
+test("both RELISON methods display consecutive frames and release the server session", async () => {
+    for (const type of ["fruchterman-reingold", "relison-forceatlas2"]) {
+        const h = setup(), calls = [], displayed = [];
+        h.$("layout-type").value = type;
+        h.state.renderer.refresh = () => displayed.push(h.data.get("a").x);
+        let iterations = 0;
+        h.context.api = async (url, options) => {
+            calls.push({ url, options });
+            if (options.method === "DELETE") return { cancelled: true };
+            if (url === "/api/layout/session") {
+                assert.equal(h.$("btn-layout").textContent, "Stop layout");
+                assert.equal(h.$("btn-layout").disabled, false);
+                return animationFrame(0);
+            }
+            return animationFrame(++iterations, iterations === 3);
+        };
+        await h.handlers.startRelisonAnimation(type);
+        assert.deepEqual(displayed, [10, 11, 12, 13]);
+        assert.equal(calls.filter(call => call.url.endsWith("/step")).length, 3);
+        assert.equal(calls.at(-1).options.method, "DELETE");
+        assert.equal(h.state.relisonLayout, null);
+        assert.equal(h.$("btn-layout").textContent, "Start layout");
+    }
+});
+
+test("Stop during startup cancels the session once allocated without applying its frame", async () => {
+    const h = setup(), deleted = [];
+    let release;
+    h.context.api = async (url, options) => {
+        if (options.method === "DELETE") { deleted.push(url); return {}; }
+        return new Promise(resolve => { release = resolve; });
+    };
+    const running = h.handlers.startRelisonAnimation("fruchterman-reingold");
+    h.handlers.stopLayout();
+    release(animationFrame(0));
+    await running;
+    assert.equal(h.data.get("a").x, 3);
+    assert.deepEqual(deleted, ["/api/layout/session/session-one"]);
+    assert.equal(h.state.relisonLayout, null);
+});
+
+test("Stop cancels an in-flight step and ignores its late coordinates", async () => {
+    const h = setup(), deleted = [];
+    let release, notify;
+    const stepping = new Promise(resolve => { notify = resolve; });
+    h.context.api = async (url, options) => {
+        if (options.method === "DELETE") { deleted.push(url); return {}; }
+        if (url === "/api/layout/session") return animationFrame(0);
+        notify();
+        return new Promise(resolve => { release = resolve; });
+    };
+    const running = h.handlers.startRelisonAnimation("relison-forceatlas2");
+    await stepping;
+    assert.equal(h.data.get("a").x, 10);
+    h.handlers.stopLayout();
+    release(animationFrame(99));
+    await running;
+    assert.equal(h.data.get("a").x, 10);
+    assert.equal(deleted.length, 1);
+});
+
+test("graph replacement and malformed animation frames cannot overwrite coordinates", async () => {
+    for (const replaced of [false, true]) {
+        const h = setup(), deleted = [];
+        let release;
+        h.context.api = async (url, options) => {
+            if (options.method === "DELETE") { deleted.push(url); return {}; }
+            return new Promise(resolve => { release = resolve; });
+        };
+        const running = h.handlers.startRelisonAnimation("fruchterman-reingold");
+        if (replaced) h.state.graph = {};
+        const frame = animationFrame(0);
+        if (!replaced) delete frame.positions.b;
+        release(frame);
+        await running;
+        assert.equal(h.data.get("a").x, 3);
+        assert.equal(deleted.length, 1);
+    }
+});
+
+test("Cosmograph renders every RELISON frame without relying on the debounced refresh", async () => {
+    const h = setup(), displayed = [];
+    h.$("network-renderer").value = "cosmograph";
+    h.$("pane-network").classList = { contains: () => true };
+    h.context.cosmographAppearanceRefreshTimer = null;
+    h.context.clearTimeout = () => {};
+    h.context.cosmographInteractionCallbacks = () => ({});
+    h.context.window.relisonCosmograph = {
+        render: async () => { displayed.push(h.data.get("a").x); },
+    };
+    let iterations = 0;
+    h.context.api = async (url, options) => {
+        if (options.method === "DELETE") return {};
+        if (url === "/api/layout/session") return animationFrame(0);
+        return animationFrame(++iterations, iterations === 2);
+    };
+    await h.handlers.startRelisonAnimation("relison-forceatlas2");
+    assert.deepEqual(displayed, [10, 11, 12]);
+});
+
+test("the layout button starts RELISON animation instead of the batch endpoint", async () => {
+    for (const type of ["fruchterman-reingold", "relison-forceatlas2"]) {
+        const h = setup(), calls = [], displayed = [];
+        h.$("layout-type").value = type;
+        h.state.renderer.refresh = () => displayed.push(h.data.get("a").x);
+        let iterations = 0;
+        h.context.api = async (url, options) => {
+            calls.push(url);
+            if (options.method === "DELETE") return {};
+            if (url === "/api/layout/session") return animationFrame(0);
+            assert.equal(url, "/api/layout/session/session-one/step");
+            return animationFrame(++iterations, iterations === 2);
+        };
+        await h.handlers.onLayoutButton();
+        assert.equal(calls[0], "/api/layout/session");
+        assert.equal(calls.includes("/api/layout"), false);
+        assert.deepEqual(displayed, [10, 11, 12]);
+    }
+});
+
+test("the layout button stops a running RELISON session and preserves its last frame", async () => {
+    const h = setup();
+    h.$("layout-type").value = "relison-forceatlas2";
+    let release, notify, deleted = 0;
+    const stepping = new Promise(resolve => { notify = resolve; });
+    h.context.api = async (url, options) => {
+        if (options.method === "DELETE") { deleted++; return {}; }
+        if (url === "/api/layout/session") return animationFrame(0);
+        notify();
+        return new Promise(resolve => { release = resolve; });
+    };
+    const running = h.handlers.onLayoutButton();
+    await stepping;
+    h.handlers.onLayoutButton();
+    release(animationFrame(99));
+    await running;
+    assert.equal(deleted, 1);
+    assert.equal(h.data.get("a").x, 10);
+    assert.equal(h.state.relisonLayout, null);
+});
+
+test("ForceAtlas2 controls send reference options and radii without final overlap removal", async () => {
+    const h = setup();
+    for (const id of ["layout-outbound", "layout-adjust-sizes", "layout-normalize-weights", "layout-invert-weights"])
+        h.$(id).checked = true;
+    await h.handlers.applyStaticLayout("relison-forceatlas2");
+    const body = h.requests[0].body;
+    for (const key of ["outboundAttractionDistribution", "adjustSizes", "normalizeWeights", "invertWeights"])
+        assert.equal(body.params[key], true);
+    assert.equal(body.params.removeOverlap, false);
+    assert.deepEqual(body.nodeSizes, {a: 5, b: 5});
+});
+
+test("FR reference mode sends frame and temperature instead of custom edge scale", async () => {
+    const h = setup();
+    h.$("layout-fr-bounded").checked = true;
+    h.$("layout-fr-width").value = "100";
+    h.$("layout-fr-height").value = "50";
+    h.$("layout-fr-temperature").value = "10";
+    await h.handlers.applyStaticLayout("fruchterman-reingold");
+    const params = h.requests[0].body.params;
+    assert.equal(params.bounded, true);
+    assert.equal(params.width, 100);
+    assert.equal(params.height, 50);
+    assert.equal(params.initialTemperature, 10);
+    assert.equal(params.idealLength, undefined);
+    assert.equal(params.cooling, undefined);
 });

@@ -125,3 +125,13 @@ Load an edge list (e.g. the repository's `data/train.txt`, directed + weighted) 
 - The frontend currently loads sigma.js / graphology from a CDN, so the first run needs internet access.
 
 Additional layouts: `feature-grid` (`FeatureGridLayout`) places feature-value groups in columns and permits within-group edges; one group is valid. `ego-grid` (`EgoGridLayout`) places hop distances in columns, with a selectable root and `EdgeOrientation` traversal. Unreachable nodes occupy a final column. Both accept column spacing and row spacing; feature grids also support ordering passes.
+RELISON animated force choices: fruchterman-reingold and relison-forceatlas2.
+Controls include iterations, seed, Barnes–Hut theta (zero = exact), tolerance,
+warm start, force settings, and optional overlap removal with coordinate-unit
+radii and gaps. Responses include iteration count, displacement and termination.
+The UI starts a server session and renders successive iteration snapshots in Sigma
+and Cosmograph. Stop cancels it and preserves the last displayed frame. Optional
+overlap removal and packing run only on natural completion. Batch computation
+remains available through POST /api/layout.
+
+Animation protocol: POST /api/layout/session accepts the same request as the batch endpoint and returns sessionId, finished, coordinates and diagnostics. POST /api/layout/session/{id}/step accepts integer iterations from 1 to 10. DELETE /api/layout/session/{id} cancels immediately. The browser requests one iteration per frame with no overlapping steps; start responses arriving after Stop are cleaned up without applying coordinates. Sessions are removed on completion, cancellation or failure, with idle entries reaped after two minutes on subsequent requests. At most 128 sessions can be retained.

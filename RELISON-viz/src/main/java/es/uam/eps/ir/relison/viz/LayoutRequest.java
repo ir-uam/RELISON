@@ -18,6 +18,10 @@ public final class LayoutRequest<U>
     private final Set<U> pinnedNodes;
     private final List<U> nodeOrder;
     private final long seed;
+    private final int maxIterations;
+    private final long timeLimitMillis;
+    private final Map<U, Double> nodeSizes;
+    private final java.util.function.BooleanSupplier cancellation;
 
     private LayoutRequest(Builder<U> builder)
     {
@@ -25,6 +29,16 @@ public final class LayoutRequest<U>
         pinnedNodes = Collections.unmodifiableSet(new LinkedHashSet<>(builder.pins));
         nodeOrder = builder.order == null ? null : Collections.unmodifiableList(new ArrayList<>(builder.order));
         seed = builder.seed;
+        maxIterations = builder.maxIterations;
+        timeLimitMillis = builder.timeLimitMillis;
+        cancellation = builder.cancellation;
+        nodeSizes = Collections.unmodifiableMap(new LinkedHashMap<>(builder.nodeSizes));
+        if (maxIterations < 0 || timeLimitMillis < 0) throw new IllegalArgumentException("Execution limits must be non-negative");
+        nodeSizes.forEach((node, radius) -> {
+            Objects.requireNonNull(node);
+            if (radius == null || !Double.isFinite(radius) || radius < 0)
+                throw new IllegalArgumentException("Node radii must be finite and non-negative");
+        });
         initialPositions.forEach((node, point) -> { Objects.requireNonNull(node); Objects.requireNonNull(point); });
         Bounds2D.of(initialPositions.values());
         if (!initialPositions.keySet().containsAll(pinnedNodes))
@@ -52,6 +66,14 @@ public final class LayoutRequest<U>
     /** @return random seed */
     public long getSeed() { return seed; }
 
+    /** @return force iteration budget, default 500 */
+    public int getMaxIterations() { return maxIterations; }
+    /** @return active computation time in milliseconds; zero means unlimited */
+    public long getTimeLimitMillis() { return timeLimitMillis; }
+    /** @return immutable radii in coordinate units; omitted nodes have radius zero */
+    public Map<U, Double> getNodeSizes() { return nodeSizes; }
+    /** @return caller-supplied cancellation signal */
+    public java.util.function.BooleanSupplier getCancellation() { return cancellation; }
     /**
      * Mutable request builder.
      * @param <U> node type
@@ -62,6 +84,10 @@ public final class LayoutRequest<U>
         private Set<U> pins = Collections.emptySet();
         private List<U> order;
         private long seed;
+        private int maxIterations = 500;
+        private long timeLimitMillis;
+        private Map<U, Double> nodeSizes = Collections.emptyMap();
+        private java.util.function.BooleanSupplier cancellation = () -> false;
 
         private Builder() { }
         /**
@@ -84,6 +110,26 @@ public final class LayoutRequest<U>
          * @return this builder
          */
         public Builder<U> seed(long value) { seed = value; return this; }
+        /**
+         * @param value non-negative force iteration budget
+         * @return this builder
+         */
+        public Builder<U> maxIterations(int value) { maxIterations = value; return this; }
+        /**
+         * @param value active computation milliseconds; zero means unlimited
+         * @return this builder
+         */
+        public Builder<U> timeLimitMillis(long value) { timeLimitMillis = value; return this; }
+        /**
+         * @param value node radii in coordinate units
+         * @return this builder
+         */
+        public Builder<U> nodeSizes(Map<U, Double> value) { nodeSizes = new LinkedHashMap<>(value); return this; }
+        /**
+         * @param value thread-safe cancellation signal
+         * @return this builder
+         */
+        public Builder<U> cancellation(java.util.function.BooleanSupplier value) { cancellation = Objects.requireNonNull(value); return this; }
         /** @return immutable request */
         public LayoutRequest<U> build() { return new LayoutRequest<>(this); }
     }

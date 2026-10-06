@@ -19,8 +19,8 @@ matching core; use the JDK required by your current parent build.
 All dimensions and spacings must be finite and positive. Coordinate transforms
 also support zero and negative scales. Coordinates use mathematical x/y axes;
 renderers choose screen orientation. Basic layouts ignore topology for placement.
-Node sizes, overlap prevention, iterative sessions, cancellation, edge routing,
-and parameter/capability metadata beyond algorithm identity are future stages.
+Force sessions, cancellation, node radii and overlap removal are available in Stage C.
+Edge routing and parameter/capability metadata beyond identity remain future stages.
 
 ## Stage B layouts
 
@@ -150,3 +150,88 @@ in the Maven reactor; publishing remains a separate repository release step.
 Coordinates use RELISON-core’s `Pair<Double>`: `v1()` is x and `v2()` is y. Coordinates must be non-null and finite. Traversal uses `EdgeOrientation.OUT`, `IN`, `UND`, or `MUTUAL`; mutual traversal follows only reciprocal arcs.
 
 Additional layouts: `feature-grid` (`FeatureGridLayout`) places feature-value groups in columns and permits within-group edges; one group is valid. `ego-grid` (`EgoGridLayout`) places hop distances in columns, with a selectable root and `EdgeOrientation` traversal. Unreachable nodes occupy a final column. Both accept column spacing and row spacing; feature grids also support ordering passes.
+## Stage C: force sessions
+
+| Class | Configuration | Behaviour |
+|---|---|---|
+| FruchtermanReingoldLayout | FruchtermanReingoldConfig | Inverse-distance repulsion, quadratic attraction, geometric temperature cooling |
+| ForceAtlas2Layout | ForceAtlas2Config | Degree masses, inverse-distance repulsion, linear/LinLog attraction, gravity, swinging/traction speed adaptation |
+| OverlapRemoval | Glyph gap, maximum passes, request node radii | Circular glyph separation preserving exact pins |
+| IterativeLayout / LayoutSession | Request limits, seed, positions, pins, cancellation signal | Independent caller-scheduled sessions with batch compatibility |
+
+Force models follow [Fruchterman and Reingold (1991)](https://reingold.co/force-directed.pdf)
+and [Jacomy et al. (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0098679).
+FR defaults to the original bounded frame model: k = sqrt(width * height / V),
+unit-mass repulsion k²/d, and edge attraction d²/k. The centred frame defaults
+to 600 by 600, with initial temperature 60. Each simultaneous displacement is
+limited by the current temperature, then clamped to the frame. Temperature
+decreases linearly over the requested iteration budget; the paper leaves the
+cooling function configurable. Movable warm starts are clamped at initialization;
+pins outside the frame are rejected. Diagnostics report actual movement after
+clamping. The six-argument config constructor controls frame settings.
+The existing five-argument constructor selects the unbounded extension, with
+explicit ideal edge length, initial temperature equal to that length, and
+geometric cooling. The UI exposes both modes. Weighted attraction and
+Barnes-Hut repulsion are optional extensions; theta zero and unit weights select
+the original force model.
+ForceAtlas2 supports normal/strong gravity and linear/LinLog attraction.
+Its speed uses global swinging/traction feedback, bounded growth and local swinging damping.
+The controller includes graph-size-dependent jitter and persistent speed efficiency,
+following the [Gephi reference equations](https://github.com/gephi/gephi/tree/master/modules/LayoutPlugin/src/main/java/org/gephi/layout/plugin/forceAtlas2).
+Standard movement has no fixed displacement cap. Optional outbound attraction
+distribution divides attraction by source mass and compensates by mean mass.
+Weights can be inverted and normalized before exponentiation. Equal normalized
+weights become one; inverted zero weights remain zero.
+Optional in-force size adjustment uses request radii, boundary-distance repulsion,
+and suppresses attraction between overlapping glyphs. This reference collision
+mode alone uses slower movement and a 10-unit limiter. It selects exact pairs
+even when theta is positive; the separate OverlapRemoval postprocessor is unchanged.
+It is single-threaded and does not reproduce Gephi coordinates exactly.
+
+Both project direction structurally. Undirected edges count once; directed
+reciprocal arcs contribute independently. Parallel edges accumulate. Self-loops
+exert no force. ForceAtlas2 mass is one plus incident edge multiplicity,
+with each self-loop contributing two incidences. FR ignores weights unless weighted is enabled.
+ForceAtlas2 raises weights to weightInfluence; zero ignores weights.
+Used weights must be finite and non-negative. Numerical overflow raises an error.
+
+Theta zero (Java default) selects exact O(V² + E) repulsion.
+Positive theta selects a Barnes–Hut mass quadtree, typically O(V log V + E).
+Pathological distributions can degrade. Cells containing the target are always
+opened to exclude self-force. FR regularizes exactly coincident pairs with deterministic
+directions. ForceAtlas2 uses unregularized forces: coincident points exert zero
+repulsion, so provide distinct warm-start positions or use seeded initialization.
+Tree depth is bounded. The UI defaults to theta 0.8.
+
+The request defaults to maxIterations 500 and timeLimitMillis zero (unlimited).
+A zero iteration budget returns initialization only. Time limits count active
+stepping; initialization and idle time between calls are excluded.
+Five consecutive movements below tolerance report CONVERGED.
+Exhausted budgets report LIMIT_REACHED; unfinished snapshots report RUNNING.
+Diagnostics include iteration count and maximum last-step movement.
+Cancellation and timeout discard incomplete force evaluation.
+Checks run inside force loops and tree construction.
+
+Warm starts accept partial positions; missing positions use the seeded initializer.
+Pins stay exact and still influence movable nodes. Empty and fully pinned sessions
+are immediately converged. Sessions capture topology and never mutate the input graph.
+Results reproduce with matching order, seed, configuration and iteration budget;
+wall-clock limits may terminate at different iterations.
+Step and snapshot use one caller-owned thread; cancel may use another.
+Node sizes are non-negative radii in coordinate units; missing radii are zero.
+
+Initialize a session with layout.initialize(graph, request), call session.step(10),
+and consume session.snapshot() until session.isFinished(). Another thread may call
+session.cancel(). The ordinary layout.compute(graph, request) runs to termination.
+
+Overlap removal costs O(V²) per pass. Conflicting pins and unresolved pass-limit
+collisions raise errors. The postprocessor checks caller cancellation but does
+not use the force time budget. Packing can follow it; packing currently considers
+node centres, so large glyphs can extend outside component boxes.
+
+The UI animates RELISON sessions alongside browser force methods, with force controls,
+warm starts and optional glyph separation. Sessions are limited to 5000 iterations
+with no active computation time limit. Start displays initialization; each successive
+frame advances one iteration. Stop cancels the server session and keeps displayed
+coordinates. Overlap removal and packing run only on natural completion.
+Direct Java sessions also support cancellation and progress snapshots.

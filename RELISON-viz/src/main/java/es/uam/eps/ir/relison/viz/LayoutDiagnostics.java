@@ -9,10 +9,12 @@ import java.util.Objects;
 public final class LayoutDiagnostics
 {
     /** Reasons a computation can terminate. */
-    public enum Termination { COMPLETED, CONVERGED, CANCELLED, LIMIT_REACHED }
+    public enum Termination { RUNNING, COMPLETED, CONVERGED, CANCELLED, LIMIT_REACHED }
 
     private final String algorithmId;
     private final Termination termination;
+    private final int iterations;
+    private final double maximumDisplacement;
 
     /**
      * @param algorithmId algorithm identity
@@ -20,9 +22,25 @@ public final class LayoutDiagnostics
      */
     public LayoutDiagnostics(String algorithmId, Termination termination)
     {
+        this(algorithmId, termination, 0, 0);
+    }
+    /**
+     * @param algorithmId identity
+     * @param termination status
+     * @param iterations completed iterations
+     * @param maximumDisplacement maximum movement in the last completed iteration
+     */
+    public LayoutDiagnostics(String algorithmId, Termination termination, int iterations, double maximumDisplacement) {
+        if (iterations < 0 || !Double.isFinite(maximumDisplacement) || maximumDisplacement < 0) throw new IllegalArgumentException("Invalid diagnostics");
+        this.iterations = iterations;
+        this.maximumDisplacement = maximumDisplacement;
         this.algorithmId = Objects.requireNonNull(algorithmId);
         this.termination = Objects.requireNonNull(termination);
     }
+    /** @return completed iterations */
+    public int getIterations() { return iterations; }
+    /** @return largest movement in last iteration */
+    public double getMaximumDisplacement() { return maximumDisplacement; }
     /** @return algorithm identity */
     public String getAlgorithmId() { return algorithmId; }
     /** @return termination reason */

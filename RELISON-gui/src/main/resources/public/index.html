@@ -102,44 +102,88 @@
             <label class="field">
                 <span>Algorithm</span>
                 <select id="layout-type">
-                    <option value="forceatlas2">ForceAtlas2 (animated)</option>
-                    <option value="force">Force-directed (animated)</option>
-                    <option value="cosmograph-force" hidden>Cosmograph force (animated)</option>
-                    <option value="circular">Circular</option>
-                    <option value="grid">Grid</option>
-                    <option value="feature-grid">Grid by feature</option>
-                    <option value="ego-grid">Grid / ego</option>
-                    <option value="shell">Shell (groups on rings)</option>
-                    <option value="concentric">Concentric by score</option>
-                    <option value="radial">Radial / ego</option>
-                    <option value="bipartite">Bipartite</option>
-                    <option value="multipartite">Multipartite</option>
-                    <option value="tree">Tidy tree / forest</option>
-                    <option value="preset">Saved positions</option>
-                    <option value="circlepack">Circle packing</option>
-                    <option value="random">Random</option>
+                    <optgroup label="Force-directed (animated)">
+                        <option value="force">Force-directed (animated)</option>
+                        <option value="cosmograph-force" hidden>Cosmograph force (animated)</option>
+                        <option value="fruchterman-reingold">Fruchterman–Reingold (RELISON animated)</option>
+                        <option value="relison-forceatlas2">ForceAtlas2 (RELISON animated)</option>
+                    </optgroup>
+                    <optgroup label="Radial and circular">
+                        <option value="circular">Circular</option>
+                        <option value="shell">Shell (groups on rings)</option>
+                        <option value="concentric">Concentric by score</option>
+                        <option value="radial">Radial / ego</option>
+                    </optgroup>
+                    <optgroup label="Grid and partitions">
+                        <option value="grid">Grid</option>
+                        <option value="feature-grid">Grid by feature</option>
+                        <option value="ego-grid">Grid / ego</option>
+                        <option value="bipartite">Bipartite</option>
+                        <option value="multipartite">Multipartite</option>
+                    </optgroup>
+                    <optgroup label="Trees and clusters">
+                        <option value="tree">Tidy tree / forest</option>
+                        <option value="circlepack">Circle packing</option>
+                    </optgroup>
+                    <optgroup label="Saved and initial positions">
+                        <option value="preset">Saved positions</option>
+                        <option value="random">Random</option>
+                    </optgroup>
                 </select>
             </label>
-            <label class="field" id="circlepack-group-field" hidden>
+            <details class="layout-advanced" id="layout-advanced">
+                <summary>Advanced layout settings</summary>
+            <label title="Choose a community assignment or node attribute to group nodes. Groups define rings, columns or clusters, depending on the layout. Bipartite and multipartite groups must obey their edge constraints." class="field" id="circlepack-group-field" hidden>
                 <span>Group by</span>
-                <select id="circlepack-group"><option value="">— none —</option></select>
+                <select title="Choose a community assignment or node attribute to group nodes. Groups define rings, columns or clusters, depending on the layout. Bipartite and multipartite groups must obey their edge constraints." aria-description="Choose a community assignment or node attribute to group nodes. Groups define rings, columns or clusters, depending on the layout. Bipartite and multipartite groups must obey their edge constraints." id="circlepack-group"><option value="">— none —</option></select>
             </label>
             <div class="params" id="static-layout-params" hidden>
-                <label id="layout-radius-field"><span>Radius</span><input type="number" id="layout-radius" min="1" step="1" value="100"/></label>
-                <label id="layout-spacing-field"><span>Spacing</span><input type="number" id="layout-spacing" min="1" step="1" value="50"/></label>
-                <label id="layout-root-field"><span>Root node</span><input type="text" id="layout-root" value="" placeholder="Search node (or automatic)"/></label>
-                <label id="layout-direction-field"><span>Traversal</span><select id="layout-direction"><option value="UND">Ignore direction</option><option value="OUT">Outgoing</option><option value="IN">Incoming</option><option value="MUTUAL">Mutual</option></select></label>
-                <label id="layout-column-spacing-field"><span>Column spacing</span><input type="number" id="layout-column-spacing" min="1" step="1" value="150"/></label>
-                <label id="layout-level-spacing-field"><span>Level spacing</span><input type="number" id="layout-level-spacing" min="1" step="1" value="75"/></label>
-                <label id="layout-sweeps-field"><span>Ordering passes</span><input type="number" id="layout-sweeps" min="0" max="100" step="1" value="4"/></label>
-                <label id="layout-columns-field"><span>Columns (0 = auto)</span><input type="number" id="layout-columns" min="0" step="1" value="0"/></label>
-                <label id="layout-width-field"><span>Width</span><input type="number" id="layout-width" min="1" step="1" value="600"/></label>
-                <label id="layout-height-field"><span>Height</span><input type="number" id="layout-height" min="1" step="1" value="600"/></label>
-                <label id="layout-seed-field"><span>Random seed</span><input type="number" id="layout-seed" step="1" value="42"/></label>
+                <label title="Radius of the circular layout in coordinate units. Increasing it spreads nodes farther from the centre." id="layout-radius-field"><span>Radius</span><input title="Radius of the circular layout in coordinate units. Increasing it spreads nodes farther from the centre." aria-description="Radius of the circular layout in coordinate units. Increasing it spreads nodes farther from the centre." type="number" id="layout-radius" min="1" step="1" value="100"/></label>
+                <label title="Separation in coordinate units: grid cell spacing, distance between rings, or vertical spacing within columns. For trees, this sets sibling separation." id="layout-spacing-field"><span>Spacing</span><input title="Separation in coordinate units: grid cell spacing, distance between rings, or vertical spacing within columns. For trees, this sets sibling separation." aria-description="Separation in coordinate units: grid cell spacing, distance between rings, or vertical spacing within columns. For trees, this sets sibling separation." type="number" id="layout-spacing" min="1" step="1" value="50"/></label>
+                <label title="Starting node for ego layouts or preferred root for a tree. Leave empty to choose automatically. Directed tree roots must have no parent." id="layout-root-field"><span>Root node</span><input title="Starting node for ego layouts or preferred root for a tree. Leave empty to choose automatically. Directed tree roots must have no parent." aria-description="Starting node for ego layouts or preferred root for a tree. Leave empty to choose automatically. Directed tree roots must have no parent." type="text" id="layout-root" value="" placeholder="Search node (or automatic)"/></label>
+                <label title="Outgoing follows source to target; incoming reverses edges; ignore direction follows either way; mutual follows only connections present in both directions." id="layout-direction-field"><span>Traversal</span><select title="Outgoing follows source to target; incoming reverses edges; ignore direction follows either way; mutual follows only connections present in both directions." aria-description="Outgoing follows source to target; incoming reverses edges; ignore direction follows either way; mutual follows only connections present in both directions." id="layout-direction"><option value="UND">Ignore direction</option><option value="OUT">Outgoing</option><option value="IN">Incoming</option><option value="MUTUAL">Mutual</option></select></label>
+                <label title="Horizontal distance between feature, partition or hop-distance columns, in coordinate units." id="layout-column-spacing-field"><span>Column spacing</span><input title="Horizontal distance between feature, partition or hop-distance columns, in coordinate units." aria-description="Horizontal distance between feature, partition or hop-distance columns, in coordinate units." type="number" id="layout-column-spacing" min="1" step="1" value="150"/></label>
+                <label title="Vertical distance between successive tree depths, in coordinate units." id="layout-level-spacing-field"><span>Level spacing</span><input title="Vertical distance between successive tree depths, in coordinate units." aria-description="Vertical distance between successive tree depths, in coordinate units." type="number" id="layout-level-spacing" min="1" step="1" value="75"/></label>
+                <label title="Number of alternating node-ordering passes to reduce edge crossings. More passes take longer and do not guarantee fewer crossings. Zero preserves node order within each column." id="layout-sweeps-field"><span>Ordering passes</span><input title="Number of alternating node-ordering passes to reduce edge crossings. More passes take longer and do not guarantee fewer crossings. Zero preserves node order within each column." aria-description="Number of alternating node-ordering passes to reduce edge crossings. More passes take longer and do not guarantee fewer crossings. Zero preserves node order within each column." type="number" id="layout-sweeps" min="0" max="100" step="1" value="4"/></label>
+                <label title="Number of grid columns. Zero chooses approximately the square root of the node count; the final row may be incomplete." id="layout-columns-field"><span>Columns (0 = auto)</span><input title="Number of grid columns. Zero chooses approximately the square root of the node count; the final row may be incomplete." aria-description="Number of grid columns. Zero chooses approximately the square root of the node count; the final row may be incomplete." type="number" id="layout-columns" min="0" step="1" value="0"/></label>
+                <label title="Width of the random initialization rectangle, centred on the origin, in coordinate units." id="layout-width-field"><span>Width</span><input title="Width of the random initialization rectangle, centred on the origin, in coordinate units." aria-description="Width of the random initialization rectangle, centred on the origin, in coordinate units." type="number" id="layout-width" min="1" step="1" value="600"/></label>
+                <label title="Height of the random initialization rectangle, centred on the origin, in coordinate units." id="layout-height-field"><span>Height</span><input title="Height of the random initialization rectangle, centred on the origin, in coordinate units." aria-description="Height of the random initialization rectangle, centred on the origin, in coordinate units." type="number" id="layout-height" min="1" step="1" value="600"/></label>
+                <label title="Seed for random positions. The same graph order, seed and settings reproduce initialization. With a warm start, only nodes without supplied positions use random initialization." id="layout-seed-field"><span>Random seed</span><input title="Seed for random positions. The same graph order, seed and settings reproduce initialization. With a warm start, only nodes without supplied positions use random initialization." aria-description="Seed for random positions. The same graph order, seed and settings reproduce initialization. With a warm start, only nodes without supplied positions use random initialization." type="number" id="layout-seed" step="1" value="42"/></label>
             </div>
-            <label class="field" id="layout-score-field" hidden>
+            <div class="params" id="layout-force-controls" hidden>
+                <label title="Maximum force iterations for this run, up to 5000. The layout may converge sooner. Zero shows initialization only. There is no computation time limit."><span>Iterations</span><input title="Maximum force iterations for this run, up to 5000. The layout may converge sooner. Zero shows initialization only. There is no computation time limit." aria-description="Maximum force iterations for this run, up to 5000. The layout may converge sooner. Zero shows initialization only. There is no computation time limit." id="layout-iterations" type="number" min="0" max="5000" value="500"/></label>
+                <label title="Barnes–Hut approximation threshold for repulsion. Zero evaluates exact node pairs. Larger values usually run faster but approximate forces less accurately."><span>Barnes–Hut theta (0 = exact)</span><input title="Barnes–Hut approximation threshold for repulsion. Zero evaluates exact node pairs. Larger values usually run faster but approximate forces less accurately." aria-description="Barnes–Hut approximation threshold for repulsion. Zero evaluates exact node pairs. Larger values usually run faster but approximate forces less accurately." id="layout-theta" type="number" min="0" max="2" step="0.1" value="0.8"/></label>
+                <label title="Maximum node movement per iteration, in coordinate units, used to detect convergence. The layout stops after five consecutive iterations at or below this value. Larger values accept less refinement."><span>Convergence tolerance</span><input title="Maximum node movement per iteration, in coordinate units, used to detect convergence. The layout stops after five consecutive iterations at or below this value. Larger values accept less refinement." aria-description="Maximum node movement per iteration, in coordinate units, used to detect convergence. The layout stops after five consecutive iterations at or below this value. Larger values accept less refinement." id="layout-tolerance" type="number" min="0" step="0.001" value="0.001"/></label>
+                <label title="Start from the currently displayed coordinates instead of new seeded random positions. Useful for continuing or refining an existing arrangement."><span>Use current positions</span><input title="Start from the currently displayed coordinates instead of new seeded random positions. Useful for continuing or refining an existing arrangement." aria-description="Start from the currently displayed coordinates instead of new seeded random positions. Useful for continuing or refining an existing arrangement." id="layout-warm-start" type="checkbox"/></label>
+                <label title="Separate circular node glyphs after the force session finishes. Uses the radius and gap below; may change the final force geometry."><span>Remove overlap</span><input title="Separate circular node glyphs after the force session finishes. Uses the radius and gap below; may change the final force geometry." aria-description="Separate circular node glyphs after the force session finishes. Uses the radius and gap below; may change the final force geometry." id="layout-remove-overlap" type="checkbox"/></label>
+                <label title="Radius assumed for every node during overlap removal or ForceAtlas2 collision forces, in layout coordinate units. This is independent of rendered pixel size."><span>Node radius (layout units)</span><input title="Radius assumed for every node during overlap removal or ForceAtlas2 collision forces, in layout coordinate units. This is independent of rendered pixel size." aria-description="Radius assumed for every node during overlap removal or ForceAtlas2 collision forces, in layout coordinate units. This is independent of rendered pixel size." id="layout-node-radius" type="number" min="0" value="5"/></label>
+                <label title="Minimum extra distance between node glyph boundaries during overlap removal, in coordinate units."><span>Overlap gap</span><input title="Minimum extra distance between node glyph boundaries during overlap removal, in coordinate units." aria-description="Minimum extra distance between node glyph boundaries during overlap removal, in coordinate units." id="layout-overlap-gap" type="number" min="0" value="5"/></label>
+            </div>
+            <div class="params" id="layout-fr-controls" hidden>
+                <label title="Derive the edge scale from the frame area, clamp positions to its borders, and cool linearly over the iteration budget."><span>Bounded reference mode</span><input id="layout-fr-bounded" title="Derive the edge scale from the frame area, clamp positions to its borders, and cool linearly over the iteration budget." aria-description="Derive the edge scale from the frame area, clamp positions to its borders, and cool linearly over the iteration budget." type="checkbox" checked/></label>
+                <label title="Width of the centred FR drawing frame in layout coordinate units."><span>Frame width</span><input id="layout-fr-width" title="Width of the centred FR drawing frame in layout coordinate units." aria-description="Width of the centred FR drawing frame in layout coordinate units." type="number" min="0.001" value="600"/></label>
+                <label title="Height of the centred FR drawing frame in layout coordinate units."><span>Frame height</span><input id="layout-fr-height" title="Height of the centred FR drawing frame in layout coordinate units." aria-description="Height of the centred FR drawing frame in layout coordinate units." type="number" min="0.001" value="600"/></label>
+                <label title="Maximum initial movement per iteration. Decreases linearly to zero in reference mode."><span>Initial temperature</span><input id="layout-fr-temperature" title="Maximum initial movement per iteration. Decreases linearly to zero in reference mode." aria-description="Maximum initial movement per iteration. Decreases linearly to zero in reference mode." type="number" min="0.001" value="60"/></label>
+                <label title="Characteristic edge-length scale for Fruchterman–Reingold. Larger values favour a more spread-out drawing. Also sets the initial maximum movement per iteration; edge lengths are not guaranteed to equal it."><span>Unbounded mode edge length</span><input title="Characteristic edge-length scale for Fruchterman–Reingold. Larger values favour a more spread-out drawing. Also sets the initial maximum movement per iteration; edge lengths are not guaranteed to equal it." aria-description="Characteristic edge-length scale for Fruchterman–Reingold. Larger values favour a more spread-out drawing. Also sets the initial maximum movement per iteration; edge lengths are not guaranteed to equal it." id="layout-ideal-length" type="number" min="1" value="50"/></label>
+                <label title="Multiplier applied to the maximum movement after each Fruchterman–Reingold iteration. A lower value freezes movement sooner; a value closer to one allows longer refinement."><span>Unbounded mode cooling</span><input title="Multiplier applied to the maximum movement after each Fruchterman–Reingold iteration. A lower value freezes movement sooner; a value closer to one allows longer refinement." aria-description="Multiplier applied to the maximum movement after each Fruchterman–Reingold iteration. A lower value freezes movement sooner; a value closer to one allows longer refinement." id="layout-cooling" type="number" min="0.01" max="0.99" step="0.01" value="0.95"/></label>
+                <label title="Multiply Fruchterman–Reingold attraction by edge weight. Larger weights pull endpoints together more strongly. Used weights must be finite and non-negative."><span>Use edge weights</span><input title="Multiply Fruchterman–Reingold attraction by edge weight. Larger weights pull endpoints together more strongly. Used weights must be finite and non-negative." aria-description="Multiply Fruchterman–Reingold attraction by edge weight. Larger weights pull endpoints together more strongly. Used weights must be finite and non-negative." id="layout-weighted" type="checkbox"/></label>
+            </div>
+            <div class="params" id="layout-fa-controls" hidden>
+                <label title="ForceAtlas2 repulsion strength. Increasing it generally spreads nodes farther apart relative to edge attraction."><span>Repulsion scaling</span><input title="ForceAtlas2 repulsion strength. Increasing it generally spreads nodes farther apart relative to edge attraction." aria-description="ForceAtlas2 repulsion strength. Increasing it generally spreads nodes farther apart relative to edge attraction." id="layout-fa-scaling" type="number" min="1" value="100"/></label>
+                <label title="ForceAtlas2 attraction toward the coordinate origin. Higher values keep the drawing more compact; zero disables gravity."><span>Gravity</span><input title="ForceAtlas2 attraction toward the coordinate origin. Higher values keep the drawing more compact; zero disables gravity." aria-description="ForceAtlas2 attraction toward the coordinate origin. Higher values keep the drawing more compact; zero disables gravity." id="layout-fa-gravity" type="number" min="0" step="0.1" value="1"/></label>
+                <label title="Tolerance used by ForceAtlas2 adaptive speed control. Higher values allow faster movement but can increase oscillation."><span>Jitter tolerance</span><input title="Tolerance used by ForceAtlas2 adaptive speed control. Higher values allow faster movement but can increase oscillation." aria-description="Tolerance used by ForceAtlas2 adaptive speed control. Higher values allow faster movement but can increase oscillation." id="layout-jitter" type="number" min="0.01" step="0.1" value="1"/></label>
+                <label title="Exponent applied to edge weights in ForceAtlas2 attraction. Zero ignores weights; one uses them directly. Larger exponents emphasize differences. Used weights must be finite and non-negative."><span>Weight influence (0 = ignore)</span><input title="Exponent applied to edge weights in ForceAtlas2 attraction. Zero ignores weights; one uses them directly. Larger exponents emphasize differences. Used weights must be finite and non-negative." aria-description="Exponent applied to edge weights in ForceAtlas2 attraction. Zero ignores weights; one uses them directly. Larger exponents emphasize differences. Used weights must be finite and non-negative." id="layout-weight-influence" type="number" min="0" step="0.1" value="0"/></label>
+                <label title="Use logarithmic rather than linear attraction in ForceAtlas2. Long edges pull less strongly, which can emphasize separation between groups."><span>LinLog attraction</span><input title="Use logarithmic rather than linear attraction in ForceAtlas2. Long edges pull less strongly, which can emphasize separation between groups." aria-description="Use logarithmic rather than linear attraction in ForceAtlas2. Long edges pull less strongly, which can emphasize separation between groups." id="layout-linlog" type="checkbox"/></label>
+                <label title="Make ForceAtlas2 gravity grow with distance from the origin rather than have constant magnitude for a given node mass. Helps restrain distant nodes."><span>Strong gravity</span><input title="Make ForceAtlas2 gravity grow with distance from the origin rather than have constant magnitude for a given node mass. Helps restrain distant nodes." aria-description="Make ForceAtlas2 gravity grow with distance from the origin rather than have constant magnitude for a given node mass. Helps restrain distant nodes." id="layout-strong-gravity" type="checkbox"/></label>
+                <label title="Divide edge attraction by source degree mass and compensate by mean node mass. Edge direction determines the source."><span>Dissuade hubs</span><input id="layout-outbound" type="checkbox" title="Divide edge attraction by source degree mass and compensate by mean node mass. Edge direction determines the source." aria-description="Divide edge attraction by source degree mass and compensate by mean node mass. Edge direction determines the source."/></label>
+                <label title="Use overlap radius in ForceAtlas2 forces. Uses exact repulsion and the reference collision-mode movement limiter."><span>Prevent overlap during layout</span><input id="layout-adjust-sizes" type="checkbox" title="Use overlap radius in ForceAtlas2 forces. Uses exact repulsion and the reference collision-mode movement limiter." aria-description="Use overlap radius in ForceAtlas2 forces. Uses exact repulsion and the reference collision-mode movement limiter."/></label>
+                <label title="Rescale weights to zero through one before applying weight influence. Equal weights become one."><span>Normalize edge weights</span><input id="layout-normalize-weights" type="checkbox" title="Rescale weights to zero through one before applying weight influence. Equal weights become one." aria-description="Rescale weights to zero through one before applying weight influence. Equal weights become one."/></label>
+                <label title="Replace nonzero weights by their reciprocal before normalization and weight influence. Zero stays zero."><span>Invert edge weights</span><input id="layout-invert-weights" type="checkbox" title="Replace nonzero weights by their reciprocal before normalization and weight influence. Zero stays zero." aria-description="Replace nonzero weights by their reciprocal before normalization and weight influence. Zero stays zero."/></label>
+            </div>
+            <p class="muted" id="layout-force-hint" hidden>Animates a bounded RELISON session. Stop keeps displayed positions. Overlap removal and component packing run at the end. Theta enables approximate repulsion; zero uses exact pairs. Overlap radius is in layout units.</p>
+            <label title="Score used to assign concentric rings. Equal scores share a ring; higher scores go nearer the centre. Choose degree, a computed metric or a numeric node attribute." class="field" id="layout-score-field" hidden>
                 <span>Score by</span>
-                <select id="layout-score"><option value="degree">Degree</option></select>
+                <select title="Score used to assign concentric rings. Equal scores share a ring; higher scores go nearer the centre. Choose degree, a computed metric or a numeric node attribute." aria-description="Score used to assign concentric rings. Equal scores share a ring; higher scores go nearer the centre. Choose degree, a computed metric or a numeric node attribute." id="layout-score"><option value="degree">Degree</option></select>
             </label>
             <p class="muted" id="layout-shell-hint" hidden>Groups occupy rings from inside to outside, ordered by group label. Without grouping, all nodes share a ring.</p>
             <p class="muted" id="layout-feature-grid-hint" hidden>Each feature value occupies a column, ordered by group label. Edges within a column are allowed.</p>
@@ -147,36 +191,31 @@
             <p class="muted" id="layout-radial-hint" hidden>Rings show hop distance from the root. Unreachable nodes share an extra outer ring.</p>
             <p class="muted" id="layout-partition-hint" hidden>Bipartite can detect two sides automatically. Multipartite requires grouping. Groups must not contain an edge between their own nodes.</p>
             <p class="muted" id="layout-tree-hint" hidden>Requires a tree or forest. Directed edges must point from parent to child, with one parent per node. Cycles are rejected.</p>
-            <label class="field" id="layout-preset-x-field" hidden>
+            <label title="Source for horizontal coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." class="field" id="layout-preset-x-field" hidden>
                 <span>X coordinate</span>
-                <select id="layout-preset-x"><option value="">Saved X coordinate</option></select>
+                <select title="Source for horizontal coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." aria-description="Source for horizontal coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." id="layout-preset-x"><option value="">Saved X coordinate</option></select>
             </label>
-            <label class="field" id="layout-preset-y-field" hidden>
+            <label title="Source for vertical coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." class="field" id="layout-preset-y-field" hidden>
                 <span>Y coordinate</span>
-                <select id="layout-preset-y"><option value="">Saved Y coordinate</option></select>
+                <select title="Source for vertical coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." aria-description="Source for vertical coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." id="layout-preset-y"><option value="">Saved Y coordinate</option></select>
             </label>
             <p class="muted" id="layout-preset-hint" hidden>Restore saved coordinates or choose a numeric node attribute for each axis. Attribute values are used directly and must be finite for every node. Save positions first when using a saved axis.</p>
             <div id="layout-packing-controls" hidden>
-                <label class="inline-check"><input type="checkbox" id="layout-pack-components"/> Pack disconnected components</label>
-                <div class="params" id="layout-packing-gap-field" hidden><label><span>Component gap</span><input type="number" id="layout-packing-gap" min="1" step="1" value="50"/></label></div>
+                <label title="Arrange disconnected components separately after layout, preserving each component shape. This can shift columns or coordinate axes. Components containing pinned nodes stay fixed." class="inline-check"><input title="Arrange disconnected components separately after layout, preserving each component shape. This can shift columns or coordinate axes. Components containing pinned nodes stay fixed." aria-description="Arrange disconnected components separately after layout, preserving each component shape. This can shift columns or coordinate axes. Components containing pinned nodes stay fixed." type="checkbox" id="layout-pack-components"/> Pack disconnected components</label>
+                <div class="params" id="layout-packing-gap-field" hidden><label title="Padding used when packing component bounding boxes, in coordinate units. Boxes are based on node centres, not rendered glyph sizes."><span>Component gap</span><input title="Padding used when packing component bounding boxes, in coordinate units. Boxes are based on node centres, not rendered glyph sizes." aria-description="Padding used when packing component bounding boxes, in coordinate units. Boxes are based on node centres, not rendered glyph sizes." type="number" id="layout-packing-gap" min="1" step="1" value="50"/></label></div>
                 <p class="muted">Moves each component as a unit, preserving its internal shape. Separate components may no longer share the same columns or coordinate axes.</p>
             </div>
-            <button id="btn-layout">Start layout</button>
+            </details>
+            <button id="btn-layout" class="primary">Start layout</button>
             <button id="btn-save-layout">Save positions</button>
             <button id="btn-noverlap">Remove overlaps</button>
             <button id="btn-reset-layout">Reset (circular)</button>
-            <div class="params" id="layout-params">
-                <label><span>Scaling</span><input type="number" id="layout-scaling" step="0.1" value="1"/></label>
-                <label><span>Gravity</span><input type="number" id="layout-gravity" step="0.1" value="1"/></label>
-                <label><span>Speed</span><input type="number" id="layout-speed" step="0.1" value="1"/></label>
-            </div>
-            <p class="muted" id="layout-params-hint">Scaling / gravity / speed tune the ForceAtlas2 layout.</p>
-            <label class="inline-check"><input type="checkbox" id="drag-nodes"/> Drag nodes (move positions)</label>
-            <p class="muted">When on, click and drag a node to reposition it; the canvas no longer pans.</p>
         </section>
 
-        <section class="block">
-            <h2>Nodes</h2>
+        <section class="block" id="appearance-block">
+            <h2>Appearance</h2>
+            <details class="appearance-section" id="appearance-nodes" open>
+                <summary>Nodes</summary>
             <label class="field">
                 <span>Size by</span>
                 <select id="size-by"><option value="">— uniform (default) —</option></select>
@@ -190,10 +229,22 @@
                 <label><span>Scale values</span><select id="node-size-scale"><option value="proportional">Proportional to value</option><option value="percentile">Percentile rank</option></select></label>
             </div>
             <label class="field">
-                <span>Colour by</span>
-                <select id="color-by"><option value="">— none —</option></select>
+                <span>Colour</span>
+                <select id="node-color-mode">
+                    <option value="default">Default colour</option>
+                    <option value="single">Single colour</option>
+                    <option value="attribute">By attribute</option>
+                </select>
             </label>
-            <label class="field">
+            <label class="field" id="node-color-single-field" hidden>
+                <span>Colour for all nodes</span>
+                <input type="color" id="node-color-single" value="#4f9dff"/>
+            </label>
+            <label class="field" id="node-color-attribute-field" hidden>
+                <span>Attribute</span>
+                <select id="color-by"><option value="">Choose an attribute</option></select>
+            </label>
+            <label class="field" id="node-color-range-field" hidden>
                 <span>Colour range</span>
                 <span class="colorrange">
                     <input type="color" id="node-color-low" value="#4f9dff"/>
@@ -208,10 +259,13 @@
                 <label><span>Colour</span><input type="color" id="node-border-color" value="#1b1c1f"/></label>
                 <label><span>Width</span><input type="number" id="node-border-width" step="0.5" min="0.5" value="1.5"/></label>
             </div>
-        </section>
-
-        <section class="block">
-            <h2>Edges</h2>
+            </details>
+            <details class="appearance-section" id="appearance-edges">
+                <summary>Edges</summary>
+            <label class="field">
+                <span>Edge style</span>
+                <select id="edge-shape"><option value="straight" selected>Straight</option><option value="curved">Curved</option></select>
+            </label>
             <label class="field">
                 <span>Thickness by</span>
                 <select id="edge-size-by"><option value="">— uniform —</option></select>
@@ -230,11 +284,24 @@
                     <option value="default">Default</option>
                     <option value="single">Single colour</option>
                     <option value="endpoints">Average of endpoints</option>
+                    <option value="attribute">By edge attribute</option>
                 </select>
             </label>
             <label class="field" id="edge-color-single-field" hidden>
                 <span>Colour value</span>
                 <input type="color" id="edge-color-single" value="#888888"/>
+            </label>
+            <label class="field" id="edge-color-attribute-field" hidden>
+                <span>Edge attribute</span>
+                <select id="edge-color-by"><option value="">Choose an attribute</option></select>
+            </label>
+            <label class="field" id="edge-color-range-field" hidden>
+                <span>Colour range</span>
+                <span class="colorrange">
+                    <input type="color" id="edge-color-low" value="#4f9dff"/>
+                    <span>→</span>
+                    <input type="color" id="edge-color-high" value="#ff5b5b"/>
+                </span>
             </label>
             <div id="rec-edge-block" hidden>
                 <hr class="sep"/>
@@ -246,58 +313,9 @@
                     <input type="color" id="rec-edge-color" value="#28c76f"/>
                 </label>
             </div>
-        </section>
-
-        <section class="block">
-            <h2>Timeline</h2>
-            <label class="field">
-                <span>Node time attribute</span>
-                <select id="tl-node-attr"><option value="">— none —</option></select>
-            </label>
-            <label class="field">
-                <span>Edge time attribute</span>
-                <select id="tl-edge-attr"><option value="">— none —</option></select>
-            </label>
-            <div id="tl-controls" hidden>
-                <label class="field">
-                    <span>Timeline mode</span>
-                    <select id="tl-mode">
-                        <option value="instant">Instant playback</option>
-                        <option value="range">Range exploration</option>
-                    </select>
-                </label>
-                <label class="field" id="tl-range-start-field" hidden>
-                    <span>Range start</span>
-                    <input type="number" id="tl-range-start" step="1"/>
-                </label>
-                <div class="tl-bar">
-                    <button id="tl-step-back" title="Step to previous change">◀</button>
-                    <button id="tl-play" title="Play / pause">▶</button>
-                    <button id="tl-step-fwd" title="Step to next change">▶▶</button>
-                    <input type="range" id="tl-slider" min="0" max="0" value="0"/>
-                </div>
-                <label class="field">
-                    <span>Timestamp</span>
-                    <input type="number" id="tl-time" step="1"/>
-                </label>
-                <p class="muted" id="tl-range"></p>
-                <div class="tl-export">
-                    <button id="btn-tl-gif">⬇ GIF</button>
-                    <button id="btn-tl-webm">⬇ WebM</button>
-                </div>
-                <label class="field">
-                    <span>WebM resolution</span>
-                    <select id="tl-webm-res">
-                        <option value="1920">1920px (smaller file)</option>
-                        <option value="native">Full native resolution</option>
-                    </select>
-                </label>
-            </div>
-            <p class="muted" id="tl-hint">Pick a time attribute to scrub the graph through time. A node/edge shows only at timestamps its value covers; an empty value never shows.</p>
-        </section>
-
-        <section class="block">
-            <h2>Labels</h2>
+            </details>
+            <details class="appearance-section" id="appearance-labels">
+                <summary>Labels</summary>
             <span class="sublabel">Node labels</span>
             <label class="inline-check"><input type="checkbox" id="node-label-show" checked/> Show node labels</label>
             <div class="params">
@@ -332,23 +350,37 @@
             </div>
             <label class="inline-check"><input type="checkbox" id="edge-label-prop"/> Proportional to thickness</label>
             <p class="muted">Labels come from a <code>label</code> attribute when present (node ids are used otherwise).</p>
+            </details>
         </section>
 
-        <section class="block">
-            <h2>Export</h2>
-            <button id="btn-export-png">Export network (PNG)</button>
-            <button id="btn-export-svg">Export network (SVG)</button>
-            <button id="btn-export-gexf">Export graph (GEXF)</button>
-        </section>
 
         <section class="block">
-            <h2>Edit mode</h2>
-            <label><input type="checkbox" id="edit-mode"/> Enable editing</label>
-            <p class="muted" id="edit-help" hidden>
-                Click empty space to add a node. Click a node then another, or Ctrl-click two nodes, to add an edge.
-                Select a node and press Delete to remove it.
-            </p>
+            <h2>Timeline settings</h2>
+            <label class="field">
+                <span>Node time attribute</span>
+                <select id="tl-node-attr"><option value="">— none —</option></select>
+            </label>
+            <label class="field">
+                <span>Edge time attribute</span>
+                <select id="tl-edge-attr"><option value="">— none —</option></select>
+            </label>
+            <div id="tl-controls" hidden>
+                <label class="field">
+                    <span>Timeline mode</span>
+                    <select id="tl-mode">
+                        <option value="instant">Instant playback</option>
+                        <option value="range">Range exploration</option>
+                    </select>
+                </label>
+                <label class="field" id="tl-range-start-field" hidden>
+                    <span>Range start</span>
+                    <input type="number" id="tl-range-start" step="1"/>
+                </label>
+            </div>
+            <p class="muted" id="tl-hint">Pick a time attribute to scrub the graph through time. A node/edge shows only at timestamps its value covers; an empty value never shows.</p>
         </section>
+
+
         </div>
 
         <!-- Metric / community controls: Metrics tab only (moved here from the old right column). -->
@@ -517,20 +549,70 @@
 
         <!-- TAB 1: network plot -->
         <div class="tabpane" id="pane-network">
-            <div id="sigma-container"></div>
-            <canvas id="rec-overlay"></canvas>
-            <!-- Cosmograph is an experimental Network-tab renderer. Sigma remains the default and owns the app state. -->
-            <div id="cosmograph-container" hidden></div>
-            <div id="node-legend" class="node-legend" hidden></div>
-            <div id="empty-hint">Load an edge list to begin.</div>
-            <div id="canvas-tools">
+            <div id="network-toolbar" role="toolbar" aria-label="Network controls">
+                <label class="renderer-picker" title="Choose the graph visualization">
+                    <span>Renderer</span>
+                    <select id="network-renderer"><option value="cosmograph" selected>Cosmograph</option><option value="sigma">Sigma</option></select>
+                </label>
+                <div class="network-interactions">
+                    <label class="interaction-toggle"><input type="checkbox" id="drag-nodes"/> Drag nodes</label>
+                    <label class="interaction-toggle"><input type="checkbox" id="edit-mode"/> Edit graph</label>
+                </div>
+                <div class="network-history">
+                    <button id="btn-network-undo" title="Nothing to undo" disabled>↶ Undo</button>
+                    <button id="btn-network-redo" title="Nothing to redo" disabled>↷ Redo</button>
+                </div>
+                <div id="canvas-tools" aria-label="Graph camera">
                 <button id="btn-zoom-in" class="canvas-btn" title="Zoom in">+</button>
                 <button id="btn-zoom-out" class="canvas-btn" title="Zoom out">−</button>
                 <button id="btn-zoom-fit" class="canvas-btn" title="Fit graph to view">⤢</button>
-                <label class="renderer-picker" title="Cosmograph is experimental and currently supports browsing and node selection only.">
-                    <span>Renderer</span>
-                    <select id="network-renderer"><option value="sigma">Sigma</option><option value="cosmograph">Cosmograph (experimental)</option></select>
+                </div>
+                <details class="network-export-menu">
+                    <summary>Export</summary>
+                    <div class="network-export-options">
+                        <button id="btn-export-png">Export network (PNG)</button>
+                        <button id="btn-export-svg">Export network (SVG)</button>
+                        <button id="btn-export-gexf">Export graph (GEXF)</button>
+                    </div>
+                </details>
+            </div>
+            <div class="network-interaction-help">
+                <p id="edit-help" hidden>Click empty space to add a node · Ctrl-click two nodes to add an edge · Select a node and press Delete to remove it.</p>
+                <p id="network-drag-hint" hidden>Drag a node to move it. Switch off Drag nodes to pan the graph.</p>
+            </div>
+            <div id="network-graph-stage">
+            <div id="sigma-container"></div>
+            <canvas id="rec-overlay"></canvas>
+            <!-- Both renderers share this graph viewport. -->
+            <div id="cosmograph-container" hidden></div>
+            <div id="node-legend" class="node-legend" hidden></div>
+            <div id="empty-hint">Load an edge list to begin.</div>
+            </div>
+            <div id="network-timeline" hidden aria-label="Network timeline">
+                <div class="tl-bar">
+                    <button id="tl-step-back" title="Step to previous change">◀</button>
+                    <button id="tl-play" title="Play / pause">▶</button>
+                    <button id="tl-step-fwd" title="Step to next change">▶▶</button>
+                    <input type="range" id="tl-slider" min="0" max="0" value="0"/>
+                </div>
+                <label class="field">
+                    <span>Timestamp</span>
+                    <input type="number" id="tl-time" step="1"/>
                 </label>
+                <p class="muted" id="tl-range"></p>
+                <details class="timeline-export-options"><summary>Export animation</summary>
+                <div class="tl-export">
+                    <button id="btn-tl-gif">⬇ GIF</button>
+                    <button id="btn-tl-webm">⬇ WebM</button>
+                </div>
+                <label class="field">
+                    <span>WebM resolution</span>
+                    <select id="tl-webm-res">
+                        <option value="1920">1920px (smaller file)</option>
+                        <option value="native">Full native resolution</option>
+                    </select>
+                </label>
+                </details>
             </div>
         </div>
 
@@ -917,7 +999,7 @@
                     </nav>
                     <div class="diff-views">
                         <div class="diff-view" id="diff-view-graph">
-                            <label class="diff-renderer-picker"><span>Renderer</span><select id="diff-renderer"><option value="sigma">Sigma</option><option value="cosmograph">Cosmograph (experimental)</option></select></label>
+                            <label class="diff-renderer-picker"><span>Renderer</span><select id="diff-renderer"><option value="sigma">Sigma</option><option value="cosmograph">Cosmograph</option></select></label>
                             <div id="diff-sigma-container"></div>
                             <div id="diff-cosmograph-container" hidden></div>
                             <canvas id="diff-overlay"></canvas>
@@ -1234,8 +1316,6 @@
                 <label class="field"><span>Source</span><input type="text" id="select-path-source" placeholder="type to search node"/></label>
                 <label class="field"><span>Target</span><input type="text" id="select-path-target" placeholder="type to search node"/></label>
                 <button id="btn-select-paths">Find all shortest paths</button>
-                <p class="muted" id="select-path-summary">Choose a source and target to find all shortest paths.</p>
-                <div class="scroll-table"><table id="select-paths-table" class="data"></table></div>
             </div>
             <label class="field" id="select-view-mode-field">
                 <span>View mode</span>
@@ -1253,17 +1333,21 @@
                     <option value="none">None (no emphasis)</option>
                 </select>
             </label>
+            <button id="btn-clear-selection">Clear selection</button>
             <label class="field" id="select-edge-attribute-field" hidden><span>Edge attribute</span><select id="select-edge-attribute"></select></label>
             <label class="field" id="select-partition-field" hidden>
                 <span>Community partition</span>
                 <select id="select-partition"></select>
             </label>
+            <div id="select-path-results" hidden>
+                <p class="muted" id="select-path-summary">Choose a source and target to find all shortest paths.</p>
+                <div class="scroll-table"><table id="select-paths-table" class="data"></table></div>
+            </div>
             <table class="kv" id="node-info-table"><tr><td class="muted" colspan="2">No node selected.</td></tr></table>
             <div id="edge-selection-details" hidden>
                 <span class="sublabel">Selected edge</span>
                 <div class="edge-preview" id="edge-preview"><span class="edge-endpoint" id="edge-source-preview">—</span><span class="edge-direction">→</span><span class="edge-endpoint" id="edge-target-preview">—</span></div>                <table class="kv" id="edge-info-table"><tr><td class="muted" colspan="2">No edge selected.</td></tr></table>
             </div>
-            <button id="btn-clear-selection">Clear selection</button>
         </section>
 
     </aside>
@@ -1275,6 +1359,7 @@
 <script src="chart-settings.js"></script>
 <script src="app.js"></script>
 <script type="module" src="cosmograph-spike.js"></script>
+<script type="module" src="sigma-edge-curve.js"></script>
 <script type="module" src="diffusion-cosmograph.js"></script>
 </body>
 </html>

@@ -11,6 +11,7 @@ let renderedPoints = new Map();
 let renderedLinks = new Map();
 let timelineSync = Promise.resolve();
 let linkStyleColumnRevision = 0;
+let interactionCallbacks = {};
 
 function projectGraph(graph) {
     // RELISON supplies timeline visibility as sets of shared graph ids. Keeping
@@ -292,6 +293,10 @@ function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStage
         linkDefaultWidth: 1,
         linkWidthScale: 1,
         linkDefaultArrows: graphHasDirectedLinks,
+        curvedLinks: document.getElementById("edge-shape")?.value === "curved",
+        curvedLinkSegments: 19,
+        curvedLinkWeight: 0.8,
+        curvedLinkControlPointDistance: 0.25,
         // Never let data edits or renderer refreshes wake the force layout.
         // The explicit Cosmograph force-layout control enables it on demand.
         enableSimulation: forceLayoutRunning,
@@ -335,10 +340,13 @@ function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStage
 async function render(graph, { onPointClick, onLinkClick, onStageClick } = {}) {
     const container = document.getElementById("cosmograph-container");
     if (!container || !graph) return;
+    if (onPointClick !== undefined || onLinkClick !== undefined || onStageClick !== undefined) {
+        interactionCallbacks = { onPointClick, onLinkClick, onStageClick };
+    }
     const preparedResult = await prepareGraph(graph);
     if (!preparedResult) throw new Error("Cosmograph could not prepare this graph.");
     const { prepared, snapshot } = preparedResult;
-    const config = cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStageClick);
+    const config = cosmographConfig(prepared, snapshot, interactionCallbacks.onPointClick, interactionCallbacks.onLinkClick, interactionCallbacks.onStageClick);
 
     if (instance && typeof instance.setConfig === "function") {
         await instance.setConfig(config);
@@ -427,22 +435,29 @@ function destroy() {
     if (instance && typeof instance.destroy === "function") instance.destroy();
     instance = null;
     forceLayoutRunning = false;
+    interactionCallbacks = {};
     const container = document.getElementById("cosmograph-container");
     if (container) container.replaceChildren();
 }
 
 async function startForceLayout() {
-    if (!instance || typeof instance.start !== "function") return false;
+    if (!instance || !sourceGraph || typeof instance.start !== "function") return false;
+    // Cosmograph 2.5.1 caches simulation eligibility when graph data is built.
+    // Updating enableSimulation alone does not rebuild that state. Preserve the
+    // visible positions, then rebuild with simulation enabled for this explicit
+    // Start action; ordinary edits still rebuild with simulation disabled.
+    savePointPositions();
+    const startingInstance = instance;
     forceLayoutRunning = true;
-    if (typeof instance.setConfigPartial === "function") {
-        await instance.setConfigPartial({ enableSimulation: true });
-    } else if (typeof instance.getConfig === "function" && typeof instance.setConfig === "function") {
-        const config = await instance.getConfig();
-        await instance.setConfig({ ...config, enableSimulation: true });
-        await instance.dataUploaded?.();
+    try {
+        await render(sourceGraph);
+        if (!forceLayoutRunning || instance !== startingInstance) return false;
+        instance.start(1);
+    } catch (error) {
+        forceLayoutRunning = false;
+        instance?.stop?.();
+        throw error;
     }
-    if (!forceLayoutRunning) return false;
-    instance.start();
     startEdgeLabelTracking();
     // Let the simulation establish its initial structure before fitting. Fitting
     // on the first frame makes a moving, unconverged graph look abruptly tiny.
@@ -450,9 +465,36 @@ async function startForceLayout() {
     forceFitTimer = setTimeout(() => {
         forceFitTimer = null;
         if (forceLayoutRunning && instance && typeof instance.fitView === "function") instance.fitView(250, 0.1);
+        if (forceLayoutRunning && instance) forceFitTimer = setTimeout(followForceLayoutCamera, 400);
     }, 1200);
     return true;
 }
+
+// Follow the moving layout's centre while retaining the current zoom level.
+// Reading positions at a modest rate avoids a GPU read-back on every frame.
+function followForceLayoutCamera() {
+    forceFitTimer = null;
+    if (!forceLayoutRunning || !instance || instance.isSimulationRunning === false) return;
+    const pane = document.getElementById("pane-network");
+    if (!pane || pane.classList.contains("active")) {
+        const positions = instance.getPointPositions?.({ dimensions: 2 });
+        const zoom = instance.getZoomLevel?.();
+        if (positions && Number.isFinite(zoom) && typeof instance.setZoomTransformByPointPositions === "function") {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (let i = 0; i + 1 < positions.length; i += 2) {
+                const x = positions[i], y = positions[i + 1];
+                if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+                minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+            }
+            if (Number.isFinite(minX)) {
+                instance.setZoomTransformByPointPositions(Float32Array.of(minX, minY, maxX, maxY), 250, zoom, 0.1);
+            }
+        }
+    }
+    forceFitTimer = setTimeout(followForceLayoutCamera, 400);
+}
+
 function zoomBy(factor) {
     if (!instance || typeof instance.getZoomLevel !== "function" || typeof instance.setZoomLevel !== "function") return false;
     const current = instance.getZoomLevel();
@@ -470,13 +512,38 @@ function stopForceLayout() {
     if (forceFitTimer) { clearTimeout(forceFitTimer); forceFitTimer = null; }
     if (instance && typeof instance.stop === "function") instance.stop();
     forceLayoutRunning = false;
-    if (instance && typeof instance.setConfigPartial === "function") {
-        Promise.resolve(instance.setConfigPartial({ enableSimulation: false }))
-            .catch((error) => console.warn("Could not disable Cosmograph simulation.", error));
-    }
     stopEdgeLabelTracking();
     refreshEdgeLabels().catch((error) => console.warn("Cosmograph edge-label refresh failed.", error));
     return savePointPositions();
+}
+
+// Update only the GPU point-position buffer for an animation frame. Point order
+// is the active projected snapshot; links, styling, labels and configuration stay intact.
+function setNodePositions(positionsByNode) {
+    if (!instance || !sourceGraph || typeof positionsByNode !== "object" || !positionsByNode) return false;
+    const graphApi = findGraphApi();
+    const target = graphApi && typeof graphApi.setPointPositions === "function"
+        ? graphApi
+        : instance && typeof instance.setPointPositions === "function" ? instance : null;
+    if (!target) return false;
+    const coordinates = new Float32Array(pointIds.length * 2);
+    for (let index = 0; index < pointIds.length; index++) {
+        const id = pointIds[index], point = positionsByNode[id];
+        if (!sourceGraph.hasNode(id) || !point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return false;
+        coordinates[index * 2] = point.x;
+        coordinates[index * 2 + 1] = point.y;
+    }
+    // Cosmograph 2.5.x accepts dontRescale as the second argument. RELISON's
+    // coordinates are already in the active layout space, so retain its camera.
+    target.setPointPositions(coordinates, true);
+    for (const [id, point] of renderedPoints) {
+        const position = positionsByNode[id];
+        if (position) { point.x = position.x; point.y = position.y; }
+    }
+    // Draw through the same graph object that received the GPU position update.
+    if (typeof target.render === "function") target.render();
+    else if (typeof instance.render === "function") instance.render();
+    return true;
 }
 
 // Copies the current Cosmograph layout into the shared Graphology graph without
@@ -599,15 +666,27 @@ async function buildSvgScene() {
         const arrowLength = Math.min(distance * 0.3, 0.866 * arrowWidth * 2);
         const midX = (source.x + target.x) / 2, midY = (source.y + target.y) / 2;
         const ux = dx / distance, uy = dy / distance;
-        const tipX = midX + ux * arrowLength / 2, tipY = midY + uy * arrowLength / 2;
-        const baseX = midX - ux * arrowLength / 2, baseY = midY - uy * arrowLength / 2;
+        const curved = Boolean(config.curvedLinks);
+        const controlX = midX - uy * distance * (config.curvedLinkControlPointDistance ?? 0.25) * (config.curvedLinkWeight ?? 0.8);
+        const controlY = midY + ux * distance * (config.curvedLinkControlPointDistance ?? 0.25) * (config.curvedLinkWeight ?? 0.8);
+        // On a quadratic Bézier, the rendered midpoint is not the chord
+        // midpoint when curved. Place the arrow on the actual curve so it
+        // cannot appear to float away from the exported link.
+        const arrowCenterX = curved ? midX + (controlX - midX) / 2 : midX;
+        const arrowCenterY = curved ? midY + (controlY - midY) / 2 : midY;
+        const tipX = arrowCenterX + ux * arrowLength / 2, tipY = arrowCenterY + uy * arrowLength / 2;
+        const baseX = arrowCenterX - ux * arrowLength / 2, baseY = arrowCenterY - uy * arrowLength / 2;
         const arrow = link.arrow ? '<polygon points="' + tipX + ',' + tipY + ' '
             + (baseX - uy * arrowWidth / 2) + ',' + (baseY + ux * arrowWidth / 2) + ' '
             + (baseX + uy * arrowWidth / 2) + ',' + (baseY - ux * arrowWidth / 2)
             + '" fill="' + xmlEscape(color) + '"/>' : '';
         const dash = link.style === 1 || link.style === "dashed" ? ' stroke-dasharray="6 4"' : (link.style === 2 || link.style === "dotted" ? ' stroke-dasharray="1 4" stroke-linecap="round"' : "");
-        return '<line x1="' + source.x + '" y1="' + source.y + '" x2="' + target.x + '" y2="' + target.y
-            + '" stroke="' + xmlEscape(color) + '" stroke-width="' + linkWidth + '"' + dash + '/>' + arrow;
+        const edgeShape = curved
+            ? '<path d="M ' + source.x + ' ' + source.y + ' Q ' + controlX + ' ' + controlY + ' ' + target.x + ' ' + target.y
+                + '" fill="none" stroke="' + xmlEscape(color) + '" stroke-width="' + linkWidth + '"' + dash + '/>'
+            : '<line x1="' + source.x + '" y1="' + source.y + '" x2="' + target.x + '" y2="' + target.y
+                + '" stroke="' + xmlEscape(color) + '" stroke-width="' + linkWidth + '"' + dash + '/>';
+        return edgeShape + arrow;
     }).join("");
     const nodes = [...pointScreen.values()].map(({ x, y, radius, color }) =>
         '<circle cx="' + x + '" cy="' + y + '" r="' + Math.max(0, radius) + '" fill="' + xmlEscape(color) + '"/>').join("");
@@ -668,5 +747,5 @@ async function setDragEnabled(enabled) {
         await instance.dataUploaded?.();
     }
 }
-window.relisonCosmograph = { render, syncTimeline, destroy, isRendered: () => instance !== null, startForceLayout, stopForceLayout, savePointPositions, exportPng, exportSvg, zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8), fitView, setFocusedSelection, setDragEnabled, screenToSpacePosition: (position) => instance?.screenToSpacePosition?.(position) };
+window.relisonCosmograph = { render, syncTimeline, destroy, setNodePositions, isRendered: () => instance !== null, startForceLayout, stopForceLayout, savePointPositions, exportPng, exportSvg, zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8), fitView, setFocusedSelection, setDragEnabled, screenToSpacePosition: (position) => instance?.screenToSpacePosition?.(position) };
 window.dispatchEvent(new CustomEvent("relison-cosmograph-ready"));

@@ -9,6 +9,7 @@ import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.viz.*;
 import es.uam.eps.ir.relison.viz.layouts.*;
 import es.uam.eps.ir.relison.viz.transforms.ComponentPacking;
+import es.uam.eps.ir.relison.viz.transforms.OverlapRemoval;
 import io.javalin.http.Context;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -49,18 +50,77 @@ public final class LayoutController
     // Kept independent of HTTP for focused request/response contract tests.
     static Map<String, Object> compute(Graph<String> graph, Map<?, ?> body)
     {
+        Prepared prepared = prepare(graph, body, () -> false);
+        LayoutResult<String> result = prepared.finish(prepared.layout.compute(graph, prepared.request));
+        return response(result);
+    }
+
+    static final class Prepared {
+        final Graph<String> graph;
+        final Layout<String> layout;
+        final LayoutRequest<String> request;
+        final List<LayoutPostProcessor<String>> processors;
+        Prepared(Graph<String> graph, Layout<String> layout, LayoutRequest<String> request,
+                 List<LayoutPostProcessor<String>> processors) {
+            this.graph = graph; this.layout = layout; this.request = request; this.processors = processors;
+        }
+        LayoutResult<String> finish(LayoutResult<String> result) {
+            Set<String> nodes = result.getPositions().keySet();
+            for (LayoutPostProcessor<String> processor : processors) {
+                if (result.getDiagnostics().getTermination() == LayoutDiagnostics.Termination.CANCELLED) break;
+                result = Objects.requireNonNull(processor.process(graph, result, request));
+                if (!result.getPositions().keySet().equals(nodes)) throw new IllegalStateException("Processor changed node coverage");
+                for (String node : request.getPinnedNodes())
+                    if (!Objects.equals(result.getPositions().get(node), request.getInitialPositions().get(node)))
+                        throw new IllegalStateException("Processor moved a pinned node");
+            }
+            return result;
+        }
+    }
+
+    static Prepared prepare(Graph<String> graph, Map<?, ?> body, java.util.function.BooleanSupplier cancellation)
+    {
         Map<?, ?> params = body.containsKey("params") ? object(body.get("params"), "params") : Collections.emptyMap();
         List<String> nodes = graph.getAllNodes().sorted().collect(Collectors.toList());
         List<String> order = body.containsKey("nodeOrder") ? strings(body.get("nodeOrder"), "nodeOrder") : nodes;
         LayoutRequest.Builder<String> request = LayoutRequest.<String>builder().nodeOrder(order)
-            .seed(integer(params, "seed", 0));
+            .seed(integer(params, "seed", 0)).cancellation(cancellation);
         if (body.containsKey("positions")) request.initialPositions(positions(body.get("positions")));
         if (body.containsKey("pinnedNodes")) request.pinnedNodes(new LinkedHashSet<>(strings(body.get("pinnedNodes"), "pinnedNodes")));
 
+        long iterations = integer(params, "iterations", 500);
+        if (iterations < 0 || iterations > 5000) throw new IllegalArgumentException("iterations must be between 0 and 5000.");
+        request.maxIterations((int) iterations);
+        if (body.containsKey("nodeSizes")) {
+            Map<?, ?> raw = object(body.get("nodeSizes"), "nodeSizes");
+            Map<String, Double> sizes = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : raw.entrySet()) {
+                if (!(entry.getKey() instanceof String)) throw new IllegalArgumentException("Node-size keys must be node IDs.");
+                sizes.put((String) entry.getKey(), finite(entry.getValue(), "Node radius"));
+            }
+            request.nodeSizes(sizes);
+        }
         Layout<String> layout;
         String algorithm = String.valueOf(body.get("algorithm"));
         switch (algorithm)
         {
+            case "fruchterman-reingold":
+                layout = new FruchtermanReingoldLayout<>(!params.containsKey("bounded") || flag(params,"bounded")
+                    ? new FruchtermanReingoldConfig(number(params,"width",600),number(params,"height",600),
+                        number(params,"initialTemperature",number(params,"width",600)/10),
+                        number(params,"theta",0),number(params,"tolerance",0.001),flag(params,"weighted"))
+                    : new FruchtermanReingoldConfig(
+                    number(params, "idealLength", 50), number(params, "cooling", 0.95), number(params, "theta", 0.8),
+                    number(params, "tolerance", 0.001), flag(params, "weighted")));
+                break;
+            case "relison-forceatlas2":
+                layout = new ForceAtlas2Layout<>(new ForceAtlas2Config(
+                    number(params, "scaling", 100), number(params, "gravity", 1), number(params, "jitterTolerance", 1),
+                    number(params, "theta", 0.8), number(params, "weightInfluence", 0), number(params, "tolerance", 0.001),
+                    flag(params, "linLog"), flag(params, "strongGravity"),
+                    flag(params, "outboundAttractionDistribution"), flag(params, "adjustSizes"),
+                    flag(params, "normalizeWeights"), flag(params, "invertWeights")));
+                break;
             case "preset": layout = new PresetLayout<>(); break;
             case "circular": layout = new CircularLayout<>(number(params, "radius", Math.max(50, nodes.size() * 8.0)), number(params, "startAngle", 0)); break;
             case "random":
@@ -129,17 +189,30 @@ public final class LayoutController
             default: throw new IllegalArgumentException("Unknown layout: " + algorithm);
         }
 
+        List<LayoutPostProcessor<String>> processors = new ArrayList<>();
+        if (flag(params, "removeOverlap"))
+            processors.add(new OverlapRemoval<>(number(params, "overlapGap", 5), 200));
         if (params.containsKey("packComponents") && !(params.get("packComponents") instanceof Boolean))
             throw new IllegalArgumentException("packComponents must be a boolean.");
         if (Boolean.TRUE.equals(params.get("packComponents")))
-            layout = new LayoutPipeline<>(layout, Collections.singletonList(new ComponentPacking<>(number(params, "packingGap", 50))));
-        LayoutResult<String> result = layout.compute(graph, request.build());
+            processors.add(new ComponentPacking<>(number(params, "packingGap", 50)));
+        return new Prepared(graph, layout, request.build(), processors);
+    }
+
+    static Map<String, Object> response(LayoutResult<String> result) {
         Map<String, Object> coordinates = new LinkedHashMap<>();
         result.getPositions().forEach((node, point) -> coordinates.put(node, Map.of("x", point.v1(), "y", point.v2())));
         Bounds2D bounds = result.getBounds();
         return Map.of("algorithm", result.getDiagnostics().getAlgorithmId(), "positions", coordinates,
             "bounds", Map.of("minX", bounds.getMinX(), "minY", bounds.getMinY(), "maxX", bounds.getMaxX(), "maxY", bounds.getMaxY()),
-            "termination", result.getDiagnostics().getTermination().name());
+            "termination", result.getDiagnostics().getTermination().name(),
+            "iterations", result.getDiagnostics().getIterations(), "maximumDisplacement", result.getDiagnostics().getMaximumDisplacement());
+    }
+
+    private static boolean flag(Map<?, ?> params, String name) {
+        if (!params.containsKey(name)) return false;
+        if (!(params.get(name) instanceof Boolean)) throw new IllegalArgumentException(name + " must be a boolean.");
+        return Boolean.TRUE.equals(params.get(name));
     }
 
     private static List<List<String>> partitions(Object value)

@@ -74,6 +74,7 @@ public class GuiServer
         EditController editController = new EditController(store);
         PathController pathController = new PathController(store);
         LayoutController layoutController = new LayoutController(store);
+        AnimatedLayoutController animatedLayoutController = new AnimatedLayoutController(store);
         AttributeController attributeController = new AttributeController(store);
         RecommendationController recommendationController = new RecommendationController(store, jobs);
         DiffusionController diffusionController = new DiffusionController(store, jobs);
@@ -130,6 +131,9 @@ public class GuiServer
             config.routes.post("/api/graph/generate", graphController::generate);
             config.routes.get("/api/graph/{id}", graphController::get);
             config.routes.post("/api/layout", layoutController::apply);
+            config.routes.post("/api/layout/session", animatedLayoutController::start);
+            config.routes.post("/api/layout/session/{id}/step", animatedLayoutController::step);
+            config.routes.delete("/api/layout/session/{id}", animatedLayoutController::cancel);
 
             // Metrics.
             config.routes.get("/api/metrics", metricController::catalog);
