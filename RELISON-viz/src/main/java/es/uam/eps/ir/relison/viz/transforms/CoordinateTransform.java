@@ -45,6 +45,19 @@ public final class CoordinateTransform<U> implements LayoutPostProcessor<U>
         result.getPositions().forEach((node, point) -> positions.put(node,
             request.getPinnedNodes().contains(node) ? request.getInitialPositions().get(node)
                 : new Pair<>(point.v1() * scaleX + translateX, point.v2() * scaleY + translateY)));
-        return new LayoutResult<>(positions, result.getDiagnostics());
+        List<EdgeRoute<U>> routes = new ArrayList<>();
+        for (EdgeRoute<U> route : result.getEdgeRoutes())
+        {
+            List<Pair<Double>> points = new ArrayList<>();
+            points.add(positions.get(route.getSource()));
+            for (int i = 1; i < route.getPoints().size()-1; i++)
+            {
+                Pair<Double> p = route.getPoints().get(i);
+                points.add(new Pair<>(p.v1()*scaleX+translateX, p.v2()*scaleY+translateY));
+            }
+            points.add(positions.get(route.getTarget()));
+            routes.add(new EdgeRoute<>(route.getSource(), route.getTarget(), route.getOccurrence(), points));
+        }
+        return new LayoutResult<>(positions, result.getDiagnostics(), routes);
     }
 }

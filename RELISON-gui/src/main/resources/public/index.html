@@ -6,6 +6,9 @@
     <title>RELISON Spectrum</title>
     <link rel="icon" type="image/svg+xml" href="img/relison-favicon.svg"/>
     <link rel="icon" type="image/png" sizes="any" href="img/relison-logo.png"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon_names=dark_mode,help,lab_profile,lasso_select,light_mode,save,settings&display=block"/>
     <link rel="stylesheet" href="style.css"/>
     <!-- graphology (graph model) + graphology-library (layouts/metrics helpers) + sigma (rendering). -->
     <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
@@ -20,10 +23,10 @@
 <header id="topbar">
     <img id="logo" src="img/RELISON-full-logo.png" alt="RELISON Spectrum"/>
     <span id="status" class="status"></span>
-    <button id="btn-undo" class="icon-btn" title="Nothing to undo" disabled>↶</button>
-    <button id="btn-redo" class="icon-btn" title="Nothing to redo" disabled>↷</button>
+    <button id="btn-undo" class="icon-btn" data-tooltip="ui-btn-undo" disabled>↶</button>
+    <button id="btn-redo" class="icon-btn" data-tooltip="ui-btn-redo" disabled>↷</button>
     <span class="menu-wrap">
-        <button id="btn-session" class="icon-btn" title="Save or open a RELISON session (.relison)">💾</button>
+        <button id="btn-session" class="icon-btn" data-tooltip="ui-btn-session" aria-label="Save session"><span class="material-symbols-outlined" aria-hidden="true">save</span></button>
         <ul class="menu menu-right" id="session-menu" hidden>
             <li><button type="button" data-act="save">Save session…</button></li>
             <li><button type="button" data-act="open">Open session…</button></li>
@@ -31,17 +34,17 @@
     </span>
     <input type="file" id="session-file" accept=".relison,application/json" hidden/>
     <span class="menu-wrap">
-        <button id="btn-report" class="icon-btn" title="Export a report (HTML or PDF)">📄</button>
+        <button id="btn-report" class="icon-btn" data-tooltip="ui-btn-report" aria-label="Export report"><span class="material-symbols-outlined" aria-hidden="true">lab_profile</span></button>
         <ul class="menu menu-right" id="report-menu" hidden>
             <li><button type="button" data-act="html">Export as HTML…</button></li>
             <li><button type="button" data-act="pdf">Export as PDF…</button></li>
         </ul>
     </span>
-    <a id="docs-link" class="icon-btn" href="https://relison.readthedocs.io" target="_blank" rel="noopener" title="Documentation">❓</a>
-    <button id="debug-terminal" class="icon-btn" title="Debug console (standard output / error)" hidden>&gt;_</button>
-    <button id="theme-toggle" class="icon-btn" title="Toggle light/dark">🌙</button>
+    <a id="docs-link" class="icon-btn" href="https://relison.readthedocs.io" target="_blank" rel="noopener" data-tooltip="ui-docs-link" aria-label="Help"><span class="material-symbols-outlined" aria-hidden="true">help</span></a>
+    <button id="debug-terminal" class="icon-btn" data-tooltip="ui-debug-terminal" hidden>&gt;_</button>
+    <button id="theme-toggle" class="icon-btn" data-tooltip="ui-theme-toggle" aria-label="Toggle light and dark mode"><span class="material-symbols-outlined" aria-hidden="true">dark_mode</span></button>
     <span class="menu-wrap">
-        <button id="settings-button" class="icon-btn settings-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu" title="Appearance settings">⚙ Settings</button>
+        <button id="settings-button" class="icon-btn settings-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu" data-tooltip="ui-settings-button"><span class="material-symbols-outlined" aria-hidden="true">settings</span><span>Settings</span></button>
 <div id="settings-menu" class="menu menu-right settings-menu" role="dialog" aria-label="Appearance settings" hidden>
             <label for="style-selector">Interface appearance</label>
             <select id="style-selector">
@@ -68,8 +71,8 @@
             </select>
         </div>
     </span>
-    <!-- <button id="inspector-toggle" class="icon-btn" title="Show or hide the selection inspector" aria-pressed="false" hidden>Inspector</button> -->
-    <!-- <button id="focus-toggle" class="icon-btn" title="Reduce visual clutter while keeping every control available" aria-pressed="false">Focus</button> -->
+    <!-- <button id="inspector-toggle" class="icon-btn" data-tooltip="ui-inspector-toggle" aria-pressed="false" hidden>Inspector</button> -->
+    <!-- <button id="focus-toggle" class="icon-btn" data-tooltip="ui-focus-toggle" aria-pressed="false">Focus</button> -->
 </header>
 
 <!-- Debug console: replaces the tabs + content (everything below the top bar) when toggled on; only available with --debug. -->
@@ -77,7 +80,7 @@
     <div class="terminal-toolbar">
         <span class="terminal-title">Standard output / error</span>
         <label class="inline-check"><input type="checkbox" id="debug-autoscroll" checked/> Auto-scroll</label>
-        <button id="debug-clear" class="icon-btn" title="Clear the console view">Clear</button>
+        <button id="debug-clear" class="icon-btn" data-tooltip="ui-debug-clear">Clear</button>
     </div>
     <pre id="debug-output" class="terminal" tabindex="0"></pre>
 </div>
@@ -107,6 +110,11 @@
                         <option value="cosmograph-force" hidden>Cosmograph force (animated)</option>
                         <option value="fruchterman-reingold">Fruchterman–Reingold (RELISON animated)</option>
                         <option value="relison-forceatlas2">ForceAtlas2 (RELISON animated)</option>
+                        <option value="multilevel-force">Multilevel force (Hu, EC animated)</option>
+                    </optgroup>
+                    <optgroup label="Distance-preserving (animated)">
+                        <option value="stress-majorization">Stress majorization</option>
+                        <option value="kamada-kawai">Kamada–Kawai</option>
                     </optgroup>
                     <optgroup label="Radial and circular">
                         <option value="circular">Circular</option>
@@ -123,7 +131,12 @@
                     </optgroup>
                     <optgroup label="Trees and clusters">
                         <option value="tree">Tidy tree / forest</option>
+                        <option value="sugiyama">Sugiyama (directed layers)</option>
                         <option value="circlepack">Circle packing</option>
+                        <option value="community">Community composition</option>
+                    </optgroup>
+                    <optgroup label="Geographic">
+                        <option value="geographic">Geographic (background map)</option>
                     </optgroup>
                     <optgroup label="Saved and initial positions">
                         <option value="preset">Saved positions</option>
@@ -133,76 +146,106 @@
             </label>
             <details class="layout-advanced" id="layout-advanced">
                 <summary>Advanced layout settings</summary>
-            <label title="Choose a community assignment or node attribute to group nodes. Groups define rings, columns or clusters, depending on the layout. Bipartite and multipartite groups must obey their edge constraints." class="field" id="circlepack-group-field" hidden>
+            <label data-tooltip="ui-circlepack-group-field" class="field" id="circlepack-group-field" hidden>
                 <span>Group by</span>
-                <select title="Choose a community assignment or node attribute to group nodes. Groups define rings, columns or clusters, depending on the layout. Bipartite and multipartite groups must obey their edge constraints." aria-description="Choose a community assignment or node attribute to group nodes. Groups define rings, columns or clusters, depending on the layout. Bipartite and multipartite groups must obey their edge constraints." id="circlepack-group"><option value="">— none —</option></select>
+                <select data-tooltip="ui-circlepack-group" id="circlepack-group"><option value="">— none —</option></select>
             </label>
             <div class="params" id="static-layout-params" hidden>
-                <label title="Radius of the circular layout in coordinate units. Increasing it spreads nodes farther from the centre." id="layout-radius-field"><span>Radius</span><input title="Radius of the circular layout in coordinate units. Increasing it spreads nodes farther from the centre." aria-description="Radius of the circular layout in coordinate units. Increasing it spreads nodes farther from the centre." type="number" id="layout-radius" min="1" step="1" value="100"/></label>
-                <label title="Separation in coordinate units: grid cell spacing, distance between rings, or vertical spacing within columns. For trees, this sets sibling separation." id="layout-spacing-field"><span>Spacing</span><input title="Separation in coordinate units: grid cell spacing, distance between rings, or vertical spacing within columns. For trees, this sets sibling separation." aria-description="Separation in coordinate units: grid cell spacing, distance between rings, or vertical spacing within columns. For trees, this sets sibling separation." type="number" id="layout-spacing" min="1" step="1" value="50"/></label>
-                <label title="Starting node for ego layouts or preferred root for a tree. Leave empty to choose automatically. Directed tree roots must have no parent." id="layout-root-field"><span>Root node</span><input title="Starting node for ego layouts or preferred root for a tree. Leave empty to choose automatically. Directed tree roots must have no parent." aria-description="Starting node for ego layouts or preferred root for a tree. Leave empty to choose automatically. Directed tree roots must have no parent." type="text" id="layout-root" value="" placeholder="Search node (or automatic)"/></label>
-                <label title="Outgoing follows source to target; incoming reverses edges; ignore direction follows either way; mutual follows only connections present in both directions." id="layout-direction-field"><span>Traversal</span><select title="Outgoing follows source to target; incoming reverses edges; ignore direction follows either way; mutual follows only connections present in both directions." aria-description="Outgoing follows source to target; incoming reverses edges; ignore direction follows either way; mutual follows only connections present in both directions." id="layout-direction"><option value="UND">Ignore direction</option><option value="OUT">Outgoing</option><option value="IN">Incoming</option><option value="MUTUAL">Mutual</option></select></label>
-                <label title="Horizontal distance between feature, partition or hop-distance columns, in coordinate units." id="layout-column-spacing-field"><span>Column spacing</span><input title="Horizontal distance between feature, partition or hop-distance columns, in coordinate units." aria-description="Horizontal distance between feature, partition or hop-distance columns, in coordinate units." type="number" id="layout-column-spacing" min="1" step="1" value="150"/></label>
-                <label title="Vertical distance between successive tree depths, in coordinate units." id="layout-level-spacing-field"><span>Level spacing</span><input title="Vertical distance between successive tree depths, in coordinate units." aria-description="Vertical distance between successive tree depths, in coordinate units." type="number" id="layout-level-spacing" min="1" step="1" value="75"/></label>
-                <label title="Number of alternating node-ordering passes to reduce edge crossings. More passes take longer and do not guarantee fewer crossings. Zero preserves node order within each column." id="layout-sweeps-field"><span>Ordering passes</span><input title="Number of alternating node-ordering passes to reduce edge crossings. More passes take longer and do not guarantee fewer crossings. Zero preserves node order within each column." aria-description="Number of alternating node-ordering passes to reduce edge crossings. More passes take longer and do not guarantee fewer crossings. Zero preserves node order within each column." type="number" id="layout-sweeps" min="0" max="100" step="1" value="4"/></label>
-                <label title="Number of grid columns. Zero chooses approximately the square root of the node count; the final row may be incomplete." id="layout-columns-field"><span>Columns (0 = auto)</span><input title="Number of grid columns. Zero chooses approximately the square root of the node count; the final row may be incomplete." aria-description="Number of grid columns. Zero chooses approximately the square root of the node count; the final row may be incomplete." type="number" id="layout-columns" min="0" step="1" value="0"/></label>
-                <label title="Width of the random initialization rectangle, centred on the origin, in coordinate units." id="layout-width-field"><span>Width</span><input title="Width of the random initialization rectangle, centred on the origin, in coordinate units." aria-description="Width of the random initialization rectangle, centred on the origin, in coordinate units." type="number" id="layout-width" min="1" step="1" value="600"/></label>
-                <label title="Height of the random initialization rectangle, centred on the origin, in coordinate units." id="layout-height-field"><span>Height</span><input title="Height of the random initialization rectangle, centred on the origin, in coordinate units." aria-description="Height of the random initialization rectangle, centred on the origin, in coordinate units." type="number" id="layout-height" min="1" step="1" value="600"/></label>
-                <label title="Seed for random positions. The same graph order, seed and settings reproduce initialization. With a warm start, only nodes without supplied positions use random initialization." id="layout-seed-field"><span>Random seed</span><input title="Seed for random positions. The same graph order, seed and settings reproduce initialization. With a warm start, only nodes without supplied positions use random initialization." aria-description="Seed for random positions. The same graph order, seed and settings reproduce initialization. With a warm start, only nodes without supplied positions use random initialization." type="number" id="layout-seed" step="1" value="42"/></label>
+                <label data-tooltip="ui-layout-radius-field" id="layout-radius-field"><span>Radius</span><input data-tooltip="ui-layout-radius" type="number" id="layout-radius" min="1" step="1" value="100"/></label>
+                <label data-tooltip="ui-layout-spacing-field" id="layout-spacing-field"><span>Spacing</span><input data-tooltip="ui-layout-spacing" type="number" id="layout-spacing" min="1" step="1" value="50"/></label>
+                <label data-tooltip="ui-layout-root-field" id="layout-root-field"><span>Root node</span><input data-tooltip="ui-layout-root" type="text" id="layout-root" value="" placeholder="Search node (or automatic)"/></label>
+                <label data-tooltip="ui-layout-direction-field" id="layout-direction-field"><span>Traversal</span><select data-tooltip="ui-layout-direction" id="layout-direction"><option value="UND">Ignore direction</option><option value="OUT">Outgoing</option><option value="IN">Incoming</option><option value="MUTUAL">Mutual</option></select></label>
+                <label data-tooltip="ui-layout-column-spacing-field" id="layout-column-spacing-field"><span>Column spacing</span><input data-tooltip="ui-layout-column-spacing" type="number" id="layout-column-spacing" min="1" step="1" value="150"/></label>
+                <label data-tooltip="ui-layout-level-spacing-field" id="layout-level-spacing-field"><span>Level spacing</span><input data-tooltip="ui-layout-level-spacing" type="number" id="layout-level-spacing" min="1" step="1" value="75"/></label>
+                <label data-tooltip="ui-layout-sweeps-field" id="layout-sweeps-field"><span>Ordering passes</span><input data-tooltip="ui-layout-sweeps" type="number" id="layout-sweeps" min="0" max="100" step="1" value="4"/></label>
+                <label data-tooltip="ui-layout-columns-field" id="layout-columns-field"><span>Columns (0 = auto)</span><input data-tooltip="ui-layout-columns" type="number" id="layout-columns" min="0" step="1" value="0"/></label>
+                <label data-tooltip="ui-layout-width-field" id="layout-width-field"><span>Width</span><input data-tooltip="ui-layout-width" type="number" id="layout-width" min="1" step="1" value="600"/></label>
+                <label data-tooltip="ui-layout-height-field" id="layout-height-field"><span>Height</span><input data-tooltip="ui-layout-height" type="number" id="layout-height" min="1" step="1" value="600"/></label>
+                <label data-tooltip="ui-layout-seed-field" id="layout-seed-field"><span>Random seed</span><input data-tooltip="ui-layout-seed" type="number" id="layout-seed" step="1" value="42"/></label>
             </div>
+            <div class="params" id="layout-geographic-controls" hidden>
+                <label data-tooltip="ui-geographic-projection"><span>Projection</span><select id="layout-geographic-projection"><option value="mercator">Web Mercator (street map)</option><option value="equal-earth">Equal Earth (world map)</option></select></label>
+                <label data-tooltip="ui-geographic-latitude"><span>Latitude attribute</span><select id="layout-geographic-latitude" data-tooltip="ui-geographic-latitude"><option value="">Choose latitude</option></select></label>
+                <label data-tooltip="ui-geographic-longitude"><span>Longitude attribute</span><select id="layout-geographic-longitude" data-tooltip="ui-geographic-longitude"><option value="">Choose longitude</option></select></label>
+            </div>
+            <p class="muted" id="layout-geographic-hint" hidden>Coordinates use decimal degrees. Mercator has street tiles and supports ±85.05112878° latitude; Equal Earth has a world map and supports ±90°. Forces, dragging and packing are disabled. Loading maps requires an internet connection.</p>
             <div class="params" id="layout-force-controls" hidden>
-                <label title="Maximum force iterations for this run, up to 5000. The layout may converge sooner. Zero shows initialization only. There is no computation time limit."><span>Iterations</span><input title="Maximum force iterations for this run, up to 5000. The layout may converge sooner. Zero shows initialization only. There is no computation time limit." aria-description="Maximum force iterations for this run, up to 5000. The layout may converge sooner. Zero shows initialization only. There is no computation time limit." id="layout-iterations" type="number" min="0" max="5000" value="500"/></label>
-                <label title="Barnes–Hut approximation threshold for repulsion. Zero evaluates exact node pairs. Larger values usually run faster but approximate forces less accurately."><span>Barnes–Hut theta (0 = exact)</span><input title="Barnes–Hut approximation threshold for repulsion. Zero evaluates exact node pairs. Larger values usually run faster but approximate forces less accurately." aria-description="Barnes–Hut approximation threshold for repulsion. Zero evaluates exact node pairs. Larger values usually run faster but approximate forces less accurately." id="layout-theta" type="number" min="0" max="2" step="0.1" value="0.8"/></label>
-                <label title="Maximum node movement per iteration, in coordinate units, used to detect convergence. The layout stops after five consecutive iterations at or below this value. Larger values accept less refinement."><span>Convergence tolerance</span><input title="Maximum node movement per iteration, in coordinate units, used to detect convergence. The layout stops after five consecutive iterations at or below this value. Larger values accept less refinement." aria-description="Maximum node movement per iteration, in coordinate units, used to detect convergence. The layout stops after five consecutive iterations at or below this value. Larger values accept less refinement." id="layout-tolerance" type="number" min="0" step="0.001" value="0.001"/></label>
-                <label title="Start from the currently displayed coordinates instead of new seeded random positions. Useful for continuing or refining an existing arrangement."><span>Use current positions</span><input title="Start from the currently displayed coordinates instead of new seeded random positions. Useful for continuing or refining an existing arrangement." aria-description="Start from the currently displayed coordinates instead of new seeded random positions. Useful for continuing or refining an existing arrangement." id="layout-warm-start" type="checkbox"/></label>
-                <label title="Separate circular node glyphs after the force session finishes. Uses the radius and gap below; may change the final force geometry."><span>Remove overlap</span><input title="Separate circular node glyphs after the force session finishes. Uses the radius and gap below; may change the final force geometry." aria-description="Separate circular node glyphs after the force session finishes. Uses the radius and gap below; may change the final force geometry." id="layout-remove-overlap" type="checkbox"/></label>
-                <label title="Radius assumed for every node during overlap removal or ForceAtlas2 collision forces, in layout coordinate units. This is independent of rendered pixel size."><span>Node radius (layout units)</span><input title="Radius assumed for every node during overlap removal or ForceAtlas2 collision forces, in layout coordinate units. This is independent of rendered pixel size." aria-description="Radius assumed for every node during overlap removal or ForceAtlas2 collision forces, in layout coordinate units. This is independent of rendered pixel size." id="layout-node-radius" type="number" min="0" value="5"/></label>
-                <label title="Minimum extra distance between node glyph boundaries during overlap removal, in coordinate units."><span>Overlap gap</span><input title="Minimum extra distance between node glyph boundaries during overlap removal, in coordinate units." aria-description="Minimum extra distance between node glyph boundaries during overlap removal, in coordinate units." id="layout-overlap-gap" type="number" min="0" value="5"/></label>
+                <label data-tooltip="markup-0001"><span>Iterations</span><input data-tooltip="ui-layout-iterations" id="layout-iterations" type="number" min="0" max="5000" value="500"/></label>
+                <label data-tooltip="markup-0002"><span>Barnes–Hut theta (0 = exact)</span><input data-tooltip="ui-layout-theta" id="layout-theta" type="number" min="0" max="2" step="0.1" value="0.8"/></label>
+                <label data-tooltip="markup-0003"><span>Convergence tolerance</span><input data-tooltip="ui-layout-tolerance" id="layout-tolerance" type="number" min="0" step="0.001" value="0.001"/></label>
+                <label data-tooltip="markup-0004"><span>Use current positions</span><input data-tooltip="ui-layout-warm-start" id="layout-warm-start" type="checkbox"/></label>
+                <label data-tooltip="markup-0005"><span>Remove overlap</span><input data-tooltip="ui-layout-remove-overlap" id="layout-remove-overlap" type="checkbox"/></label>
+                <label data-tooltip="markup-0006"><span>Node radius (layout units)</span><input data-tooltip="ui-layout-node-radius" id="layout-node-radius" type="number" min="0" value="5"/></label>
+                <label data-tooltip="markup-0007"><span>Overlap gap</span><input data-tooltip="ui-layout-overlap-gap" id="layout-overlap-gap" type="number" min="0" value="5"/></label>
             </div>
             <div class="params" id="layout-fr-controls" hidden>
-                <label title="Derive the edge scale from the frame area, clamp positions to its borders, and cool linearly over the iteration budget."><span>Bounded reference mode</span><input id="layout-fr-bounded" title="Derive the edge scale from the frame area, clamp positions to its borders, and cool linearly over the iteration budget." aria-description="Derive the edge scale from the frame area, clamp positions to its borders, and cool linearly over the iteration budget." type="checkbox" checked/></label>
-                <label title="Width of the centred FR drawing frame in layout coordinate units."><span>Frame width</span><input id="layout-fr-width" title="Width of the centred FR drawing frame in layout coordinate units." aria-description="Width of the centred FR drawing frame in layout coordinate units." type="number" min="0.001" value="600"/></label>
-                <label title="Height of the centred FR drawing frame in layout coordinate units."><span>Frame height</span><input id="layout-fr-height" title="Height of the centred FR drawing frame in layout coordinate units." aria-description="Height of the centred FR drawing frame in layout coordinate units." type="number" min="0.001" value="600"/></label>
-                <label title="Maximum initial movement per iteration. Decreases linearly to zero in reference mode."><span>Initial temperature</span><input id="layout-fr-temperature" title="Maximum initial movement per iteration. Decreases linearly to zero in reference mode." aria-description="Maximum initial movement per iteration. Decreases linearly to zero in reference mode." type="number" min="0.001" value="60"/></label>
-                <label title="Characteristic edge-length scale for Fruchterman–Reingold. Larger values favour a more spread-out drawing. Also sets the initial maximum movement per iteration; edge lengths are not guaranteed to equal it."><span>Unbounded mode edge length</span><input title="Characteristic edge-length scale for Fruchterman–Reingold. Larger values favour a more spread-out drawing. Also sets the initial maximum movement per iteration; edge lengths are not guaranteed to equal it." aria-description="Characteristic edge-length scale for Fruchterman–Reingold. Larger values favour a more spread-out drawing. Also sets the initial maximum movement per iteration; edge lengths are not guaranteed to equal it." id="layout-ideal-length" type="number" min="1" value="50"/></label>
-                <label title="Multiplier applied to the maximum movement after each Fruchterman–Reingold iteration. A lower value freezes movement sooner; a value closer to one allows longer refinement."><span>Unbounded mode cooling</span><input title="Multiplier applied to the maximum movement after each Fruchterman–Reingold iteration. A lower value freezes movement sooner; a value closer to one allows longer refinement." aria-description="Multiplier applied to the maximum movement after each Fruchterman–Reingold iteration. A lower value freezes movement sooner; a value closer to one allows longer refinement." id="layout-cooling" type="number" min="0.01" max="0.99" step="0.01" value="0.95"/></label>
-                <label title="Multiply Fruchterman–Reingold attraction by edge weight. Larger weights pull endpoints together more strongly. Used weights must be finite and non-negative."><span>Use edge weights</span><input title="Multiply Fruchterman–Reingold attraction by edge weight. Larger weights pull endpoints together more strongly. Used weights must be finite and non-negative." aria-description="Multiply Fruchterman–Reingold attraction by edge weight. Larger weights pull endpoints together more strongly. Used weights must be finite and non-negative." id="layout-weighted" type="checkbox"/></label>
+                <label data-tooltip="markup-0008"><span>Bounded reference mode</span><input id="layout-fr-bounded" data-tooltip="ui-layout-fr-bounded" type="checkbox" checked/></label>
+                <label data-tooltip="markup-0009"><span>Frame width</span><input id="layout-fr-width" data-tooltip="ui-layout-fr-width" type="number" min="0.001" value="600"/></label>
+                <label data-tooltip="markup-0010"><span>Frame height</span><input id="layout-fr-height" data-tooltip="ui-layout-fr-height" type="number" min="0.001" value="600"/></label>
+                <label data-tooltip="markup-0011"><span>Initial temperature</span><input id="layout-fr-temperature" data-tooltip="ui-layout-fr-temperature" type="number" min="0.001" value="60"/></label>
+                <label data-tooltip="markup-0012"><span>Unbounded mode edge length</span><input data-tooltip="ui-layout-ideal-length" id="layout-ideal-length" type="number" min="1" value="50"/></label>
+                <label data-tooltip="markup-0013"><span>Unbounded mode cooling</span><input data-tooltip="ui-layout-cooling" id="layout-cooling" type="number" min="0.01" max="0.99" step="0.01" value="0.95"/></label>
+                <label data-tooltip="markup-0014"><span>Use edge weights</span><input data-tooltip="ui-layout-weighted" id="layout-weighted" type="checkbox"/></label>
             </div>
             <div class="params" id="layout-fa-controls" hidden>
-                <label title="ForceAtlas2 repulsion strength. Increasing it generally spreads nodes farther apart relative to edge attraction."><span>Repulsion scaling</span><input title="ForceAtlas2 repulsion strength. Increasing it generally spreads nodes farther apart relative to edge attraction." aria-description="ForceAtlas2 repulsion strength. Increasing it generally spreads nodes farther apart relative to edge attraction." id="layout-fa-scaling" type="number" min="1" value="100"/></label>
-                <label title="ForceAtlas2 attraction toward the coordinate origin. Higher values keep the drawing more compact; zero disables gravity."><span>Gravity</span><input title="ForceAtlas2 attraction toward the coordinate origin. Higher values keep the drawing more compact; zero disables gravity." aria-description="ForceAtlas2 attraction toward the coordinate origin. Higher values keep the drawing more compact; zero disables gravity." id="layout-fa-gravity" type="number" min="0" step="0.1" value="1"/></label>
-                <label title="Tolerance used by ForceAtlas2 adaptive speed control. Higher values allow faster movement but can increase oscillation."><span>Jitter tolerance</span><input title="Tolerance used by ForceAtlas2 adaptive speed control. Higher values allow faster movement but can increase oscillation." aria-description="Tolerance used by ForceAtlas2 adaptive speed control. Higher values allow faster movement but can increase oscillation." id="layout-jitter" type="number" min="0.01" step="0.1" value="1"/></label>
-                <label title="Exponent applied to edge weights in ForceAtlas2 attraction. Zero ignores weights; one uses them directly. Larger exponents emphasize differences. Used weights must be finite and non-negative."><span>Weight influence (0 = ignore)</span><input title="Exponent applied to edge weights in ForceAtlas2 attraction. Zero ignores weights; one uses them directly. Larger exponents emphasize differences. Used weights must be finite and non-negative." aria-description="Exponent applied to edge weights in ForceAtlas2 attraction. Zero ignores weights; one uses them directly. Larger exponents emphasize differences. Used weights must be finite and non-negative." id="layout-weight-influence" type="number" min="0" step="0.1" value="0"/></label>
-                <label title="Use logarithmic rather than linear attraction in ForceAtlas2. Long edges pull less strongly, which can emphasize separation between groups."><span>LinLog attraction</span><input title="Use logarithmic rather than linear attraction in ForceAtlas2. Long edges pull less strongly, which can emphasize separation between groups." aria-description="Use logarithmic rather than linear attraction in ForceAtlas2. Long edges pull less strongly, which can emphasize separation between groups." id="layout-linlog" type="checkbox"/></label>
-                <label title="Make ForceAtlas2 gravity grow with distance from the origin rather than have constant magnitude for a given node mass. Helps restrain distant nodes."><span>Strong gravity</span><input title="Make ForceAtlas2 gravity grow with distance from the origin rather than have constant magnitude for a given node mass. Helps restrain distant nodes." aria-description="Make ForceAtlas2 gravity grow with distance from the origin rather than have constant magnitude for a given node mass. Helps restrain distant nodes." id="layout-strong-gravity" type="checkbox"/></label>
-                <label title="Divide edge attraction by source degree mass and compensate by mean node mass. Edge direction determines the source."><span>Dissuade hubs</span><input id="layout-outbound" type="checkbox" title="Divide edge attraction by source degree mass and compensate by mean node mass. Edge direction determines the source." aria-description="Divide edge attraction by source degree mass and compensate by mean node mass. Edge direction determines the source."/></label>
-                <label title="Use overlap radius in ForceAtlas2 forces. Uses exact repulsion and the reference collision-mode movement limiter."><span>Prevent overlap during layout</span><input id="layout-adjust-sizes" type="checkbox" title="Use overlap radius in ForceAtlas2 forces. Uses exact repulsion and the reference collision-mode movement limiter." aria-description="Use overlap radius in ForceAtlas2 forces. Uses exact repulsion and the reference collision-mode movement limiter."/></label>
-                <label title="Rescale weights to zero through one before applying weight influence. Equal weights become one."><span>Normalize edge weights</span><input id="layout-normalize-weights" type="checkbox" title="Rescale weights to zero through one before applying weight influence. Equal weights become one." aria-description="Rescale weights to zero through one before applying weight influence. Equal weights become one."/></label>
-                <label title="Replace nonzero weights by their reciprocal before normalization and weight influence. Zero stays zero."><span>Invert edge weights</span><input id="layout-invert-weights" type="checkbox" title="Replace nonzero weights by their reciprocal before normalization and weight influence. Zero stays zero." aria-description="Replace nonzero weights by their reciprocal before normalization and weight influence. Zero stays zero."/></label>
+                <label data-tooltip="markup-0015"><span>Repulsion scaling</span><input data-tooltip="ui-layout-fa-scaling" id="layout-fa-scaling" type="number" min="1" value="100"/></label>
+                <label data-tooltip="markup-0016"><span>Gravity</span><input data-tooltip="ui-layout-fa-gravity" id="layout-fa-gravity" type="number" min="0" step="0.1" value="1"/></label>
+                <label data-tooltip="markup-0017"><span>Jitter tolerance</span><input data-tooltip="ui-layout-jitter" id="layout-jitter" type="number" min="0.01" step="0.1" value="1"/></label>
+                <label data-tooltip="markup-0018"><span>Weight influence (0 = ignore)</span><input data-tooltip="ui-layout-weight-influence" id="layout-weight-influence" type="number" min="0" step="0.1" value="0"/></label>
+                <label data-tooltip="markup-0019"><span>LinLog attraction</span><input data-tooltip="ui-layout-linlog" id="layout-linlog" type="checkbox"/></label>
+                <label data-tooltip="markup-0020"><span>Strong gravity</span><input data-tooltip="ui-layout-strong-gravity" id="layout-strong-gravity" type="checkbox"/></label>
+                <label data-tooltip="markup-0021"><span>Dissuade hubs</span><input id="layout-outbound" type="checkbox" data-tooltip="ui-layout-outbound"/></label>
+                <label data-tooltip="markup-0022"><span>Prevent overlap during layout</span><input id="layout-adjust-sizes" type="checkbox" data-tooltip="ui-layout-adjust-sizes"/></label>
+                <label data-tooltip="markup-0023"><span>Normalize edge weights</span><input id="layout-normalize-weights" type="checkbox" data-tooltip="ui-layout-normalize-weights"/></label>
+                <label data-tooltip="markup-0024"><span>Invert edge weights</span><input id="layout-invert-weights" type="checkbox" data-tooltip="ui-layout-invert-weights"/></label>
             </div>
-            <p class="muted" id="layout-force-hint" hidden>Animates a bounded RELISON session. Stop keeps displayed positions. Overlap removal and component packing run at the end. Theta enables approximate repulsion; zero uses exact pairs. Overlap radius is in layout units.</p>
-            <label title="Score used to assign concentric rings. Equal scores share a ring; higher scores go nearer the centre. Choose degree, a computed metric or a numeric node attribute." class="field" id="layout-score-field" hidden>
+            <div class="params" id="layout-distance-controls" hidden>
+                <label data-tooltip="ui-layout-distance-length"><span>Length per graph-distance unit</span><input id="layout-distance-length" data-tooltip="ui-layout-distance-length" type="number" min="0.001" value="50"/></label>
+                <label data-tooltip="ui-layout-kk-size"><span>Drawing size</span><input id="layout-kk-size" data-tooltip="ui-layout-kk-size" type="number" min="0.001" value="600"/></label>
+                <label data-tooltip="ui-layout-spring-constant"><span>Spring constant</span><input id="layout-spring-constant" data-tooltip="ui-layout-spring-constant" type="number" min="0.001" value="1"/></label>
+                <label data-tooltip="ui-layout-distance-weighted"><span>Weights are edge lengths</span><input id="layout-distance-weighted" data-tooltip="ui-layout-distance-weighted" type="checkbox"/></label>
+            </div>
+            <div class="params" id="layout-hu-controls" hidden>
+                <label data-tooltip="ui-layout-hu-scale"><span>Initialization scale</span><input id="layout-hu-scale" data-tooltip="ui-layout-hu-scale" type="number" min="0.001" value="50"/></label>
+                <label data-tooltip="ui-layout-hu-repulsion"><span>Repulsion C</span><input id="layout-hu-repulsion" data-tooltip="ui-layout-hu-repulsion" type="number" min="0.001" step="0.1" value="0.2"/></label>
+                <label data-tooltip="ui-layout-hu-cooling"><span>Cooling multiplier</span><input id="layout-hu-cooling" data-tooltip="ui-layout-hu-cooling" type="number" min="0.01" max="0.99" step="0.01" value="0.9"/></label>
+                <label data-tooltip="ui-layout-hu-level-iterations"><span>Iterations per level</span><input id="layout-hu-level-iterations" data-tooltip="ui-layout-hu-level-iterations" type="number" min="1" max="5000" value="100"/></label>
+                <label data-tooltip="ui-layout-hu-weighted"><span>Weights are attraction strengths</span><input id="layout-hu-weighted" data-tooltip="ui-layout-hu-weighted" type="checkbox"/></label>
+            </div>
+            <div class="params" id="layout-community-controls" hidden>
+                <label data-tooltip="ui-layout-community-inner"><span>Within communities</span><select id="layout-community-inner" data-tooltip="ui-layout-community-inner"><option value="fruchterman-reingold">Fruchterman–Reingold</option><option value="stress-majorization">Stress majorization</option><option value="kamada-kawai">Kamada–Kawai</option><option value="multilevel-force">Multilevel force (Hu)</option></select></label>
+                <label data-tooltip="ui-layout-community-outer"><span>Between communities</span><select id="layout-community-outer" data-tooltip="ui-layout-community-outer"><option value="multilevel-force">Multilevel force (Hu)</option><option value="fruchterman-reingold">Fruchterman–Reingold</option><option value="stress-majorization">Stress majorization</option><option value="kamada-kawai">Kamada–Kawai</option></select></label>
+                <label data-tooltip="ui-layout-community-gap"><span>Community gap</span><input id="layout-community-gap" data-tooltip="ui-layout-community-gap" type="number" min="0" value="50"/></label>
+                <label data-tooltip="ui-layout-community-iterations"><span>Iterations per child layout</span><input id="layout-community-iterations" data-tooltip="ui-layout-community-iterations" type="number" min="0" max="5000" value="500"/></label>
+            </div>
+            <p class="muted" id="layout-force-hint" hidden>Animates a RELISON session. Stop keeps displayed positions. Overlap removal and component packing run at the end. For force models, theta enables approximate repulsion; zero uses exact pairs. Overlap radius is in layout units.</p>
+            <p class="muted" id="layout-distance-hint" hidden>Shortest-path distances ignore edge direction. Optional edge weights are positive path lengths. Each disconnected component is optimized independently. These full-distance models require quadratic memory; stress majorization also factors a dense matrix.</p>
+            <p class="muted" id="layout-hu-hint" hidden>Hu's edge-collapsing model: coarsen, draw, then refine. Each frame is one sequential force sweep. The total iteration budget spans all levels; increase it if refinement stops early. No gravity or movement cap is added.</p>
+            <p class="muted" id="layout-community-hint" hidden>Choose a community assignment or node attribute under Group by. Draws each group, lays out the community graph, then separates community envelopes. Published child models retain their default settings. Returns the final composition.</p>
+            <label data-tooltip="ui-layout-score-field" class="field" id="layout-score-field" hidden>
                 <span>Score by</span>
-                <select title="Score used to assign concentric rings. Equal scores share a ring; higher scores go nearer the centre. Choose degree, a computed metric or a numeric node attribute." aria-description="Score used to assign concentric rings. Equal scores share a ring; higher scores go nearer the centre. Choose degree, a computed metric or a numeric node attribute." id="layout-score"><option value="degree">Degree</option></select>
+                <select data-tooltip="ui-layout-score" id="layout-score"><option value="degree">Degree</option></select>
             </label>
+            <label class="inline-check" id="layout-score-reverse-field" hidden data-tooltip="ui-layout-score-reverse"><input id="layout-score-reverse" type="checkbox"/> Reverse score order (smaller values nearer centre)</label>
             <p class="muted" id="layout-shell-hint" hidden>Groups occupy rings from inside to outside, ordered by group label. Without grouping, all nodes share a ring.</p>
             <p class="muted" id="layout-feature-grid-hint" hidden>Each feature value occupies a column, ordered by group label. Edges within a column are allowed.</p>
             <p class="muted" id="layout-ego-grid-hint" hidden>Columns show hop distance from the root. Unreachable nodes share a final column.</p>
             <p class="muted" id="layout-radial-hint" hidden>Rings show hop distance from the root. Unreachable nodes share an extra outer ring.</p>
             <p class="muted" id="layout-partition-hint" hidden>Bipartite can detect two sides automatically. Multipartite requires grouping. Groups must not contain an edge between their own nodes.</p>
             <p class="muted" id="layout-tree-hint" hidden>Requires a tree or forest. Directed edges must point from parent to child, with one parent per node. Cycles are rejected.</p>
-            <label title="Source for horizontal coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." class="field" id="layout-preset-x-field" hidden>
+            <p class="muted" id="layout-sugiyama-hint" hidden>Directed graphs only. Cycles are handled internally; original edge directions are retained. Ordering passes reduce crossings. The API also returns edge polylines; the viewers currently draw their usual edges.</p>
+            <label data-tooltip="ui-layout-preset-x-field" class="field" id="layout-preset-x-field" hidden>
                 <span>X coordinate</span>
-                <select title="Source for horizontal coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." aria-description="Source for horizontal coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." id="layout-preset-x"><option value="">Saved X coordinate</option></select>
+                <select data-tooltip="ui-layout-preset-x" id="layout-preset-x"><option value="">Saved X coordinate</option></select>
             </label>
-            <label title="Source for vertical coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." class="field" id="layout-preset-y-field" hidden>
+            <label data-tooltip="ui-layout-preset-y-field" class="field" id="layout-preset-y-field" hidden>
                 <span>Y coordinate</span>
-                <select title="Source for vertical coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." aria-description="Source for vertical coordinates: saved positions or a numeric node attribute. Attribute values retain their original units and must be finite for every node." id="layout-preset-y"><option value="">Saved Y coordinate</option></select>
+                <select data-tooltip="ui-layout-preset-y" id="layout-preset-y"><option value="">Saved Y coordinate</option></select>
             </label>
             <p class="muted" id="layout-preset-hint" hidden>Restore saved coordinates or choose a numeric node attribute for each axis. Attribute values are used directly and must be finite for every node. Save positions first when using a saved axis.</p>
             <div id="layout-packing-controls" hidden>
-                <label title="Arrange disconnected components separately after layout, preserving each component shape. This can shift columns or coordinate axes. Components containing pinned nodes stay fixed." class="inline-check"><input title="Arrange disconnected components separately after layout, preserving each component shape. This can shift columns or coordinate axes. Components containing pinned nodes stay fixed." aria-description="Arrange disconnected components separately after layout, preserving each component shape. This can shift columns or coordinate axes. Components containing pinned nodes stay fixed." type="checkbox" id="layout-pack-components"/> Pack disconnected components</label>
-                <div class="params" id="layout-packing-gap-field" hidden><label title="Padding used when packing component bounding boxes, in coordinate units. Boxes are based on node centres, not rendered glyph sizes."><span>Component gap</span><input title="Padding used when packing component bounding boxes, in coordinate units. Boxes are based on node centres, not rendered glyph sizes." aria-description="Padding used when packing component bounding boxes, in coordinate units. Boxes are based on node centres, not rendered glyph sizes." type="number" id="layout-packing-gap" min="1" step="1" value="50"/></label></div>
+                <label data-tooltip="markup-0025" class="inline-check"><input data-tooltip="ui-layout-pack-components" type="checkbox" id="layout-pack-components"/> Pack disconnected components</label>
+                <div class="params" id="layout-packing-gap-field" hidden><label data-tooltip="markup-0026"><span>Component gap</span><input data-tooltip="ui-layout-packing-gap" type="number" id="layout-packing-gap" min="1" step="1" value="50"/></label></div>
                 <p class="muted">Moves each component as a unit, preserving its internal shape. Separate components may no longer share the same columns or coordinate axes.</p>
             </div>
             </details>
@@ -227,11 +270,13 @@
                 <label><span>Min size</span><input type="number" id="node-size-min" step="0.5" min="0" value="2"/></label>
                 <label><span>Max size</span><input type="number" id="node-size-max" step="0.5" min="0" value="14"/></label>
                 <label><span>Scale values</span><select id="node-size-scale"><option value="proportional">Proportional to value</option><option value="percentile">Percentile rank</option></select></label>
+                <label data-tooltip="ui-size-reverse"><span>Reverse (smaller values bigger)</span><input id="node-size-reverse" type="checkbox"/></label>
             </div>
             <label class="field">
                 <span>Colour</span>
                 <select id="node-color-mode">
                     <option value="default">Default colour</option>
+                    <option value="imported">Imported colour</option>
                     <option value="single">Single colour</option>
                     <option value="attribute">By attribute</option>
                 </select>
@@ -277,11 +322,13 @@
                 <label><span>Min thickness</span><input type="number" id="edge-size-min" step="0.5" min="0" value="0.5"/></label>
                 <label><span>Max thickness</span><input type="number" id="edge-size-max" step="0.5" min="0" value="6"/></label>
                 <label><span>Scale values</span><select id="edge-size-scale"><option value="proportional">Proportional to value</option><option value="percentile">Percentile rank</option></select></label>
+                <label data-tooltip="ui-size-reverse"><span>Reverse (smaller values thicker)</span><input id="edge-size-reverse" type="checkbox"/></label>
             </div>
             <label class="field">
                 <span>Colour</span>
                 <select id="edge-color-mode">
                     <option value="default">Default</option>
+                    <option value="imported">Imported colour</option>
                     <option value="single">Single colour</option>
                     <option value="endpoints">Average of endpoints</option>
                     <option value="attribute">By edge attribute</option>
@@ -318,6 +365,7 @@
                 <summary>Labels</summary>
             <span class="sublabel">Node labels</span>
             <label class="inline-check"><input type="checkbox" id="node-label-show" checked/> Show node labels</label>
+            <label class="field" data-tooltip="node-label-attribute"><span>Label attribute</span><select id="node-label-attribute"><option value="">Default (label or node ID)</option><option value="id">Node ID</option></select></label>
             <div class="params">
                 <label><span>Size</span><input type="number" id="node-label-size" step="1" min="1" value="12"/></label>
                 <label><span>Colour</span><input type="color" id="node-label-color" value="#e6e6e6"/></label>
@@ -335,6 +383,7 @@
             <hr class="sep"/>
             <span class="sublabel">Edge labels</span>
             <label class="inline-check"><input type="checkbox" id="edge-label-show"/> Show edge labels</label>
+            <label class="field" data-tooltip="edge-label-attribute"><span>Label attribute</span><select id="edge-label-attribute"><option value="">Default (label attribute)</option><option value="id">Edge ID</option></select></label>
             <div class="params">
                 <label><span>Size</span><input type="number" id="edge-label-size" step="1" min="1" value="9"/></label>
                 <label><span>Colour</span><input type="color" id="edge-label-color" value="#e6e6e6"/></label>
@@ -488,12 +537,22 @@
                     <span>Format</span>
                     <select id="opt-format">
                         <option value="">Auto-detect (by extension)</option>
-                        <option value="edges">Edge list (tab-separated)</option>
+                        <option value="edges">Edge list</option>
                         <option value="pajek">Pajek (.net / .paj)</option>
                         <option value="gexf">GEXF (.gexf)</option>
                         <option value="relison">RELISON session (.relison)</option>
                     </select>
                 </label>
+                <label class="field" id="edge-import-options">
+                    <span>Field separator</span>
+                    <select id="opt-separator">
+                        <option value="tab">Tab</option>
+                        <option value=",">Comma</option>
+                        <option value=";">Semicolon</option>
+                    </select>
+                </label>
+                <label class="inline-check" id="edge-header-option"><input type="checkbox" id="opt-header"/> First row contains headers</label>
+                <label class="inline-check" id="gexf-label-option" hidden><input type="checkbox" id="opt-gexf-labels-as-ids"/> Use GEXF labels as node IDs (when present)</label>
                 <p class="muted" id="import-session-hint" hidden>A saved session carries its own network and type
                     options, so the settings below are ignored.</p>
                 <div class="checks">
@@ -550,29 +609,36 @@
         <!-- TAB 1: network plot -->
         <div class="tabpane" id="pane-network">
             <div id="network-toolbar" role="toolbar" aria-label="Network controls">
-                <label class="renderer-picker" title="Choose the graph visualization">
+                <label class="renderer-picker" data-tooltip="markup-0027">
                     <span>Renderer</span>
-                    <select id="network-renderer"><option value="cosmograph" selected>Cosmograph</option><option value="sigma">Sigma</option></select>
+                    <select id="network-renderer"><option value="cosmograph" selected>Cosmograph</option><option value="sigma">Sigma</option><option value="geographic">Geographic map</option></select>
                 </label>
                 <div class="network-interactions">
                     <label class="interaction-toggle"><input type="checkbox" id="drag-nodes"/> Drag nodes</label>
+                    <label class="interaction-toggle" data-tooltip="ui-multi-node-select"><input type="checkbox" id="multi-node-select" disabled/> Select multiple</label>
+                    <button id="btn-area-select-nodes" class="area-select-button" data-tooltip="ui-area-select-nodes" disabled>
+                        <span class="material-symbols-outlined" aria-hidden="true">lasso_select</span>
+                        <span>Select area</span>
+                    </button>
                     <label class="interaction-toggle"><input type="checkbox" id="edit-mode"/> Edit graph</label>
                 </div>
                 <div class="network-history">
-                    <button id="btn-network-undo" title="Nothing to undo" disabled>↶ Undo</button>
-                    <button id="btn-network-redo" title="Nothing to redo" disabled>↷ Redo</button>
+                    <button id="btn-network-undo" data-tooltip="ui-btn-network-undo" disabled>↶ Undo</button>
+                    <button id="btn-network-redo" data-tooltip="ui-btn-network-redo" disabled>↷ Redo</button>
                 </div>
                 <div id="canvas-tools" aria-label="Graph camera">
-                <button id="btn-zoom-in" class="canvas-btn" title="Zoom in">+</button>
-                <button id="btn-zoom-out" class="canvas-btn" title="Zoom out">−</button>
-                <button id="btn-zoom-fit" class="canvas-btn" title="Fit graph to view">⤢</button>
+                <button id="btn-zoom-in" class="canvas-btn" data-tooltip="ui-btn-zoom-in">+</button>
+                <button id="btn-zoom-out" class="canvas-btn" data-tooltip="ui-btn-zoom-out">−</button>
+                <button id="btn-zoom-fit" class="canvas-btn" data-tooltip="ui-btn-zoom-fit">⤢</button>
                 </div>
                 <details class="network-export-menu">
                     <summary>Export</summary>
                     <div class="network-export-options">
                         <button id="btn-export-png">Export network (PNG)</button>
                         <button id="btn-export-svg">Export network (SVG)</button>
+                        <label class="inline-check"><input id="export-include-legend" type="checkbox" checked/> Include colour legend</label>
                         <button id="btn-export-gexf">Export graph (GEXF)</button>
+                        <label class="inline-check"><input type="checkbox" id="export-gexf-numeric-ids"/> Use numeric node IDs in GEXF</label>
                     </div>
                 </details>
             </div>
@@ -585,14 +651,15 @@
             <canvas id="rec-overlay"></canvas>
             <!-- Both renderers share this graph viewport. -->
             <div id="cosmograph-container" hidden></div>
+            <div id="geographic-container" hidden aria-label="Geographic network map"></div>
             <div id="node-legend" class="node-legend" hidden></div>
             <div id="empty-hint">Load an edge list to begin.</div>
             </div>
             <div id="network-timeline" hidden aria-label="Network timeline">
                 <div class="tl-bar">
-                    <button id="tl-step-back" title="Step to previous change">◀</button>
-                    <button id="tl-play" title="Play / pause">▶</button>
-                    <button id="tl-step-fwd" title="Step to next change">▶▶</button>
+                    <button id="tl-step-back" data-tooltip="ui-tl-step-back">◀</button>
+                    <button id="tl-play" data-tooltip="ui-tl-play">▶</button>
+                    <button id="tl-step-fwd" data-tooltip="ui-tl-step-fwd">▶▶</button>
                     <input type="range" id="tl-slider" min="0" max="0" value="0"/>
                 </div>
                 <label class="field">
@@ -627,18 +694,22 @@
                 <!-- Grouped by concern (create · file · table view), mirroring the diffusion toolbars. -->
                 <div class="toolbar">
                     <span class="tb-group">
-                        <button id="btn-node-add-toggle" title="Add a node">➕ Add node…</button>
-                        <button id="btn-node-col-toggle" title="Add an attribute column">🏷 Add column…</button>
+                        <button id="btn-node-add-toggle" data-tooltip="ui-btn-node-add-toggle">➕ Add node…</button>
+                        <button id="btn-node-col-toggle" data-tooltip="ui-btn-node-col-toggle">🏷 Add column…</button>
                     </span>
                     <span class="tb-sep"></span>
                     <span class="tb-group">
-                        <button id="btn-import-nodes-csv" title="Import nodes / attributes from a CSV file">⬆ Import CSV</button>
-                        <button id="btn-export-nodes" title="Export the nodes table as CSV">⬇ Export CSV</button>
+                        <button id="btn-import-nodes-csv" data-tooltip="ui-btn-import-nodes-csv">⬆ Import CSV</button>
+                        <button id="btn-export-nodes" data-tooltip="ui-btn-export-nodes">⬇ Export CSV</button>
                     </span>
                     <span class="tb-spacer"></span>
                     <span class="tb-group">
-                        <button id="btn-clear-nodes-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                        <button id="btn-clear-nodes-filters" data-tooltip="ui-btn-clear-nodes-filters">🔎 Clear filters</button>
                     </span>
+                </div>
+                <div class="attribute-import-options">
+                    <label class="field"><span>Attribute file separator</span><select id="node-attr-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
+                    <label class="inline-check"><input type="checkbox" id="node-attr-header" checked/> File includes header</label>
                 </div>
                 <div class="toolbar subrow" id="nodes-addrow" hidden>
                     <span class="addgroup" id="nodes-add-main" hidden>
@@ -668,18 +739,22 @@
                 <!-- Grouped by concern (create · file · table view), mirroring the diffusion toolbars. -->
                 <div class="toolbar">
                     <span class="tb-group">
-                        <button id="btn-edge-add-toggle" title="Add an edge">➕ Add edge…</button>
-                        <button id="btn-edge-col-toggle" title="Add an attribute column">🏷 Add column…</button>
+                        <button id="btn-edge-add-toggle" data-tooltip="ui-btn-edge-add-toggle">➕ Add edge…</button>
+                        <button id="btn-edge-col-toggle" data-tooltip="ui-btn-edge-col-toggle">🏷 Add column…</button>
                     </span>
                     <span class="tb-sep"></span>
                     <span class="tb-group">
-                        <button id="btn-import-edges-csv" title="Import edges / attributes from a CSV file">⬆ Import CSV</button>
-                        <button id="btn-export-edges" title="Export the edges table as CSV">⬇ Export CSV</button>
+                        <button id="btn-import-edges-csv" data-tooltip="ui-btn-import-edges-csv">⬆ Import CSV</button>
+                        <button id="btn-export-edges" data-tooltip="ui-btn-export-edges">⬇ Export CSV</button>
                     </span>
                     <span class="tb-spacer"></span>
                     <span class="tb-group">
-                        <button id="btn-clear-edges-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                        <button id="btn-clear-edges-filters" data-tooltip="ui-btn-clear-edges-filters">🔎 Clear filters</button>
                     </span>
+                </div>
+                <div class="attribute-import-options">
+                    <label class="field"><span>Attribute file separator</span><select id="edge-attr-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
+                    <label class="inline-check"><input type="checkbox" id="edge-attr-header" checked/> File includes header</label>
                 </div>
                 <div class="toolbar subrow" id="edges-addrow" hidden>
                     <span class="addgroup" id="edges-add-main" hidden>
@@ -739,6 +814,13 @@
                     <button class="chart-dl" data-canvas="node-chart" data-file="node-metric-distribution.png">⬇ Download PNG</button>
                 </div>
                 <div class="chart-area"><div id="node-chart" class="echarts-chart"></div></div>
+                <h2>Top-k nodes</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="node-topk-metric"></select></label>
+                    <label>k <input type="number" id="node-topk-k" min="1" step="1" value="10"/></label>
+                </div>
+                <p class="muted" id="node-topk-note" aria-live="polite"></p>
+                <div class="scroll-table"><table class="data" id="node-topk-table" aria-label="Top-k nodes by metric"></table></div>
                 <div class="rec-scatter-block" id="node-scatter-block" hidden>
                     <h2>Original vs recommendation</h2>
                     <div class="chart-controls">
@@ -869,9 +951,14 @@
                     <section class="block" id="rec-eval-config" hidden>
                         <h2>Evaluation</h2>
                         <label class="field">
-                            <span>Test set (tab-separated edge list)</span>
+                            <span>Test set (edge list)</span>
                             <input type="file" id="rec-test-file" accept=".txt,.tsv,.csv,.edges"/>
                         </label>
+                        <label class="field">
+                            <span>Field separator</span>
+                            <select id="rec-test-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select>
+                        </label>
+                        <label class="inline-check"><input type="checkbox" id="rec-test-header"/> First row contains headers</label>
                         <button id="btn-rec-test-upload">⬆ Upload test set</button>
                         <p class="muted" id="rec-test-status">No test set loaded.</p>
                         <label class="field">
@@ -910,11 +997,11 @@
                         <div class="rec-view active" id="rec-view-links">
                             <div class="toolbar">
                                 <span class="tb-group">
-                                    <button id="btn-rec-add-all" title="Add every recommended link listed below (honouring the column filters) to the graph" disabled>➕ Add all</button>
+                                    <button id="btn-rec-add-all" data-tooltip="ui-btn-rec-add-all" disabled>➕ Add all</button>
                                 </span>
                                 <span class="tb-spacer"></span>
                                 <span class="tb-group">
-                                    <button id="btn-clear-rec-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                                    <button id="btn-clear-rec-filters" data-tooltip="ui-btn-clear-rec-filters">🔎 Clear filters</button>
                                 </span>
                             </div>
                             <div class="scroll-table tall"><table id="rec-edges-table" class="data"></table></div>
@@ -926,7 +1013,7 @@
                             <div class="toolbar">
                                 <span class="tb-spacer"></span>
                                 <span class="tb-group">
-                                    <button id="btn-rec-eval-export" title="Export the evaluation table as CSV">⬇ Export CSV</button>
+                                    <button id="btn-rec-eval-export" data-tooltip="ui-btn-rec-eval-export">⬇ Export CSV</button>
                                 </span>
                             </div>
                             <p class="muted" id="rec-eval-empty">Upload a test set and press Evaluate to score the algorithms you have run.</p>
@@ -983,7 +1070,7 @@
                     <section class="block">
                         <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="diff-rec"/> Run on selected recommendation</label>
                         <label class="field"><span>Run label</span>
-                            <input type="text" id="diff-run-label" placeholder="auto (protocol / Custom X)" title="Optional name for this run in the metric plots; leave blank for an automatic label"/></label>
+                            <input type="text" id="diff-run-label" placeholder="auto (protocol / Custom X)" data-tooltip="ui-diff-run-label"/></label>
                         <button id="btn-diff-run" class="primary">Run simulation</button>
                         <button id="btn-diff-clear">Clear</button>
                         <p class="muted" id="diff-status">No simulation run yet.</p>
@@ -999,21 +1086,23 @@
                     </nav>
                     <div class="diff-views">
                         <div class="diff-view" id="diff-view-graph">
-                            <label class="diff-renderer-picker"><span>Renderer</span><select id="diff-renderer"><option value="sigma">Sigma</option><option value="cosmograph">Cosmograph</option></select></label>
+                            <label class="diff-renderer-picker"><span>Renderer</span><select id="diff-renderer"><option value="network" selected>Follow network renderer</option><option value="sigma">Sigma</option><option value="cosmograph">Cosmograph</option><option value="mercator">Geographic: Mercator</option><option value="equal-earth">Geographic: Equal Earth</option></select></label>
                             <div id="diff-sigma-container"></div>
                             <div id="diff-cosmograph-container" hidden></div>
+                            <div id="diff-geographic-container" hidden aria-label="Geographic diffusion map"></div>
+                            <div id="diff-geographic-export" hidden><label class="inline-check"><input id="diff-export-include-legend" type="checkbox" checked/> Include legend</label><button id="btn-diff-map-png">Export PNG</button><button id="btn-diff-map-svg">Export SVG</button></div>
                             <canvas id="diff-overlay"></canvas>
                             <div id="diff-legend" class="diff-legend" hidden></div>
                             <div id="diff-empty-hint">Configure and run a simulation to begin.</div>
                             <div class="diff-timebar" id="diff-timebar" hidden>
-                                <button id="diff-step-back" class="canvas-btn" title="Step back">◀</button>
-                                <button id="diff-play" class="canvas-btn" title="Play / pause">▶</button>
-                                <button id="diff-step-fwd" class="canvas-btn" title="Step forward">▶▶</button>
+                                <button id="diff-step-back" class="canvas-btn" data-tooltip="ui-diff-step-back">◀</button>
+                                <button id="diff-play" class="canvas-btn" data-tooltip="ui-diff-play">▶</button>
+                                <button id="diff-step-fwd" class="canvas-btn" data-tooltip="ui-diff-step-fwd">▶▶</button>
                                 <input type="range" id="diff-slider" min="0" max="0" value="0"/>
                                 <span id="diff-iter-label" class="pageinfo">iteration 0</span>
-                                <button id="btn-diff-gif" class="diff-dl-btn" title="Download the animation as a GIF">⬇ GIF</button>
-                                <button id="btn-diff-webm" class="diff-dl-btn" title="Download the animation as a WebM video">⬇ WebM</button>
-                                <select id="diff-webm-res" class="diff-res-sel" title="WebM resolution">
+                                <button id="btn-diff-gif" class="diff-dl-btn" data-tooltip="ui-btn-diff-gif">⬇ GIF</button>
+                                <button id="btn-diff-webm" class="diff-dl-btn" data-tooltip="ui-btn-diff-webm">⬇ WebM</button>
+                                <select id="diff-webm-res" class="diff-res-sel" data-tooltip="ui-diff-webm-res">
                                     <option value="1920">1920px</option>
                                     <option value="native">native</option>
                                 </select>
@@ -1156,37 +1245,47 @@
                                     <!-- One row, grouped by concern: create · file · columns · destructive, then table-view controls. -->
                                     <div class="toolbar">
                                         <span class="tb-group">
-                                            <button id="btn-diff-piece-add" title="Add an empty information piece">➕ Add</button>
-                                            <button id="btn-diff-gen-toggle" title="Generate pieces with the seeders">✨ Generate…</button>
+                                            <button id="btn-diff-piece-add" data-tooltip="ui-btn-diff-piece-add">➕ Add</button>
+                                            <button id="btn-diff-gen-toggle" data-tooltip="ui-btn-diff-gen-toggle">✨ Generate…</button>
                                         </span>
                                         <span class="tb-sep"></span>
                                         <span class="tb-group">
                                             <span class="menu-wrap">
-                                                <button id="btn-diff-upload-menu" title="Upload information pieces or their features">⬆ Upload ▾</button>
+                                                <button id="btn-diff-upload-menu" data-tooltip="ui-btn-diff-upload-menu">⬆ Upload ▾</button>
                                                 <ul class="menu" id="diff-upload-menu" hidden>
                                                     <li><button type="button" data-act="pieces">Information pieces…</button></li>
                                                     <li><button type="button" data-act="features">Piece features…</button></li>
                                                 </ul>
                                             </span>
-                                            <button id="btn-diff-piece-download" title="Download the information pieces as TSV">⬇ Download</button>
+                                            <button id="btn-diff-piece-download" data-tooltip="ui-btn-diff-piece-download">⬇ Download</button>
                                         </span>
                                         <span class="tb-sep"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-feature-add" title="Add a feature column to the table">🏷 Add feature column</button>
+                                            <button id="btn-diff-feature-add" data-tooltip="ui-btn-diff-feature-add">🏷 Add feature column</button>
                                         </span>
                                         <span class="tb-sep"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-piece-clear" title="Remove every information piece">🗑 Clear all</button>
+                                            <button id="btn-diff-piece-clear" data-tooltip="ui-btn-diff-piece-clear">🗑 Clear all</button>
                                         </span>
                                         <span class="tb-spacer"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-piece-clear-filters" title="Clear the table's column filters">🔎 Clear filters</button>
-                                            <label class="inline-check" title="When on, only the pieces passing the table filters are used in the simulation">
+                                            <button id="btn-diff-piece-clear-filters" data-tooltip="ui-btn-diff-piece-clear-filters">🔎 Clear filters</button>
+                                            <label class="inline-check" data-tooltip="markup-0028">
                                                 <input type="checkbox" id="diff-apply-filters"/> Apply filters</label>
                                         </span>
                                         <input type="file" id="diff-piece-file" accept=".csv,.tsv,.txt" hidden/>
                                         <input type="file" id="diff-feature-file" accept=".tsv,.txt,.csv" hidden/>
                                     </div>
+
+                                    <details class="diff-import-options">
+                                        <summary>Import format options</summary>
+                                        <div class="diff-import-option-row">
+                                            <label class="field"><span>Pieces separator</span><select id="diff-piece-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
+                                            <label class="inline-check"><input type="checkbox" id="diff-piece-header" checked/> File includes header</label>
+                                            <label class="field"><span>Piece features separator</span><select id="diff-feature-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
+                                            <label class="inline-check"><input type="checkbox" id="diff-feature-header" checked/> File includes header</label>
+                                        </div>
+                                    </details>
 
                                     <!-- Seeder-driven generation: how many pieces (count) × which users (selection) × when (timestamp). -->
                                     <div class="diff-gen" id="diff-gen" hidden>
@@ -1238,7 +1337,7 @@
                                     <p class="muted">Each piece is created by a node of the graph at a given timestamp. When at least one piece is
                                         defined here, it replaces the automatic seeding for the simulation. Each <b>feature</b> parameter is its own column
                                         (add one with <b>Add feature column</b>); a cell holds that parameter's <code>value:weight; …</code> (weight optional).
-                                        Upload/download of pieces is tab-separated. <b>Download</b> writes <code>id ⇥ creator ⇥ timestamp ⇥ features</code>, packing every feature into the last column as
+                                        <b>Upload</b> accepts tab, comma, or semicolon separators and an optional header (set in Import format options). <b>Download</b> writes tab-separated <code>id ⇥ creator ⇥ timestamp ⇥ features</code>, packing every feature into the last column as
                                         <code>param=value:weight; …</code>. <b>Upload</b> accepts that, and also one column per feature: give it a header such as
                                         <code>id ⇥ creator ⇥ timestamp ⇥ feat:topic ⇥ feat:lang</code> (the <code>feat:</code> prefix is optional) and each column holds that parameter's <code>value:weight; …</code>, just like the table's cells.
                                         <b>Upload ▾ → Piece features</b> loads a separate file of <code>infoId ⇥ featureId</code> lines (optional third column = weight); an <code>infoId ⇥ name</code> header names the
@@ -1250,29 +1349,36 @@
                                     <!-- Mirrors the pieces toolbar's grouping so the two modes stay consistent. -->
                                     <div class="toolbar">
                                         <span class="tb-group">
-                                            <button id="btn-diff-realprop-add" title="Add an empty real-propagation record">➕ Add record</button>
+                                            <button id="btn-diff-realprop-add" data-tooltip="ui-btn-diff-realprop-add">➕ Add record</button>
                                         </span>
                                         <span class="tb-sep"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-realprop-upload" title="Upload real-propagation records">⬆ Upload</button>
-                                            <button id="btn-diff-realprop-download" title="Download the records as TSV">⬇ Download</button>
+                                            <button id="btn-diff-realprop-upload" data-tooltip="ui-btn-diff-realprop-upload">⬆ Upload</button>
+                                            <button id="btn-diff-realprop-download" data-tooltip="ui-btn-diff-realprop-download">⬇ Download</button>
                                         </span>
                                         <span class="tb-sep"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-realprop-clear" title="Remove every real-propagation record">🗑 Clear all</button>
+                                            <button id="btn-diff-realprop-clear" data-tooltip="ui-btn-diff-realprop-clear">🗑 Clear all</button>
                                         </span>
                                         <span class="tb-spacer"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-realprop-clear-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                                            <button id="btn-diff-realprop-clear-filters" data-tooltip="ui-btn-diff-realprop-clear-filters">🔎 Clear filters</button>
                                         </span>
                                         <input type="file" id="diff-realprop-file" accept=".tsv,.txt,.csv" hidden/>
                                     </div>
+                                    <details class="diff-import-options">
+                                        <summary>Import format options</summary>
+                                        <div class="diff-import-option-row">
+                                            <label class="field"><span>Separator</span><select id="diff-realprop-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
+                                            <label class="inline-check"><input type="checkbox" id="diff-realprop-header" checked/> File includes header</label>
+                                        </div>
+                                    </details>
                                     <p class="muted" id="diff-realprop-summary"></p>
                                     <div class="scroll-table tall"><table id="diff-realprop-table" class="data"></table></div>
                                     <div class="pagination" id="diff-realprop-pager"></div>
                                     <p class="muted">Each record states that a <b>user</b> (a node of the graph) actually repropagated a <b>piece</b> at a
-                                        given <b>timestamp</b> in the real scenario — not necessarily a piece they own. Upload/download is tab-separated
-                                        (<code>user ⇥ piece ⇥ timestamp</code>; a <code>user …</code> header row is skipped). This is optional and only needed for
+                                        given <b>timestamp</b> in the real scenario — not necessarily a piece they own. Upload accepts tab, comma, or semicolon separators and an optional header (set in Import format options); download is tab-separated
+                                        (<code>user ⇥ piece ⇥ timestamp</code>). This is optional and only needed for
                                         real-propagation metrics (recall / precision / F1 vs. the ground truth). Records whose user isn't a node or whose piece isn't a defined piece are ignored at run time.</p>
                                 </div>
                             </div>
@@ -1287,7 +1393,7 @@
                             <input type="text" id="diff-node-input" placeholder="type or click a node"/></label>
                         <p class="muted" id="diff-state-hint">Click a node on the canvas.</p>
                         <label class="field" id="diff-feature-view-field" hidden><span>Feature</span>
-                            <select id="diff-feature-view" title="Feature shown on the piece chips and distribution bars"></select></label>
+                            <select id="diff-feature-view" data-tooltip="ui-diff-feature-view"></select></label>
                         <div id="diff-cats"></div>
                     </section>
                 </aside>
@@ -1333,6 +1439,13 @@
                     <option value="none">None (no emphasis)</option>
                 </select>
             </label>
+            <div id="select-path-color-controls" hidden>
+                <label class="inline-check" data-tooltip="path-enlarge-nodes"><input type="checkbox" id="path-enlarge-nodes"/> Enlarge path nodes</label>
+                <label class="field" id="path-node-scale-field" hidden><span>Node size multiplier</span><input type="number" id="path-node-scale" min="0.1" step="0.1" value="1.5"/></label>
+                <label class="field" data-tooltip="path-edge-scale"><span>Path edge thickness multiplier</span><input type="number" id="path-edge-scale" min="0.1" step="0.1" value="1"/></label>
+                <label class="field" data-tooltip="path-edge-highlight"><span>Path edge color</span><select id="path-edge-color-mode"><option value="default">Default</option><option value="single">Single color</option><option value="per-path">Color for each path</option></select></label>
+                <label class="field" id="path-edge-highlight-color-field" hidden><span>Highlight color</span><input type="color" id="path-edge-highlight-color" value="#ff9f43"/></label>
+            </div>
             <button id="btn-clear-selection">Clear selection</button>
             <label class="field" id="select-edge-attribute-field" hidden><span>Edge attribute</span><select id="select-edge-attribute"></select></label>
             <label class="field" id="select-partition-field" hidden>
@@ -1357,6 +1470,9 @@
 <script src="metric-charts.js"></script>
 <script src="diffusion-charts.js"></script>
 <script src="chart-settings.js"></script>
+<script src="geographic-map.js"></script>
+<script src="geographic-export.js"></script>
+<script src="equal-earth-map.js"></script>
 <script src="app.js"></script>
 <script type="module" src="cosmograph-spike.js"></script>
 <script type="module" src="sigma-edge-curve.js"></script>

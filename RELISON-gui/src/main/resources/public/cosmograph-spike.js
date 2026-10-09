@@ -5,6 +5,7 @@ let pointLabelSizes = [];
 let graphHasDirectedLinks = false;
 let forceLayoutRunning = false;
 let forceFitTimer = null;
+let nodeDragActive = false;
 let sourceGraph = null;
 let pointIds = [];
 let renderedPoints = new Map();
@@ -12,12 +13,118 @@ let renderedLinks = new Map();
 let timelineSync = Promise.resolve();
 let linkStyleColumnRevision = 0;
 let interactionCallbacks = {};
+let multiSelectedIds = new Set();
+let additiveRectSelection = false;
+let rectSelectionEnabled = false;
+let hoveredPointIndex = null;
+let groupDragState = null;
+let rectSelectionOverlayState = null;
+
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Shift" || event.key === "Control" || event.key === "Meta") additiveRectSelection = true;
+});
+document.addEventListener("keyup", (event) => {
+    if (event.key === "Shift" || event.key === "Control" || event.key === "Meta") additiveRectSelection = false;
+});
+let focusedNodeId = null;
+let focusedEdgeId = null;
+let pathForegroundTimer = null;
+let pathForegroundInFlight = false;
+
+function isForegroundPathLink(link, path = window.relisonCosmographPath) {
+    return Boolean(path && (path.edges.has(link.source + "|" + link.target) || path.edges.has(link.target + "|" + link.source)));
+}
+
+function stopPathForeground() {
+    if (pathForegroundTimer) clearInterval(pathForegroundTimer);
+    pathForegroundTimer = null;
+    document.getElementById("cosmograph-path-foreground")?.remove();
+}
+
+async function refreshPathForeground() {
+    if (!window.relisonCosmographPath && !multiSelectedIds.size) { stopPathForeground(); return; }
+    if (pathForegroundInFlight || !instance) return;
+    const container = document.getElementById("cosmograph-container");
+    const pane = document.getElementById("pane-network");
+    if (!container || container.hidden || (pane && !pane.classList.contains("active"))) return;
+    pathForegroundInFlight = true;
+    const activeInstance = instance, activePath = window.relisonCosmographPath;
+    const activeSelection = [...multiSelectedIds].sort().join("\u0000");
+    try {
+        const scene = await buildSvgScene({ foregroundOnly: Boolean(activePath) });
+        if (!scene || instance !== activeInstance || window.relisonCosmographPath !== activePath ||
+            [...multiSelectedIds].sort().join("\u0000") !== activeSelection) return;
+        let layer = document.getElementById("cosmograph-path-foreground");
+        if (!layer) {
+            layer = document.createElement("div");
+            layer.id = "cosmograph-path-foreground";
+            layer.setAttribute("aria-hidden", "true");
+            layer.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden";
+            container.appendChild(layer);
+        }
+        layer.innerHTML = scene.svg;
+    } catch (error) {
+        console.warn("Cosmograph path foreground could not update.", error);
+    } finally {
+        pathForegroundInFlight = false;
+    }
+}
+
+function syncPathForeground() {
+    if (!window.relisonCosmographPath && !multiSelectedIds.size) { stopPathForeground(); return; }
+    refreshPathForeground();
+    // Also follow force layouts and external position updates while selected.
+    if (!pathForegroundTimer) pathForegroundTimer = setInterval(refreshPathForeground, 50);
+}
+
+function installRectSelectionOverlay(container) {
+    if (!container || container.dataset.rectSelectionOverlayInstalled === "true") return;
+    container.dataset.rectSelectionOverlayInstalled = "true";
+    container.addEventListener("pointerdown", (event) => {
+        if (!rectSelectionEnabled || (event.pointerType === "mouse" && event.button !== 0)) return;
+        document.getElementById("cosmograph-area-selection")?.remove();
+        const bounds = container.getBoundingClientRect();
+        const startX = Math.max(bounds.left, Math.min(bounds.right, event.clientX));
+        const startY = Math.max(bounds.top, Math.min(bounds.bottom, event.clientY));
+        const overlay = document.createElement("div");
+        overlay.id = "cosmograph-area-selection";
+        overlay.className = "graph-area-selection";
+        overlay.style.cssText = "position:fixed;z-index:99999;left:" + startX + "px;top:" + startY + "px;width:0;height:0;border:2px solid var(--accent);background:rgba(79,157,255,.18)";
+        document.body.appendChild(overlay);
+        rectSelectionOverlayState = { pointerId: event.pointerId, container, overlay, bounds, startX, startY };
+
+        const update = (moveEvent) => {
+            const state = rectSelectionOverlayState;
+            if (!state || (state.pointerId != null && moveEvent.pointerId !== state.pointerId)) return;
+            const x = Math.max(state.bounds.left, Math.min(state.bounds.right, moveEvent.clientX));
+            const y = Math.max(state.bounds.top, Math.min(state.bounds.bottom, moveEvent.clientY));
+            state.overlay.style.left = Math.min(state.startX, x) + "px";
+            state.overlay.style.top = Math.min(state.startY, y) + "px";
+            state.overlay.style.width = Math.abs(x - state.startX) + "px";
+            state.overlay.style.height = Math.abs(y - state.startY) + "px";
+        };
+        const finish = (finishEvent) => {
+            const state = rectSelectionOverlayState;
+            if (!state || (state.pointerId != null && finishEvent.pointerId !== state.pointerId)) return;
+            update(finishEvent);
+            state.overlay.remove();
+            rectSelectionOverlayState = null;
+            document.removeEventListener("pointermove", update, true);
+            document.removeEventListener("pointerup", finish, true);
+            document.removeEventListener("pointercancel", finish, true);
+        };
+        document.addEventListener("pointermove", update, true);
+        document.addEventListener("pointerup", finish, true);
+        document.addEventListener("pointercancel", finish, true);
+    }, true);
+}
 
 function projectGraph(graph) {
     // RELISON supplies timeline visibility as sets of shared graph ids. Keeping
     // this filter at projection time updates only Cosmograph's active snapshot;
     // it never changes the underlying Graphology graph.
     const temporal = window.relisonCosmographTemporal || {};
+    const tableFocus = window.relisonCosmographTableFocus;
     const path = window.relisonCosmographPath;
     const pathSelection = path ? null : window.relisonCosmographPathSelection;
     const focus = path || pathSelection ? null : window.relisonCosmographFocus;
@@ -32,25 +139,27 @@ function projectGraph(graph) {
         (!focus?.only || isFocused(id)) && (!path?.only || isPathNode(id));
     const pathEdgeKey = (source, target) => String(source) + "|" + String(target);
     const isPathEdge = (source, target) => Boolean(path?.edges?.has(pathEdgeKey(source, target)) || path?.edges?.has(pathEdgeKey(target, source)));
+    const pathEdgeColor = (source, target) => path?.edgeColors?.get(pathEdgeKey(source, target)) || path?.edgeColors?.get(pathEdgeKey(target, source)) || path?.edgeColor;
     const isVisibleEdge = (id) => !temporal.edges || temporal.edges.has(String(id));
     const points = graph.nodes().filter(isVisibleNode).map((id) => {
         const attrs = graph.getNodeAttributes(id);
-        const dimmed = path
+        const dimmed = Boolean(tableFocus && !tableFocus.nodes.has(String(id))) || (path
             ? Boolean(!path.only && !isPathNode(id))
             : pathSelection
                 ? !isPathEndpoint(id)
-                : Boolean(focus && !focus.only && !isFocused(id));
+                : Boolean(focus && !focus.only && !isFocused(id)));
         const baseSize = Number.isFinite(attrs.size) ? attrs.size : 4;
         return {
             id: String(id),
             label: attrs.label == null ? String(id) : String(attrs.label),
-            color: dimmed ? ((path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : (attrs.color || "#4f9dff"),
-            size: baseSize,
+            color: dimmed ? ((tableFocus?.dimColor || path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : (attrs.color || "#4f9dff"),
+            size: baseSize * (isPathNode(id) ? (path.nodeSizeScale ?? 1) : 1),
             x: Number.isFinite(attrs.x) ? attrs.x : undefined,
             y: Number.isFinite(attrs.y) ? attrs.y : undefined,
         };
     });
-    pointLabelSizes = points.map((point) => point.size);
+    // Match Sigma's proportional-label sizing, which is based on radius.
+    pointLabelSizes = points.map((point) => point.size / 2);
     pointIds = points.map((point) => point.id);
 
     const links = graph.edges().filter((edge) => {
@@ -64,18 +173,18 @@ function projectGraph(graph) {
         const source = graph.source(edge), target = graph.target(edge);
         const pathLink = isPathEdge(source, target);
         const pathEndpointsLink = isPathEndpoint(source) && isPathEndpoint(target);
-        const dimmed = path
+        const dimmed = Boolean(tableFocus && !tableFocus.edges.has(String(edge))) || (path
             ? Boolean(!path.only && !pathLink)
             : pathSelection
                 ? !pathEndpointsLink
-                : Boolean(focus && !focus.only && (focus.matchingEdges ? !focus.matchingEdges.has(String(edge)) : (focus.edgeOnly ? String(edge) !== focus.edge : (!isFocused(source) || !isFocused(target)))));
+                : Boolean(focus && !focus.only && (focus.matchingEdges ? !focus.matchingEdges.has(String(edge)) : (focus.edgeOnly ? String(edge) !== focus.edge : (!isFocused(source) || !isFocused(target))))));
         return {
             id: String(edge),
             source: String(source),
             target: String(target),
-            color: dimmed ? ((path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : (attrs.color || "#888888"),
+            color: dimmed ? ((tableFocus?.dimColor || path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : (pathLink ? pathEdgeColor(source, target) || attrs.color || "#888888" : attrs.color || "#888888"),
             arrow: directed,
-            width: Number.isFinite(attrs.size) ? attrs.size : 1,
+            width: (Number.isFinite(attrs.size) ? attrs.size : 1) * (pathLink ? (path.edgeWidthScale ?? 1) : 1),
             // Base Graphology links are always continuous. Only the separate
             // transient recommendation projection may opt into dashes.
             style: 0,
@@ -96,7 +205,10 @@ function projectGraph(graph) {
         // uniform sizing, and the mean is the least surprising counterpart
         // when base links are scaled by a metric or attribute.
         const baseWidth = links.length
-            ? links.reduce((sum, link) => sum + (Number.isFinite(link.width) ? link.width : 1), 0) / links.length
+            ? links.reduce((sum, link) => {
+                const size = graph.getEdgeAttributes(link.id).size;
+                return sum + (Number.isFinite(size) ? size : 1);
+            }, 0) / links.length
             : 1;
         recommendation.edges.forEach((edge, index) => {
             const source = String(edge.source), target = String(edge.target);
@@ -104,17 +216,17 @@ function projectGraph(graph) {
             const pathLink = isPathEdge(source, target);
             if (path?.only && !pathLink) return;
             const pathEndpointsLink = isPathEndpoint(source) && isPathEndpoint(target);
-            const dimmed = path
+            const dimmed = Boolean(tableFocus && (tableFocus.edgeFiltered || !tableFocus.nodes.has(source) || !tableFocus.nodes.has(target))) || (path
                 ? Boolean(!path.only && !pathLink)
                 : pathSelection
                     ? !pathEndpointsLink
-                    : Boolean(focus && !focus.only && (!isFocused(edge.source) || !isFocused(edge.target)));
+                    : Boolean(focus && !focus.only && (!isFocused(edge.source) || !isFocused(edge.target))));
             links.push({
                 id: "__relison_recommendation__" + index,
                 source,
                 target,
-                color: dimmed ? ((path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : recommendation.color,
-                width: baseWidth,
+                color: dimmed ? ((tableFocus?.dimColor || path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : (pathLink ? pathEdgeColor(source, target) || recommendation.color : recommendation.color),
+                width: baseWidth * (pathLink ? (path.edgeWidthScale ?? 1) : 1),
                 style: recommendation.diff ? 1 : 0,
                 [styleColumn]: recommendation.diff ? 1 : 0,
                 arrow: directed,
@@ -216,7 +328,8 @@ function rememberSnapshot(snapshot) {
     renderedPoints = new Map(snapshot.points.map((point) => [point.id, point]));
     renderedLinks = new Map(snapshot.links.map((link) => [link.id, link]));
     pointIds = snapshot.points.map((point) => point.id);
-    pointLabelSizes = snapshot.points.map((point) => point.size);
+    pointLabelSizes = snapshot.points.map((point) => point.size / 2);
+    syncPathForeground();
 }
 
 // The data-preparation layer accepts linkStyleBy, but Cosmograph 2.5.1 can
@@ -230,6 +343,7 @@ function findGraphApi() {
 function applyPointSizes(snapshot) {
     const graphApi = findGraphApi();
     if (!graphApi) return;
+    // Shared RELISON node sizes are diameters; Cosmograph consumes diameters directly.
     graphApi.setPointSizes(Float32Array.from(snapshot.points, (point) => Number.isFinite(point.size) ? point.size : 4));
     graphApi.render?.();
 }
@@ -262,7 +376,9 @@ function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStage
     // point when RELISON's shared Node borders option is enabled.
     const borderOn = Boolean(document.getElementById("node-border-on")?.checked);
     const borderColor = document.getElementById("node-border-color")?.value || "#1b1c1f";
-    const outlinedPointIndices = borderOn ? pointIds.map((_, index) => index) : [];
+    const selectionRingColor = borderOn ? borderColor : (getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#ffcc66");
+    const outlineIds = new Set([...multiSelectedIds, ...(window.relisonMultiSelectedNodes || []).map(String)]);
+    const outlinedPointIndices = pointIds.flatMap((id, index) => borderOn || outlineIds.has(id) ? [index] : []);
     const rawFont = String(labels.nodeFont || "sans-serif");
     const font = /^[a-zA-Z0-9 _,-]+$/.test(rawFont) ? rawFont : "sans-serif";
     const baseSize = Number(labels.nodeSize) || 13;
@@ -273,13 +389,15 @@ function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStage
         return "font-family: " + font + "; font-size: " + size + "px; color: " + labelColor + ";";
     };
     const annotations = edgeLabelAnnotations(snapshot);
+    const focusedPointIndex = snapshot.points.findIndex((point) => point.id === focusedNodeId);
+    const focusedLinkIndex = snapshot.links.findIndex((link) => link.id === focusedEdgeId);
     return {
         points: prepared.points,
         links: prepared.links,
         ...prepared.cosmographConfig,
         pointColorStrategy: "direct",
         outlinedPointIndices,
-        outlinedPointRingColor: borderColor,
+        outlinedPointRingColor: selectionRingColor,
         // RELISON already maps its Size by / min / max controls to pixel sizes.
         pointSizeStrategy: "direct",
         linkColorStrategy: "direct",
@@ -311,21 +429,90 @@ function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStage
         showLabels: Boolean(labels.nodeShow),
         // Hover labels remain available even when persistent labels are hidden.
         showHoveredPointLabel: true,
-        showDynamicLabels: false,
+        // Keep labels tied to the visible viewport so zooming into a smaller
+        // area reveals more of its nodes instead of stopping at Cosmograph's
+        // default 30 dynamic labels. Top-label mode uses a separate fixed cap
+        // and would make that zoom-dependent behavior less useful here.
+        showTopLabels: false,
+        showDynamicLabels: true,
+        showDynamicLabelsLimit: 200,
         // White is Cosmograph's neutral default; the shared label-colour control overrides it.
         pointLabelColor: labelColor,
         pointLabelFontSize: baseSize,
         pointLabelClassName: labelStyle,
         annotations,
-        selectPointOnClick: "single",
-        selectLinkOnClick: "single",
+        // RELISON owns selection and dimming; native selection would retain a
+        // second, independent highlight after filters or panel selection change.
+        selectPointOnClick: false,
+        selectPointOnLabelClick: false,
+        selectLinkOnClick: false,
+        focusPointOnClick: false,
+        focusPointOnLabelClick: false,
+        onZoom: refreshPathForeground,
+        onResize: refreshPathForeground,
+        onDrag: refreshPathForeground,
+        focusedPointIndex: focusedPointIndex >= 0 ? focusedPointIndex : undefined,
+        focusedLinkIndex: focusedLinkIndex >= 0 ? focusedLinkIndex : undefined,
         onPointClick: (index, _position, event) => {
             const point = snapshot.points[index];
             if (point && onPointClick) onPointClick(point.id, event);
         },
+        onPointMouseOver: (index) => { hoveredPointIndex = Number.isInteger(index) ? index : null; },
+        onRectSelected: (selection, indices) => {
+            if (!selection || !window.relisonMultiSelectEnabled) return;
+            const selectedIndices = Array.isArray(indices) ? indices : (instance?.getSelectedPointIndices?.() || []);
+            if (interactionCallbacks.onRectSelected) interactionCallbacks.onRectSelected(selectedIndices, additiveRectSelection);
+            setTimeout(() => instance?.deactivateRectSelection?.(), 0);
+        },
+        onDragStart: (event) => {
+            nodeDragActive = true;
+            if (forceFitTimer) { clearTimeout(forceFitTimer); forceFitTimer = null; }
+            const subjectIndex = Number.isInteger(event?.subject) ? event.subject
+                : Number.isInteger(event?.subject?.index) ? event.subject.index : hoveredPointIndex;
+            if (!window.relisonMultiSelectEnabled || !instance || subjectIndex == null) return;
+            const anchorId = pointIds[subjectIndex];
+            if (anchorId == null) return;
+            // Only intercept the drag when the point is already part of a
+            // multi-selection. Updating app selection here can reconfigure
+            // Cosmograph in the middle of its native pointer gesture.
+            if (!multiSelectedIds.has(anchorId)) return;
+            const positions = instance.getPointPositions?.({ dimensions: 2 });
+            if (!positions || positions.length < pointIds.length * 2) return;
+            const ids = new Set(multiSelectedIds);
+            ids.add(anchorId);
+            const indices = [...ids].map((id) => pointIds.indexOf(id)).filter((index) => index >= 0);
+            if (indices.length < 2) return;
+            groupDragState = { anchorIndex: subjectIndex, startX: positions[subjectIndex * 2], startY: positions[subjectIndex * 2 + 1], positions: new Float32Array(positions), indices };
+        },
+        onDrag: () => {
+            if (!groupDragState || !instance) return;
+            const { anchorIndex, startX, startY, positions: startPositions, indices } = groupDragState;
+            const anchor = instance.getPointPositionByIndex?.(anchorIndex, { dimensions: 2 });
+            if (!anchor || !Number.isFinite(anchor[0]) || !Number.isFinite(anchor[1])) return;
+            const dx = anchor[0] - startX, dy = anchor[1] - startY;
+            const positions = new Float32Array(startPositions);
+            indices.forEach((index) => {
+                positions[index * 2] += dx;
+                positions[index * 2 + 1] += dy;
+            });
+            const graphApi = findGraphApi();
+            const target = graphApi && typeof graphApi.setPointPositions === "function" ? graphApi : instance;
+            if (typeof target.setPointPositions !== "function") return;
+            target.setPointPositions(positions, { dimensions: 2, dontRescale: true });
+            target.render?.();
+            refreshPathForeground();
+        },
         // Keep RELISON's shared Graphology positions (and exports) in sync with
         // the point positions chosen by the user in Cosmograph.
-        onDragEnd: () => savePointPositions(),
+        onDragEnd: () => {
+            groupDragState = null;
+            nodeDragActive = false;
+            // Cosmograph may wake its simulation after a native drag. Only an
+            // explicit force-layout action is allowed to leave it running.
+            if (!forceLayoutRunning) instance?.stop?.();
+            savePointPositions();
+            if (forceLayoutRunning) forceFitTimer = setTimeout(followForceLayoutCamera, 400);
+        },
         onLinkClick: (index, event) => {
             const link = snapshot.links[index];
             if (link && onLinkClick) onLinkClick(link.id, event);
@@ -337,11 +524,12 @@ function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStage
 }
 
 
-async function render(graph, { onPointClick, onLinkClick, onStageClick } = {}) {
+async function render(graph, { onPointClick, onLinkClick, onStageClick, onRectSelected, onDragStartNode } = {}) {
     const container = document.getElementById("cosmograph-container");
     if (!container || !graph) return;
-    if (onPointClick !== undefined || onLinkClick !== undefined || onStageClick !== undefined) {
-        interactionCallbacks = { onPointClick, onLinkClick, onStageClick };
+    installRectSelectionOverlay(container);
+    if (onPointClick !== undefined || onLinkClick !== undefined || onStageClick !== undefined || onRectSelected !== undefined || onDragStartNode !== undefined) {
+        interactionCallbacks = { onPointClick, onLinkClick, onStageClick, onRectSelected, onDragStartNode };
     }
     const preparedResult = await prepareGraph(graph);
     if (!preparedResult) throw new Error("Cosmograph could not prepare this graph.");
@@ -430,6 +618,7 @@ function syncTimeline(graph) {
 }
 function destroy() {
     if (forceFitTimer) { clearTimeout(forceFitTimer); forceFitTimer = null; }
+    nodeDragActive = false;
     stopEdgeLabelTracking();
     if (instance && typeof instance.stop === "function") instance.stop();
     if (instance && typeof instance.destroy === "function") instance.destroy();
@@ -474,7 +663,7 @@ async function startForceLayout() {
 // Reading positions at a modest rate avoids a GPU read-back on every frame.
 function followForceLayoutCamera() {
     forceFitTimer = null;
-    if (!forceLayoutRunning || !instance || instance.isSimulationRunning === false) return;
+    if (!forceLayoutRunning || !instance || instance.isSimulationRunning === false || nodeDragActive) return;
     const pane = document.getElementById("pane-network");
     if (!pane || pane.classList.contains("active")) {
         const positions = instance.getPointPositions?.({ dimensions: 2 });
@@ -513,19 +702,25 @@ function stopForceLayout() {
     if (instance && typeof instance.stop === "function") instance.stop();
     forceLayoutRunning = false;
     stopEdgeLabelTracking();
+    stopPathForeground();
     refreshEdgeLabels().catch((error) => console.warn("Cosmograph edge-label refresh failed.", error));
     return savePointPositions();
 }
 
-// Update only the GPU point-position buffer for an animation frame. Point order
-// is the active projected snapshot; links, styling, labels and configuration stay intact.
-function setNodePositions(positionsByNode) {
+// Update positions and their label overlays, retaining topology, styling and camera.
+// The pinned Cosmograph 2.5.1 build keeps DOM label coordinates in a separate cache.
+async function setNodePositions(positionsByNode) {
     if (!instance || !sourceGraph || typeof positionsByNode !== "object" || !positionsByNode) return false;
     const graphApi = findGraphApi();
     const target = graphApi && typeof graphApi.setPointPositions === "function"
         ? graphApi
         : instance && typeof instance.setPointPositions === "function" ? instance : null;
     if (!target) return false;
+    const renderer = instance;
+    const labels = renderer._labels;
+    // Fall back to the caller's render path if a future library build changes
+    // this position-only label API, rather than silently leaving stale labels.
+    if (typeof labels?.updatePositions !== "function") return false;
     const coordinates = new Float32Array(pointIds.length * 2);
     for (let index = 0; index < pointIds.length; index++) {
         const id = pointIds[index], point = positionsByNode[id];
@@ -533,9 +728,9 @@ function setNodePositions(positionsByNode) {
         coordinates[index * 2] = point.x;
         coordinates[index * 2 + 1] = point.y;
     }
-    // Cosmograph 2.5.x accepts dontRescale as the second argument. RELISON's
-    // coordinates are already in the active layout space, so retain its camera.
-    target.setPointPositions(coordinates, true);
+    // Cosmos accepts an options object. A boolean ignores dontRescale in the
+    // current bundled dependency and can put the nodes and labels in different spaces.
+    target.setPointPositions(coordinates, { dimensions: 2, dontRescale: true });
     for (const [id, point] of renderedPoints) {
         const position = positionsByNode[id];
         if (position) { point.x = position.x; point.y = position.y; }
@@ -543,6 +738,18 @@ function setNodePositions(positionsByNode) {
     // Draw through the same graph object that received the GPU position update.
     if (typeof target.render === "function") target.render();
     else if (typeof instance.render === "function") instance.render();
+    labels.updatePositions();
+    // Hover labels have their own cache in Cosmograph's event manager.
+    renderer._eventManager?._renderCurrentHoveredLabel?.();
+    if ((window.relisonCosmographLabelOpts || {}).edgeShow) {
+        const annotations = renderer._annotations;
+        if (typeof annotations?.setAnnotations === "function" && typeof annotations.updatePositions === "function") {
+            // Edge labels are positioned annotations, so update their midpoints
+            // from this frame without changing configuration or uploading graph data.
+            await annotations.setAnnotations(edgeLabelAnnotations(currentSnapshot(), coordinates));
+            if (instance === renderer) annotations.updatePositions();
+        } else await refreshEdgeLabels();
+    }
     return true;
 }
 
@@ -565,9 +772,10 @@ function savePointPositions() {
     return saved;
 }
 
-async function exportPng(filename = "network.png") {
+async function exportPng(filename = "network.png", { legend = null } = {}) {
     const scene = await buildSvgScene();
     if (!scene) return false;
+    scene.svg = window.relisonGeographicExport.withLegend(scene.svg, legend);
     const url = URL.createObjectURL(new Blob([scene.svg], { type: "image/svg+xml" }));
     try {
         const image = new Image();
@@ -623,7 +831,7 @@ function renderedRgba(colorBuffer, index, fallback) {
 // genuine SVG export (not a conversion of the WebGL canvas), so it stays crisp
 // when enlarged and includes the current camera position, projected links and
 // visible node/edge labels.
-async function buildSvgScene() {
+async function buildSvgScene({ foregroundOnly = false } = {}) {
     if (!instance || typeof instance.getCanvas !== "function" || typeof instance.spaceToScreenPosition !== "function") return false;
     const canvas = instance.getCanvas();
     const config = typeof instance.getConfig === "function" ? await instance.getConfig() : {};
@@ -644,18 +852,27 @@ async function buildSvgScene() {
 
     const pointScreen = new Map();
     snapshot.points.forEach((point, index) => {
+        if (foregroundOnly && !window.relisonCosmographPath?.nodes.has(point.id)) return;
         const position = instance.spaceToScreenPosition([positions[index * 2], positions[index * 2 + 1]]);
         if (!position || !Number.isFinite(position[0]) || !Number.isFinite(position[1])) return;
         const rawRadius = typeof instance.getPointRadiusByIndex === "function" ? instance.getPointRadiusByIndex(index) : point.size;
         const scaledRadius = rawRadius * (config.pointSizeScale ?? 1);
-        const radius = typeof instance.spaceToScreenRadius === "function" ? instance.spaceToScreenRadius(scaledRadius) : scaledRadius;
-        pointScreen.set(point.id, { x: position[0], y: position[1], radius: Number.isFinite(radius) ? radius : point.size,
+        // Despite the API name, Cosmograph 2.5.1 returns the full point sprite
+        // size (diameter), as used by its node shader and label positioning.
+        // Honour its zoom/clamping first, then halve it for an SVG circle's r.
+        const screenRadius = instance.getPointScreenRadiusByIndex?.(index);
+        const diameter = Number.isFinite(screenRadius) ? screenRadius
+            : config.scalePointsOnZoom && typeof instance.spaceToScreenRadius === "function"
+                ? instance.spaceToScreenRadius(scaledRadius) : scaledRadius;
+        const radius = (Number.isFinite(diameter) ? diameter : point.size) / 2;
+        pointScreen.set(point.id, { x: position[0], y: position[1], radius,
             color: renderedRgba(pointColors, index, point.color || "#4f9dff"), point, index });
     });
 
     const defs = '<filter id="label-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.5"/></filter>';
     const background = getComputedStyle(document.body).getPropertyValue("--canvas-bg").trim() || "#18191c";
     const linkMarkup = snapshot.links.map((link, index) => {
+        if (foregroundOnly && !isForegroundPathLink(link)) return "";
         const source = pointScreen.get(link.source), target = pointScreen.get(link.target);
         if (!source || !target) return "";
         const color = renderedRgba(linkColors, index, link.color || "#888888");
@@ -687,14 +904,29 @@ async function buildSvgScene() {
             : '<line x1="' + source.x + '" y1="' + source.y + '" x2="' + target.x + '" y2="' + target.y
                 + '" stroke="' + xmlEscape(color) + '" stroke-width="' + linkWidth + '"' + dash + '/>';
         return edgeShape + arrow;
-    }).join("");
-    const nodes = [...pointScreen.values()].map(({ x, y, radius, color }) =>
-        '<circle cx="' + x + '" cy="' + y + '" r="' + Math.max(0, radius) + '" fill="' + xmlEscape(color) + '"/>').join("");
+    });
+    const nodeMarkup = new Map([...pointScreen.values()].map(({ x, y, radius, color, point }) => {
+        const border = document.getElementById("node-border-on")?.checked
+            ? ' stroke="' + xmlEscape(document.getElementById("node-border-color")?.value || "#1b1c1f") + '" stroke-width="1"' : '';
+        return [point.id, '<circle cx="' + x + '" cy="' + y + '" r="' + Math.max(0, radius) + '" fill="' + xmlEscape(color) + '"' + border + '/>'];
+    }));
+    const path = window.relisonCosmographPath;
+    const backgroundLinks = linkMarkup.filter((_, index) => !isForegroundPathLink(snapshot.links[index], path)).join("");
+    const foregroundLinks = linkMarkup.filter((_, index) => isForegroundPathLink(snapshot.links[index], path)).join("");
+    const backgroundNodes = [...nodeMarkup].filter(([id]) => !path?.nodes.has(id)).map(([, markup]) => markup).join("");
+    const foregroundNodes = [...nodeMarkup].filter(([id]) => path?.nodes.has(id)).map(([, markup]) => markup).join("");
+    // The native outline configuration does not reliably repaint when only
+    // its indices change. Draw selection rings in a lightweight foreground
+    // SVG layer so click-selection is immediately visible and tracks motion.
+    const selectionRings = [...multiSelectedIds].map((id) => pointScreen.get(id)).filter(Boolean)
+        .map(({ x, y, radius }) => '<circle cx="' + x + '" cy="' + y + '" r="' + (Math.max(0, radius) + 3)
+            + '" fill="none" stroke="' + xmlEscape(getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#ffcc66")
+            + '" stroke-width="2" vector-effect="non-scaling-stroke"/>').join("");
     // Cosmograph uses DOM labels for nodes and annotations. Export those
     // visible boxes at their actual screen positions, preserving padding,
     // font weight, colour and rounded background instead of inventing labels.
     const canvasRect = canvas.getBoundingClientRect();
-    const labelMarkup = [...document.querySelectorAll('#cosmograph-container .css-label--label')].map((element) => {
+    const labelMarkup = foregroundOnly ? "" : [...document.querySelectorAll('#cosmograph-container .css-label--label')].map((element) => {
         const style = getComputedStyle(element);
         const rect = element.getBoundingClientRect();
         if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0 ||
@@ -714,26 +946,54 @@ async function buildSvgScene() {
             + '" font-family="' + xmlEscape(style.fontFamily) + '" font-size="' + fontSize + '" font-weight="' + xmlEscape(style.fontWeight)
             + '">' + xmlEscape(element.textContent || '') + '</text></g>';
     }).join('');
-    const svg = '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height
-        + '" viewBox="0 0 ' + width + ' ' + height + '"><defs>' + defs + '</defs><rect width="100%" height="100%" fill="' + xmlEscape(background) + '"/>'
-        + linkMarkup + nodes + labelMarkup + '</svg>';
+    const svg = (foregroundOnly ? "" : '<?xml version="1.0" encoding="UTF-8"?>\n') + '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height
+        + '" viewBox="0 0 ' + width + ' ' + height + '">' + (foregroundOnly ? "" : '<defs>' + defs + '</defs><rect width="100%" height="100%" fill="' + xmlEscape(background) + '"/>')
+        + (foregroundOnly ? "" : backgroundLinks + backgroundNodes) + foregroundLinks + foregroundNodes + selectionRings + labelMarkup + '</svg>';
     return { svg, width, height };
 }
 
-async function exportSvg(filename = "network.svg") {
+async function exportSvg(filename = "network.svg", { legend = null } = {}) {
     const scene = await buildSvgScene();
     if (!scene) return false;
-    downloadSvg(filename, scene.svg);
+    downloadSvg(filename, window.relisonGeographicExport.withLegend(scene.svg, legend));
     return true;
 }
 async function setFocusedSelection(nodeId, edgeId) {
+    focusedNodeId = nodeId == null ? null : String(nodeId);
+    focusedEdgeId = edgeId == null ? null : String(edgeId);
     if (!instance || typeof instance.setConfigPartial !== "function") return;
-    const pointIndex = nodeId == null ? undefined : pointIds.indexOf(String(nodeId));
-    const linkIndex = edgeId == null ? undefined : [...renderedLinks.keys()].indexOf(String(edgeId));
+    // Clear native selections made before RELISON took control of interaction.
+    if (typeof instance.unselectAll === "function") instance.unselectAll();
+    const pointIndex = focusedNodeId == null ? undefined : pointIds.indexOf(focusedNodeId);
+    const linkIndex = focusedEdgeId == null ? undefined : [...renderedLinks.keys()].indexOf(focusedEdgeId);
     await instance.setConfigPartial({
         focusedPointIndex: pointIndex >= 0 ? pointIndex : undefined,
         focusedLinkIndex: linkIndex >= 0 ? linkIndex : undefined,
     });
+}
+async function setMultiSelectedNodes(ids) {
+    multiSelectedIds = new Set((ids || []).map(String));
+    syncPathForeground();
+    if (!instance?.setConfigPartial) return;
+    const borderOn = Boolean(document.getElementById("node-border-on")?.checked);
+    const ringColor = borderOn ? (document.getElementById("node-border-color")?.value || "#1b1c1f")
+        : (getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#ffcc66");
+    await instance.setConfigPartial({
+        outlinedPointIndices: pointIds.flatMap((id, index) => borderOn || multiSelectedIds.has(id) ? [index] : []),
+        outlinedPointRingColor: ringColor,
+    });
+    instance.render?.();
+}
+function setRectSelectionEnabled(enabled) {
+    rectSelectionEnabled = Boolean(enabled && window.relisonMultiSelectEnabled && document.getElementById("drag-nodes")?.checked);
+    additiveRectSelection = false;
+    if (!rectSelectionEnabled) {
+        document.getElementById("cosmograph-area-selection")?.remove();
+        rectSelectionOverlayState = null;
+    }
+    if (!instance) return;
+    if (rectSelectionEnabled) instance.activateRectSelection?.();
+    else instance.deactivateRectSelection?.();
 }
 async function setDragEnabled(enabled) {
     if (!instance) return;
@@ -747,5 +1007,5 @@ async function setDragEnabled(enabled) {
         await instance.dataUploaded?.();
     }
 }
-window.relisonCosmograph = { render, syncTimeline, destroy, setNodePositions, isRendered: () => instance !== null, startForceLayout, stopForceLayout, savePointPositions, exportPng, exportSvg, zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8), fitView, setFocusedSelection, setDragEnabled, screenToSpacePosition: (position) => instance?.screenToSpacePosition?.(position) };
+window.relisonCosmograph = { render, syncTimeline, destroy, setNodePositions, isRendered: () => instance !== null, startForceLayout, stopForceLayout, savePointPositions, exportPng, exportSvg, zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8), fitView, setFocusedSelection, setDragEnabled, setMultiSelectedNodes, setRectSelectionEnabled, getPointId: (index) => pointIds[index], screenToSpacePosition: (position) => instance?.screenToSpacePosition?.(position) };
 window.dispatchEvent(new CustomEvent("relison-cosmograph-ready"));

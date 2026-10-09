@@ -104,6 +104,39 @@ public final class LayoutController
         String algorithm = String.valueOf(body.get("algorithm"));
         switch (algorithm)
         {
+            case "geographic":
+                Map<String,Double> latitudes=geographicValues(body,"latitudes",nodes);
+                Map<String,Double> longitudes=geographicValues(body,"longitudes",nodes);
+                if(flag(params,"removeOverlap") || flag(params,"packComponents"))
+                    throw new IllegalArgumentException("Geographic coordinates cannot use overlap removal or component packing.");
+                String projection=Objects.toString(params.get("projection"),"mercator");
+                if(!projection.equals("mercator") && !projection.equals("equal-earth"))
+                    throw new IllegalArgumentException("Unknown geographic projection: "+projection);
+                layout=new GeographicLayout<>(latitudes::get,longitudes::get,number(params,"centralLongitude",0),
+                    projection.equals("equal-earth")?GeographicLayout.Projection.EQUAL_EARTH:GeographicLayout.Projection.WEB_MERCATOR);
+                break;
+            case "stress-majorization":
+                layout = new StressMajorizationLayout<>(new StressMajorizationConfig(
+                    number(params,"edgeLength",50),number(params,"tolerance",1e-4),flag(params,"weighted")));
+                break;
+            case "kamada-kawai":
+                layout = new KamadaKawaiLayout<>(new KamadaKawaiConfig(number(params,"drawingSize",600),
+                    number(params,"springConstant",1),number(params,"tolerance",1e-4),flag(params,"weighted")));
+                break;
+            case "multilevel-force":
+                long levelIterations = integer(params,"levelIterations",100);
+                if (levelIterations < 1 || levelIterations > 5000)
+                    throw new IllegalArgumentException("levelIterations must be between 1 and 5000.");
+                layout = new MultilevelForceLayout<>(new MultilevelForceConfig(number(params,"initialScale",50),
+                    number(params,"theta",.8),number(params,"repulsion",.2),number(params,"cooling",.9),
+                    number(params,"tolerance",.001),(int)levelIterations,flag(params,"weighted")));
+                break;
+            case "community":
+                layout = new CommunityLayout<>(partitions(body.get("partitions")),
+                    communityChild(String.valueOf(params.containsKey("innerLayout") ? params.get("innerLayout") : "fruchterman-reingold"),false),
+                    communityChild(String.valueOf(params.containsKey("outerLayout") ? params.get("outerLayout") : "multilevel-force"),true),
+                    number(params,"communityGap",50));
+                break;
             case "fruchterman-reingold":
                 layout = new FruchtermanReingoldLayout<>(!params.containsKey("bounded") || flag(params,"bounded")
                     ? new FruchtermanReingoldConfig(number(params,"width",600),number(params,"height",600),
@@ -151,9 +184,9 @@ public final class LayoutController
                         throw new IllegalArgumentException("scores must contain exactly the graph nodes.");
                     Map<String, Double> scores = new HashMap<>();
                     for (String node : nodes) scores.put(node, finite(raw.get(node), "Score for " + node));
-                    layout = new ConcentricLayout<>(scores::get, number(params, "spacing", 50));
+                    layout = new ConcentricLayout<>(scores::get, number(params, "spacing", 50), flag(params,"reverse"));
                 }
-                else layout = new ConcentricLayout<>(graph::degree, number(params, "spacing", 50));
+                else layout = new ConcentricLayout<>(graph::degree, number(params, "spacing", 50), flag(params,"reverse"));
                 break;
             case "radial":
                 layout = new RadialLayout<>(root(params),
@@ -171,6 +204,9 @@ public final class LayoutController
                 break;
             case "tree":
                 layout = new TreeLayout<>(root(params), number(params, "spacing", 50), number(params, "levelSpacing", 75));
+                break;
+            case "sugiyama":
+                layout = new SugiyamaLayout<>(number(params, "spacing", 50), number(params, "levelSpacing", 75), sweeps(params));
                 break;
             case "bipartite":
                 if (body.containsKey("partitions"))
@@ -203,10 +239,33 @@ public final class LayoutController
         Map<String, Object> coordinates = new LinkedHashMap<>();
         result.getPositions().forEach((node, point) -> coordinates.put(node, Map.of("x", point.v1(), "y", point.v2())));
         Bounds2D bounds = result.getBounds();
+        List<Map<String, Object>> routes = new ArrayList<>();
+        for (EdgeRoute<String> route : result.getEdgeRoutes())
+            routes.add(Map.of("source", route.getSource(), "target", route.getTarget(), "occurrence", route.getOccurrence(),
+                "points", route.getPoints().stream().map(p -> Map.of("x", p.v1(), "y", p.v2())).collect(Collectors.toList())));
         return Map.of("algorithm", result.getDiagnostics().getAlgorithmId(), "positions", coordinates,
+            "edgeRoutes", routes,
             "bounds", Map.of("minX", bounds.getMinX(), "minY", bounds.getMinY(), "maxX", bounds.getMaxX(), "maxY", bounds.getMaxY()),
             "termination", result.getDiagnostics().getTermination().name(),
             "iterations", result.getDiagnostics().getIterations(), "maximumDisplacement", result.getDiagnostics().getMaximumDisplacement());
+    }
+
+    private static <U> Layout<U> communityChild(String algorithm, boolean quotient) {
+        switch (algorithm) {
+            case "fruchterman-reingold": return new FruchtermanReingoldLayout<>();
+            case "stress-majorization": return new StressMajorizationLayout<>();
+            case "kamada-kawai": return new KamadaKawaiLayout<>();
+            case "multilevel-force": return new MultilevelForceLayout<>(new MultilevelForceConfig(50,.8,.2,.9,.001,100,quotient));
+            default: throw new IllegalArgumentException("Unknown community child layout: " + algorithm);
+        }
+    }
+
+    private static Map<String,Double> geographicValues(Map<?,?> body,String key,List<String> nodes) {
+        Map<?,?> raw=object(body.get(key),key);
+        if(!raw.keySet().equals(new HashSet<>(nodes))) throw new IllegalArgumentException(key + " must contain exactly the graph nodes.");
+        Map<String,Double> values=new LinkedHashMap<>();
+        for(String node:nodes) values.put(node,finite(raw.get(node),key + " for " + node));
+        return values;
     }
 
     private static boolean flag(Map<?, ?> params, String name) {

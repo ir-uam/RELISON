@@ -67,6 +67,7 @@ async function create(graph, container, onPointClick) {
     let activeLinkColors = links.map((link) => link.color);
     let activeLinkStyles = links.map((link) => link.style);
     let pointSizes = points.map((point) => point.size);
+    let pointCoordinates = Float32Array.from(points.flatMap((point) => [point.x || 0, point.y || 0]));
     let activeLinkWidths = links.map((link) => link.width);
     const sourceToIndex = new Map();
     links.forEach((link, index) => sourceToIndex.set(pairId(link.source, link.target), index));
@@ -79,20 +80,26 @@ async function create(graph, container, onPointClick) {
             graphApi.setPointSizes?.(Float32Array.from(pointSizes));
             graphApi.setLinkWidths?.(Float32Array.from(activeLinkWidths));
             graphApi.setLinkStyles?.(Float32Array.from(activeLinkStyles));
-            graphApi.render?.();
+            const positionTarget = typeof graphApi.setPointPositions === "function" ? graphApi
+                : typeof instance.setPointPositions === "function" ? instance : null;
+            if (positionTarget) {
+                positionTarget.setPointPositions(pointCoordinates, { dimensions: 2, dontRescale: true });
+                if (typeof positionTarget.render === "function") positionTarget.render();
+                else instance.render?.();
+            } else graphApi.render?.();
             return;
         }
 
         // Cosmograph 2.5.1 exposes color/size getters on the wrapper but not the
         // underlying Graph setters. Reconfigure the same instance as a fallback,
         // carrying its current coordinates and camera forward between frames.
-        const positions = instance.getPointPositions?.();
         const camera = instance.getCameraState?.();
         const framePoints = points.map((point, index) => ({
             ...point,
             color: pointColorsByNode.get(point.id),
             size: pointSizes[index],
-            ...(positions && positions.length >= (index + 1) * 2 ? { x: positions[index * 2], y: positions[index * 2 + 1] } : {}),
+            x: pointCoordinates[index * 2],
+            y: pointCoordinates[index * 2 + 1],
         }));
         const frameLinks = links.map((link, index) => ({
             ...link,
@@ -143,10 +150,19 @@ async function create(graph, container, onPointClick) {
             await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         },
         syncAppearance(updatedGraph) {
-            pointSizes = updatedGraph.nodes().map((node) => Number(updatedGraph.getNodeAttribute(node, "size")) || 4);
+            pointSizes = points.map((point) => Number(updatedGraph.getNodeAttribute(point.id, "size")) || 4);
+            pointCoordinates = new Float32Array(points.length * 2);
+            points.forEach((point, index) => {
+                const x = updatedGraph.getNodeAttribute(point.id, "x");
+                const y = updatedGraph.getNodeAttribute(point.id, "y");
+                if (Number.isFinite(x)) point.x = x;
+                if (Number.isFinite(y)) point.y = y;
+                pointCoordinates[index * 2] = Number.isFinite(point.x) ? point.x : 0;
+                pointCoordinates[index * 2 + 1] = Number.isFinite(point.y) ? point.y : 0;
+            });
             activeLinkWidths = links.map((link) => link.recommendation ? link.width :
                 Number(updatedGraph.getEdgeAttribute(link.id, "size")) || 1);
-            applyFrameData();
+            return applyFrameData();
         },
         resize() {
             instance.resize?.();

@@ -57,7 +57,7 @@ public class AttributeController
         {
             // Determine whether the client requested to add missing nodes.
             boolean addMissing = Boolean.parseBoolean(ctx.formParam("addMissing"));
-            boolean ok = new NodeAttributeReader<>("\t", Parsers.sp, addMissing).read(session.getGraph(), in);
+            boolean ok = new NodeAttributeReader<>(GraphController.delimiterParam(ctx), Parsers.sp, addMissing, GraphController.boolParam(ctx, "header", true)).read(session.getGraph(), in);
             if (!ok)
             {
                 ctx.status(400).json(Map.of("error", "Could not parse the node attribute file."));
@@ -90,7 +90,7 @@ public class AttributeController
         {
             // Determine whether the client requested to add missing edges.
             boolean addMissing = Boolean.parseBoolean(ctx.formParam("addMissing"));
-            boolean ok = new EdgeAttributeReader<>("\t", Parsers.sp, addMissing).read(session.getGraph(), in);
+            boolean ok = new EdgeAttributeReader<>(GraphController.delimiterParam(ctx), Parsers.sp, addMissing, GraphController.boolParam(ctx, "header", true)).read(session.getGraph(), in);
             if (!ok)
             {
                 ctx.status(400).json(Map.of("error", "Could not parse the edge attribute file."));

@@ -14,7 +14,7 @@ import java.util.*;
  * A component containing any pinned node is anchored in its entirety. Movable
  * components are packed to the right of all anchors. Overlapping anchored boxes,
  * including the requested gap, are rejected as an unsatisfiable constraint.
- * Bounds describe node centres, not glyph sizes. Empty/single-component layouts
+ * Bounds include edge route bends and node centres, not glyph sizes. Empty/single-component layouts
  * are unchanged. Use through LayoutPipeline or the graph-aware process overload.
  * @param <U> node type
  */
@@ -49,6 +49,9 @@ public final class ComponentPacking<U> implements LayoutPostProcessor<U>
         List<int[]> components = Topology.components(snapshot);
         if (components.size() < 2) return result;
         List<Box<U>> movable = new ArrayList<>(), anchored = new ArrayList<>();
+        Map<U, List<Pair<Double>>> routePoints = new HashMap<>();
+        for (EdgeRoute<U> route : result.getEdgeRoutes())
+            routePoints.computeIfAbsent(route.getSource(), k -> new ArrayList<>()).addAll(route.getPoints());
         for (int[] component : components)
         {
             List<U> nodes = new ArrayList<>();
@@ -59,6 +62,7 @@ public final class ComponentPacking<U> implements LayoutPostProcessor<U>
                 U node = snapshot.getNodes().get(index);
                 nodes.add(node);
                 points.add(result.getPositions().get(node));
+                points.addAll(routePoints.getOrDefault(node, Collections.emptyList()));
                 pinned |= request.getPinnedNodes().contains(node);
             }
             Box<U> box = new Box<>(nodes, Bounds2D.of(points), gap);
@@ -95,7 +99,21 @@ public final class ComponentPacking<U> implements LayoutPostProcessor<U>
             x += box.width;
             shelfHeight = Math.max(shelfHeight, box.height);
         }
-        return new LayoutResult<>(positions, result.getDiagnostics());
+        List<EdgeRoute<U>> routes = new ArrayList<>();
+        for (EdgeRoute<U> route : result.getEdgeRoutes())
+        {
+            Pair<Double> before = result.getPositions().get(route.getSource()), after = positions.get(route.getSource());
+            List<Pair<Double>> points = new ArrayList<>();
+            points.add(after);
+            for (int i = 1; i < route.getPoints().size()-1; i++)
+            {
+                Pair<Double> p = route.getPoints().get(i);
+                points.add(new Pair<>(p.v1()+after.v1()-before.v1(), p.v2()+after.v2()-before.v2()));
+            }
+            points.add(positions.get(route.getTarget()));
+            routes.add(new EdgeRoute<>(route.getSource(), route.getTarget(), route.getOccurrence(), points));
+        }
+        return new LayoutResult<>(positions, result.getDiagnostics(), routes);
     }
 
     private boolean overlap(Bounds2D first, Bounds2D second)

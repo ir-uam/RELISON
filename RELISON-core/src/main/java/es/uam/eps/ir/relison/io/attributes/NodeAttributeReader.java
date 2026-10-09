@@ -11,6 +11,7 @@ package es.uam.eps.ir.relison.io.attributes;
 
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.attributes.AttributeType;
+import es.uam.eps.ir.relison.io.DelimitedRow;
 import org.ranksys.formats.parsing.Parser;
 
 import java.io.BufferedReader;
@@ -44,6 +45,8 @@ public class NodeAttributeReader<V>
     private final Parser<V> uParser;
     /** Whether to automatically add nodes that are not present in the graph. */
     private final boolean addNodes;
+    /** Whether the first row declares attribute names and types. */
+    private final boolean header;
 
     /**
      * Constructor.
@@ -69,9 +72,16 @@ public class NodeAttributeReader<V>
      */
     public NodeAttributeReader(String delimiter, Parser<V> uParser, boolean addNodes)
     {
+        this(delimiter, uParser, addNodes, true);
+    }
+
+    /** Constructor allowing the caller to select whether the first row declares the schema. */
+    public NodeAttributeReader(String delimiter, Parser<V> uParser, boolean addNodes, boolean header)
+    {
         this.delimiter = delimiter;
         this.uParser = uParser;
         this.addNodes = addNodes;
+        this.header = header;
     }
 
     /**
@@ -100,12 +110,19 @@ public class NodeAttributeReader<V>
      */
     public boolean read(Graph<V> graph, InputStream stream)
     {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(stream)))
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, java.nio.charset.StandardCharsets.UTF_8)))
         {
-            String header = br.readLine();
-            if (header == null) return false;
+            String first = br.readLine();
+            if (first == null) return false;
 
-            String[] cols = header.split(delimiter, -1);
+            String[] cols = DelimitedRow.parse(first, delimiter);
+            String firstData = null;
+            if (!header)
+            {
+                firstData = first;
+                cols[0] = "id";
+                for (int i = 1; i < cols.length; i++) cols[i] = "attribute" + i + ":string";
+            }
             int numAttr = cols.length - 1;
             String[] names = new String[numAttr];
             AttributeType[] types = new AttributeType[numAttr];
@@ -118,11 +135,11 @@ public class NodeAttributeReader<V>
                 graph.defineNodeAttribute(names[j], types[j]);
             }
 
-            String line;
-            while ((line = br.readLine()) != null)
+            String line = firstData == null ? br.readLine() : firstData;
+            while (line != null)
             {
-                if (line.isEmpty()) continue;
-                String[] splits = line.split(delimiter, -1);
+                if (line.isEmpty()) { line = br.readLine(); continue; }
+                String[] splits = DelimitedRow.parse(line, delimiter);
                 V node = uParser.parse(splits[0]);
                 if (!graph.containsVertex(node)) 
                 {
@@ -130,10 +147,11 @@ public class NodeAttributeReader<V>
                     {
                         // Attempt to add the node; if addition fails, skip this line.
                         boolean added = graph.addNode(node);
-                        if (!added) continue; // could not add (e.g., null or duplicate), skip attributes.
+                        if (!added) { line = br.readLine(); continue; } // could not add (e.g., null or duplicate).
                     } else 
                     {
-                        continue; // skip rows for non‑existing nodes when addNodes is false
+                        line = br.readLine();
+                        continue; // skip rows for non-existing nodes when addNodes is false
                     }
                 }
                 for (int j = 0; j < numAttr; ++j)
@@ -143,6 +161,7 @@ public class NodeAttributeReader<V>
                     Object value = types[j].parse(splits[col]);
                     if (value != null) graph.setNodeAttribute(node, names[j], value);
                 }
+                line = br.readLine();
             }
             return true;
         }

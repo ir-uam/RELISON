@@ -12,6 +12,7 @@ package es.uam.eps.ir.relison.io.attributes;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.attributes.AttributeType;
 import es.uam.eps.ir.relison.graph.multigraph.MultiGraph;
+import es.uam.eps.ir.relison.io.DelimitedRow;
 import org.ranksys.formats.parsing.Parser;
 
 import java.io.BufferedReader;
@@ -46,6 +47,8 @@ public class EdgeAttributeReader<V>
     private final Parser<V> uParser;
     /** Whether to automatically add edges that are not present in the graph. */
     private final boolean addEdges;
+    /** Whether the first row declares attribute names and types. */
+    private final boolean header;
 
     /**
      * Constructor.
@@ -70,9 +73,16 @@ public class EdgeAttributeReader<V>
      */
     public EdgeAttributeReader(String delimiter, Parser<V> uParser, boolean addEdges)
     {
+        this(delimiter, uParser, addEdges, true);
+    }
+
+    /** Constructor allowing the caller to select whether the first row declares the schema. */
+    public EdgeAttributeReader(String delimiter, Parser<V> uParser, boolean addEdges, boolean header)
+    {
         this.delimiter = delimiter;
         this.uParser = uParser;
         this.addEdges = addEdges;
+        this.header = header;
     }
 
     /**
@@ -101,12 +111,21 @@ public class EdgeAttributeReader<V>
      */
     public boolean read(Graph<V> graph, InputStream stream)
     {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(stream)))
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, java.nio.charset.StandardCharsets.UTF_8)))
         {
-            String header = br.readLine();
-            if (header == null) return false;
+            String first = br.readLine();
+            if (first == null) return false;
 
-            String[] cols = header.split(delimiter, -1);
+            String[] cols = DelimitedRow.parse(first, delimiter);
+            String firstData = null;
+            if (!header)
+            {
+                firstData = first;
+                if (cols.length < 2) return false;
+                cols[0] = "source";
+                cols[1] = "target";
+                for (int i = 2; i < cols.length; i++) cols[i] = "attribute" + (i - 1) + ":string";
+            }
             int numAttr = cols.length - 2;
             if (numAttr < 0) return false;
             String[] names = new String[numAttr];
@@ -124,12 +143,12 @@ public class EdgeAttributeReader<V>
             boolean multi = graph instanceof MultiGraph;
             Map<String, Integer> occurrences = multi ? new HashMap<>() : null;
 
-            String line;
-            while ((line = br.readLine()) != null)
+            String line = firstData == null ? br.readLine() : firstData;
+            while (line != null)
             {
-                if (line.isEmpty()) continue;
-                String[] splits = line.split(delimiter, -1);
-                if (splits.length < 2) continue;
+                if (line.isEmpty()) { line = br.readLine(); continue; }
+                String[] splits = DelimitedRow.parse(line, delimiter);
+                if (splits.length < 2) { line = br.readLine(); continue; }
                 V source = uParser.parse(splits[0]);
                 V target = uParser.parse(splits[1]);
 
@@ -138,12 +157,13 @@ public class EdgeAttributeReader<V>
                     if (addEdges) {
                         // Try to add the edge (nodes will be added if needed by the graph implementation).
                         boolean added = graph.addEdge(source, target);
-                        if (!added) continue; // could not add edge, skip this line
+                        if (!added) { line = br.readLine(); continue; } // could not add edge
                         addedNow = true;
                         // Initialise occurrence count for multigraphs so that the current line is treated as the first edge.
                         if (multi) occurrences.put(splits[0] + "\t" + splits[1], 1);
                     } else {
-                        continue; // skip rows for non‑existing edges when addEdges is false
+                        line = br.readLine();
+                        continue; // skip rows for non-existing edges when addEdges is false
                     }
                 }
 
@@ -164,6 +184,7 @@ public class EdgeAttributeReader<V>
                     if (multi) ((MultiGraph<V>) graph).setEdgeAttribute(source, target, edgeIdx, names[j], value);
                     else graph.setEdgeAttribute(source, target, names[j], value);
                 }
+                line = br.readLine();
             }
             return true;
         }

@@ -43,7 +43,7 @@ public final class OverlapRemoval<U> implements LayoutPostProcessor<U> {
             boolean moved=false;
             for(int i=0;i<n;i++) for(int j=i+1;j<n;j++) {
                 if(Thread.currentThread().isInterrupted()||request.getCancellation().getAsBoolean())
-                    return output(nodes,x,y,new LayoutDiagnostics(result.getDiagnostics().getAlgorithmId(),
+                    return output(result,nodes,x,y,new LayoutDiagnostics(result.getDiagnostics().getAlgorithmId(),
                         LayoutDiagnostics.Termination.CANCELLED,result.getDiagnostics().getIterations(),result.getDiagnostics().getMaximumDisplacement()));
                 double vx=x[j]-x[i],vy=y[j]-y[i],distance=Math.hypot(vx,vy),required=r[i]+r[j]+gap;
                 if(!Double.isFinite(required)) throw new IllegalArgumentException("Node-size sum overflow");
@@ -58,16 +58,25 @@ public final class OverlapRemoval<U> implements LayoutPostProcessor<U> {
                 x[i]-=vx*push*a; y[i]-=vy*push*a; x[j]+=vx*push*c; y[j]+=vy*push*c;
                 moved=true;
             }
-            if(!moved) return output(nodes,x,y,result.getDiagnostics());
+            if(!moved) return output(result,nodes,x,y,result.getDiagnostics());
         }
         for(int i=0;i<n;i++) for(int j=i+1;j<n;j++)
             if(Math.hypot(x[j]-x[i],y[j]-y[i])+1e-8<r[i]+r[j]+gap)
                 throw new IllegalArgumentException("Overlap removal reached its pass limit with unresolved collisions");
-        return output(nodes,x,y,result.getDiagnostics());
+        return output(result,nodes,x,y,result.getDiagnostics());
     }
-    private LayoutResult<U> output(List<U> nodes,double[] x,double[] y,LayoutDiagnostics diagnostics) {
+    private LayoutResult<U> output(LayoutResult<U> input,List<U> nodes,double[] x,double[] y,LayoutDiagnostics diagnostics) {
         Map<U,Pair<Double>> positions=new LinkedHashMap<>();
         for(int i=0;i<nodes.size();i++) positions.put(nodes.get(i),new Pair<>(x[i],y[i]));
-        return new LayoutResult<>(positions,diagnostics);
+        // Keep bends in place while reconnecting the moved node centres. This
+        // processor separates glyphs; it does not repeat crossing reduction.
+        List<EdgeRoute<U>> routes = new ArrayList<>();
+        for (EdgeRoute<U> route : input.getEdgeRoutes()) {
+            List<Pair<Double>> points = new ArrayList<>(route.getPoints());
+            points.set(0, positions.get(route.getSource()));
+            points.set(points.size()-1, positions.get(route.getTarget()));
+            routes.add(new EdgeRoute<>(route.getSource(), route.getTarget(), route.getOccurrence(), points));
+        }
+        return new LayoutResult<>(positions,diagnostics,routes);
     }
 }

@@ -65,7 +65,7 @@ public final class GraphSerializer
         List<String> edgeAttrNames = new ArrayList<>();
         graph.getEdgeAttributeNames().forEach(edgeAttrNames::add);
 
-        // Nodes: lay them out on a circle as an initial position; the client force layout refines this.
+        // Preserve imported GEXF positions and sizes, falling back to a circle and default size.
         List<Map<String, Object>> nodes = new ArrayList<>();
         List<String> nodeList = new ArrayList<>();
         graph.getAllNodes().forEach(nodeList::add);
@@ -79,6 +79,15 @@ public final class GraphSerializer
             attributes.put("x", Math.cos(angle) * 100.0);
             attributes.put("y", Math.sin(angle) * 100.0);
             attributes.put("size", 4);
+            Object x = graph.getNodeAttribute(node, "viz:x");
+            Object y = graph.getNodeAttribute(node, "viz:y");
+            if (finiteNumber(x) && finiteNumber(y))
+            {
+                attributes.put("x", x);
+                attributes.put("y", y);
+            }
+            Object size = graph.getNodeAttribute(node, "viz:size");
+            if (finiteNumber(size) && ((Number) size).doubleValue() >= 0) attributes.put("size", size);
             // User-defined attributes are nested under "attrs" so they cannot clash with sigma's reserved keys.
             attributes.put("attrs", nodeAttrValues(graph, node, nodeAttrNames));
 
@@ -148,6 +157,11 @@ public final class GraphSerializer
         result.put("edges", edges);
 
         return result;
+    }
+
+    private static boolean finiteNumber(Object value)
+    {
+        return value instanceof Number && Double.isFinite(((Number) value).doubleValue());
     }
 
     /**

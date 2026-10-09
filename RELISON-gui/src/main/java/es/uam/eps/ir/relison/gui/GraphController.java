@@ -75,19 +75,22 @@ public class GraphController
         String format = ctx.formParam("format");
         if (format == null || format.isBlank()) format = formatFromName(file.filename());
 
-        GraphReader<String> reader = switch (format)
-        {
-            case "pajek" -> new PajekGraphReader<>(multigraph, directed, weighted, selfloops, Parsers.sp);
-            case "gexf" -> new GexfGraphReader<>(multigraph, directed, weighted, selfloops, Parsers.sp);
-            default -> multigraph
-                    ? new TextMultiGraphReader<>(directed, weighted, selfloops, "\t", Parsers.sp)
-                    : new TextGraphReader<>(directed, weighted, selfloops, "\t", Parsers.sp);
-        };
-
         Graph<String> graph;
-        try (InputStream in = file.content())
+        try
         {
-            graph = reader.read(in, weighted, false);
+            GraphReader<String> reader = switch (format)
+            {
+                case "pajek" -> new PajekGraphReader<>(multigraph, directed, weighted, selfloops, Parsers.sp);
+                case "gexf" -> new GexfGraphReader<>(multigraph, directed, weighted, selfloops, Parsers.sp,
+                        boolParam(ctx, "labelsAsIds", false));
+                default -> multigraph
+                        ? new TextMultiGraphReader<>(directed, weighted, selfloops, delimiterParam(ctx), boolParam(ctx, "header", false), Parsers.sp)
+                        : new TextGraphReader<>(directed, weighted, selfloops, delimiterParam(ctx), boolParam(ctx, "header", false), Parsers.sp);
+            };
+            try (InputStream in = file.content())
+            {
+                graph = reader.read(in, weighted, false);
+            }
         }
         catch (Exception e)
         {
@@ -102,7 +105,7 @@ public class GraphController
         }
 
         String id = store.newId();
-        GraphSession session = new GraphSession(id, graph, directed, weighted, multigraph, selfloops);
+        GraphSession session = new GraphSession(id, graph, graph.isDirected(), weighted, multigraph, selfloops);
         store.register(session);
 
         Map<String, Object> response = new LinkedHashMap<>();
@@ -284,6 +287,15 @@ public class GraphController
         if (lower.endsWith(".net") || lower.endsWith(".paj")) return "pajek";
         if (lower.endsWith(".gexf")) return "gexf";
         return "edges";
+    }
+
+    /** Resolves the UI separator choice, defaulting to tab for existing API clients. */
+    static String delimiterParam(Context ctx)
+    {
+        String separator = ctx.formParam("separator");
+        if (separator == null || separator.isEmpty() || "\\t".equals(separator) || "\t".equals(separator)) return "\t";
+        if (separator.length() == 1 && (separator.equals(",") || separator.equals(";"))) return separator;
+        throw new IllegalArgumentException("Unsupported field separator.");
     }
 
     static boolean boolParam(Context ctx, String name, boolean def)

@@ -10,7 +10,8 @@ import java.util.*;
 import java.util.function.ToDoubleFunction;
 
 /**
- * Equal scores share a ring, with higher scores nearer the centre. Ties retain
+ * Equal scores share a ring, with higher scores nearer the centre by default;
+ * reverse ordering puts smaller scores nearer the centre. Ties retain
  * request order. Scores are evaluated once per node and must be finite.
  * Supply precomputed values when scores originate from mutable analysis state.
  * @param <U> node type
@@ -19,6 +20,7 @@ public final class ConcentricLayout<U> extends AbstractStaticLayout<U>
 {
     private final ToDoubleFunction<U> score;
     private final double spacing;
+    private final boolean reverse;
     /** @param score node scoring function */
     public ConcentricLayout(ToDoubleFunction<U> score) { this(score, 1); }
     /**
@@ -26,16 +28,24 @@ public final class ConcentricLayout<U> extends AbstractStaticLayout<U>
      * @param spacing radial separation
      */
     public ConcentricLayout(ToDoubleFunction<U> score, double spacing)
+    { this(score, spacing, false); }
+    /**
+     * @param score node scoring function
+     * @param spacing radial separation
+     * @param reverse whether smaller scores should occupy inner rings
+     */
+    public ConcentricLayout(ToDoubleFunction<U> score, double spacing, boolean reverse)
     {
         super("concentric", "Concentric by score");
         this.score = Objects.requireNonNull(score);
         this.spacing = positive(spacing, "spacing");
+        this.reverse = reverse;
     }
 
     @Override
     protected Map<U, Pair<Double>> generate(IndexedGraphSnapshot<U> graph, LayoutRequest<U> request)
     {
-        Map<Double, List<U>> groups = new TreeMap<>(Comparator.reverseOrder());
+        Map<Double, List<U>> groups = new TreeMap<>(reverse ? Comparator.<Double>naturalOrder() : Comparator.<Double>reverseOrder());
         for (U node : graph.getNodes())
         {
             double value = score.applyAsDouble(node);

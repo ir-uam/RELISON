@@ -201,8 +201,8 @@ public class RecommendationController
         try (InputStream in = file.content())
         {
             GraphReader<String> reader = session.isMultigraph()
-                    ? new TextMultiGraphReader<>(session.isDirected(), false, false, "\t", Parsers.sp)
-                    : new TextGraphReader<>(session.isDirected(), false, false, "\t", Parsers.sp);
+                    ? new TextMultiGraphReader<>(session.isDirected(), false, false, GraphController.delimiterParam(ctx), GraphController.boolParam(ctx, "header", false), Parsers.sp)
+                    : new TextGraphReader<>(session.isDirected(), false, false, GraphController.delimiterParam(ctx), GraphController.boolParam(ctx, "header", false), Parsers.sp);
             test = reader.read(in, false, false);
         }
         catch (Exception e)
@@ -212,7 +212,7 @@ public class RecommendationController
         }
         if (test == null)
         {
-            ctx.status(400).json(Map.of("error", "Could not read the test network (expected a tab-separated edge list)."));
+            ctx.status(400).json(Map.of("error", "Could not read the test network. Check the selected separator, header option, and edge-list format."));
             return;
         }
 
