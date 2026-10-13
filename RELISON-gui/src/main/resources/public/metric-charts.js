@@ -6,6 +6,76 @@ const ECHARTS = new Map();
 const ECHART_RESIZE_OBSERVERS = new Map();
 const ECHART_PENDING = new Map();
 
+// Recalculate only layout properties so resizing preserves zoom and legend selections.
+function responsiveChartLayout(option, width, height) {
+    const compact = width < 520;
+    const x = option.xAxis || {}, y = option.yAxis || {};
+    const xFont = x.axisLabel?.fontSize || 12, yFont = y.axisLabel?.fontSize || 12;
+    const textWidth = (text, size) => String(text).length * size * 0.65;
+    const categoryWidth = (axis, size) => (axis.data || []).reduce((max, label) => Math.max(max, textWidth(label, size)), 0);
+    const numericWidth = (axis, size, coordinate) => {
+        let max = textWidth("0", size);
+        const measure = value => {
+            if (value != null && Number.isFinite(Number(value))) max = Math.max(max, textWidth(fmt(Number(value)), size));
+        };
+        measure(axis.min); measure(axis.max);
+        (option.series || []).forEach(series => (series.data || []).forEach(item => {
+            const value = item && typeof item === "object" && !Array.isArray(item) ? item.value : item;
+            measure(Array.isArray(value) ? value[coordinate] : value);
+        }));
+        return max;
+    };
+    const yWidth = Math.min(Math.max(32, y.type === "category" ? categoryWidth(y, yFont) : numericWidth(y, yFont, 1)),
+        Math.max(40, Math.min(160, width * 0.24)));
+    const hasLegend = !!option.legend;
+    const hasTitle = !!option.title?.text;
+    const sliders = (option.dataZoom || []).filter(zoom => zoom.type === "slider");
+    const verticalSlider = sliders.some(zoom => zoom.orient === "vertical");
+    const horizontalSlider = sliders.some(zoom => zoom.orient !== "vertical");
+    const heatmap = !!option.visualMap;
+    const bottomScale = heatmap && compact;
+    const endLabels = (option.series || []).some(series => series.endLabel?.show);
+    const left = Math.ceil(yWidth + (y.name ? 40 : 16));
+    const right = heatmap && !bottomScale ? 64 : verticalSlider ? 40 : endLabels && !compact ? Math.min(116, width * 0.2) : 16;
+    const plotWidth = Math.max(40, width - left - right);
+    const xWidth = x.type === "category" ? categoryWidth(x, xFont) : numericWidth(x, xFont, 0);
+    const crowded = x.type === "category" && (x.data || []).length * Math.min(xWidth + 10, 100) > plotWidth;
+    const rotate = crowded ? (compact ? 40 : 28) : 0;
+    const labelWidth = Math.max(32, Math.min(xWidth || 40, compact ? 88 : 140, plotWidth * 0.45));
+    const radians = rotate * Math.PI / 180;
+    const xLabelHeight = Math.ceil(Math.sin(radians) * labelWidth + Math.cos(radians) * xFont);
+    const bottom = xLabelHeight + 16 + (x.name ? 30 : 0) + (horizontalSlider ? 28 : 0) + (bottomScale ? 52 : 0);
+    const top = (hasTitle ? 30 : 12) + (hasLegend ? 30 : 0) + (option.toolbox && !hasTitle && !hasLegend ? 18 : 0);
+    const plotHeight = Math.max(40, height - top - bottom);
+    const axisNameStyle = (axis, limit) => ({ ...axis.nameTextStyle, width: limit, overflow: "truncate", ellipsis: "…" });
+    const patch = {
+        grid: { ...option.grid, left, right, top, bottom, containLabel: false },
+        xAxis: { ...x, nameLocation: "middle", nameGap: xLabelHeight + 20,
+            nameTextStyle: axisNameStyle(x, plotWidth),
+            axisLabel: { ...x.axisLabel, rotate, hideOverlap: true,
+                ...(x.type === "category" ? { width: labelWidth, overflow: "truncate" } : {}) } },
+        yAxis: { ...y, nameLocation: "middle", nameGap: yWidth + 14,
+            nameTextStyle: axisNameStyle(y, plotHeight),
+            axisLabel: { ...y.axisLabel, width: yWidth, overflow: "truncate", hideOverlap: true } },
+    };
+    if (option.title) patch.title = { ...option.title, left, right: 40,
+        textStyle: { ...option.title.textStyle, width: Math.max(40, width - left - 40), overflow: "truncate" } };
+    if (option.toolbox) patch.toolbox = { ...option.toolbox, right: 8 };
+    if (hasLegend) patch.legend = { type: compact || (option.series || []).length > 8 ? "scroll" : (option.legend.type || "plain"),
+        left, right: 40, top: hasTitle ? 30 : 4 };
+    if (heatmap) patch.visualMap = { orient: bottomScale ? "horizontal" : "vertical",
+        left: bottomScale ? "center" : "auto", right: bottomScale ? "auto" : 4,
+        top: bottomScale ? "auto" : "middle", bottom: bottomScale ? 8 : "auto",
+        itemWidth: 12, itemHeight: Math.min(140, bottomScale ? plotWidth * 0.65 : plotHeight * 0.6) };
+    if (option.dataZoom) patch.dataZoom = option.dataZoom.map(zoom => zoom.type !== "slider" ? {} : {
+        ...(zoom.orient === "vertical" ? { top, bottom, right: 8, width: 16 }
+            : { left, right, bottom: 8 + (bottomScale ? 52 : 0), height: 16 }),
+    });
+    if (endLabels) patch.series = option.series.map(series => ({ endLabel: { ...series.endLabel,
+        show: !compact && !!series.endLabel?.show, width: Math.max(32, right - 16), overflow: "truncate" } }));
+    return patch;
+}
+
 function observeEChartContainer(el) {
     if (!window.ResizeObserver || ECHART_RESIZE_OBSERVERS.has(el.id)) return;
     const observer = new ResizeObserver(([entry]) => {
@@ -19,10 +89,12 @@ function observeEChartContainer(el) {
         }
         const chart = ECHARTS.get(el.id);
         if (chart && !chart.isDisposed()) {
-            chart.resize();
+            resizeEChartLayout(chart);
         }
     });
-    observer.observe(el.parentElement || el);
+    observer.observe(el);
+    const area = el.closest(".chart-area");
+    if (area) observer.observe(area);
     ECHART_RESIZE_OBSERVERS.set(el.id, observer);
 }
 
@@ -40,6 +112,11 @@ function getEChart(id) {
         observeEChartContainer(el);
         chart.on("finished", () => {
             if (chart.__relisonTitle && !chart.isDisposed()) capturePlot(chart, chart.__relisonTitle);
+        });
+        chart.on("restore", () => {
+            if (chart.__categoryLabelMode === "all") requestAnimationFrame(() => {
+                if (!chart.isDisposed()) resizeEChartLayout(chart);
+            });
         });
     }
     return chart;
@@ -138,8 +215,18 @@ function showEChart(id, option, title) {
         return null;
     }
     chart.__relisonTitle = title || "chart";
-    chart.setOption(option, { notMerge: true, lazyUpdate: false });
+    chart.__relisonOption = option;
+    const layout = prepareCategoryChartLayout(el, option, null);
+    const replaceZoom = layout.__replaceZoom;
+    delete layout.__replaceZoom;
+    chart.__categoryLabelMode = replaceZoom ? "all" : "automatic";
+    chart.__categoryLabelZoom = replaceZoom ? (option.dataZoom || []).map(categoryZoomRange) : null;
     chart.resize();
+    const series = layout.series ? option.series.map((series, i) => ({ ...series, ...layout.series[i] })) : option.series;
+    const dataZoom = replaceZoom ? layout.dataZoom : layout.dataZoom ? option.dataZoom.map((zoom, i) => ({ ...zoom, ...layout.dataZoom[i] })) : option.dataZoom;
+    const legend = layout.legend ? { ...option.legend, ...layout.legend } : option.legend;
+    const visualMap = layout.visualMap ? { ...option.visualMap, ...layout.visualMap } : option.visualMap;
+    chart.setOption({ ...option, ...layout, series, dataZoom, legend, visualMap }, { notMerge: true, lazyUpdate: false });
     return chart;
 }
 
@@ -239,6 +326,8 @@ function drawEdgeAttributeChart() {
     drawBarChart("edgeattr-chart", "edgeattr-chart-tip", ids.map((id) => ({ label: String(labels[id] ?? id), value: values[id] ?? 0 })), metric, "edge attribute values", metric);
 }
 function clearChart(canvasId) {
+    const note = $(canvasId + "-view-note");
+    if (note) note.textContent = "";
     const chart = ECHARTS.get(canvasId);
     if (!chart) {
         ECHART_PENDING.delete(canvasId);
@@ -246,45 +335,102 @@ function clearChart(canvasId) {
         if (observer) observer.disconnect();
         ECHART_RESIZE_OBSERVERS.delete(canvasId);
     }
-    if (chart && !chart.isDisposed()) chart.clear();
+    if (chart && !chart.isDisposed()) {
+        chart.__relisonOption = null;
+        chart.__categoryLabelMode = null; chart.__categoryLabelZoom = null;
+        chart.clear();
+    }
+}
+
+function metricBarView(canvasId, items) {
+    const horizontal = $(canvasId + "-orientation")?.value === "horizontal";
+    const mode = $(canvasId + "-show")?.value;
+    const ranked = mode === "top" || mode === "bottom";
+    const reversed = $(canvasId + "-order")?.value === "reverse";
+    const k = Math.max(1, Math.floor(Number($(canvasId + "-k")?.value) || 10));
+    let displayed = ranked ? items.filter((item) => Number.isFinite(Number(item.value)))
+        .slice().sort((a, b) => mode === "bottom" ? Number(a.value) - Number(b.value) : Number(b.value) - Number(a.value)).slice(0, k) : items;
+    if (reversed) displayed = displayed.slice().reverse();
+    const note = $(canvasId + "-view-note");
+    if (note) note.textContent = (ranked
+        ? "Showing " + mode + " " + displayed.length + " of " + items.length + " by the selected metric ("
+            + (mode === "bottom" ? "lowest" : "highest") + " finite values)."
+        : "Showing all " + items.length + ".") + (reversed ? " Display order reversed." : "");
+    return { horizontal, items: displayed };
+}
+
+function setupMetricBarControls() {
+    const charts = [["node-chart", drawNodeChart], ["edge-chart", drawEdgeChart],
+        ["comm-chart", drawCommChart], ["attrcomm-chart", drawAttributeCommChart], ["edgeattr-chart", drawEdgeAttributeChart]];
+    charts.forEach(([id, redraw]) => {
+        const orientation = $(id + "-orientation"), show = $(id + "-show"), k = $(id + "-k");
+        const sync = () => {
+            const ranked = show.value === "top" || show.value === "bottom";
+            k.closest("label").hidden = !ranked;
+            $(id + "-sort").disabled = ranked;
+        };
+        orientation.addEventListener("change", redraw);
+        $(id + "-order").addEventListener("change", redraw);
+        show.addEventListener("change", () => { sync(); redraw(); });
+        k.addEventListener("input", () => { if (k.validity.valid && k.value) redraw(); });
+        k.addEventListener("change", () => {
+            k.value = String(Math.max(1, Math.floor(Number(k.value) || 10)));
+            redraw();
+        });
+        sync();
+    });
 }
 
 function drawBarChart(canvasId, tipId, items, title, xLabel, yLabel) {
+    const view = metricBarView(canvasId, items);
+    items = view.items;
+    const horizontal = view.horizontal;
     const colors = echartColors();
     const option = chartBase(colors, showsMetricChartTitle(canvasId) ? title + "  (n=" + items.length + ")" : "");
-    option.grid = { left: yLabel ? 82 : 58, right: colors.chartStyle === "editorial" ? 30 : 18,
-        top: colors.chartStyle === "editorial" ? 54 : 44, bottom: xLabel ? 82 : 48, containLabel: true };
+    const categoryLabelWidth = horizontal ? Math.min(160, items.reduce((width, item) =>
+        Math.max(width, String(item.label).length * colors.labelSize * 0.65), 40)) : undefined;
+    option.grid = { left: horizontal ? 84 : yLabel ? 82 : 58, right: horizontal && items.length > 40 ? 56 : colors.chartStyle === "editorial" ? 30 : 18,
+        top: colors.chartStyle === "editorial" ? 54 : 44, bottom: horizontal ? 64 : xLabel ? 82 : 48, containLabel: true };
     option.tooltip = { ...option.tooltip, trigger: "axis", formatter: (params) => {
         const p = Array.isArray(params) ? params[0] : params;
-        const item = items[p.dataIndex];
+        const item = p && items[p.dataIndex];
+        if (horizontal) return item ? escapeChartHtml(yLabel || "value") + ": <b>" + escapeChartHtml(fmt(item.value))
+            + "</b><br>" + escapeChartHtml(xLabel || "category") + ": " + escapeChartHtml(item.label) : "";
         return item ? escapeChartHtml(xLabel || "x") + ": " + escapeChartHtml(item.label)
             + "<br>" + escapeChartHtml(yLabel || "value") + ": <b>" + escapeChartHtml(fmt(item.value)) + "</b>" : "";
     } };
-    option.xAxis = { type: "category", name: xLabel, nameLocation: "middle", nameGap: 58,
+    const categoryAxis = { type: "category", name: xLabel, nameLocation: "middle", nameGap: horizontal ? categoryLabelWidth + 28 : 58,
+        inverse: horizontal,
         nameTextStyle: { color: colors.text, fontSize: colors.fontSize + 1, fontWeight: 600 }, data: items.map((d) => String(d.label)),
         axisLabel: { color: colors.muted, fontSize: colors.labelSize, hideOverlap: true, interval: items.length > 40 ? "auto" : 0,
-            rotate: items.length > 8 ? 28 : 0 },
+            rotate: !horizontal && items.length > 8 ? 28 : 0, width: categoryLabelWidth, overflow: horizontal ? "truncate" : undefined },
         axisLine: { lineStyle: { color: colors.border } }, axisTick: { show: false },
         splitLine: { show: false } };
-    option.yAxis = { type: "value", name: yLabel, nameLocation: "middle", nameGap: yLabel ? 58 : 44,
+    const valueAxis = { type: "value", name: yLabel, nameLocation: "middle", nameGap: horizontal ? 40 : yLabel ? 58 : 44,
         nameTextStyle: { color: colors.text, fontSize: colors.fontSize + 1, fontWeight: 600 },
         axisLabel: { color: colors.muted, fontSize: colors.labelSize, formatter: (v) => fmt(v) },
         axisLine: { show: true, lineStyle: { color: colors.border } }, axisTick: { show: true, inside: false, length: 6, lineStyle: { color: colors.border } },
         splitLine: { lineStyle: { color: colors.border, opacity: colors.gridOpacity } }, scale: false };
+    if (horizontal) categoryAxis.axisTick = { show: true, inside: false, length: 6, lineStyle: { color: colors.border } };
+    option.xAxis = horizontal ? valueAxis : categoryAxis;
+    option.yAxis = horizontal ? categoryAxis : valueAxis;
+    const zoomAxis = horizontal ? { yAxisIndex: 0 } : { xAxisIndex: 0 };
     option.dataZoom = [
-        { type: "inside", xAxisIndex: 0, filterMode: "none" },
+        { type: "inside", ...zoomAxis, filterMode: "none" },
         ...(items.length > 40 ? [
-        { type: "slider", xAxisIndex: 0, height: 16, bottom: 8, borderColor: colors.border,
+        { type: "slider", ...zoomAxis, ...(horizontal ? { orient: "vertical", width: 16, right: 8, top: 44, bottom: 64 }
+            : { height: 16, bottom: 8 }), borderColor: colors.border,
             textStyle: { color: colors.muted }, fillerColor: colors.accent + "33", handleStyle: { color: colors.accent } },
         ] : []),
     ];
     const histogram = canvasId === "pair-chart";
     const barColor = colors.chartStyle === "glass-panel" || histogram
-        ? new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: colors.accent }, { offset: 1, color: colors.accent + "55" }])
+        ? new echarts.graphic.LinearGradient(0, 0, horizontal ? 1 : 0, horizontal ? 0 : 1, [{ offset: 0, color: colors.accent }, { offset: 1, color: colors.accent + "55" }])
         : colors.accent;
     option.series = [{ type: "bar", data: items.map((d) => d.value), barMaxWidth: histogram ? 48 : colors.chartStyle === "editorial" ? 30 : 38,
         barMinHeight: histogram ? 3 : 0, barCategoryGap: histogram ? "12%" : "20%",
-        itemStyle: { color: barColor, borderRadius: colors.barRadius,
+        itemStyle: { color: barColor, borderRadius: horizontal
+            ? [colors.barRadius[3], colors.barRadius[0], colors.barRadius[1], colors.barRadius[2]] : colors.barRadius,
             opacity: histogram ? 0.96 : 1, borderColor: histogram ? colors.text : undefined, borderWidth: histogram ? 0.5 : 0,
             shadowBlur: colors.chartStyle === "glass-panel" ? 14 : 0, shadowColor: colors.accent + "55" },
         emphasis: { focus: "none", itemStyle: { color: colors.accent, opacity: 1 } } }];

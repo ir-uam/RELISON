@@ -50,7 +50,6 @@ function renderDiffMetrics() {
     title.textContent = chosen.label;
     const area = document.createElement("div");
     area.className = "chart-area";
-    area.style.height = "320px";
     const chartEl = document.createElement("div");
     chartEl.id = "diff-metrics-chart";   // stable id so the report groups it under Diffusion (keyed by the metric label)
     chartEl.className = "echarts-chart";

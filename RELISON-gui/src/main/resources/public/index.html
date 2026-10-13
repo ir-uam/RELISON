@@ -69,6 +69,11 @@
                 <option value="glass">Glass</option>
                 <option value="monochrome">Monochrome with accents</option>
             </select>
+            <label for="chart-labels-selector">Categorical axis labels</label>
+            <select id="chart-labels-selector">
+                <option value="automatic">Automatic</option>
+                <option value="all">Show all labels (use chart zoom)</option>
+            </select>
         </div>
     </span>
     <!-- <button id="inspector-toggle" class="icon-btn" data-tooltip="ui-inspector-toggle" aria-pressed="false" hidden>Inspector</button> -->
@@ -794,25 +799,31 @@
                 <button class="subtab" data-subtab="comm">Community metrics</button>
                 <button class="subtab" data-subtab="attrcomm">Attribute metrics</button>
                 <button class="subtab" data-subtab="edgeattr">Edge attribute metrics</button>
+                <button class="subtab" data-subtab="relationships">Attribute relationships</button>
             </nav>
 
             <div class="subpane active" id="subpane-global">
                 <h2>Global metrics</h2>
                 <div class="toolbar"><button id="btn-export-global">Export CSV</button></div>
-                <table class="kv wide" id="global-metrics-table"></table>
+                <div class="scroll-table"><table class="data metric-summary-table" id="global-metrics-table" aria-label="Global metrics"></table></div>
                 <p class="muted">Run graph metrics or community metrics from the left panel to populate this table.</p>
             </div>
 
             <div class="subpane" id="subpane-nodes">
                 <h2>Node metric averages</h2>
                 <div class="toolbar"><button id="btn-export-node-averages">Export CSV</button></div>
-                <table class="kv wide" id="node-averages-table"></table>
+                <div class="scroll-table"><table class="data metric-summary-table" id="node-averages-table" aria-label="Node metric averages"></table></div>
                 <h2>Node metric distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="node-chart-metric"></select></label>
                     <label>Sort by <select id="node-chart-sort"></select></label>
+                    <label>Orientation <select class="chart-view-select" id="node-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="node-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="node-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="node-chart-k" min="1" step="1" value="10"/></label>
                     <button class="chart-dl" data-canvas="node-chart" data-file="node-metric-distribution.png">⬇ Download PNG</button>
                 </div>
+                <p class="muted chart-view-note" id="node-chart-view-note" aria-live="polite"></p>
                 <div class="chart-area"><div id="node-chart" class="echarts-chart"></div></div>
                 <h2>Top-k nodes</h2>
                 <div class="chart-controls">
@@ -835,13 +846,18 @@
             <div class="subpane" id="subpane-edges">
                 <h2>Edge metric averages</h2>
                 <div class="toolbar"><button id="btn-export-edge-averages">Export CSV</button></div>
-                <table class="kv wide" id="edge-averages-table"></table>
+                <div class="scroll-table"><table class="data metric-summary-table" id="edge-averages-table" aria-label="Edge metric averages"></table></div>
                 <h2>Edge metric distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="edge-chart-metric"></select></label>
                     <label>Sort by <select id="edge-chart-sort"></select></label>
+                    <label>Orientation <select class="chart-view-select" id="edge-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="edge-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="edge-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="edge-chart-k" min="1" step="1" value="10"/></label>
                     <button class="chart-dl" data-canvas="edge-chart" data-file="edge-metric-distribution.png">⬇ Download PNG</button>
                 </div>
+                <p class="muted chart-view-note" id="edge-chart-view-note" aria-live="polite"></p>
                 <div class="chart-area"><div id="edge-chart" class="echarts-chart"></div></div>
                 <div class="rec-scatter-block" id="edge-scatter-block" hidden>
                     <h2>Original vs recommendation</h2>
@@ -857,7 +873,7 @@
             <div class="subpane" id="subpane-pairs">
                 <h2>Node-pair metric averages</h2>
                 <div class="toolbar"><button id="btn-export-pair-averages">Export CSV</button></div>
-                <table class="kv wide" id="pair-averages-table"></table>
+                <div class="scroll-table"><table class="data metric-summary-table" id="pair-averages-table" aria-label="Node-pair metric averages"></table></div>
                 <p class="muted">Computed over all node pairs. Enable “All node pairs” in the Pair metrics panel and run a metric.</p>
                 <h2>Node-pair metric distribution</h2>
                 <div class="chart-controls">
@@ -871,14 +887,19 @@
             <div class="subpane" id="subpane-comm">
                 <h2>Per-community metric averages</h2>
                 <div class="toolbar"><button id="btn-export-comm-averages">Export CSV</button></div>
-                <table class="kv wide" id="comm-averages-table"></table>
+                <div class="scroll-table"><table class="data metric-summary-table" id="comm-averages-table" aria-label="Community metric averages"></table></div>
                 <p class="muted">Detect a partition, then run a per-community metric from the Communities panel.</p>
                 <h2>Per-community metric distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="comm-chart-metric"></select></label>
                     <label>Sort by <select id="comm-chart-sort"></select></label>
+                    <label>Orientation <select class="chart-view-select" id="comm-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="comm-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="comm-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="comm-chart-k" min="1" step="1" value="10"/></label>
                     <button class="chart-dl" data-canvas="comm-chart" data-file="community-metric-distribution.png">⬇ Download PNG</button>
                 </div>
+                <p class="muted chart-view-note" id="comm-chart-view-note" aria-live="polite"></p>
                 <div class="chart-area"><div id="comm-chart" class="echarts-chart"></div></div>
                 <div class="rec-scatter-block" id="comm-scatter-block" hidden>
                     <h2>Original vs recommendation</h2>
@@ -893,27 +914,56 @@
             <div class="subpane" id="subpane-attrcomm">
                 <h2>Per-attribute-value metric averages</h2>
                 <div class="toolbar"><button id="btn-export-attrcomm-averages">Export CSV</button></div>
-                <table class="kv wide" id="attrcomm-averages-table"></table>
+                <div class="scroll-table"><table class="data metric-summary-table" id="attrcomm-averages-table" aria-label="Attribute metric averages"></table></div>
                 <p class="muted">Run a per-attribute-value metric from the Attribute-based metrics panel.</p>
                 <h2>Per-attribute-value metric distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="attrcomm-chart-metric"></select></label>
                     <label>Sort by <select id="attrcomm-chart-sort"></select></label>
+                    <label>Orientation <select class="chart-view-select" id="attrcomm-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="attrcomm-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="attrcomm-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="attrcomm-chart-k" min="1" step="1" value="10"/></label>
                     <button class="chart-dl" data-canvas="attrcomm-chart" data-file="attribute-metric-distribution.png">⬇ Download PNG</button>
                 </div>
+                <p class="muted chart-view-note" id="attrcomm-chart-view-note" aria-live="polite"></p>
                 <div class="chart-area"><div id="attrcomm-chart" class="echarts-chart"></div></div>
+            </div>
+            <div class="subpane" id="subpane-relationships">
+                <h2>Attribute relationships</h2>
+                <p class="muted">Compare attribute values across all loaded nodes or edges. Community comparisons use node membership in detected partitions.</p>
+                <div class="chart-controls">
+                    <label>Compare <select id="relationship-mode"><option value="node-node">Node ↔ Node</option><option value="community-community">Community ↔ Community</option><option value="node-community">Node ↔ Community</option><option value="edge-edge">Edge ↔ Edge</option></select></label>
+                    <label><span id="relationship-x-label">X: Node attribute</span><select id="relationship-x"></select></label>
+                    <label><span id="relationship-y-label">Y: Node attribute</span><select id="relationship-y"></select></label>
+                    <button id="relationship-swap" class="chart-dl">Swap axes</button>
+                    <label>Display <select id="relationship-display"><option value="count">Counts</option><option value="row">Row percentages</option><option value="column">Column percentages</option></select></label>
+                    <label>Missing values <select id="relationship-missing"><option value="exclude">Exclude</option><option value="include">Include</option></select></label>
+                    <label id="relationship-x-binning-field" hidden>X numeric values <select id="relationship-x-binning"><option value="bins">Equal-width bins</option><option value="exact">Exact values</option></select></label>
+                    <label id="relationship-y-binning-field" hidden>Y numeric values <select id="relationship-y-binning"><option value="bins">Equal-width bins</option><option value="exact">Exact values</option></select></label>
+                    <label id="relationship-bins-field" hidden>Number of bins <input class="chart-k-input" id="relationship-bins" type="number" min="2" max="100" step="1" value="10" required/></label>
+                    <button id="relationship-png" class="chart-dl" data-canvas="relationship-chart" data-file="attribute-relationships.png" disabled>⬇ Download PNG</button>
+                    <button id="relationship-csv" class="chart-dl" disabled>Export CSV</button>
+                </div>
+                <p class="muted" id="relationship-note" aria-live="polite"></p>
+                <div class="chart-area" id="relationship-area" hidden><div id="relationship-chart" class="echarts-chart"></div></div>
             </div>
             <div class="subpane" id="subpane-edgeattr">
                 <h2>Per-edge-attribute-value metric averages</h2>
                 <div class="toolbar"><button id="btn-export-edgeattr-averages">Export CSV</button></div>
-                <table class="kv wide" id="edgeattr-averages-table"></table>
+                <div class="scroll-table"><table class="data metric-summary-table" id="edgeattr-averages-table" aria-label="Edge attribute metric averages"></table></div>
                 <p class="muted">Run a per-value edge attribute metric from the left panel.</p>
                 <h2>Per-edge-attribute-value distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="edgeattr-chart-metric"></select></label>
                     <label>Sort by <select id="edgeattr-chart-sort"></select></label>
+                    <label>Orientation <select class="chart-view-select" id="edgeattr-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="edgeattr-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="edgeattr-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="edgeattr-chart-k" min="1" step="1" value="10"/></label>
                     <button class="chart-dl" data-canvas="edgeattr-chart" data-file="edge-attribute-metric-distribution.png">⬇ Download PNG</button>
                 </div>
+                <p class="muted chart-view-note" id="edgeattr-chart-view-note" aria-live="polite"></p>
                 <div class="chart-area"><div id="edgeattr-chart" class="echarts-chart"></div></div>
             </div>
         </div>
@@ -1466,9 +1516,31 @@
     </aside>
 </main>
 
+<dialog id="chart-png-dialog" class="chart-export-dialog" aria-labelledby="chart-png-title" aria-describedby="chart-png-description">
+    <h2 id="chart-png-title">Download chart PNG</h2>
+    <p id="chart-png-description">Choose the visible view or include the offscreen parts at the same zoom scale. Zoom controls and their histogram are excluded.</p>
+    <button id="chart-png-current" type="button">Current zoomed view <span id="chart-png-current-size"></span></button>
+    <button id="chart-png-full" type="button">Complete chart at current zoom <span id="chart-png-full-size"></span></button>
+    <p class="muted" id="chart-png-limit" hidden>The complete chart is too large for PNG at this zoom. Zoom out to reduce its dimensions.</p>
+    <button id="chart-png-cancel" type="button">Cancel</button>
+</dialog>
+
+<dialog id="network-svg-dialog" class="chart-export-dialog" aria-labelledby="network-svg-title" aria-describedby="network-svg-description">
+    <h2 id="network-svg-title">Download network SVG</h2>
+    <p id="network-svg-description">Export the current panel or the complete network at the current zoom. The complete version includes offscreen node and edge labels when labels are enabled, and keeps the active visibility filters.</p>
+    <button id="network-svg-current" type="button">Current view</button>
+    <button id="network-svg-full" type="button">Complete network at current zoom</button>
+    <button id="network-svg-cancel" type="button">Cancel</button>
+</dialog>
+
 <script src="pdf.js"></script>
+<script src="network-svg-export.js"></script>
 <script src="metric-charts.js"></script>
+<script src="chart-labels.js"></script>
+<script src="chart-export.js"></script>
+<script src="metric-tables.js"></script>
 <script src="diffusion-charts.js"></script>
+<script src="attribute-relationships.js"></script>
 <script src="chart-settings.js"></script>
 <script src="geographic-map.js"></script>
 <script src="geographic-export.js"></script>

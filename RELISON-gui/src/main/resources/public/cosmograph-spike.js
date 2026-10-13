@@ -421,7 +421,9 @@ function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStage
         // The UI checkbox controls native Cosmograph point dragging.
         enableDrag: Boolean(document.getElementById("drag-nodes")?.checked),
         rescalePositions: false,
-        fitViewOnInit: true,
+        // The shared Sigma camera supplies initial framing when switching in.
+        // A deferred native fit would overwrite that transferred camera.
+        fitViewOnInit: false,
         fitViewDelay: 0,
         fitViewDuration: 0,
         transitionDuration: 0,
@@ -527,6 +529,7 @@ function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStage
 async function render(graph, { onPointClick, onLinkClick, onStageClick, onRectSelected, onDragStartNode } = {}) {
     const container = document.getElementById("cosmograph-container");
     if (!container || !graph) return;
+    const previousView = sourceGraph === graph ? getNetworkView() : null;
     installRectSelectionOverlay(container);
     if (onPointClick !== undefined || onLinkClick !== undefined || onStageClick !== undefined || onRectSelected !== undefined || onDragStartNode !== undefined) {
         interactionCallbacks = { onPointClick, onLinkClick, onStageClick, onRectSelected, onDragStartNode };
@@ -545,6 +548,7 @@ async function render(graph, { onPointClick, onLinkClick, onStageClick, onRectSe
         applyPointSizes(snapshot);
         applyLinkStyles(snapshot);
         rememberSnapshot(snapshot);
+        if (previousView) setNetworkView(previousView);
         if (forceLayoutRunning) startEdgeLabelTracking(); else stopEdgeLabelTracking();
         return;
     }
@@ -692,6 +696,31 @@ function zoomBy(factor) {
     return true;
 }
 
+function getNetworkView() {
+    if (!instance?.screenToSpacePosition) return null;
+    const canvas = instance.getCanvas();
+    const width = canvas?.clientWidth, height = canvas?.clientHeight;
+    if (!width || !height) return null;
+    const center = instance.screenToSpacePosition([width / 2, height / 2]);
+    const offset = instance.screenToSpacePosition([width / 2 + 100, height / 2]);
+    if (!center || !offset) return null;
+    const pixelsPerUnit = 100 / Math.hypot(offset[0] - center[0], offset[1] - center[1]);
+    return [center[0], center[1], pixelsPerUnit].every(Number.isFinite) && pixelsPerUnit > 0
+        ? { x: center[0], y: center[1], pixelsPerUnit } : null;
+}
+
+function setNetworkView(view) {
+    const current = getNetworkView(), zoom = instance?.getZoomLevel();
+    if (!view || !current || !Number.isFinite(zoom) || !instance.setZoomTransformByPointPositions) return false;
+    const scale = zoom * view.pixelsPerUnit / current.pixelsPerUnit;
+    if (!Number.isFinite(scale) || scale <= 0) return false;
+    instance.setZoomTransformByPointPositions(Float32Array.of(view.x, view.y), 0, scale, 0);
+    instance.render?.();
+    instance._labels?.updatePositions?.();
+    instance._annotations?.updatePositions?.();
+    return true;
+}
+
 function fitView() {
     if (!instance || typeof instance.fitView !== "function") return false;
     instance.fitView(150, 0.1);
@@ -831,7 +860,7 @@ function renderedRgba(colorBuffer, index, fallback) {
 // genuine SVG export (not a conversion of the WebGL canvas), so it stays crisp
 // when enlarged and includes the current camera position, projected links and
 // visible node/edge labels.
-async function buildSvgScene({ foregroundOnly = false } = {}) {
+async function buildSvgScene({ foregroundOnly = false, fullNetwork = false } = {}) {
     if (!instance || typeof instance.getCanvas !== "function" || typeof instance.spaceToScreenPosition !== "function") return false;
     const canvas = instance.getCanvas();
     const config = typeof instance.getConfig === "function" ? await instance.getConfig() : {};
@@ -851,6 +880,7 @@ async function buildSvgScene({ foregroundOnly = false } = {}) {
     const linkWidths = typeof instance.getLinkWidths === "function" ? instance.getLinkWidths() : null;
 
     const pointScreen = new Map();
+    const labelSettings = window.relisonNetworkSvg.labelSettings(window.relisonCosmographLabelOpts);
     snapshot.points.forEach((point, index) => {
         if (foregroundOnly && !window.relisonCosmographPath?.nodes.has(point.id)) return;
         const position = instance.spaceToScreenPosition([positions[index * 2], positions[index * 2 + 1]]);
@@ -865,8 +895,10 @@ async function buildSvgScene({ foregroundOnly = false } = {}) {
             : config.scalePointsOnZoom && typeof instance.spaceToScreenRadius === "function"
                 ? instance.spaceToScreenRadius(scaledRadius) : scaledRadius;
         const radius = (Number.isFinite(diameter) ? diameter : point.size) / 2;
+        const exportPoint = fullNetwork && sourceGraph?.hasNode(point.id)
+            ? { ...point, label: window.relisonNetworkSvg.nodeLabel(sourceGraph, point.id, labelSettings) } : point;
         pointScreen.set(point.id, { x: position[0], y: position[1], radius,
-            color: renderedRgba(pointColors, index, point.color || "#4f9dff"), point, index });
+            color: renderedRgba(pointColors, index, point.color || "#4f9dff"), point: exportPoint, index });
     });
 
     const defs = '<filter id="label-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.5"/></filter>';
@@ -922,11 +954,11 @@ async function buildSvgScene({ foregroundOnly = false } = {}) {
         .map(({ x, y, radius }) => '<circle cx="' + x + '" cy="' + y + '" r="' + (Math.max(0, radius) + 3)
             + '" fill="none" stroke="' + xmlEscape(getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#ffcc66")
             + '" stroke-width="2" vector-effect="non-scaling-stroke"/>').join("");
-    // Cosmograph uses DOM labels for nodes and annotations. Export those
-    // visible boxes at their actual screen positions, preserving padding,
-    // font weight, colour and rounded background instead of inventing labels.
+    // Current-view exports preserve the live DOM label boxes. Full exports
+    // generate labels from the complete snapshot, including offscreen points
+    // and links that the renderer omits from its live label layer.
     const canvasRect = canvas.getBoundingClientRect();
-    const labelMarkup = foregroundOnly ? "" : [...document.querySelectorAll('#cosmograph-container .css-label--label')].map((element) => {
+    const labelMarkup = foregroundOnly ? "" : fullNetwork ? window.relisonNetworkSvg.labels(pointScreen, snapshot.links, config, labelSettings) : [...document.querySelectorAll('#cosmograph-container .css-label--label')].map((element) => {
         const style = getComputedStyle(element);
         const rect = element.getBoundingClientRect();
         if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0 ||
@@ -952,9 +984,10 @@ async function buildSvgScene({ foregroundOnly = false } = {}) {
     return { svg, width, height };
 }
 
-async function exportSvg(filename = "network.svg", { legend = null } = {}) {
-    const scene = await buildSvgScene();
+async function exportSvg(filename = "network.svg", { legend = null, fullNetwork = false } = {}) {
+    const scene = await buildSvgScene({ fullNetwork });
     if (!scene) return false;
+    if (fullNetwork) scene.svg = await window.relisonNetworkSvg.fit(scene.svg, legend);
     downloadSvg(filename, window.relisonGeographicExport.withLegend(scene.svg, legend));
     return true;
 }
@@ -1007,5 +1040,5 @@ async function setDragEnabled(enabled) {
         await instance.dataUploaded?.();
     }
 }
-window.relisonCosmograph = { render, syncTimeline, destroy, setNodePositions, isRendered: () => instance !== null, startForceLayout, stopForceLayout, savePointPositions, exportPng, exportSvg, zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8), fitView, setFocusedSelection, setDragEnabled, setMultiSelectedNodes, setRectSelectionEnabled, getPointId: (index) => pointIds[index], screenToSpacePosition: (position) => instance?.screenToSpacePosition?.(position) };
+window.relisonCosmograph = { render, syncTimeline, destroy, setNodePositions, isRendered: (graph) => instance !== null && (!graph || sourceGraph === graph), startForceLayout, stopForceLayout, savePointPositions, getNetworkView, setNetworkView, exportPng, exportSvg, zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8), fitView, setFocusedSelection, setDragEnabled, setMultiSelectedNodes, setRectSelectionEnabled, getPointId: (index) => pointIds[index], screenToSpacePosition: (position) => instance?.screenToSpacePosition?.(position) };
 window.dispatchEvent(new CustomEvent("relison-cosmograph-ready"));

@@ -2,6 +2,16 @@
 
 // Chart appearance and palette settings; redrawVisibleCharts is provided by app.js.
 
+function applyChartLabels(mode) {
+    const next = mode === "all" ? "all" : "automatic";
+    document.body.dataset.chartLabels = next;
+    $("chart-labels-selector").value = next;
+    try { localStorage.setItem("relison-chart-labels", next); } catch (e) { /* ignore */ }
+    ECHARTS.forEach(chart => {
+        if (!chart.isDisposed() && chart.getDom().getBoundingClientRect().width > 0) resizeEChartLayout(chart);
+    });
+}
+
 function applyChartStyle(style) {
     const valid = ["quiet-scientific", "vibrant-dashboard", "editorial", "glass-panel", "monochrome-accent"];
     const next = valid.includes(style) ? style : "quiet-scientific";
