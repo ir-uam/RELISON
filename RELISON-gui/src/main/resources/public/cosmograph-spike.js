@@ -256,7 +256,6 @@ function edgeLabelAnnotations(snapshot, livePositions) {
     }));
     const rawFont = String(labels.edgeFont || "sans-serif");
     const font = /^[a-zA-Z0-9 _,-]+$/.test(rawFont) ? rawFont : "sans-serif";
-    const color = labels.edgeColor || "#ffffff";
     return [...snapshot.links]
         .filter((link) => link.label)
         .sort((a, b) => (b.width || 0) - (a.width || 0))
@@ -271,6 +270,8 @@ function edgeLabelAnnotations(snapshot, livePositions) {
             // while remaining stable in graph coordinate space.
             const offset = distance ? Math.min(4, distance * 0.08) : 0;
             const fontSize = labels.edgeProp ? Math.max(5, (link.width || 1) * ((Number(labels.edgeSize) || 9) / 2)) : (Number(labels.edgeSize) || 9);
+            const color = labels.edgeColorMode === "single" ? (labels.edgeColor || "#ffffff")
+                : labels.edgeColorMode === "edge" ? (link.color || "#ffffff") : "#ffffff";
             return {
                 text: link.label,
                 position: [
@@ -382,9 +383,12 @@ function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStage
     const rawFont = String(labels.nodeFont || "sans-serif");
     const font = /^[a-zA-Z0-9 _,-]+$/.test(rawFont) ? rawFont : "sans-serif";
     const baseSize = Number(labels.nodeSize) || 13;
-    const labelColor = labels.nodeColor || "#ffffff";
+    const labelColor = labels.nodeColorMode === "single" ? (labels.nodeColor || "#ffffff") : "#ffffff";
     const labelStyle = (_text, index) => {
         const size = labels.nodeProp ? Math.max(6, (pointLabelSizes[index] || 4) * (baseSize / 8)) : baseSize;
+        const pointColor = snapshot.points[index]?.color || "#ffffff";
+        const labelColor = labels.nodeColorMode === "single" ? (labels.nodeColor || "#ffffff")
+            : labels.nodeColorMode === "node" ? pointColor : "#ffffff";
         // Inline colour wins over Cosmograph's theme CSS, keeping the shared control reliable.
         return "font-family: " + font + "; font-size: " + size + "px; color: " + labelColor + ";";
     };

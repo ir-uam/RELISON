@@ -504,10 +504,10 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
     color: var(--muted); border-radius: 0; cursor: pointer;
 }
 .tablesubtab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.tablesubpane { display: none; padding: 12px; overflow: auto; flex: 1 1 auto; }
+.tablesubpane { display: none; padding: 12px; overflow: hidden; flex: 1 1 auto; min-height: 0; }
 .tablesubpane.active { display: flex; flex-direction: column; }
 .scroll-table { max-height: 45vh; overflow: auto; border: 1px solid var(--border); border-radius: 4px; }
-.scroll-table.tall { max-height: none; flex: 1 1 auto; }
+.scroll-table.tall { max-height: none; flex: 1 1 auto; min-height: 0; overscroll-behavior: contain; }
 
 .toolbar { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
 .toolbar input { width: auto; flex: 0 0 auto; }
@@ -536,6 +536,16 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
 }
 .menu li button:hover { background: var(--panel-2); color: var(--accent); }
 .menu.menu-right { left: auto; right: 0; }   /* aligned to the button's right edge (top-bar buttons) */
+.column-menu-wrap { position: relative; }
+.column-menu { top: calc(100% + 4px); left: auto; right: 0; z-index: 30; min-width: 210px; max-height: 55vh; overflow: auto; }
+.column-menu-item { display: flex; align-items: center; gap: 8px; padding: 5px 7px; color: var(--text); font-size: 12px; cursor: pointer; }
+.column-menu-item:hover { background: var(--panel-2); }
+.column-menu-item input { width: auto; margin: 0; }
+.column-menu-item input:disabled { cursor: not-allowed; }
+.column-menu-heading { margin: 5px 4px 2px; padding: 5px 4px 3px; border-top: 1px solid var(--border); color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.column-menu-heading:first-child { margin-top: 0; border-top: 0; }
+.column-menu-heading-attribute { color: #65b9a8; }
+.column-menu-heading-metric { color: var(--accent); }
 
 .addgroup { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .addgroup input[type="text"], .addgroup input[type="number"] { width: 150px; }
@@ -583,14 +593,37 @@ table.data th:last-child, table.data td:last-child { overflow: visible; }
 table.data th:first-child, table.data td:first-child { text-align: left; }
 /* Column titles are centred; data cells keep their numeric right / first-column left alignment. */
 table.data thead tr:first-child th { text-align: center; }
+table.data thead th.column-type-attribute { box-shadow: inset 0 2px #65b9a8; }
+table.data thead th.column-type-metric { box-shadow: inset 0 2px var(--accent); }
+.column-type-tag { display: block; margin: 0 0 2px; font-size: 9px; line-height: 11px; font-weight: 700; letter-spacing: .06em; }
+table.data thead th.column-type-attribute .column-type-tag { color: #65b9a8; }
+table.data thead th.column-type-metric .column-type-tag { color: var(--accent); }
 table.data thead th {
     position: sticky; top: 0;
     background: var(--panel-2);
     color: var(--muted);
     z-index: 1;
 }
-table.data thead th.sort-th { cursor: pointer; }
+table.data thead th.sort-th { cursor: pointer; height: 42px; box-sizing: border-box; }
 table.data thead th.sort-th:hover { color: var(--text); }
+/* Keep graph identity columns visible during horizontal scrolling. */
+table#nodes-table th.identity-col-0,
+table#edges-table th.identity-col-0 { position: sticky; left: 0; z-index: 4; background: var(--panel-2); }
+table#nodes-table td.identity-col-0,
+table#edges-table tbody td.identity-col-0,
+table#edges-table tbody td.identity-col-1 { position: sticky; z-index: 2; background-color: var(--panel); }
+table#nodes-table td.identity-col-0,
+table#edges-table tbody td.identity-col-0 { left: 0; }
+table#edges-table .identity-col-1 { position: sticky; left: var(--edge-source-sticky-width, 96px); background: var(--panel-2); }
+table#edges-table thead th.identity-col-1 { z-index: 4; }
+table#nodes-table thead tr.filter-row th.identity-col-0,
+table#edges-table thead tr.filter-row th.identity-col-0,
+table#edges-table thead tr.filter-row th.identity-col-1 { z-index: 6; }
+table#nodes-table tbody tr:hover .identity-col-0,
+table#edges-table tbody tr:hover .identity-col-0,
+table#edges-table tbody tr:hover .identity-col-1 { background-color: var(--panel-2); }
+table.data thead th.reorderable-col { cursor: grab; }
+table.data thead th.reorderable-col:active { cursor: grabbing; }
 /* Resizable columns: a grip straddling each column divider in the title row. */
 .col-grip { position: absolute; top: 0; right: -3px; width: 7px; height: 100%; cursor: col-resize; z-index: 3; }
 .col-grip:hover { background: var(--accent); opacity: 0.5; }
@@ -601,7 +634,7 @@ table.data td.editable:hover { outline: 1px dashed var(--accent); outline-offset
 table.data td.editable:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--panel-2); overflow: visible; white-space: nowrap; }
 
 /* Per-column filter row inside the header */
-table.data thead tr.filter-row th { padding: 3px 4px; background: var(--panel-2); top: 24px; }
+table.data thead tr.filter-row th { padding: 3px 4px; background: var(--panel-2); top: 42px; z-index: 5; }
 table.data thead tr.filter-row .colfilter { display: flex; gap: 3px; }
 table.data thead tr.filter-row select { width: auto; flex: 0 0 auto; padding: 2px; font-size: 11px; }
 table.data thead tr.filter-row input { flex: 1 1 40px; width: auto; min-width: 40px; padding: 2px 4px; font-size: 11px; }
@@ -609,6 +642,11 @@ table.data thead tr.filter-row .col-remove {
     width: auto; flex: 0 0 auto; margin: 0; padding: 2px 5px; font-size: 10px; line-height: 1;
     background: transparent; border: 1px solid var(--border); border-radius: 3px; color: var(--muted); cursor: pointer;
 }
+table.data thead tr.filter-row .col-rename {
+    width: auto; flex: 0 0 auto; margin: 0; padding: 2px 5px; font-size: 10px; line-height: 1;
+    background: transparent; border: 1px solid var(--border); border-radius: 3px; color: var(--muted); cursor: pointer;
+}
+table.data thead tr.filter-row .col-rename:hover { color: var(--text); border-color: var(--accent); }
 table.data thead tr.filter-row .col-remove:hover { color: #fff; background: #c0392b; border-color: #c0392b; }
 
 /* Paths pane */

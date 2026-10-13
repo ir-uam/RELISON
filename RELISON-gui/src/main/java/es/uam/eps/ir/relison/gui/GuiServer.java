@@ -200,6 +200,7 @@ public class GuiServer
             config.routes.post("/api/graph/{id}/attributes/edges", attributeController::uploadEdges);
             config.routes.post("/api/graph/{id}/attributes/define", attributeController::define);
             config.routes.post("/api/graph/{id}/attributes/remove", attributeController::remove);
+            config.routes.post("/api/graph/{id}/attributes/rename", attributeController::rename);
             config.routes.post("/api/graph/{id}/attributes/node", attributeController::setNode);
             config.routes.post("/api/graph/{id}/attributes/edge", attributeController::setEdge);
             config.routes.exception(Exception.class, (e, ctx) ->

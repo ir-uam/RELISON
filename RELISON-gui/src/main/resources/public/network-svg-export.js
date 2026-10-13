@@ -4,7 +4,7 @@ window.relisonNetworkSvg = {
     labelSettings(fallback = {}) {
         const settings = { ...fallback };
         for (const kind of ["node", "edge"]) {
-            for (const [suffix, key] of [["show", "Show"], ["prop", "Prop"], ["size", "Size"], ["color", "Color"], ["font", "Font"], ["attribute", "Attribute"]]) {
+            for (const [suffix, key] of [["show", "Show"], ["prop", "Prop"], ["size", "Size"], ["color", "Color"], ["color-mode", "ColorMode"], ["font", "Font"], ["attribute", "Attribute"]]) {
                 const control = document.getElementById(kind + "-label-" + suffix);
                 if (control) settings[kind + key] = suffix === "show" || suffix === "prop" ? control.checked
                     : suffix === "size" ? Math.max(1, Number(control.value) || (kind === "node" ? 12 : 9)) : control.value;
@@ -75,6 +75,11 @@ window.relisonNetworkSvg = {
     // Generate labels from the complete active snapshot, bypassing live label caps.
     labels(points, links, config, settings = this.labelSettings(window.relisonCosmographLabelOpts)) {
         const E = window.relisonGeographicExport.element, group = E("g");
+        const labelColor = (kind, underlying, defaultColor) => {
+            const mode = settings[kind + "ColorMode"] || "default";
+            return mode === "single" ? (settings[kind + "Color"] || defaultColor)
+                : mode === kind ? (underlying || defaultColor) : defaultColor;
+        };
         const text = (content, x, y, fontSize, fontFamily, color, centered = false) => {
             group.appendChild(E("text", { x, y, "font-size": fontSize, "font-family": fontFamily || "sans-serif",
                 fill: color || "#ffffff", "text-anchor": centered ? "middle" : "start" }, content));
@@ -89,12 +94,12 @@ window.relisonNetworkSvg = {
                 x -= (t.y - s.y) * bend; y += (t.x - s.x) * bend;
             }
             const fontSize = settings.edgeProp ? Math.max(5, (link.width || 1) * ((Number(settings.edgeSize) || 9) / 2)) : Number(settings.edgeSize) || 9;
-            text(link.label, x, y, fontSize, settings.edgeFont, settings.edgeColor, true);
+            text(link.label, x, y, fontSize, settings.edgeFont, labelColor("edge", link.color, "#ffffff"), true);
         });
         if (settings.nodeShow) points.forEach(({ x, y, radius, point }) => {
             if (point.label == null || point.label === "") return;
             const fontSize = settings.nodeProp ? Math.max(6, (point.size / 2 || 4) * ((Number(settings.nodeSize) || 13) / 8)) : Number(settings.nodeSize) || 13;
-            text(point.label, x + radius + 3, y + fontSize / 3, fontSize, settings.nodeFont, settings.nodeColor);
+            text(point.label, x + radius + 3, y + fontSize / 3, fontSize, settings.nodeFont, labelColor("node", point.color, "#ffffff"));
         });
         return new XMLSerializer().serializeToString(group);
     },

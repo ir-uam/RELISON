@@ -9,12 +9,14 @@
 package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.graph.Weight;
 import es.uam.eps.ir.relison.graph.attributes.AttributeType;
 import es.uam.eps.ir.relison.graph.multigraph.MultiGraph;
 import es.uam.eps.ir.relison.io.attributes.EdgeAttributeReader;
 import es.uam.eps.ir.relison.io.attributes.NodeAttributeReader;
 
 import java.util.List;
+import java.util.ArrayList;
 import io.javalin.http.Context;
 import io.javalin.http.UploadedFile;
 import org.ranksys.formats.parsing.Parsers;
@@ -22,6 +24,7 @@ import org.ranksys.formats.parsing.Parsers;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * REST handlers for node and edge attributes: importing them from sidecar files, declaring new ones, and editing
@@ -156,6 +159,96 @@ public class AttributeController
         Graph<String> graph = session.getGraph();
         boolean removed = "edge".equalsIgnoreCase(target) ? graph.removeEdgeAttribute(name) : graph.removeNodeAttribute(name);
         ctx.json(Map.of("ok", removed, "schema", GraphSerializer.schema(session)));
+    }
+
+    /** Renames a declared attribute while preserving its type and values. */
+    public void rename(Context ctx)
+    {
+        GraphSession session = session(ctx);
+        if (session == null) return;
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        String target = str(body.get("target"));
+        String oldName = str(body.get("oldName"));
+        String newName = str(body.get("newName"));
+        if (oldName == null || newName == null)
+        {
+            ctx.status(400).json(Map.of("error", "Both attribute names must not be blank."));
+            return;
+        }
+        boolean edge = "edge".equalsIgnoreCase(target);
+        Graph<String> graph = session.getGraph();
+        List<String> names = (edge ? graph.getEdgeAttributeNames() : graph.getNodeAttributeNames()).collect(Collectors.toList());
+        if (!names.contains(oldName))
+        {
+            ctx.status(404).json(Map.of("error", "Attribute does not exist."));
+            return;
+        }
+        if (!oldName.equals(newName) && names.contains(newName))
+        {
+            ctx.status(409).json(Map.of("error", "An attribute with that name already exists."));
+            return;
+        }
+        if (oldName.equals(newName))
+        {
+            ctx.json(Map.of("ok", true, "schema", GraphSerializer.schema(session)));
+            return;
+        }
+
+        AttributeType type = edge ? graph.getEdgeAttributeType(oldName) : graph.getNodeAttributeType(oldName);
+        if (!edge)
+        {
+            List<Weight<String, Object>> values = graph.getNodeAttributes(oldName).collect(Collectors.toList());
+            graph.defineNodeAttribute(newName, type);
+            values.forEach(value -> graph.setNodeAttribute(value.getIdx(), newName, value.getValue()));
+            graph.removeNodeAttribute(oldName);
+        }
+        else
+        {
+            List<Object[]> values = new ArrayList<>();
+            List<String> nodes = new ArrayList<>();
+            graph.getAllNodes().forEach(nodes::add);
+            if (graph.isMultigraph())
+            {
+                MultiGraph<String> multi = (MultiGraph<String>) graph;
+                for (String source : nodes)
+                {
+                    List<String> targets = new ArrayList<>();
+                    multi.getAdjacentNodes(source).forEach(targets::add);
+                    for (String dest : targets)
+                    {
+                        if (!graph.isDirected() && source.compareTo(dest) > 0) continue;
+                        int count = multi.getEdgeWeights(source, dest).size();
+                        for (int idx = 0; idx < count; idx++)
+                        {
+                            Object value = multi.getEdgeAttribute(source, dest, idx, oldName);
+                            if (value != null) values.add(new Object[]{source, dest, idx, value});
+                        }
+                    }
+                }
+                graph.defineEdgeAttribute(newName, type);
+                for (Object[] value : values)
+                    multi.setEdgeAttribute((String) value[0], (String) value[1], (int) value[2], newName, value[3]);
+            }
+            else
+            {
+                for (String source : nodes)
+                {
+                    List<String> targets = new ArrayList<>();
+                    graph.getAdjacentNodes(source).forEach(targets::add);
+                    for (String dest : targets)
+                    {
+                        if (!graph.isDirected() && source.compareTo(dest) > 0) continue;
+                        Object value = graph.getEdgeAttribute(source, dest, oldName);
+                        if (value != null) values.add(new Object[]{source, dest, value});
+                    }
+                }
+                graph.defineEdgeAttribute(newName, type);
+                for (Object[] value : values)
+                    graph.setEdgeAttribute((String) value[0], (String) value[1], newName, value[2]);
+            }
+            graph.removeEdgeAttribute(oldName);
+        }
+        ctx.json(Map.of("ok", true, "schema", GraphSerializer.schema(session)));
     }
 
     /**

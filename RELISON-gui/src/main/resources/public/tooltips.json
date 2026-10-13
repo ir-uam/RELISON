@@ -145,6 +145,7 @@
     "js-nothing-to-redo": "Nothing to redo",
     "js-recommendation-multigraph": "Recommendation is not available for multigraphs.",
     "js-resize-column": "Drag to resize column",
+    "js-reorder-table-column": "Drag to reorder column",
     "js-remove-attribute-column": "Remove attribute column",
     "js-add-link": "Add this link to the graph",
     "js-remove-node": "Remove node",

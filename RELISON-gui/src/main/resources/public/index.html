@@ -373,7 +373,8 @@
             <label class="field" data-tooltip="node-label-attribute"><span>Label attribute</span><select id="node-label-attribute"><option value="">Default (label or node ID)</option><option value="id">Node ID</option></select></label>
             <div class="params">
                 <label><span>Size</span><input type="number" id="node-label-size" step="1" min="1" value="12"/></label>
-                <label><span>Colour</span><input type="color" id="node-label-color" value="#e6e6e6"/></label>
+                <label><span>Colour</span><select id="node-label-color-mode"><option value="default">Default colour</option><option value="single">Single selected colour</option><option value="node">Same colour as node</option></select></label>
+                <label class="field" id="node-label-single-color-field" hidden><span>Selected colour</span><input type="color" id="node-label-color" value="#e6e6e6"/></label>
                 <label><span>Font</span>
                     <select id="node-label-font">
                         <option value="sans-serif">Sans-serif</option>
@@ -391,7 +392,8 @@
             <label class="field" data-tooltip="edge-label-attribute"><span>Label attribute</span><select id="edge-label-attribute"><option value="">Default (label attribute)</option><option value="id">Edge ID</option></select></label>
             <div class="params">
                 <label><span>Size</span><input type="number" id="edge-label-size" step="1" min="1" value="9"/></label>
-                <label><span>Colour</span><input type="color" id="edge-label-color" value="#e6e6e6"/></label>
+                <label><span>Colour</span><select id="edge-label-color-mode"><option value="default">Default colour</option><option value="single">Single selected colour</option><option value="edge">Same colour as edge</option></select></label>
+                <label class="field" id="edge-label-single-color-field" hidden><span>Selected colour</span><input type="color" id="edge-label-color" value="#e6e6e6"/></label>
                 <label><span>Font</span>
                     <select id="edge-label-font">
                         <option value="sans-serif">Sans-serif</option>
@@ -710,6 +712,10 @@
                     <span class="tb-spacer"></span>
                     <span class="tb-group">
                         <button id="btn-clear-nodes-filters" data-tooltip="ui-btn-clear-nodes-filters">🔎 Clear filters</button>
+                        <span class="menu-wrap column-menu-wrap">
+                            <button id="btn-node-columns" aria-expanded="false">☷ Columns</button>
+                            <div class="menu column-menu" id="node-column-menu" hidden></div>
+                        </span>
                     </span>
                 </div>
                 <div class="attribute-import-options">
@@ -755,6 +761,10 @@
                     <span class="tb-spacer"></span>
                     <span class="tb-group">
                         <button id="btn-clear-edges-filters" data-tooltip="ui-btn-clear-edges-filters">🔎 Clear filters</button>
+                        <span class="menu-wrap column-menu-wrap">
+                            <button id="btn-edge-columns" aria-expanded="false">☷ Columns</button>
+                            <div class="menu column-menu" id="edge-column-menu" hidden></div>
+                        </span>
                     </span>
                 </div>
                 <div class="attribute-import-options">

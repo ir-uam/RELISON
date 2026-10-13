@@ -23,6 +23,7 @@ async function create(graph, container, onPointClick) {
             x: Number.isFinite(attrs.x) ? attrs.x : undefined,
             y: Number.isFinite(attrs.y) ? attrs.y : undefined };
     });
+    let pointColorsByNode = new Map(points.map((point) => [point.id, point.color]));
     const baseEdges = graph.edges().map((edge) => {
         const source = String(graph.source(edge)), target = String(graph.target(edge));
         return { id: String(edge), source, target, sourceIndex: nodeIndex.get(source), targetIndex: nodeIndex.get(target),
@@ -50,7 +51,14 @@ async function create(graph, container, onPointClick) {
         linkDefaultStyle: 0, linkDashLength: 5, linkDashGap: 4, linkArrowsSizeScale: 1.5,
         enableSimulation: false, rescalePositions: false, fitViewOnInit: true, fitViewDelay: 0,
         transitionDuration: 0, showLabels: Boolean(labels.nodeShow), showHoveredPointLabel: true,
-        pointLabelColor: labels.nodeColor || "#ffffff", pointLabelFontSize: Number(labels.nodeSize) || 12,
+        pointLabelColor: labels.nodeColorMode === "single" ? (labels.nodeColor || "#ffffff") : "#ffffff",
+        pointLabelClassName: (_text, index) => {
+            const point = points[index];
+            const color = labels.nodeColorMode === "single" ? (labels.nodeColor || "#ffffff")
+                : labels.nodeColorMode === "node" ? (pointColorsByNode.get(point?.id) || "#ffffff") : "#ffffff";
+            return "color: " + color + ";";
+        },
+        pointLabelFontSize: Number(labels.nodeSize) || 12,
         outlinedPointIndices: document.getElementById("node-border-on")?.checked ? nodes.map((_, index) => index) : [],
         outlinedPointRingColor: document.getElementById("node-border-color")?.value || "#1b1c1f",
         selectPointOnClick: "single", selectLinkOnClick: false,
@@ -63,7 +71,6 @@ async function create(graph, container, onPointClick) {
     const linkWidths = links.map((link) => link.width);
     const linkStyles = links.map((link) => link.style);
     const graphApi = findGraphApi(instance);
-    let pointColorsByNode = new Map(points.map((point) => [point.id, point.color]));
     let activeLinkColors = links.map((link) => link.color);
     let activeLinkStyles = links.map((link) => link.style);
     let pointSizes = points.map((point) => point.size);
@@ -149,7 +156,8 @@ async function create(graph, container, onPointClick) {
             await applyFrameData();
             await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         },
-        syncAppearance(updatedGraph) {
+        syncAppearance(updatedGraph, updatedLabels) {
+            if (updatedLabels) Object.assign(labels, updatedLabels);
             pointSizes = points.map((point) => Number(updatedGraph.getNodeAttribute(point.id, "size")) || 4);
             pointCoordinates = new Float32Array(points.length * 2);
             points.forEach((point, index) => {
@@ -162,7 +170,15 @@ async function create(graph, container, onPointClick) {
             });
             activeLinkWidths = links.map((link) => link.recommendation ? link.width :
                 Number(updatedGraph.getEdgeAttribute(link.id, "size")) || 1);
-            return applyFrameData();
+            config.showLabels = Boolean(labels.nodeShow);
+            config.pointLabelColor = labels.nodeColorMode === "single" ? (labels.nodeColor || "#ffffff") : "#ffffff";
+            config.pointLabelFontSize = Number(labels.nodeSize) || 12;
+            const applyLabelConfig = typeof instance.setConfigPartial === "function"
+                ? instance.setConfigPartial({ showLabels: config.showLabels, pointLabelColor: config.pointLabelColor,
+                    pointLabelFontSize: config.pointLabelFontSize, pointLabelClassName: config.pointLabelClassName })
+                : Promise.resolve();
+            return Promise.resolve(applyLabelConfig).then(applyFrameData)
+                .catch((error) => console.warn("Diffusion Cosmograph appearance sync failed.", error));
         },
         resize() {
             instance.resize?.();

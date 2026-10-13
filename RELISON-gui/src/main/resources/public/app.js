@@ -216,12 +216,12 @@ const state = {
     activeTableSubtab: "nodes",
     // Label rendering options (mirrors the Labels controls in the left panel).
     labelOpts: {
-        nodeShow: true, nodeSize: 12, nodeProp: false, nodeColor: "#e6e6e6", nodeFont: "sans-serif",
-        edgeShow: false, edgeSize: 9, edgeProp: false, edgeColor: "#e6e6e6", edgeFont: "sans-serif",
+        nodeShow: true, nodeSize: 12, nodeProp: false, nodeColorMode: "default", nodeColor: "#e6e6e6", nodeFont: "sans-serif",
+        edgeShow: false, edgeSize: 9, edgeProp: false, edgeColorMode: "default", edgeColor: "#e6e6e6", edgeFont: "sans-serif",
     },
     tables: {
-        nodes: { sort: { col: "id", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
-        edges: { sort: { col: "source", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
+        nodes: { sort: { col: "id", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null, columnOrder: [], hiddenColumns: [] },
+        edges: { sort: { col: "source", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null, columnOrder: [], hiddenColumns: [] },
         rec: { sort: { col: "score", dir: -1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
     },
     catalog: null,
@@ -976,6 +976,8 @@ function resetTableViews() {
         t.filters = {};
         t.page = 0;
         t.headerSig = null;
+        t.columnOrder = [];
+        t.hiddenColumns = [];
     }
 }
 
@@ -1607,12 +1609,16 @@ function syncLabelOpts() {
     o.nodeShow = $("node-label-show").checked;
     o.nodeSize = numInput("node-label-size", 12);
     o.nodeProp = $("node-label-prop").checked;
+    o.nodeColorMode = $("node-label-color-mode").value || "default";
     o.nodeColor = $("node-label-color").value;
+    toggleHidden("node-label-single-color-field", o.nodeColorMode !== "single");
     o.nodeFont = $("node-label-font").value;
     o.edgeShow = $("edge-label-show").checked;
     o.edgeSize = numInput("edge-label-size", 9);
     o.edgeProp = $("edge-label-prop").checked;
+    o.edgeColorMode = $("edge-label-color-mode").value || "default";
     o.edgeColor = $("edge-label-color").value;
+    toggleHidden("edge-label-single-color-field", o.edgeColorMode !== "single");
     o.edgeFont = $("edge-label-font").value;
     window.relisonCosmographLabelOpts = { ...o };
     if (state.renderer) {
@@ -1621,8 +1627,8 @@ function syncLabelOpts() {
         // Mirror to the built-in settings too, as a fallback for the fixed-size case.
         state.renderer.setSetting("labelSize", o.nodeSize);
         state.renderer.setSetting("edgeLabelSize", o.edgeSize);
-        state.renderer.setSetting("labelColor", { color: o.nodeColor });
-        state.renderer.setSetting("edgeLabelColor", { color: o.edgeColor });
+        state.renderer.setSetting("labelColor", { color: labelDisplayColor("node", null, "sigma") });
+        state.renderer.setSetting("edgeLabelColor", { color: labelDisplayColor("edge", null, "sigma") });
         state.renderer.setSetting("labelFont", o.nodeFont);
         state.renderer.setSetting("edgeLabelFont", o.edgeFont);
         state.renderer.refresh();
@@ -1636,6 +1642,15 @@ function labelTextColor() {
     return document.body.classList.contains("light") ? "#1c1d20" : "#e6e6e6";
 }
 
+function labelDisplayColor(kind, underlyingColor, renderer) {
+    const options = state.labelOpts;
+    const mode = options[kind + "ColorMode"] || "default";
+    if (mode === "single") return options[kind + "Color"] || (renderer === "cosmograph" ? "#ffffff" : "#000000");
+    if ((kind === "node" && mode === "node") || (kind === "edge" && mode === "edge"))
+        return underlyingColor || (renderer === "cosmograph" ? "#ffffff" : "#000000");
+    return renderer === "cosmograph" ? "#ffffff" : "#000000";
+}
+
 // Custom node label drawer: font size is either fixed or proportional to the node's rendered size.
 // The colour is a parameter so the diffusion canvas can reuse the same geometry with its own (fixed) label colour.
 function drawNodeLabelWith(context, data, color) {
@@ -1646,10 +1661,13 @@ function drawNodeLabelWith(context, data, color) {
     context.font = `${fontSize}px ${o.nodeFont || "sans-serif"}`;
     context.fillText(data.label, data.x + data.size + 3, data.y + fontSize / 3);
 }
-function drawNodeLabel(context, data) { drawNodeLabelWith(context, data, state.labelOpts.nodeColor || labelTextColor()); }
+function drawNodeLabel(context, data) { drawNodeLabelWith(context, data, labelDisplayColor("node", data.color, "sigma")); }
 // Diffusion canvas: same label geometry as the main plot, but its own (theme-default) colour — label colour is
 // deliberately not mirrored from the main plot.
-function drawDiffNodeLabel(context, data) { drawNodeLabelWith(context, data, labelTextColor()); }
+function drawDiffNodeLabel(context, data) {
+    const renderer = state.diffusion.rendererType === "cosmograph" ? "cosmograph" : "sigma";
+    drawNodeLabelWith(context, data, labelDisplayColor("node", data.color, renderer));
+}
 
 // Custom edge label drawer: drawn at the edge midpoint, size fixed or proportional to the edge thickness.
 function drawEdgeLabelWith(context, data, sourceData, targetData, color) {
@@ -1664,8 +1682,11 @@ function drawEdgeLabelWith(context, data, sourceData, targetData, color) {
     context.fillText(data.label, x, y);
     context.textAlign = "left";
 }
-function drawEdgeLabel(context, data, sourceData, targetData) { drawEdgeLabelWith(context, data, sourceData, targetData, state.labelOpts.edgeColor || labelTextColor()); }
-function drawDiffEdgeLabel(context, data, sourceData, targetData) { drawEdgeLabelWith(context, data, sourceData, targetData, labelTextColor()); }
+function drawEdgeLabel(context, data, sourceData, targetData) { drawEdgeLabelWith(context, data, sourceData, targetData, labelDisplayColor("edge", data.color, "sigma")); }
+function drawDiffEdgeLabel(context, data, sourceData, targetData) {
+    const renderer = state.diffusion.rendererType === "cosmograph" ? "cosmograph" : "sigma";
+    drawEdgeLabelWith(context, data, sourceData, targetData, labelDisplayColor("edge", data.color, renderer));
+}
 
 /* --------------------------- canvas tools --------------------------- */
 
@@ -4445,6 +4466,81 @@ function tableModel(key) {
     return { cols: edgeColumns(), ids: state.graph ? state.graph.edges() : [], val: edgeRowValue };
 }
 
+// Keep graph identity columns first, the actions column last, and restore the user's order for all other columns.
+function orderedTableColumns(key, cols) {
+    if (key !== "nodes" && key !== "edges") return cols;
+    const t = state.tables[key];
+    const fixed = key === "nodes" ? ["id"] : ["source", "target"];
+    const movable = cols.filter((c) => !fixed.includes(c.key) && c.key !== "_act");
+    const available = new Map(movable.map((c) => [c.key, c]));
+    const ordered = (t.columnOrder || []).map((k) => available.get(k)).filter(Boolean);
+    const seen = new Set(ordered.map((c) => c.key));
+    movable.forEach((c) => { if (!seen.has(c.key)) ordered.push(c); });
+    t.columnOrder = ordered.map((c) => c.key);
+    const visible = [...fixed.map((k) => cols.find((c) => c.key === k)).filter(Boolean), ...ordered.filter((c) => !(t.hiddenColumns || []).includes(c.key)), ...cols.filter((c) => c.key === "_act")];
+    return visible;
+}
+
+function tableColumnGroup(key, column) {
+    if (key === "nodes") {
+        if (column.key.startsWith("a:")) return "attribute";
+        if (column.key.startsWith("m:") || column.key.startsWith("c:")) return "metric";
+    }
+    if (key === "edges") {
+        if (column.key.startsWith("ea:")) return "attribute";
+        if (column.key.startsWith("p:")) return "metric";
+    }
+    return null;
+}
+
+function renderColumnVisibilityMenu(key) {
+    const menu = $(key === "nodes" ? "node-column-menu" : "edge-column-menu");
+    const cols = tableModel(key).cols.filter((c) => c.key !== "_act");
+    menu.replaceChildren();
+    const groups = [
+        { key: "attribute", label: "Attributes" },
+        { key: "metric", label: "Metrics" },
+        { key: null, label: "Other columns" },
+    ];
+    for (const group of groups) {
+        const items = cols.filter((c) => tableColumnGroup(key, c) === group.key);
+        if (!items.length) continue;
+        const heading = document.createElement("div");
+        heading.className = "column-menu-heading" + (group.key ? " column-menu-heading-" + group.key : "");
+        heading.textContent = group.label;
+        menu.appendChild(heading);
+        for (const c of items) {
+            const label = document.createElement("label");
+            label.className = "column-menu-item";
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = !(state.tables[key].hiddenColumns || []).includes(c.key);
+            checkbox.disabled = (key === "nodes" && c.key === "id") || (key === "edges" && (c.key === "source" || c.key === "target"));
+            checkbox.addEventListener("change", () => {
+                const hidden = new Set(state.tables[key].hiddenColumns || []);
+                if (checkbox.checked) hidden.delete(c.key); else hidden.add(c.key);
+                state.tables[key].hiddenColumns = [...hidden];
+                state.tables[key].headerSig = null;
+                renderTable(key);
+                renderColumnVisibilityMenu(key);
+            });
+            const text = document.createElement("span");
+            text.textContent = c.label;
+            label.append(checkbox, text);
+            menu.appendChild(label);
+        }
+    }
+}
+
+function toggleColumnVisibilityMenu(key) {
+    const menu = $(key === "nodes" ? "node-column-menu" : "edge-column-menu");
+    const button = $(key === "nodes" ? "btn-node-columns" : "btn-edge-columns");
+    const open = menu.hidden;
+    menu.hidden = !open;
+    button.setAttribute("aria-expanded", String(open));
+    if (open) renderColumnVisibilityMenu(key);
+}
+
 function compareValues(a, b) {
     if (a === undefined || a === null) return 1;
     if (b === undefined || b === null) return -1;
@@ -4484,6 +4580,7 @@ function setupResizableColumns(table) {
     table.insertBefore(colgroup, table.firstChild);
     table.style.tableLayout = "fixed";
     table.style.width = widths.reduce((a, b) => a + b, 0) + "px";
+    syncIdentityColumnOffsets(table, widths);
 
     ths.forEach((th, i) => {
         const grip = document.createElement("span");
@@ -4509,6 +4606,7 @@ function startColResize(e, table, colgroup, i) {
         let sum = 0;
         for (const c of colgroup.children) sum += parseFloat(c.style.width) || 0;
         table.style.width = sum + "px";
+        syncIdentityColumnOffsets(table, Array.from(colgroup.children, (c) => parseFloat(c.style.width) || 0));
     };
     const onUp = () => {
         document.removeEventListener("mousemove", onMove);
@@ -4518,6 +4616,11 @@ function startColResize(e, table, colgroup, i) {
     document.body.classList.add("col-resizing");
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
+}
+
+function syncIdentityColumnOffsets(table, widths) {
+    if (table.id !== "edges-table") return;
+    table.style.setProperty("--edge-source-sticky-width", (widths[0] || 0) + "px");
 }
 
 /* ----------------------------- filtering ---------------------------- */
@@ -4651,6 +4754,7 @@ function renderTable(key) {
 // so typing in a filter input never recreates the input and never loses focus.
 function ensureHeader(key) {
     const m = tableModel(key);
+    m.cols = orderedTableColumns(key, m.cols);
     const sig = m.cols.map((c) => c.key).join("|");
     if (state.tables[key].headerSig === sig) { updateSortIndicators(key, m.cols); return; }
     state.tables[key].headerSig = sig;
@@ -4664,28 +4768,66 @@ function buildHeader(key, cols) {
     const thead = document.createElement("thead");
 
     const sortRow = document.createElement("tr");
-    cols.forEach((c) => {
+    cols.forEach((c, index) => {
         if (c.key === "_act") { const th = document.createElement("th"); th.className = "act-th"; sortRow.appendChild(th); return; }
-        const onSort = () => applySort(state.tables[key].sort, c.key, () => { state.tables[key].page = 0; }, () => renderTable(key));
-        sortRow.appendChild(makeSortTh(c.key, c.label, onSort));
+        const th = makeSortTh(c.key, c.label, () => applySort(state.tables[key].sort, c.key, () => { state.tables[key].page = 0; }, () => renderTable(key)));
+        const columnGroup = tableColumnGroup(key, c);
+        if (columnGroup) {
+            th.classList.add("column-type-" + columnGroup);
+            const tag = document.createElement("span");
+            tag.className = "column-type-tag";
+            tag.textContent = columnGroup === "attribute" ? "ATTR" : "METRIC";
+            th.insertBefore(tag, th.firstChild);
+        }
+        if ((key === "nodes" && c.key === "id") || (key === "edges" && (c.key === "source" || c.key === "target"))) th.classList.add("identity-col", "identity-col-" + index);
+        if (key === "nodes" || key === "edges") {
+            th.draggable = !(key === "nodes" && c.key === "id") && !(key === "edges" && (c.key === "source" || c.key === "target"));
+            th.dataset.columnKey = c.key;
+            if (th.draggable) {
+                th.classList.add("reorderable-col");
+                setTooltip(th, "js-reorder-table-column");
+                th.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", c.key); e.dataTransfer.effectAllowed = "move"; });
+                th.addEventListener("dragover", (e) => { if (e.dataTransfer.types.includes("text/plain")) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } });
+                th.addEventListener("drop", (e) => {
+                    e.preventDefault();
+                    const from = e.dataTransfer.getData("text/plain"), to = c.key;
+                    if (!from || from === to) return;
+                    const order = state.tables[key].columnOrder.slice();
+                    const fromIndex = order.indexOf(from), toIndex = order.indexOf(to);
+                    if (fromIndex < 0 || toIndex < 0) return;
+                    order.splice(toIndex, 0, ...order.splice(fromIndex, 1));
+                    state.tables[key].columnOrder = order;
+                    state.tables[key].headerSig = null;
+                    renderTable(key);
+                });
+            }
+        }
+        sortRow.appendChild(th);
     });
     thead.appendChild(sortRow);
 
     const filterRow = document.createElement("tr");
     filterRow.className = "filter-row";
-    cols.forEach((c) => {
+    cols.forEach((c, index) => {
         const th = document.createElement("th");
+        if ((key === "nodes" && c.key === "id") || (key === "edges" && (c.key === "source" || c.key === "target"))) th.classList.add("identity-col", "identity-col-" + index);
         if (c.key === "_act") { filterRow.appendChild(th); return; }   // no filter on the actions column
         const wrap = makeColFilter(state.tables[key].filters[c.key],
             (op, value, value2) => setColFilter(key, c.key, op, value, value2));
         // Attribute columns get a remove (✕) control in the header.
         const isAttr = (key === "nodes" && c.key.startsWith("a:")) || (key === "edges" && c.key.startsWith("ea:"));
         if (isAttr) {
+            const rename = document.createElement("button");
+            rename.textContent = "✎";
+            rename.className = "col-rename";
+            rename.title = "Rename attribute column";
+            const name = c.key.slice(c.key.indexOf(":") + 1);
+            rename.addEventListener("click", (e) => { e.stopPropagation(); renameAttrColumn(key === "nodes" ? "node" : "edge", name); });
+            wrap.appendChild(rename);
             const rm = document.createElement("button");
             rm.textContent = "✕";
             rm.className = "col-remove";
             setTooltip(rm, "js-remove-attribute-column");
-            const name = c.key.slice(c.key.indexOf(":") + 1);
             rm.addEventListener("click", () => removeAttrColumn(key === "nodes" ? "node" : "edge", name));
             wrap.appendChild(rm);
         }
@@ -4717,10 +4859,16 @@ function renderBody(key) {
     const oldBody = table.querySelector("tbody");
     if (oldBody) oldBody.remove();
     const tbody = document.createElement("tbody");
+    const cols = orderedTableColumns(key, model.cols);
+    const colIndexes = new Map(cols.map((c, i) => [c.key, i]));
     for (const id of pageIds) {
         const tr = document.createElement("tr");
-        for (const c of model.cols) {
+        for (const c of cols) {
             const td = document.createElement("td");
+            if ((key === "nodes" && c.key === "id") || (key === "edges" && (c.key === "source" || c.key === "target"))) {
+                const identityIndex = colIndexes.get(c.key);
+                td.classList.add("identity-col", "identity-col-" + identityIndex);
+            }
             if (c.key === "_act") {
                 if (key === "rec") {
                     const add = document.createElement("button");
@@ -4889,6 +5037,49 @@ async function removeAttrColumn(target, name) {
         applyAppearance();
         renderTable(state.activeTableSubtab);
         setStatus("Removed attribute " + name + ".");
+    } catch (e) { setStatus(e.message, "error"); }
+}
+
+async function renameAttrColumn(target, oldName) {
+    const newName = window.prompt("New name for attribute column:", oldName);
+    if (newName === null) return;
+    const trimmed = newName.trim();
+    if (!trimmed) { setStatus("Attribute name must not be blank.", "error"); return; }
+    if (trimmed === oldName) return;
+    try {
+        const res = await api("/api/graph/" + state.graphId + "/attributes/rename", jsonBody({ target, oldName, newName: trimmed }));
+        state.attrSchema = res.schema || state.attrSchema;
+        const oldKey = (target === "node" ? "a:" : "ea:") + oldName;
+        const newKey = (target === "node" ? "a:" : "ea:") + trimmed;
+        const tableKey = target === "node" ? "nodes" : "edges";
+        const table = state.tables[tableKey];
+        table.columnOrder = table.columnOrder.map((column) => column === oldKey ? newKey : column);
+        table.hiddenColumns = table.hiddenColumns.map((column) => column === oldKey ? newKey : column);
+        if (table.filters[oldKey]) { table.filters[newKey] = table.filters[oldKey]; delete table.filters[oldKey]; }
+        if (table.sort.col === oldKey) table.sort.col = newKey;
+        table.headerSig = null;
+
+        if (target === "node") {
+            state.graph.forEachNode((node) => {
+                const attrs = Object.assign({}, state.graph.getNodeAttribute(node, "attrs") || {});
+                if (Object.prototype.hasOwnProperty.call(attrs, oldName)) { attrs[trimmed] = attrs[oldName]; delete attrs[oldName]; }
+                state.graph.setNodeAttribute(node, "attrs", attrs);
+            });
+        } else {
+            state.graph.forEachEdge((edge) => {
+                const attrs = Object.assign({}, state.graph.getEdgeAttribute(edge, "attrs") || {});
+                if (Object.prototype.hasOwnProperty.call(attrs, oldName)) { attrs[trimmed] = attrs[oldName]; delete attrs[oldName]; }
+                state.graph.setEdgeAttribute(edge, "attrs", attrs);
+            });
+        }
+        rebuildAppearanceOptions();
+        rebuildTimelineOptions();
+        rebuildLabelAttributeOptions();
+        syncAttributeCommunityMetricControls();
+        syncEdgeAttributeMetricControls();
+        applyAppearance();
+        renderTable(tableKey);
+        setStatus("Renamed attribute " + oldName + " to " + trimmed + ".");
     } catch (e) { setStatus(e.message, "error"); }
 }
 
@@ -5545,7 +5736,7 @@ function buildSigmaSvg({ fullNetwork = false } = {}) {
             const labelX = curved ? ((s.x + 2 * controlX + t.x) / 4) : ((s.x + t.x) / 2);
             const labelY = curved ? ((s.y + 2 * controlY + t.y) / 4) : ((s.y + t.y) / 2);
             edgeMarkup.push('<text x="' + labelX + '" y="' + labelY
-                + '" text-anchor="middle" fill="' + esc(state.labelOpts.edgeColor || labelTextColor()) + '" font-family="' + esc(state.labelOpts.edgeFont || "sans-serif")
+                + '" text-anchor="middle" fill="' + esc(labelDisplayColor("edge", d.color, "sigma")) + '" font-family="' + esc(state.labelOpts.edgeFont || "sans-serif")
                 + '" font-size="' + fontSize + '">' + esc(label) + '</text>');
         }
     });
@@ -5563,7 +5754,7 @@ function buildSigmaSvg({ fullNetwork = false } = {}) {
         if (label != null && label !== "" && (fullNetwork ? labelSettings.nodeShow : (nodeLabels.has(node) || (nodeLabels.size === 0 && labelSettings.nodeShow)))) {
             const fontSize = labelSettings.nodeProp ? Math.max(6, d.size * (labelSettings.nodeSize / 8)) : labelSettings.nodeSize;
             nodeLabelMarkup.push('<text x="' + (p.x + p.radius + 3) + '" y="' + (p.y + fontSize / 3)
-                + '" fill="' + esc(labelSettings.nodeColor || labelTextColor()) + '" font-family="' + esc(labelSettings.nodeFont || "sans-serif")
+                + '" fill="' + esc(labelDisplayColor("node", d.color, "sigma")) + '" font-family="' + esc(labelSettings.nodeFont || "sans-serif")
                 + '" font-size="' + fontSize + '">' + esc(label) + '</text>');
         }
     }
@@ -7487,7 +7678,7 @@ function syncDiffAppearance() {
         r.setSetting("edgeLabelFont", o.edgeFont);
         r.refresh();
     }
-    state.diffusion.cosmograph?.syncAppearance(g);
+    state.diffusion.cosmograph?.syncAppearance(g, o);
     drawDiffOverlay();
 }
 
@@ -9443,6 +9634,8 @@ $("node-border-width").addEventListener("input", () => {
  "edge-label-show", "edge-label-size", "edge-label-prop", "edge-label-color", "edge-label-font",
  "node-label-attribute", "edge-label-attribute"]
     .forEach((id) => $(id).addEventListener("input", syncLabelOpts));
+$("node-label-color-mode").addEventListener("change", syncLabelOpts);
+$("edge-label-color-mode").addEventListener("change", syncLabelOpts);
 $("btn-zoom-in").addEventListener("click", zoomIn);
 $("btn-zoom-out").addEventListener("click", zoomOut);
 $("btn-zoom-fit").addEventListener("click", zoomFit);
@@ -9625,6 +9818,8 @@ $("edge-csv-file").addEventListener("change", (e) => { setDefaultEdgeSeparator("
 
 $("btn-clear-nodes-filters").addEventListener("click", () => clearFilters("nodes"));
 $("btn-clear-edges-filters").addEventListener("click", () => clearFilters("edges"));
+$("btn-node-columns").addEventListener("click", () => toggleColumnVisibilityMenu("nodes"));
+$("btn-edge-columns").addEventListener("click", () => toggleColumnVisibilityMenu("edges"));
 
 ["node-chart-metric", "node-chart-sort"].forEach((id) => $(id).addEventListener("change", drawNodeChart));
 $("node-topk-metric").addEventListener("change", renderNodeTopK);
