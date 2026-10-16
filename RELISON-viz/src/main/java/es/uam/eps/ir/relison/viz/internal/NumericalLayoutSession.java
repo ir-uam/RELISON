@@ -17,7 +17,8 @@ public abstract class NumericalLayoutSession<U> implements LayoutSession<U>
     protected final IndexedGraphSnapshot<U> graph;
     protected final LayoutRequest<U> request;
     protected final boolean[] pins;
-    protected final double[] x, y;
+    protected final double[] x, y, z;
+    protected final boolean spatial;
     protected final Random random;
     protected LayoutDiagnostics.Termination status = LayoutDiagnostics.Termination.RUNNING;
     private final String id;
@@ -34,13 +35,24 @@ public abstract class NumericalLayoutSession<U> implements LayoutSession<U>
      * @param scale initialization scale
      */
     protected NumericalLayoutSession(Graph<U> input, LayoutRequest<U> request, String id, double scale)
+    { this(input, request, id, scale, false); }
+
+    /**
+     * @param input graph
+     * @param request constraints
+     * @param id identity
+     * @param scale initial edge scale
+     * @param spatial whether to compute 3D
+     */
+    protected NumericalLayoutSession(Graph<U> input, LayoutRequest<U> request, String id, double scale, boolean spatial)
     {
+        this.spatial = spatial;
         this.graph = IndexedGraphSnapshot.capture(input, request);
         this.request = request; this.id = id;
         int n = graph.getNodes().size();
-        x = new double[n]; y = new double[n]; pins = new boolean[n];
+        x = new double[n]; y = new double[n]; z = new double[n]; pins = new boolean[n];
         random = new Random(request.getSeed());
-        double side = scale * Math.sqrt(Math.max(1, n));
+        double side = scale * (spatial ? Math.cbrt(Math.max(1,n)) : Math.sqrt(Math.max(1, n)));
         if (!Double.isFinite(side)) throw new IllegalArgumentException("Initialization scale overflow");
         boolean movable = false;
         for (int i = 0; i < n; i++)
@@ -50,6 +62,12 @@ public abstract class NumericalLayoutSession<U> implements LayoutSession<U>
             x[i] = p == null ? (random.nextDouble()-.5)*side : p.v1();
             y[i] = p == null ? (random.nextDouble()-.5)*side : p.v2();
             pins[i] = request.getPinnedNodes().contains(node);
+            if (spatial) {
+                Point3D initial = request.getInitialPositions3D().get(node);
+                if (pins[i] && initial == null) throw new IllegalArgumentException("Spatial pins require x/y/z coordinates");
+                if (initial != null) { x[i] = initial.getX(); y[i] = initial.getY(); z[i] = initial.getZ(); }
+                else z[i] = (random.nextDouble()-.5)*side;
+            }
             movable |= !pins[i];
         }
         if (!movable) status = LayoutDiagnostics.Termination.CONVERGED;
@@ -80,20 +98,29 @@ public abstract class NumericalLayoutSession<U> implements LayoutSession<U>
      * @param nextY complete candidate y coordinates
      */
     protected final void commit(double[] nextX, double[] nextY)
+    { commit(nextX, nextY, z); }
+
+    /**
+     * @param nextX x coordinates
+     * @param nextY y coordinates
+     * @param nextZ z coordinates
+     */
+    protected final void commit(double[] nextX, double[] nextY, double[] nextZ)
     {
         checkpoint();
         double maximum = 0;
         for (int i = 0; i < x.length; i++)
         {
-            if (!Double.isFinite(nextX[i]) || !Double.isFinite(nextY[i]))
+            if (!Double.isFinite(nextX[i]) || !Double.isFinite(nextY[i]) || !Double.isFinite(nextZ[i]))
                 throw new IllegalArgumentException("Numerical layout produced non-finite coordinates");
-            if (pins[i] && (nextX[i] != x[i] || nextY[i] != y[i]))
+            if (pins[i] && (nextX[i] != x[i] || nextY[i] != y[i] || nextZ[i] != z[i]))
                 throw new IllegalStateException("Numerical layout moved a pinned node");
-            maximum = Math.max(maximum, Math.hypot(nextX[i]-x[i], nextY[i]-y[i]));
+            maximum = Math.max(maximum, Math.hypot(Math.hypot(nextX[i]-x[i], nextY[i]-y[i]), nextZ[i]-z[i]));
         }
         if (!Double.isFinite(maximum)) throw new IllegalArgumentException("Coordinate displacement overflow");
         System.arraycopy(nextX, 0, x, 0, x.length);
         System.arraycopy(nextY, 0, y, 0, y.length);
+        System.arraycopy(nextZ, 0, z, 0, z.length);
         movement = maximum;
         committed = true;
     }
@@ -122,6 +149,11 @@ public abstract class NumericalLayoutSession<U> implements LayoutSession<U>
     @Override public final LayoutResult<U> snapshot()
     {
         stopped();
+        if (spatial) {
+            Map<U, Point3D> result = new LinkedHashMap<>();
+            for (int i=0;i<x.length;i++) result.put(graph.getNodes().get(i),new Point3D(x[i],y[i],z[i]));
+            return LayoutResult.spatial(result,new LayoutDiagnostics(id,status,iterations,movement));
+        }
         Map<U, Pair<Double>> result = new LinkedHashMap<>();
         for (int i = 0; i < x.length; i++) result.put(graph.getNodes().get(i), new Pair<>(x[i], y[i]));
         return new LayoutResult<>(result, new LayoutDiagnostics(id, status, iterations, movement));

@@ -23,6 +23,15 @@ public final class StressMajorizationSession<U> extends NumericalLayoutSession<U
     public StressMajorizationSession(Graph<U> input, LayoutRequest<U> request, StressMajorizationConfig config)
     { super(input, request, "stress-majorization", config.edgeLength); this.config = config; }
 
+    /**
+     * @param input graph
+     * @param request constraints
+     * @param config settings
+     * @param spatial whether to solve all three axes
+     */
+    public StressMajorizationSession(Graph<U> input, LayoutRequest<U> request, StressMajorizationConfig config, boolean spatial)
+    { super(input,request,spatial ? "stress-majorization-3d" : "stress-majorization",config.edgeLength,spatial); this.config=config; }
+
     private void prepare()
     {
         int n = x.length;
@@ -77,34 +86,35 @@ public final class StressMajorizationSession<U> extends NumericalLayoutSession<U
     @Override protected void advance()
     {
         if (systems == null) prepare();
-        double before = stress(x, y);
-        double[] nextX = x.clone(), nextY = y.clone();
+        double before = stress(x, y, z);
+        double[] nextX = x.clone(), nextY = y.clone(), nextZ = z.clone();
         for (SystemBlock block : systems)
         {
-            double[] bx = new double[block.free.length], by = new double[block.free.length];
+            double[] bx = new double[block.free.length], by = new double[block.free.length], bz = new double[block.free.length];
             for (int a = 0; a < block.free.length; a++)
             {
                 checkpoint(); int i = block.free[a];
                 for (int j : block.component) if (i != j)
                 {
-                    double vx = x[i]-x[j], vy = y[i]-y[j], r = Math.hypot(vx, vy);
+                    double vx = x[i]-x[j], vy = y[i]-y[j], vz = z[i]-z[j], r = Math.hypot(Math.hypot(vx, vy),vz);
                     // The paper defines inv(0)=0, preserving coincident warm starts.
                     double ratio = r == 0 ? 0 : weight[i][j]*target[i][j]/r;
-                    bx[a] += ratio*vx; by[a] += ratio*vy;
-                    if (block.fixed[j]) { bx[a] += weight[i][j]*x[j]; by[a] += weight[i][j]*y[j]; }
+                    bx[a] += ratio*vx; by[a] += ratio*vy; bz[a] += ratio*vz;
+                    if (block.fixed[j]) { bx[a] += weight[i][j]*x[j]; by[a] += weight[i][j]*y[j]; bz[a] += weight[i][j]*z[j]; }
                 }
             }
             solve(block.factor, bx); solve(block.factor, by);
-            for (int a = 0; a < block.free.length; a++) { nextX[block.free[a]] = bx[a]; nextY[block.free[a]] = by[a]; }
+            if (spatial) solve(block.factor,bz);
+            for (int a = 0; a < block.free.length; a++) { nextX[block.free[a]] = bx[a]; nextY[block.free[a]] = by[a]; if(spatial) nextZ[block.free[a]]=bz[a]; }
         }
-        double after = stress(nextX, nextY);
+        double after = stress(nextX, nextY, nextZ);
         if (after > before)
         {
             if (after-before > 1e-10*Math.max(1, before))
                 throw new IllegalArgumentException("Stress solve lost monotonicity; check coordinate/weight scales");
-            nextX = x.clone(); nextY = y.clone(); after = before;
+            nextX = x.clone(); nextY = y.clone(); nextZ = z.clone(); after = before;
         }
-        commit(nextX, nextY);
+        commit(nextX, nextY, nextZ);
         if (before == 0 || (before-after)/before <= config.tolerance)
             status = LayoutDiagnostics.Termination.CONVERGED;
     }
@@ -125,7 +135,7 @@ public final class StressMajorizationSession<U> extends NumericalLayoutSession<U
         }
     }
 
-    private double stress(double[] xx, double[] yy)
+    private double stress(double[] xx, double[] yy, double[] zz)
     {
         double result = 0;
         for (int i = 0; i < x.length; i++)
@@ -133,7 +143,7 @@ public final class StressMajorizationSession<U> extends NumericalLayoutSession<U
             checkpoint();
             for (int j = i+1; j < x.length; j++) if (weight[i][j] > 0)
             {
-                double error = (Math.hypot(xx[i]-xx[j], yy[i]-yy[j])-target[i][j])/target[i][j];
+                double error = (Math.hypot(Math.hypot(xx[i]-xx[j], yy[i]-yy[j]),zz[i]-zz[j])-target[i][j])/target[i][j];
                 result += error*error;
             }
         }

@@ -13,15 +13,19 @@ function findGraphApi(instance) {
     return candidates.find((candidate) => candidate && typeof candidate.setPointColors === "function" && typeof candidate.setLinkColors === "function") || null;
 }
 
-async function create(graph, container, onPointClick) {
+async function create(graph, container, onPointClick, options = {}) {
+    const dimensions = Number(options.dimensions) === 3 ? 3 : 2;
+    const spatialPositions = options.positions || {};
     const nodes = graph.nodes();
     const nodeIndex = new Map(nodes.map((node, index) => [String(node), index]));
     const points = nodes.map((node) => {
         const attrs = graph.getNodeAttributes(node);
+        const spatial = spatialPositions[String(node)] || attrs;
         return { id: String(node), index: nodeIndex.get(String(node)), label: String(attrs.label ?? node), color: attrs.color || "#8993a4",
             size: Number.isFinite(attrs.size) ? attrs.size : 4,
-            x: Number.isFinite(attrs.x) ? attrs.x : undefined,
-            y: Number.isFinite(attrs.y) ? attrs.y : undefined };
+            x: Number.isFinite(spatial.x) ? spatial.x : undefined,
+            y: Number.isFinite(spatial.y) ? spatial.y : undefined,
+            z: dimensions === 3 && Number.isFinite(spatial.z) ? spatial.z : 0 };
     });
     let pointColorsByNode = new Map(points.map((point) => [point.id, point.color]));
     const baseEdges = graph.edges().map((edge) => {
@@ -44,6 +48,9 @@ async function create(graph, container, onPointClick) {
     const config = {
         points, links,
         pointIdBy: "id", pointIndexBy: "index", pointColorBy: "color", pointSizeBy: "size", pointLabelBy: "label", pointXBy: "x", pointYBy: "y",
+        ...(dimensions === 3 ? { pointZBy: "z" } : {}), spaceDimensions: dimensions,
+        pointSphereShading: dimensions === 3 && Boolean(document.getElementById("cosmograph-sphere-shading")?.checked),
+        pointDepthFade: dimensions === 3 ? 0.1 : 0,
         linkSourceBy: "source", linkSourceIndexBy: "sourceIndex", linkTargetBy: "target", linkTargetIndexBy: "targetIndex",
         linkColorBy: "color", linkWidthBy: "width", linkArrowBy: "arrow", linkStyleBy: "style",
         pointColorStrategy: "direct", pointSizeStrategy: "direct", linkColorStrategy: "direct", linkWidthStrategy: "direct",
@@ -74,7 +81,8 @@ async function create(graph, container, onPointClick) {
     let activeLinkColors = links.map((link) => link.color);
     let activeLinkStyles = links.map((link) => link.style);
     let pointSizes = points.map((point) => point.size);
-    let pointCoordinates = Float32Array.from(points.flatMap((point) => [point.x || 0, point.y || 0]));
+    let pointCoordinates = Float32Array.from(points.flatMap((point) => dimensions === 3
+        ? [point.x || 0, point.y || 0, point.z || 0] : [point.x || 0, point.y || 0]));
     let activeLinkWidths = links.map((link) => link.width);
     const sourceToIndex = new Map();
     links.forEach((link, index) => sourceToIndex.set(pairId(link.source, link.target), index));
@@ -90,7 +98,7 @@ async function create(graph, container, onPointClick) {
             const positionTarget = typeof graphApi.setPointPositions === "function" ? graphApi
                 : typeof instance.setPointPositions === "function" ? instance : null;
             if (positionTarget) {
-                positionTarget.setPointPositions(pointCoordinates, { dimensions: 2, dontRescale: true });
+                positionTarget.setPointPositions(pointCoordinates, { dimensions, dontRescale: true });
                 if (typeof positionTarget.render === "function") positionTarget.render();
                 else instance.render?.();
             } else graphApi.render?.();
@@ -105,8 +113,9 @@ async function create(graph, container, onPointClick) {
             ...point,
             color: pointColorsByNode.get(point.id),
             size: pointSizes[index],
-            x: pointCoordinates[index * 2],
-            y: pointCoordinates[index * 2 + 1],
+            x: pointCoordinates[index * dimensions],
+            y: pointCoordinates[index * dimensions + 1],
+            z: dimensions === 3 ? pointCoordinates[index * dimensions + 2] : 0,
         }));
         const frameLinks = links.map((link, index) => ({
             ...link,
@@ -156,17 +165,21 @@ async function create(graph, container, onPointClick) {
             await applyFrameData();
             await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         },
-        syncAppearance(updatedGraph, updatedLabels) {
+        syncAppearance(updatedGraph, updatedLabels, updatedSpatialPositions = {}) {
             if (updatedLabels) Object.assign(labels, updatedLabels);
             pointSizes = points.map((point) => Number(updatedGraph.getNodeAttribute(point.id, "size")) || 4);
-            pointCoordinates = new Float32Array(points.length * 2);
+            pointCoordinates = new Float32Array(points.length * dimensions);
             points.forEach((point, index) => {
-                const x = updatedGraph.getNodeAttribute(point.id, "x");
-                const y = updatedGraph.getNodeAttribute(point.id, "y");
+                const spatial = dimensions === 3 ? updatedSpatialPositions[point.id] : null;
+                const x = spatial?.x ?? updatedGraph.getNodeAttribute(point.id, "x");
+                const y = spatial?.y ?? updatedGraph.getNodeAttribute(point.id, "y");
+                const z = dimensions === 3 ? (spatial?.z ?? point.z) : 0;
                 if (Number.isFinite(x)) point.x = x;
                 if (Number.isFinite(y)) point.y = y;
-                pointCoordinates[index * 2] = Number.isFinite(point.x) ? point.x : 0;
-                pointCoordinates[index * 2 + 1] = Number.isFinite(point.y) ? point.y : 0;
+                if (Number.isFinite(z)) point.z = z;
+                pointCoordinates[index * dimensions] = Number.isFinite(point.x) ? point.x : 0;
+                pointCoordinates[index * dimensions + 1] = Number.isFinite(point.y) ? point.y : 0;
+                if (dimensions === 3) pointCoordinates[index * dimensions + 2] = Number.isFinite(point.z) ? point.z : 0;
             });
             activeLinkWidths = links.map((link) => link.recommendation ? link.width :
                 Number(updatedGraph.getEdgeAttribute(link.id, "size")) || 1);
@@ -184,21 +197,39 @@ async function create(graph, container, onPointClick) {
             instance.resize?.();
             graphApi?.render?.();
         },
-        captureFrame(maxWidth) {
-            const source = instance.getCanvas?.() || container.querySelector("canvas");
+        async captureFrame(targetWidth) {
+            let source = instance.getCanvas?.() || container.querySelector("canvas");
             if (!source?.width || !source?.height) return null;
-            const scale = Math.min(1, (maxWidth || source.width) / source.width);
-            let width = Math.max(2, Math.round(source.width * scale));
-            let height = Math.max(2, Math.round(source.height * scale));
-            width -= width % 2; height -= height % 2;
-            const frame = document.createElement("canvas");
-            frame.width = width; frame.height = height;
-            const context = frame.getContext("2d");
-            context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--canvas-bg").trim() || "#18191c";
-            context.fillRect(0, 0, width, height);
-            context.drawImage(source, 0, 0, width, height);
-            return frame;
+            const cssWidth = source.clientWidth || container.clientWidth, cssHeight = source.clientHeight || container.clientHeight;
+            const size = window.relisonAnimationExport.frameSize(cssWidth, cssHeight, targetWidth || source.width);
+            const previousRatio = (await instance.getConfig?.())?.pixelRatio || source.width / cssWidth;
+            const ratio = size.width / cssWidth;
+            const changed = Math.abs(previousRatio - ratio) > 0.001;
+            try {
+                if (changed) {
+                    if (!instance.setConfigPartial) throw new Error("This renderer cannot change its capture resolution.");
+                    await instance.setConfigPartial({ pixelRatio: ratio });
+                    instance.resize?.(); graphApi?.render?.();
+                }
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                source = instance.getCanvas?.() || container.querySelector("canvas");
+                if (!source || source.width + 1 < size.width || source.height + 1 < size.height)
+                    throw new Error("The renderer could not produce the selected capture resolution.");
+                const frame = document.createElement("canvas");
+                frame.width = size.width; frame.height = size.height;
+                const context = frame.getContext("2d");
+                context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--canvas-bg").trim() || "#18191c";
+                context.fillRect(0, 0, size.width, size.height);
+                context.drawImage(source, 0, 0, size.width, size.height);
+                return frame;
+            } finally {
+                if (changed && instance.setConfigPartial) {
+                    await instance.setConfigPartial({ pixelRatio: previousRatio });
+                    instance.resize?.(); graphApi?.render?.();
+                }
+            }
         },
+        getDimensions() { return dimensions; },
         destroy() { instance.stop(); instance.destroy(); container.replaceChildren(); },
     };
     return api;

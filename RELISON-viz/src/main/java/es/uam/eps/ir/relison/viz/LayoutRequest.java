@@ -15,6 +15,7 @@ import java.util.*;
 public final class LayoutRequest<U>
 {
     private final Map<U, Pair<Double>> initialPositions;
+    private final Map<U, Point3D> initialPositions3D;
     private final Set<U> pinnedNodes;
     private final List<U> nodeOrder;
     private final long seed;
@@ -26,6 +27,7 @@ public final class LayoutRequest<U>
     private LayoutRequest(Builder<U> builder)
     {
         initialPositions = Collections.unmodifiableMap(new LinkedHashMap<>(builder.positions));
+        initialPositions3D = Collections.unmodifiableMap(new LinkedHashMap<>(builder.positions3D));
         pinnedNodes = Collections.unmodifiableSet(new LinkedHashSet<>(builder.pins));
         nodeOrder = builder.order == null ? null : Collections.unmodifiableList(new ArrayList<>(builder.order));
         seed = builder.seed;
@@ -59,6 +61,8 @@ public final class LayoutRequest<U>
     public static <U> LayoutRequest<U> defaults() { return LayoutRequest.<U>builder().build(); }
     /** @return immutable initial positions */
     public Map<U, Pair<Double>> getInitialPositions() { return initialPositions; }
+    /** @return immutable spatial warm starts; empty for ordinary 2D requests */
+    public Map<U, Point3D> getInitialPositions3D() { return initialPositions3D; }
     /** @return immutable pinned nodes */
     public Set<U> getPinnedNodes() { return pinnedNodes; }
     /** @return explicit order, or empty if graph encounter order should be used */
@@ -81,6 +85,7 @@ public final class LayoutRequest<U>
     public static final class Builder<U>
     {
         private Map<U, Pair<Double>> positions = Collections.emptyMap();
+        private Map<U, Point3D> positions3D = Collections.emptyMap();
         private Set<U> pins = Collections.emptySet();
         private List<U> order;
         private long seed;
@@ -94,7 +99,22 @@ public final class LayoutRequest<U>
          * @param value coordinates
          * @return this builder
          */
-        public Builder<U> initialPositions(Map<U, Pair<Double>> value) { positions = new LinkedHashMap<>(value); return this; }
+        public Builder<U> initialPositions(Map<U, Pair<Double>> value) {
+            positions = new LinkedHashMap<>(value); positions3D = Collections.emptyMap(); return this;
+        }
+        /**
+         * @param value finite spatial coordinates
+         * @return this builder
+         */
+        public Builder<U> initialPositions3D(Map<U, Point3D> value) {
+            positions3D = new LinkedHashMap<>(value);
+            positions = new LinkedHashMap<>();
+            positions3D.forEach((node, point) -> {
+                Objects.requireNonNull(node); Objects.requireNonNull(point);
+                positions.put(node, new Pair<>(point.getX(), point.getY()));
+            });
+            return this;
+        }
         /**
          * @param value pinned nodes
          * @return this builder

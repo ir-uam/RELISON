@@ -38,6 +38,7 @@ public final class CoordinateTransform<U> implements LayoutPostProcessor<U>
     public LayoutResult<U> process(LayoutResult<U> result, LayoutRequest<U> request)
     {
         Objects.requireNonNull(result);
+        if(result.getSpaceDimensions()!=2) throw new IllegalArgumentException("This coordinate transform supports 2D only");
         Objects.requireNonNull(request);
         if (!result.getPositions().keySet().containsAll(request.getInitialPositions().keySet()))
             throw new IllegalArgumentException("Request references nodes outside the result");

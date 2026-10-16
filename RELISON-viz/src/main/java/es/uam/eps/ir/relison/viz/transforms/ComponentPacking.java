@@ -39,6 +39,7 @@ public final class ComponentPacking<U> implements LayoutPostProcessor<U>
     @Override
     public LayoutResult<U> process(Graph<U> graph, LayoutResult<U> result, LayoutRequest<U> request)
     {
+        if(result.getSpaceDimensions()!=2) throw new IllegalArgumentException("Component packing supports 2D only");
         Objects.requireNonNull(result);
         IndexedGraphSnapshot<U> snapshot = IndexedGraphSnapshot.capture(graph, request);
         if (!result.getPositions().keySet().equals(new HashSet<>(snapshot.getNodes())))

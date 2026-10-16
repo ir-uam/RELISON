@@ -10,6 +10,7 @@ import es.uam.eps.ir.relison.viz.*;
 import es.uam.eps.ir.relison.viz.layouts.*;
 import es.uam.eps.ir.relison.viz.transforms.ComponentPacking;
 import es.uam.eps.ir.relison.viz.transforms.OverlapRemoval;
+import es.uam.eps.ir.relison.viz.transforms.OverlapRemoval3D;
 import io.javalin.http.Context;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -66,10 +67,15 @@ public final class LayoutController
         }
         LayoutResult<String> finish(LayoutResult<String> result) {
             Set<String> nodes = result.getPositions().keySet();
+            int dimensions=result.getSpaceDimensions();
             for (LayoutPostProcessor<String> processor : processors) {
                 if (result.getDiagnostics().getTermination() == LayoutDiagnostics.Termination.CANCELLED) break;
                 result = Objects.requireNonNull(processor.process(graph, result, request));
+                if(result.getSpaceDimensions()!=dimensions) throw new IllegalStateException("Processor changed dimensions");
                 if (!result.getPositions().keySet().equals(nodes)) throw new IllegalStateException("Processor changed node coverage");
+                for (String node : request.getPinnedNodes())
+                    if(dimensions==3 && !Objects.equals(result.getPositions3D().get(node),request.getInitialPositions3D().get(node)))
+                        throw new IllegalStateException("Processor moved a spatial pin");
                 for (String node : request.getPinnedNodes())
                     if (!Objects.equals(result.getPositions().get(node), request.getInitialPositions().get(node)))
                         throw new IllegalStateException("Processor moved a pinned node");
@@ -85,7 +91,13 @@ public final class LayoutController
         List<String> order = body.containsKey("nodeOrder") ? strings(body.get("nodeOrder"), "nodeOrder") : nodes;
         LayoutRequest.Builder<String> request = LayoutRequest.<String>builder().nodeOrder(order)
             .seed(integer(params, "seed", 0)).cancellation(cancellation);
-        if (body.containsKey("positions")) request.initialPositions(positions(body.get("positions")));
+        String requestedAlgorithm=String.valueOf(body.get("algorithm"));
+        boolean planarAdapter=requestedAlgorithm.endsWith("-flat-3d");
+        boolean spatial=requestedAlgorithm.endsWith("-3d");
+        if (body.containsKey("positions")) {
+            if(spatial) request.initialPositions3D(positions3D(body.get("positions")));
+            else request.initialPositions(positions(body.get("positions")));
+        }
         if (body.containsKey("pinnedNodes")) request.pinnedNodes(new LinkedHashSet<>(strings(body.get("pinnedNodes"), "pinnedNodes")));
 
         long iterations = integer(params, "iterations", 500);
@@ -101,9 +113,49 @@ public final class LayoutController
             request.nodeSizes(sizes);
         }
         Layout<String> layout;
-        String algorithm = String.valueOf(body.get("algorithm"));
+        String algorithm = planarAdapter ? requestedAlgorithm.substring(0,requestedAlgorithm.length()-"-flat-3d".length()) : requestedAlgorithm;
+        if(Arrays.asList("spherical-mds-3d","upward-grid-3d","h3-3d").contains(algorithm)
+            &&(flag(params,"removeOverlap")||flag(params,"packComponents")))
+            throw new IllegalArgumentException("This layout's geometry cannot use Euclidean overlap removal or packing");
         switch (algorithm)
         {
+            case "spectral":
+            case "spectral-3d":
+                layout=new SpectralLayout<>(algorithm.equals("spectral-3d")?3:2,number(params,"scale",100),
+                    !params.containsKey("normalized")||flag(params,"normalized"),flag(params,"weighted"),number(params,"tolerance",1e-8));break;
+            case "spherical-mds-3d":
+                layout=new SphericalMdsLayout<>(new SphericalMdsConfig(number(params,"radius",100),number(params,"learningRate",.1),number(params,"tolerance",1e-7),flag(params,"weighted")));break;
+            case "upward-grid-3d": layout=new UpwardGrid3DLayout<>(number(params,"spacing",50));break;
+            case "h3-3d":
+                Map<String,String> h3Parents=new LinkedHashMap<>();
+                if(body.containsKey("parents")) for(Map.Entry<?,?> entry:object(body.get("parents"),"parents").entrySet()) {
+                    if(!(entry.getKey() instanceof String)||!(entry.getValue() instanceof String)) throw new IllegalArgumentException("H3 parents must map node IDs to parent IDs");
+                    h3Parents.put((String)entry.getKey(),(String)entry.getValue());
+                }
+                layout=new H3Layout<>(root(params),params.containsKey("direction")?EdgeOrientation.valueOf(String.valueOf(params.get("direction"))):EdgeOrientation.UND,
+                    number(params,"radius",100),number(params,"leafRadius",.1),number(params,"areaScale",7.2),h3Parents);break;
+            case "random-3d": layout=new Random3DLayout<>(number(params,"width",600),number(params,"height",600),number(params,"depth",600));break;
+            case "grid-3d":
+                long gridColumns=integer(params,"columns",0),gridDepth=integer(params,"depth",0);
+                if(gridColumns<0||gridColumns>Integer.MAX_VALUE||gridDepth<0||gridDepth>Integer.MAX_VALUE)
+                    throw new IllegalArgumentException("Grid columns and depth must be nonnegative integers within the supported range");
+                layout=new Grid3DLayout<>((int)gridColumns,(int)gridDepth,number(params,"spacing",50));break;
+            case "spherical-3d": layout=new SphericalLayout<>(number(params,"radius",100));break;
+            case "sphere-packing-3d": layout=new SpherePacking3DLayout<>(body.containsKey("partitions")?partitions(body.get("partitions")):Collections.emptyList(),number(params,"spacing",10));break;
+            case "preset-3d": layout=new Preset3DLayout<>();break;
+            case "radial-pyramid-3d":
+                layout=new RadialPyramid3DLayout<>(root(params),params.containsKey("direction")?EdgeOrientation.valueOf(String.valueOf(params.get("direction"))):EdgeOrientation.UND,
+                    number(params,"spacing",50),number(params,"zScale",1));break;
+            case "stress-majorization-3d":
+                layout=new StressMajorization3DLayout<>(new StressMajorizationConfig(number(params,"edgeLength",50),number(params,"tolerance",1e-4),flag(params,"weighted")));break;
+            case "fruchterman-reingold-3d":
+                if(number(params,"theta",0)!=0) throw new IllegalArgumentException("3D FR currently supports exact repulsion only (theta=0).");
+                boolean bounded3D=!params.containsKey("bounded")||flag(params,"bounded");
+                layout=new FruchtermanReingold3DLayout<>(bounded3D
+                    ? new FruchtermanReingold3DConfig(number(params,"width",600),number(params,"height",600),number(params,"depth",600),
+                        number(params,"initialTemperature",60),number(params,"tolerance",.001),flag(params,"weighted"))
+                    : new FruchtermanReingold3DConfig(number(params,"idealLength",50),number(params,"cooling",.95),number(params,"tolerance",.001),flag(params,"weighted")));
+                break;
             case "geographic":
                 Map<String,Double> latitudes=geographicValues(body,"latitudes",nodes);
                 Map<String,Double> longitudes=geographicValues(body,"longitudes",nodes);
@@ -166,6 +218,8 @@ public final class LayoutController
                 layout = new GridLayout<>((int) columns, number(params, "spacing", 30));
                 break;
             case "shell":
+            case "shell-sphere-3d":
+            case "shell-cone-3d":
                 List<List<String>> shells = new ArrayList<>();
                 if (body.containsKey("shells"))
                 {
@@ -174,9 +228,12 @@ public final class LayoutController
                     for (Object shell : (List<?>) value) shells.add(strings(shell, "shell"));
                 }
                 else if (!nodes.isEmpty()) shells.add(nodes);
-                layout = new ShellLayout<>(shells, number(params, "spacing", 50));
+                layout = spatial && !planarAdapter ? new Shell3DLayout<>(shells,number(params,"spacing",50),layeredVariant(algorithm),layeredZScale(algorithm,params))
+                    : new ShellLayout<>(shells, number(params, "spacing", 50));
                 break;
             case "concentric":
+            case "concentric-sphere-3d":
+            case "concentric-cone-3d":
                 if (body.containsKey("scores"))
                 {
                     Map<?, ?> raw = object(body.get("scores"), "scores");
@@ -184,18 +241,32 @@ public final class LayoutController
                         throw new IllegalArgumentException("scores must contain exactly the graph nodes.");
                     Map<String, Double> scores = new HashMap<>();
                     for (String node : nodes) scores.put(node, finite(raw.get(node), "Score for " + node));
-                    layout = new ConcentricLayout<>(scores::get, number(params, "spacing", 50), flag(params,"reverse"));
+                    layout = spatial && !planarAdapter ? new Concentric3DLayout<>(scores::get,number(params,"spacing",50),flag(params,"reverse"),layeredVariant(algorithm),layeredZScale(algorithm,params))
+                        : new ConcentricLayout<>(scores::get, number(params, "spacing", 50), flag(params,"reverse"));
                 }
-                else layout = new ConcentricLayout<>(graph::degree, number(params, "spacing", 50), flag(params,"reverse"));
+                else layout = spatial && !planarAdapter ? new Concentric3DLayout<>(graph::degree,number(params,"spacing",50),flag(params,"reverse"),layeredVariant(algorithm),layeredZScale(algorithm,params))
+                    : new ConcentricLayout<>(graph::degree, number(params, "spacing", 50), flag(params,"reverse"));
                 break;
             case "radial":
-                layout = new RadialLayout<>(root(params),
-                    params.containsKey("direction") ? EdgeOrientation.valueOf(String.valueOf(params.get("direction"))) : EdgeOrientation.UND,
+            case "radial-sphere-3d":
+            case "radial-cone-3d":
+                EdgeOrientation radialDirection=params.containsKey("direction") ? EdgeOrientation.valueOf(String.valueOf(params.get("direction"))) : EdgeOrientation.UND;
+                layout = spatial && !planarAdapter ? new Radial3DLayout<>(root(params),radialDirection,number(params,"spacing",50),layeredVariant(algorithm),layeredZScale(algorithm,params))
+                    : new RadialLayout<>(root(params),
+                    radialDirection,
                     number(params, "spacing", 50));
                 break;
             case "feature-grid":
                 layout = new FeatureGridLayout<>(partitions(body.get("partitions")), number(params, "columnSpacing", 150),
                     number(params, "spacing", 50), sweeps(params));
+                break;
+            case "feature-grid-3d":
+                layout = new FeatureGrid3DLayout<>(partitions(body.get("partitions")),number(params,"spacing",50),number(params,"levelSpacing",75));
+                break;
+            case "community-3d":
+                layout = new Community3DLayout<>(partitions(body.get("partitions")),
+                    communityChild(String.valueOf(params.containsKey("innerLayout")?params.get("innerLayout"):"fruchterman-reingold"),false),
+                    communityChild(String.valueOf(params.containsKey("outerLayout")?params.get("outerLayout"):"multilevel-force"),true),number(params,"communityGap",50));
                 break;
             case "ego-grid":
                 layout = new EgoGridLayout<>(root(params),
@@ -225,17 +296,35 @@ public final class LayoutController
             default: throw new IllegalArgumentException("Unknown layout: " + algorithm);
         }
 
+        if(planarAdapter) {
+            LayoutPostProcessor<String> planarOverlap=flag(params,"removeOverlap")
+                ? new OverlapRemoval<>(number(params,"overlapGap",5),200) : null;
+            layout=new Planar3DLayoutAdapter<>(layout,planarOverlap);
+        }
+
         List<LayoutPostProcessor<String>> processors = new ArrayList<>();
-        if (flag(params, "removeOverlap"))
-            processors.add(new OverlapRemoval<>(number(params, "overlapGap", 5), 200));
+        if (flag(params, "removeOverlap") && !planarAdapter)
+            processors.add(spatial ? new OverlapRemoval3D<>(number(params,"overlapGap",5),200)
+                : new OverlapRemoval<>(number(params, "overlapGap", 5), 200));
         if (params.containsKey("packComponents") && !(params.get("packComponents") instanceof Boolean))
             throw new IllegalArgumentException("packComponents must be a boolean.");
+        if(spatial && flag(params,"packComponents")) throw new IllegalArgumentException("Component packing currently supports 2D only.");
         if (Boolean.TRUE.equals(params.get("packComponents")))
             processors.add(new ComponentPacking<>(number(params, "packingGap", 50)));
         return new Prepared(graph, layout, request.build(), processors);
     }
 
     static Map<String, Object> response(LayoutResult<String> result) {
+        if(result.getSpaceDimensions()==3) {
+            Map<String,Object> coordinates=new LinkedHashMap<>();
+            result.getPositions3D().forEach((node,p)->coordinates.put(node,Map.of("x",p.getX(),"y",p.getY(),"z",p.getZ())));
+            Bounds3D bounds=result.getBounds3D().orElseThrow();
+            return Map.of("algorithm",result.getDiagnostics().getAlgorithmId(),"dimensions",3,"positions",coordinates,"edgeRoutes",Collections.emptyList(),
+                "bounds",Map.of("minX",bounds.getMin().getX(),"minY",bounds.getMin().getY(),"minZ",bounds.getMin().getZ(),
+                    "maxX",bounds.getMax().getX(),"maxY",bounds.getMax().getY(),"maxZ",bounds.getMax().getZ()),
+                "termination",result.getDiagnostics().getTermination().name(),"iterations",result.getDiagnostics().getIterations(),
+                "maximumDisplacement",result.getDiagnostics().getMaximumDisplacement());
+        }
         Map<String, Object> coordinates = new LinkedHashMap<>();
         result.getPositions().forEach((node, point) -> coordinates.put(node, Map.of("x", point.v1(), "y", point.v2())));
         Bounds2D bounds = result.getBounds();
@@ -248,6 +337,14 @@ public final class LayoutController
             "bounds", Map.of("minX", bounds.getMinX(), "minY", bounds.getMinY(), "maxX", bounds.getMaxX(), "maxY", bounds.getMaxY()),
             "termination", result.getDiagnostics().getTermination().name(),
             "iterations", result.getDiagnostics().getIterations(), "maximumDisplacement", result.getDiagnostics().getMaximumDisplacement());
+    }
+
+    private static Layered3DVariant layeredVariant(String algorithm) {
+        return algorithm.endsWith("-cone-3d") ? Layered3DVariant.CONE : Layered3DVariant.SPHERE;
+    }
+
+    private static double layeredZScale(String algorithm,Map<?,?> params) {
+        return algorithm.endsWith("-cone-3d") ? number(params,"zScale",1) : 1;
     }
 
     private static <U> Layout<U> communityChild(String algorithm, boolean quotient) {
@@ -306,6 +403,15 @@ public final class LayoutController
             positions.put((String) key, new Pair<>(finite(pair.get("x"), "x"), finite(pair.get("y"), "y")));
         });
         return positions;
+    }
+
+    private static Map<String,Point3D> positions3D(Object value) {
+        Map<String,Point3D> result=new LinkedHashMap<>();
+        object(value,"positions").forEach((key,point)->{
+            if(!(key instanceof String)) throw new IllegalArgumentException("Position keys must be node IDs.");
+            Map<?,?> p=object(point,"position");
+            result.put((String)key,new Point3D(finite(p.get("x"),"x"),finite(p.get("y"),"y"),finite(p.get("z"),"z")));
+        });return result;
     }
 
     private static Map<?, ?> object(Object value, String field)

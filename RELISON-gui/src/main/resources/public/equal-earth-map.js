@@ -2,6 +2,7 @@
 (() => {
     function create(containerId = "geographic-container") {
     const mercator = window.createRelisonMercator(containerId);
+    const globe = window.createRelisonGlobe(containerId);
     const events = ["nodeAdded", "nodeDropped", "edgeAdded", "edgeDropped", "cleared", "nodeAttributesUpdated",
         "edgeAttributesUpdated", "eachNodeAttributesUpdated", "eachEdgeAttributesUpdated"];
     let loading, world, svg, scene, network, projection, path, zoom, graph, options, observer, frame = null;
@@ -64,7 +65,7 @@
             const marker = network.append("circle").datum(node).attr("cx", p[0]).attr("cy", p[1])
                 .attr("fill", node.display.color || "#2563eb").attr("stroke", selected ? "#f59e0b" : "white")
                 .attr("stroke-width", selected ? 3 : 1).attr("vector-effect", "non-scaling-stroke").style("cursor", "pointer")
-                .on("click", event => { event.stopPropagation(); options.onNodeClick(node.id); });
+                .on("click", event => { event.stopPropagation(); options.onNodeClick(node.id, event); });
             marker.append("title").text(node.display.label || node.id);
             if (options.labels().nodeShow) network.append("text").attr("x", p[0]).attr("y", p[1]).attr("text-anchor", "middle")
                 .attr("fill", "#0f172a").attr("paint-order", "stroke").attr("stroke", "white").attr("stroke-width", 3)
@@ -146,20 +147,27 @@
     }
     return {
         readCoordinates: mercator.readCoordinates,
-        ensureLoaded: mode => mode === "equal-earth" ? load() : mercator.ensureLoaded(),
+        ensureLoaded: mode => mode === "globe" ? globe.ensureLoaded() : mode === "equal-earth" ? load() : mercator.ensureLoaded(),
         render: async (input, settings) => {
-            if (settings.projection === "equal-earth") { await renderEarth(input, settings); active = "equal-earth"; }
-            else { destroyEarth(); await mercator.render(input, settings); active = "mercator"; }
+            await (settings.projection === "globe" ? globe.ensureLoaded() : settings.projection === "equal-earth" ? load() : mercator.ensureLoaded());
+            if (settings.isCurrent && !settings.isCurrent()) return;
+            if (settings.projection === "globe") { destroyEarth(); mercator.destroy(); await globe.render(input, settings); active = "globe"; }
+            else if (settings.projection === "equal-earth") { globe.destroy(); await renderEarth(input, settings); active = "equal-earth"; }
+            else { destroyEarth(); globe.destroy(); await mercator.render(input, settings); active = "mercator"; }
         },
-        refresh: () => active === "equal-earth" ? schedule() : mercator.refresh(),
-        destroy: () => { destroyEarth(); mercator.destroy(); active = "mercator"; },
-        fitView: () => active === "equal-earth" ? fit() : mercator.fitView(),
-        exportPng: (filename = "network.png", settings = {}) => active === "equal-earth"
+        refresh: () => active === "globe" ? globe.refresh() : active === "equal-earth" ? schedule() : mercator.refresh(),
+        destroy: () => { destroyEarth(); mercator.destroy(); globe.destroy(); active = "mercator"; },
+        fitView: () => active === "globe" ? globe.fitView() : active === "equal-earth" ? fit() : mercator.fitView(),
+        exportPng: (filename = "network.png", settings = {}) => active === "globe" ? globe.exportPng(filename, settings) : active === "equal-earth"
             ? window.relisonGeographicExport.exportImage(() => buildExportSvg(settings.includeLegend !== false), "png", filename) : mercator.exportPng(filename, settings),
-        exportSvg: (filename = "network.svg", settings = {}) => active === "equal-earth"
+        exportSvg: (filename = "network.svg", settings = {}) => active === "globe" ? globe.exportSvg(filename, settings) : active === "equal-earth"
             ? window.relisonGeographicExport.exportImage(() => buildExportSvg(settings.includeLegend !== false), "svg", filename) : mercator.exportSvg(filename, settings),
-        zoomIn: () => active === "equal-earth" ? svg?.call(zoom.scaleBy, 2) : mercator.zoomIn(),
-        zoomOut: () => active === "equal-earth" ? svg?.call(zoom.scaleBy, .5) : mercator.zoomOut(),
+        zoomIn: () => active === "globe" ? globe.zoomIn() : active === "equal-earth" ? svg?.call(zoom.scaleBy, 2) : mercator.zoomIn(),
+        zoomOut: () => active === "globe" ? globe.zoomOut() : active === "equal-earth" ? svg?.call(zoom.scaleBy, .5) : mercator.zoomOut(),
+        setContinuousRotation: settings => active === "globe" ? globe.setContinuousRotation(settings) : false,
+        getRotationSnapshot: () => active === "globe" ? globe.getRotationSnapshot() : null,
+        setRotationFrame: (snapshot, axis, degrees) => active === "globe" ? globe.setRotationFrame(snapshot, axis, degrees) : false,
+        captureRotationFrame: (...args) => active === "globe" ? globe.captureRotationFrame(...args) : null,
     };
     }
     window.createRelisonGeographic = create;

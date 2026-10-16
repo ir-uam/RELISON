@@ -26,6 +26,7 @@ public final class OverlapRemoval<U> implements LayoutPostProcessor<U> {
     }
     @Override
     public LayoutResult<U> process(LayoutResult<U> result,LayoutRequest<U> request) {
+        if(result.getSpaceDimensions()!=2) throw new IllegalArgumentException("Use OverlapRemoval3D for spatial layouts");
         List<U> nodes=new ArrayList<>(result.getPositions().keySet());
         if(!new HashSet<>(nodes).containsAll(request.getNodeSizes().keySet())
             || !new HashSet<>(nodes).containsAll(request.getPinnedNodes()))

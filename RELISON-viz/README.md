@@ -1,9 +1,214 @@
 # RELISON-viz
 
-Headless 2D layouts for RELISON graphs. The module depends on `RELISON-core`
+Headless 2D and 3D layouts for RELISON graphs. The module depends on `RELISON-core`
 and exposes generic node coordinates without requiring a renderer, browser,
 native executable, or `RELISON-sna` dependency. The source targets Java 14,
 matching core; use the JDK required by your current parent build.
+
+## 3D layouts
+
+`Grid3DLayout(columns, depth, spacing)` supports a chosen number of x columns
+and a maximum number of z layers. Zero chooses that dimension automatically;
+both zero retain the original cubic arrangement. Rows along y are calculated
+to fit all nodes. Placement fills x, then y, then z, keeping a partial last
+layer aligned. The GUI exposes **Columns (0 = auto)** and **Depth layers
+(0 = auto)** for Grid 3D. The API accepts integer `params.columns` and
+`params.depth`; the existing spacing-only constructor is unchanged.
+
+### Spectral eigenprojection (2D and 3D)
+
+`SpectralLayout` implements the classical and degree-normalized formulations
+in [Koren (2003), Sections 3.1 and 4](https://www.mathe2.uni-bayreuth.de/axel/papers/koren:on_spectral_graph_drawing.pdf).
+The classical model uses the lowest nonconstant eigenvectors of `L = D − A`.
+Degree-normalized mode solves `Lx = λDx`: it computes eigenvectors of
+`D⁻¹/²LD⁻¹/²` and maps them back with `D⁻¹/²`, giving D-orthonormal axes.
+The solver uses sparse subspace iteration and small Rayleigh–Ritz solves,
+rather than Koren's particular averaging implementation. No native libraries
+or dense n×n matrices are required. Storage is O(V+E) for a fixed axis count;
+the iteration count depends on spectral gaps. Eigen-residuals determine
+convergence; exhausting the request budget returns `LIMIT_REACHED` with
+the current approximation, rather than claiming convergence.
+
+Use `new SpectralLayout<>()` for degree-normalized 2D, or
+`new SpectralLayout<>(3)` for 3D. The full constructor selects coordinate scale,
+normalization, weighted similarities and residual tolerance. Directed arcs
+are symmetrized by summing strengths; undirected edges are counted once.
+Parallel strengths accumulate. Unweighted mode assigns one per edge occurrence.
+Weights must be finite and nonnegative; zero-strength edges do not connect
+components. Self-loops are ignored. Components are solved independently, then
+translated side by side along x with a gap equal to coordinate scale.
+Singletons use zero local coordinates; small components leave unavailable axes
+zero. A fixed seed and node order reproduce the result, though repeated
+eigenvalues permit equivalent rotated eigenspaces. Warm starts are ignored;
+arbitrary pins are rejected. Optional subsequent overlap removal/packing changes
+the eigenvector coordinates and is a separate display transformation.
+
+The GUI exposes **Spectral 2D** and **Spectral 3D**, the latter under Cosmograph
+3D. Controls choose formulation, scale, edge strengths, sweep budget and
+eigen-residual tolerance. The API IDs are `spectral` and `spectral-3d`, with
+`params.normalized` (default true), `scale` (100), `weighted` (false),
+`tolerance` (1e-8) and `iterations` (API default 500; GUI default 1000).
+
+### Paper-defined non-Euclidean and upward models
+
+| GUI / API ID | Original method | Contract |
+|---|---|---|
+| `spherical-mds-3d` | [Miller, Huroyan and Kobourov (2022)](https://arxiv.org/abs/2209.00191), Algorithm 1, Eqs. 3–4, §4.1 and §5.1 | Connected graph; angular SGD on S²; animated |
+| `upward-grid-3d` | [Dujmovic and Wood (2005)](https://arxiv.org/abs/math/0510051), Theorem 3.1 | Directed acyclic graph; exact upward grid construction |
+| `h3-3d` | [Munzner (1997)](https://graphics.stanford.edu/papers/h3/html/), §3 and Appendix A | Spanning hierarchy; curvature −1; projective Klein ball |
+
+Select Cosmograph 3D to expose these choices. Euclidean overlap removal,
+packing and dragging are excluded because they invalidate the defining geometry.
+The existing node appearance, filters, selection and export pipeline remain usable.
+
+**Spherical MDS.** `SphericalMdsLayout` uses exact all-pairs shortest paths on
+the undirected projection, scales distances by π/diameter, and optimizes the
+unweighted squared geodesic residuals with the paper's angular derivatives.
+Each sweep reshuffles all unordered pairs; both endpoint gradients use the
+same pre-update coordinates. The exponential-to-reciprocal schedule follows
+the authors' reference implementation, with the paper's recommended 0.1 cap.
+Initial points are uniform on the sphere. Radius scales Cartesian output only.
+Convergence uses absolute stress change divided by n² after 16 sweeps (the
+reference implementation's convention); defaults are 500 sweeps and 1e-7.
+Weights optionally mean positive shortest-path lengths, not force strengths.
+Disconnected graphs are rejected rather than assigning invented distances.
+Nonzero warm starts are mapped to angles; pins must already lie on the sphere.
+Coincident or antipodal pairs with nonzero residual have undefined derivatives
+and are rejected explicitly; choose another seed or warm start. The method
+requires quadratic distance/pair storage. Rendering uses the viewer's straight
+edge chords; the optimization metric is the spherical geodesic distance.
+
+**Upward grid.** `UpwardGrid3DLayout` uses a deterministic topological ordering
+and the first prime p greater than n. Vertex i (one-based) is placed at
+`(i³ mod p, i² mod p, i)`, multiplied uniformly by spacing. This is the actual
+construction in Theorem 3.1, not a 3D Sugiyama implementation. Nonincident
+straight edges do not intersect in exact arithmetic; directed cycles, loops,
+undirected inputs and arbitrary pins are rejected. Parallel arcs coincide.
+
+**H3.** `H3Layout` first computes hemisphere radii bottom-up using the child
+disk-area approximation, then places children in decreasing radius order in
+hemispherical bands using the Appendix's hyperbolic angular formulas. Lorentz
+frame compositions produce Klein coordinates, scaled by display radius.
+Leaf radius and empirical area inflation are configurable; defaults .1 and 7.2
+are implementation choices, not constants prescribed by the paper. Multiple
+forest roots attach to a hidden super-root. An optional child→parent map selects
+the hierarchy using existing graph edges; the GUI supplies deterministic BFS
+parents using the chosen root and traversal orientation. Non-tree links exert
+no influence and are hidden initially, with an explicit display checkbox.
+Unlike the original viewer's truncation strategy, this implementation rejects
+layouts that exceed double-precision ball resolution instead of dropping nodes.
+
+Select a node and press **Focus selected node** for a Lorentz-boost change of
+focus; **Restore H3 origin** restores canonical coordinates. Pairwise hyperbolic
+distances are preserved. Ordinary orbit controls still use a Euclidean camera
+to view the projected ball. Nodes keep RELISON's screen-size appearance rather
+than the paper's fixed-hyperbolic-size tetrahedra. This implementation supplies
+the layout and focus operation, not the original viewer's pruning/expansion or
+continuous hyperbolic navigation. Saved-coordinate restores require reapplying
+H3 to reconstruct its canonical hierarchy for focus navigation.
+
+The API accepts `params.radius`, `learningRate`, `tolerance`, `weighted` for
+spherical MDS; `spacing` for upward grid; and `root`, `direction`, `radius`,
+`leafRadius`, `areaScale`, plus an optional top-level `parents` map for H3.
+Spherical MDS supports the existing stepped session endpoints and exact pins.
+H3 and upward grid do not accept arbitrary pins.
+
+`FruchtermanReingold3DLayout` and `StressMajorization3DLayout` implement the
+existing `IterativeLayout`/`LayoutSession` contracts. Batch and stepped runs
+produce the same seeded result. Static placements are `Random3DLayout`,
+`Grid3DLayout`, `SphericalLayout`, and `Preset3DLayout`.
+
+`Shell3DLayout`, `Concentric3DLayout`, and `Radial3DLayout` each support
+`Layered3DVariant.SPHERE` and `Layered3DVariant.CONE`. These are explicit
+extensions of the existing 2D placements:
+
+| Layout | Sphere variant | Cone variant |
+|---|---|---|
+| Shell | One nested sphere per supplied group, with the original ring radius | Original x/y; z is the zero-based group index |
+| Concentric by score | Equal scores share a sphere; score ordering and reversal match 2D | Original x/y; z is the raw finite score, including negative scores |
+| Radial / ego | One sphere per hop-distance layer | Original x/y; z is the unweighted hop count from the chosen root |
+
+Spherical layers distribute their nodes using equal-area latitude bands and
+the golden angle. Request order resolves ties deterministically. A singleton
+at the innermost radius zero stays at the origin; outer singletons retain their
+layer's radius. Cone heights are not normalized. An optional positive finite
+`zScale` multiplies the group number, raw score or hop count; radial spacing
+still affects x/y only. Existing library constructors and omitted API parameters
+default to 1. The GUI's **Z-axis multiplier** defaults to 50 to make small group
+or hop numbers comparable with its default radial spacing. Set it to 1 to
+restore raw heights. The field appears only for cone variants; sphere geometry
+is unaffected. Score reversal affects radial ordering but leaves the input scores
+unchanged. As a result, a score-based
+"cone" need not have a mathematically linear conical envelope.
+
+Radial traversal supports OUT, IN, UND and MUTUAL, ignores weights and parallel
+multiplicity, and defaults to the first node in request order. Unreachable
+nodes retain the original additional outer layer; their unscaled cone height is
+**-1**, an explicit sentinel rather than an invented hop count. Its displayed
+height is therefore `-zScale`. All variants preserve
+spatial pins by overriding their generated placement. Optional overlap removal
+can subsequently move unpinned nodes away from exact layer geometry.
+
+The GUI groups the six choices under Shells, Concentric and Radial/ego, using the existing
+Group by, Score, Reverse score order, Root, Traversal and Spacing controls.
+
+Additional static placements include `SpherePacking3DLayout` (filled, compact
+balls with hexagonal close-packed node centres). Like circle packing, no
+grouping means one cluster; selecting a community or attribute creates one
+cluster per group. Group centres are distributed around a sphere instead of
+along a line. Separation uses both clusters' bounding radii and the requested
+surface gap, so unequal groups remain separate. Each cluster's lattice pitch
+uses its own largest requested node radius plus the gap. A subsequent pin
+override can move nodes outside this packing. The no-group constructor is
+`new SpherePacking3DLayout<>(gap)`; the API can omit `partitions`.
+Other placements include
+`RadialPyramid3DLayout` (a centred grid at each breadth-first ego level), and
+`FeatureGrid3DLayout` (attribute/community groups on z levels with an x/y grid
+inside each group). `Community3DLayout` composes the existing 2D community
+layout, retaining its x/y placement and separating each community onto a depth
+layer. These layouts are exposed in the GUI only when Cosmograph 3D is selected.
+
+`Planar3DLayoutAdapter` accepts an existing 2D `Layout` and returns its x/y
+coordinates with z fixed at zero. The GUI offers these adapted 2D layouts while
+Cosmograph 3D is selected; optional overlap removal runs in 2D before lifting.
+
+Use `LayoutRequest.builder().initialPositions3D(Map<U, Point3D>)` for warm
+starts and pins. A spatial pin requires all three coordinates. Read
+`LayoutResult.getPositions3D()` and `getBounds3D()` for the spatial result;
+`getSpaceDimensions()` distinguishes 2D/3D even for empty graphs.
+`getPositions()` retains an x/y projection for compatibility with existing
+callers. Existing constructors and 2D behavior are preserved. Layout descriptors
+declare their dimensionality.
+
+FR extends [Fruchterman and Reingold (1991)](https://reingold.co/force-directed.pdf)
+to three-component displacements. Bounded mode derives k from the cube root
+of frame volume divided by node count, clamps all three axes, and uses linear
+cooling. Unbounded mode uses an explicit edge length and geometric cooling.
+Repulsion is exact O(V² + E) per iteration; a 3D Barnes–Hut octree is not yet
+implemented. Weights optionally scale attraction. Parallel edges and directed
+reciprocal arcs accumulate; self-loops exert no force.
+
+Stress majorization extends the existing Gansner–Koren–North (2004) model by
+solving the same constrained Laplacian for x, y, and z. It uses O(V²) storage
+and dense per-component Cholesky factorization. Graph distances ignore
+direction; weighted mode requires positive finite path lengths. Explicit
+coincident warm starts follow the original inv(0)=0 rule and can remain
+coincident; use seeded initialization to obtain depth from a flat layout.
+
+`OverlapRemoval3D` separates spheres using request radii and a surface gap in
+layout units, preserving pins. It does not prevent screen occlusion from every
+camera angle. Existing 2D transforms/packing reject spatial inputs instead of
+discarding depth. `LayoutPipeline` checks dimensionality and spatial pins.
+
+In the GUI, select Cosmograph **3D** to expose spatial layouts in their
+corresponding algorithm groups (force-directed, distance-preserving, shells,
+concentric, radial/ego, grids and partitions, circular/spherical, and saved/initial positions).
+FR and stress layouts animate through the existing server session endpoints;
+Stop keeps the last displayed x/y/z frame. Static layouts apply in one request.
+The overlap button uses spatial sphere separation in 3D. Save positions and
+Saved 3D positions use a separate in-memory 3D snapshot. Sigma's x/y positions
+are unaffected until the explicit Project to 2D action is used. Component
+component packing and other 2D-only structural layouts remain unavailable in 3D.
 
 ## Stage A layouts
 

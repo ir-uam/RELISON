@@ -14,8 +14,6 @@
     <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/graphology-library@0.8.0/dist/graphology-library.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sigma@3.0.3/dist/sigma.min.js"></script>
-    <!-- gif.js: client-side GIF encoding for the timeline animation export (worker loaded as a same-origin blob). -->
-    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
     <!-- Apache ECharts for interactive metric and diffusion charts. -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
 </head>
@@ -114,22 +112,46 @@
                         <option value="force">Force-directed (animated)</option>
                         <option value="cosmograph-force" hidden>Cosmograph force (animated)</option>
                         <option value="fruchterman-reingold">Fruchterman–Reingold (RELISON animated)</option>
+                        <option value="fruchterman-reingold-3d" hidden>Fruchterman–Reingold 3D (animated)</option>
                         <option value="relison-forceatlas2">ForceAtlas2 (RELISON animated)</option>
                         <option value="multilevel-force">Multilevel force (Hu, EC animated)</option>
                     </optgroup>
                     <optgroup label="Distance-preserving (animated)">
                         <option value="stress-majorization">Stress majorization</option>
+                        <option value="stress-majorization-3d" hidden>Stress majorization 3D (animated)</option>
+                        <option value="spherical-mds-3d" hidden>Spherical MDS (Miller et al., animated)</option>
                         <option value="kamada-kawai">Kamada–Kawai</option>
                     </optgroup>
-                    <optgroup label="Radial and circular">
+                    <optgroup label="Spectral">
+                        <option value="spectral">Spectral 2D</option>
+                        <option value="spectral-3d" hidden>Spectral 3D</option>
+                    </optgroup>
+                    <optgroup label="Circular and spherical">
                         <option value="circular">Circular</option>
+                        <option value="spherical-3d" hidden>Spherical 3D</option>
+                        <option value="sphere-packing-3d" hidden>Sphere packing 3D</option>
+                    </optgroup>
+                    <optgroup label="Shells (group-based)">
                         <option value="shell">Shell (groups on rings)</option>
+                        <option value="shell-sphere-3d" hidden>Shell 3D (spheres)</option>
+                        <option value="shell-cone-3d" hidden>Shell 3D (cone)</option>
+                    </optgroup>
+                    <optgroup label="Concentric (score-based)">
                         <option value="concentric">Concentric by score</option>
+                        <option value="concentric-sphere-3d" hidden>Concentric by score 3D (spheres)</option>
+                        <option value="concentric-cone-3d" hidden>Concentric by score 3D (cone)</option>
+                    </optgroup>
+                    <optgroup label="Radial and ego">
                         <option value="radial">Radial / ego</option>
+                        <option value="radial-sphere-3d" hidden>Radial / ego 3D (spheres)</option>
+                        <option value="radial-cone-3d" hidden>Radial / ego 3D (cone)</option>
+                        <option value="radial-pyramid-3d" hidden>Radial / ego 3D (pyramid grids)</option>
                     </optgroup>
                     <optgroup label="Grid and partitions">
                         <option value="grid">Grid</option>
+                        <option value="grid-3d" hidden>Grid 3D</option>
                         <option value="feature-grid">Grid by feature</option>
+                        <option value="feature-grid-3d" hidden>Grid by feature 3D (levels)</option>
                         <option value="ego-grid">Grid / ego</option>
                         <option value="bipartite">Bipartite</option>
                         <option value="multipartite">Multipartite</option>
@@ -137,15 +159,20 @@
                     <optgroup label="Trees and clusters">
                         <option value="tree">Tidy tree / forest</option>
                         <option value="sugiyama">Sugiyama (directed layers)</option>
+                        <option value="upward-grid-3d" hidden>Upward grid 3D (Dujmovic–Wood)</option>
+                        <option value="h3-3d" hidden>H3 hyperbolic hierarchy</option>
                         <option value="circlepack">Circle packing</option>
                         <option value="community">Community composition</option>
+                        <option value="community-3d" hidden>Community composition 3D</option>
                     </optgroup>
                     <optgroup label="Geographic">
                         <option value="geographic">Geographic (background map)</option>
                     </optgroup>
                     <optgroup label="Saved and initial positions">
                         <option value="preset">Saved positions</option>
+                        <option value="preset-3d" hidden>Saved 3D positions</option>
                         <option value="random">Random</option>
+                        <option value="random-3d" hidden>Random 3D</option>
                     </optgroup>
                 </select>
             </label>
@@ -158,22 +185,25 @@
             <div class="params" id="static-layout-params" hidden>
                 <label data-tooltip="ui-layout-radius-field" id="layout-radius-field"><span>Radius</span><input data-tooltip="ui-layout-radius" type="number" id="layout-radius" min="1" step="1" value="100"/></label>
                 <label data-tooltip="ui-layout-spacing-field" id="layout-spacing-field"><span>Spacing</span><input data-tooltip="ui-layout-spacing" type="number" id="layout-spacing" min="1" step="1" value="50"/></label>
+                <label id="layout-z-scale-field" hidden><span>Z-axis multiplier</span><input type="number" id="layout-z-scale" min="0.001" step="any" value="50"/></label>
                 <label data-tooltip="ui-layout-root-field" id="layout-root-field"><span>Root node</span><input data-tooltip="ui-layout-root" type="text" id="layout-root" value="" placeholder="Search node (or automatic)"/></label>
                 <label data-tooltip="ui-layout-direction-field" id="layout-direction-field"><span>Traversal</span><select data-tooltip="ui-layout-direction" id="layout-direction"><option value="UND">Ignore direction</option><option value="OUT">Outgoing</option><option value="IN">Incoming</option><option value="MUTUAL">Mutual</option></select></label>
                 <label data-tooltip="ui-layout-column-spacing-field" id="layout-column-spacing-field"><span>Column spacing</span><input data-tooltip="ui-layout-column-spacing" type="number" id="layout-column-spacing" min="1" step="1" value="150"/></label>
                 <label data-tooltip="ui-layout-level-spacing-field" id="layout-level-spacing-field"><span>Level spacing</span><input data-tooltip="ui-layout-level-spacing" type="number" id="layout-level-spacing" min="1" step="1" value="75"/></label>
                 <label data-tooltip="ui-layout-sweeps-field" id="layout-sweeps-field"><span>Ordering passes</span><input data-tooltip="ui-layout-sweeps" type="number" id="layout-sweeps" min="0" max="100" step="1" value="4"/></label>
                 <label data-tooltip="ui-layout-columns-field" id="layout-columns-field"><span>Columns (0 = auto)</span><input data-tooltip="ui-layout-columns" type="number" id="layout-columns" min="0" step="1" value="0"/></label>
+                <label id="layout-grid-depth-field" data-tooltip="ui-layout-grid-depth" hidden><span>Depth layers (0 = auto)</span><input id="layout-grid-depth" data-tooltip="ui-layout-grid-depth" type="number" min="0" step="1" value="0"/></label>
                 <label data-tooltip="ui-layout-width-field" id="layout-width-field"><span>Width</span><input data-tooltip="ui-layout-width" type="number" id="layout-width" min="1" step="1" value="600"/></label>
                 <label data-tooltip="ui-layout-height-field" id="layout-height-field"><span>Height</span><input data-tooltip="ui-layout-height" type="number" id="layout-height" min="1" step="1" value="600"/></label>
+                <label id="layout-depth-field" hidden><span>Depth</span><input type="number" id="layout-depth" min="0.001" value="600"/></label>
                 <label data-tooltip="ui-layout-seed-field" id="layout-seed-field"><span>Random seed</span><input data-tooltip="ui-layout-seed" type="number" id="layout-seed" step="1" value="42"/></label>
             </div>
             <div class="params" id="layout-geographic-controls" hidden>
-                <label data-tooltip="ui-geographic-projection"><span>Projection</span><select id="layout-geographic-projection"><option value="mercator">Web Mercator (street map)</option><option value="equal-earth">Equal Earth (world map)</option></select></label>
+                <label data-tooltip="ui-geographic-projection"><span>Projection</span><select id="layout-geographic-projection"><option value="mercator">Web Mercator (street map)</option><option value="equal-earth">Equal Earth (world map)</option><option value="globe">Globe (Globe.gl)</option></select></label>
                 <label data-tooltip="ui-geographic-latitude"><span>Latitude attribute</span><select id="layout-geographic-latitude" data-tooltip="ui-geographic-latitude"><option value="">Choose latitude</option></select></label>
                 <label data-tooltip="ui-geographic-longitude"><span>Longitude attribute</span><select id="layout-geographic-longitude" data-tooltip="ui-geographic-longitude"><option value="">Choose longitude</option></select></label>
             </div>
-            <p class="muted" id="layout-geographic-hint" hidden>Coordinates use decimal degrees. Mercator has street tiles and supports ±85.05112878° latitude; Equal Earth has a world map and supports ±90°. Forces, dragging and packing are disabled. Loading maps requires an internet connection.</p>
+            <p class="muted" id="layout-geographic-hint" hidden>Coordinates use decimal degrees. Mercator supports ±85.05112878° latitude; Equal Earth and Globe support ±90°. Globe anchors nodes to the surface without altitude attributes. Forces, node dragging and packing are disabled. Loading maps requires an internet connection.</p>
             <div class="params" id="layout-force-controls" hidden>
                 <label data-tooltip="markup-0001"><span>Iterations</span><input data-tooltip="ui-layout-iterations" id="layout-iterations" type="number" min="0" max="5000" value="500"/></label>
                 <label data-tooltip="markup-0002"><span>Barnes–Hut theta (0 = exact)</span><input data-tooltip="ui-layout-theta" id="layout-theta" type="number" min="0" max="2" step="0.1" value="0.8"/></label>
@@ -187,6 +217,7 @@
                 <label data-tooltip="markup-0008"><span>Bounded reference mode</span><input id="layout-fr-bounded" data-tooltip="ui-layout-fr-bounded" type="checkbox" checked/></label>
                 <label data-tooltip="markup-0009"><span>Frame width</span><input id="layout-fr-width" data-tooltip="ui-layout-fr-width" type="number" min="0.001" value="600"/></label>
                 <label data-tooltip="markup-0010"><span>Frame height</span><input id="layout-fr-height" data-tooltip="ui-layout-fr-height" type="number" min="0.001" value="600"/></label>
+                <label id="layout-fr-depth-field" hidden><span>Frame depth</span><input id="layout-fr-depth" type="number" min="0.001" value="600"/></label>
                 <label data-tooltip="markup-0011"><span>Initial temperature</span><input id="layout-fr-temperature" data-tooltip="ui-layout-fr-temperature" type="number" min="0.001" value="60"/></label>
                 <label data-tooltip="markup-0012"><span>Unbounded mode edge length</span><input data-tooltip="ui-layout-ideal-length" id="layout-ideal-length" type="number" min="1" value="50"/></label>
                 <label data-tooltip="markup-0013"><span>Unbounded mode cooling</span><input data-tooltip="ui-layout-cooling" id="layout-cooling" type="number" min="0.01" max="0.99" step="0.01" value="0.95"/></label>
@@ -224,6 +255,34 @@
                 <label data-tooltip="ui-layout-community-iterations"><span>Iterations per child layout</span><input id="layout-community-iterations" data-tooltip="ui-layout-community-iterations" type="number" min="0" max="5000" value="500"/></label>
             </div>
             <p class="muted" id="layout-force-hint" hidden>Animates a RELISON session. Stop keeps displayed positions. Overlap removal and component packing run at the end. For force models, theta enables approximate repulsion; zero uses exact pairs. Overlap radius is in layout units.</p>
+            <p class="muted" id="layout-3d-hint" hidden>RELISON computes x/y/z positions. Fruchterman–Reingold 3D uses exact pairwise repulsion; stress majorization uses quadratic memory. Overlap removal separates spheres in layout units; nodes may still cover one another from some camera angles.</p>
+            <div class="params" id="layout-smds-controls" hidden>
+                <label data-tooltip="ui-layout-smds-rate"><span>Learning-rate cap</span><input id="layout-smds-rate" type="number" min="0.000001" max="0.1" step="0.01" value="0.1"/></label>
+                <label data-tooltip="ui-layout-smds-tolerance"><span>Stress-change tolerance</span><input id="layout-smds-tolerance" type="number" min="0" step="any" value="0.0000001"/></label>
+            </div>
+            <div class="params" id="layout-spectral-controls" hidden>
+                <label data-tooltip="ui-layout-spectral-model"><span>Formulation</span><select id="layout-spectral-model"><option value="normalized">Degree-normalized (Koren)</option><option value="classical">Classical Laplacian</option></select></label>
+                <label data-tooltip="ui-layout-spectral-scale"><span>Coordinate scale</span><input id="layout-spectral-scale" type="number" min="0.0001" step="any" value="100"/></label>
+                <label data-tooltip="ui-layout-spectral-weighted"><span>Use edge strengths</span><input id="layout-spectral-weighted" type="checkbox"/></label>
+                <label data-tooltip="ui-layout-spectral-iterations"><span>Eigensolver sweeps</span><input id="layout-spectral-iterations" type="number" min="0" max="5000" step="1" value="1000"/></label>
+                <label data-tooltip="ui-layout-spectral-tolerance"><span>Eigen-residual tolerance</span><input id="layout-spectral-tolerance" type="number" min="0.000000000001" step="any" value="0.00000001"/></label>
+            </div>
+            <p class="muted" id="layout-spectral-hint" hidden>Lowest nonconstant Laplacian eigenvectors give the axes. Degree-normalized mode solves Lx = λDx. Directions are ignored; parallel and reciprocal strengths accumulate, and loops are ignored. Components are solved separately and translated side by side. Arbitrary pins are unsupported. Repeated eigenvalues allow equivalent rotated layouts. The solver reports limit reached if residuals remain above tolerance.</p>
+            <p class="muted" id="layout-sphere-packing-hint" hidden>Like circle packing in 3D: without grouping, fills one compact ball. With a community or attribute, fills one ball per group and distributes the clusters around a sphere. Spacing is the minimum surface gap. Cluster sizes determine separation; groups are not placed in a line.</p>
+            <p class="muted" id="layout-smds-hint" hidden>Miller et al. (2022): spherical angular SGD, unit pair weights, diameter-scaled distances and piecewise learning rate. Requires a connected graph; directions are ignored. Radius affects display scale. Quadratic distance storage. Warm starts must be nonzero; pinned positions must lie on the sphere.</p>
+            <div class="params" id="layout-h3-controls" hidden>
+                <label data-tooltip="ui-layout-h3-leaf"><span>Leaf hyperbolic radius</span><input id="layout-h3-leaf" type="number" min="0.0001" step="0.01" value="0.1"/></label>
+                <label data-tooltip="ui-layout-h3-area"><span>Hemisphere area inflation</span><input id="layout-h3-area" type="number" min="2.01" step="0.1" value="7.2"/></label>
+                <label data-tooltip="ui-layout-h3-nontree"><span>Show non-tree links</span><input id="layout-h3-nontree" type="checkbox"/></label>
+                <button id="btn-h3-focus">Focus selected node</button><button id="btn-h3-origin">Restore H3 origin</button>
+            </div>
+            <p class="muted" id="layout-h3-hint" hidden>Munzner (1997): a BFS spanning forest, hyperbolic hemisphere bands and Klein-ball projection. Non-tree links do not influence placement. Select a node and use Focus for a hyperbolic change of focus; ordinary orbit controls still rotate the view. Radius is the displayed ball radius. Pins, overlap removal and dragging would invalidate this geometry. Very deep hierarchies can exceed double precision.</p>
+            <p class="muted" id="layout-upward-hint" hidden>Dujmovic–Wood (2005), Theorem 3.1: upward prime-modulus grid. Requires a directed acyclic graph; cycles and self-loops are rejected. Every arc increases z. Nonincident straight edges do not intersect in exact arithmetic; parallel edges coincide. This is not a Sugiyama layering heuristic.</p>
+            <p class="muted" id="layout-flat-3d-hint" hidden>This runs the original 2D layout unchanged and places every node on the z = 0 plane. Orbit the camera to inspect the layout in 3D.</p>
+            <p class="muted" id="layout-layered-3d-hint" hidden></p>
+            <p class="muted" id="layout-pyramid-3d-hint" hidden>Each hop level is arranged on a centred grid. Z increases by the Z-axis multiplier per hop; unreachable nodes share a grid one layer below the root.</p>
+            <p class="muted" id="layout-feature-grid-3d-hint" hidden>Each feature value occupies a depth level. Nodes with that value form a centred x/y grid.</p>
+            <p class="muted" id="layout-community-3d-hint" hidden>Uses the community composition layout in x/y and separates each community onto its own depth layer.</p>
             <p class="muted" id="layout-distance-hint" hidden>Shortest-path distances ignore edge direction. Optional edge weights are positive path lengths. Each disconnected component is optimized independently. These full-distance models require quadratic memory; stress majorization also factors a dense matrix.</p>
             <p class="muted" id="layout-hu-hint" hidden>Hu's edge-collapsing model: coarsen, draw, then refine. Each frame is one sequential force sweep. The total iteration budget spans all levels; increase it if refinement stops early. No gravity or movement cap is added.</p>
             <p class="muted" id="layout-community-hint" hidden>Choose a community assignment or node attribute under Group by. Draws each group, lays out the community graph, then separates community envelopes. Published child models retain their default settings. Returns the final composition.</p>
@@ -305,6 +364,7 @@
             <p class="muted">Categorical colourings (communities, text attributes) show an editable legend on the canvas.</p>
             <hr class="sep"/>
             <label class="inline-check"><input type="checkbox" id="node-border-on"/> Node borders</label>
+            <label class="inline-check" id="cosmograph-sphere-shading-field" hidden><input type="checkbox" id="cosmograph-sphere-shading" checked/> Cosmograph sphere shading (3D)</label>
             <div class="params" id="node-border-params" hidden>
                 <label><span>Colour</span><input type="color" id="node-border-color" value="#1b1c1f"/></label>
                 <label><span>Width</span><input type="number" id="node-border-width" step="0.5" min="0.5" value="1.5"/></label>
@@ -618,8 +678,13 @@
             <div id="network-toolbar" role="toolbar" aria-label="Network controls">
                 <label class="renderer-picker" data-tooltip="markup-0027">
                     <span>Renderer</span>
-                    <select id="network-renderer"><option value="cosmograph" selected>Cosmograph</option><option value="sigma">Sigma</option><option value="geographic">Geographic map</option></select>
+                    <select id="network-renderer"><option value="cosmograph" selected>Cosmograph</option><option value="sigma">Sigma</option><option value="geographic">Geographic map / globe</option></select>
                 </label>
+                <label class="renderer-picker" id="network-dimensions-field">
+                    <span>Dimensions</span>
+                    <select id="network-dimensions"><option value="2">2D</option><option value="3">3D</option></select>
+                </label>
+                <button id="btn-project-network-2d" hidden>Project to 2D</button>
                 <div class="network-interactions">
                     <label class="interaction-toggle"><input type="checkbox" id="drag-nodes"/> Drag nodes</label>
                     <label class="interaction-toggle" data-tooltip="ui-multi-node-select"><input type="checkbox" id="multi-node-select" disabled/> Select multiple</label>
@@ -643,6 +708,18 @@
                     <div class="network-export-options">
                         <button id="btn-export-png">Export network (PNG)</button>
                         <button id="btn-export-svg">Export network (SVG)</button>
+                        <label id="rotation-export-resolution-field" class="field" hidden><span>Rotation resolution</span>
+                            <select id="rotation-export-resolution">
+                                <option value="1280">HD (1280 px wide)</option>
+                                <option value="1920" selected>Full HD (1920 px wide)</option>
+                                <option value="2560">QHD (2560 px wide)</option>
+                                <option value="3840">4K (3840 px wide)</option>
+                                <option value="native">Native resolution</option>
+                            </select>
+                            <small>Aspect ratio is preserved. WebM gives better colour and smaller files than GIF.</small>
+                        </label>
+                        <button id="btn-export-rotation-gif" hidden>Export rotation cycle (GIF)</button>
+                        <button id="btn-export-rotation-webm" hidden>Export rotation cycle (WebM)</button>
                         <label class="inline-check"><input id="export-include-legend" type="checkbox" checked/> Include colour legend</label>
                         <button id="btn-export-gexf">Export graph (GEXF)</button>
                         <label class="inline-check"><input type="checkbox" id="export-gexf-numeric-ids"/> Use numeric node IDs in GEXF</label>
@@ -650,6 +727,8 @@
                 </details>
             </div>
             <div class="network-interaction-help">
+                <p id="network-globe-help" class="muted" hidden>Drag to rotate the globe; scroll to zoom. Click a node or link to select it. Nodes use latitude/longitude, not layout coordinates.</p>
+                <p id="network-3d-help" hidden>Drag to rotate · Scroll to zoom · Shift + drag to pan</p>
                 <p id="edit-help" hidden>Click empty space to add a node · Ctrl-click two nodes to add an edge · Select a node and press Delete to remove it.</p>
                 <p id="network-drag-hint" hidden>Drag a node to move it. Switch off Drag nodes to pan the graph.</p>
             </div>
@@ -658,6 +737,21 @@
             <canvas id="rec-overlay"></canvas>
             <!-- Both renderers share this graph viewport. -->
             <div id="cosmograph-container" hidden></div>
+            <div id="cosmograph-axis-gizmo" class="cosmograph-axis-gizmo" hidden aria-label="3D camera orientation">
+                <svg viewBox="0 0 112 112" role="group" aria-label="Camera axes; click an axis end to view along it"></svg>
+            </div>
+            <div id="cosmograph-rotation-controls" hidden aria-label="Continuous 3D rotation">
+                <label class="inline-check"><input type="checkbox" id="cosmograph-auto-rotate"/> Rotate</label>
+                <label>Axis</label>
+                <input type="number" id="cosmograph-rotation-axis-x" aria-label="Rotation axis X component" step="0.1" value="0" />
+                <input type="number" id="cosmograph-rotation-axis-y" aria-label="Rotation axis Y component" step="0.1" value="1" />
+                <input type="number" id="cosmograph-rotation-axis-z" aria-label="Rotation axis Z component" step="0.1" value="0" />
+                <label for="cosmograph-rotation-speed">Speed</label>
+                <select id="cosmograph-rotation-speed" aria-label="Rotation speed">
+                    <option value="10">10°/s</option><option value="25" selected>25°/s</option><option value="45">45°/s</option>
+                </select>
+                <label class="inline-check"><input type="checkbox" id="cosmograph-reverse-rotation"/> Reverse</label>
+            </div>
             <div id="geographic-container" hidden aria-label="Geographic network map"></div>
             <div id="node-legend" class="node-legend" hidden></div>
             <div id="empty-hint">Load an edge list to begin.</div>
@@ -680,9 +774,12 @@
                     <button id="btn-tl-webm">⬇ WebM</button>
                 </div>
                 <label class="field">
-                    <span>WebM resolution</span>
+                    <span>Animation resolution (GIF / WebM)</span>
                     <select id="tl-webm-res">
-                        <option value="1920">1920px (smaller file)</option>
+                        <option value="1280">HD (1280 px wide)</option>
+                        <option value="1920" selected>Full HD (1920 px wide)</option>
+                        <option value="2560">QHD (2560 px wide)</option>
+                        <option value="3840">4K (3840 px wide)</option>
                         <option value="native">Full native resolution</option>
                     </select>
                 </label>
@@ -711,6 +808,8 @@
                     </span>
                     <span class="tb-spacer"></span>
                     <span class="tb-group">
+                        <button id="btn-filter-builder-nodes" aria-expanded="false" aria-controls="filter-builder-nodes" data-tooltip="ui-filter-builder">Build filters…</button>
+                        <label class="inline-check network-filter-mode" data-tooltip="ui-node-filter-mode"><span>Column filters</span><select id="filter-mode-nodes" aria-label="Node filter combination"><option value="and">Match all (AND)</option><option value="or">Match any (OR)</option></select></label>
                         <button id="btn-clear-nodes-filters" data-tooltip="ui-btn-clear-nodes-filters">🔎 Clear filters</button>
                         <span class="menu-wrap column-menu-wrap">
                             <button id="btn-node-columns" aria-expanded="false">☷ Columns</button>
@@ -718,6 +817,7 @@
                         </span>
                     </span>
                 </div>
+
                 <div class="attribute-import-options">
                     <label class="field"><span>Attribute file separator</span><select id="node-attr-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
                     <label class="inline-check"><input type="checkbox" id="node-attr-header" checked/> File includes header</label>
@@ -742,6 +842,7 @@
                     </span>
                 </div>
                 <input type="file" id="node-csv-file" hidden/>
+                <div id="filters-nodes" class="network-filter-summary" aria-live="polite"></div>
                 <div class="scroll-table tall"><table id="nodes-table" class="data"></table></div>
                 <div class="pagination" id="pager-nodes"></div>
             </div>
@@ -760,6 +861,8 @@
                     </span>
                     <span class="tb-spacer"></span>
                     <span class="tb-group">
+                        <button id="btn-filter-builder-edges" aria-expanded="false" aria-controls="filter-builder-edges" data-tooltip="ui-filter-builder">Build filters…</button>
+                        <label class="inline-check network-filter-mode" data-tooltip="ui-edge-filter-mode"><span>Column filters</span><select id="filter-mode-edges" aria-label="Edge filter combination"><option value="and">Match all (AND)</option><option value="or">Match any (OR)</option></select></label>
                         <button id="btn-clear-edges-filters" data-tooltip="ui-btn-clear-edges-filters">🔎 Clear filters</button>
                         <span class="menu-wrap column-menu-wrap">
                             <button id="btn-edge-columns" aria-expanded="false">☷ Columns</button>
@@ -767,6 +870,7 @@
                         </span>
                     </span>
                 </div>
+
                 <div class="attribute-import-options">
                     <label class="field"><span>Attribute file separator</span><select id="edge-attr-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
                     <label class="inline-check"><input type="checkbox" id="edge-attr-header" checked/> File includes header</label>
@@ -793,6 +897,7 @@
                     </span>
                 </div>
                 <input type="file" id="edge-csv-file" hidden/>
+                <div id="filters-edges" class="network-filter-summary" aria-live="polite"></div>
                 <div class="scroll-table tall"><table id="edges-table" class="data"></table></div>
                 <div class="pagination" id="pager-edges"></div>
             </div>
@@ -831,7 +936,7 @@
                     <label>Show <select class="chart-view-select" id="node-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
                     <label>Display order <select class="chart-view-select" id="node-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
                     <label hidden>k <input class="chart-k-input" type="number" id="node-chart-k" min="1" step="1" value="10"/></label>
-                    <button class="chart-dl" data-canvas="node-chart" data-file="node-metric-distribution.png">⬇ Download PNG</button>
+                    <button class="chart-dl" data-canvas="node-chart" data-file="node-metric-distribution.png">⬇ Download PNG / SVG</button>
                 </div>
                 <p class="muted chart-view-note" id="node-chart-view-note" aria-live="polite"></p>
                 <div class="chart-area"><div id="node-chart" class="echarts-chart"></div></div>
@@ -847,7 +952,7 @@
                     <div class="chart-controls">
                         <label>Metric <select id="node-scatter-metric"></select></label>
                         <label>Recommendation <select id="node-scatter-rec"></select></label>
-                        <button class="chart-dl" data-canvas="node-scatter" data-file="node-original-vs-recommendation.png">⬇ Download PNG</button>
+                        <button class="chart-dl" data-canvas="node-scatter" data-file="node-original-vs-recommendation.png">⬇ Download PNG / SVG</button>
                     </div>
                     <div class="chart-area"><div id="node-scatter" class="echarts-chart"></div></div>
                 </div>
@@ -865,7 +970,7 @@
                     <label>Show <select class="chart-view-select" id="edge-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
                     <label>Display order <select class="chart-view-select" id="edge-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
                     <label hidden>k <input class="chart-k-input" type="number" id="edge-chart-k" min="1" step="1" value="10"/></label>
-                    <button class="chart-dl" data-canvas="edge-chart" data-file="edge-metric-distribution.png">⬇ Download PNG</button>
+                    <button class="chart-dl" data-canvas="edge-chart" data-file="edge-metric-distribution.png">⬇ Download PNG / SVG</button>
                 </div>
                 <p class="muted chart-view-note" id="edge-chart-view-note" aria-live="polite"></p>
                 <div class="chart-area"><div id="edge-chart" class="echarts-chart"></div></div>
@@ -874,7 +979,7 @@
                     <div class="chart-controls">
                         <label>Metric <select id="edge-scatter-metric"></select></label>
                         <label>Recommendation <select id="edge-scatter-rec"></select></label>
-                        <button class="chart-dl" data-canvas="edge-scatter" data-file="edge-original-vs-recommendation.png">⬇ Download PNG</button>
+                        <button class="chart-dl" data-canvas="edge-scatter" data-file="edge-original-vs-recommendation.png">⬇ Download PNG / SVG</button>
                     </div>
                     <div class="chart-area"><div id="edge-scatter" class="echarts-chart"></div></div>
                 </div>
@@ -888,7 +993,7 @@
                 <h2>Node-pair metric distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="pair-chart-metric"></select></label>
-                    <button class="chart-dl" data-canvas="pair-chart" data-file="node-pair-metric-distribution.png">⬇ Download PNG</button>
+                    <button class="chart-dl" data-canvas="pair-chart" data-file="node-pair-metric-distribution.png">⬇ Download PNG / SVG</button>
                 </div>
                 <div class="chart-area histogram-chart"><div id="pair-chart" class="echarts-chart"></div></div>
                 <p class="muted" id="pair-chart-note"></p>
@@ -907,7 +1012,7 @@
                     <label>Show <select class="chart-view-select" id="comm-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
                     <label>Display order <select class="chart-view-select" id="comm-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
                     <label hidden>k <input class="chart-k-input" type="number" id="comm-chart-k" min="1" step="1" value="10"/></label>
-                    <button class="chart-dl" data-canvas="comm-chart" data-file="community-metric-distribution.png">⬇ Download PNG</button>
+                    <button class="chart-dl" data-canvas="comm-chart" data-file="community-metric-distribution.png">⬇ Download PNG / SVG</button>
                 </div>
                 <p class="muted chart-view-note" id="comm-chart-view-note" aria-live="polite"></p>
                 <div class="chart-area"><div id="comm-chart" class="echarts-chart"></div></div>
@@ -916,7 +1021,7 @@
                     <div class="chart-controls">
                         <label>Metric <select id="comm-scatter-metric"></select></label>
                         <label>Recommendation <select id="comm-scatter-rec"></select></label>
-                        <button class="chart-dl" data-canvas="comm-scatter" data-file="community-original-vs-recommendation.png">⬇ Download PNG</button>
+                        <button class="chart-dl" data-canvas="comm-scatter" data-file="community-original-vs-recommendation.png">⬇ Download PNG / SVG</button>
                     </div>
                     <div class="chart-area"><div id="comm-scatter" class="echarts-chart"></div></div>
                 </div>
@@ -934,7 +1039,7 @@
                     <label>Show <select class="chart-view-select" id="attrcomm-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
                     <label>Display order <select class="chart-view-select" id="attrcomm-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
                     <label hidden>k <input class="chart-k-input" type="number" id="attrcomm-chart-k" min="1" step="1" value="10"/></label>
-                    <button class="chart-dl" data-canvas="attrcomm-chart" data-file="attribute-metric-distribution.png">⬇ Download PNG</button>
+                    <button class="chart-dl" data-canvas="attrcomm-chart" data-file="attribute-metric-distribution.png">⬇ Download PNG / SVG</button>
                 </div>
                 <p class="muted chart-view-note" id="attrcomm-chart-view-note" aria-live="polite"></p>
                 <div class="chart-area"><div id="attrcomm-chart" class="echarts-chart"></div></div>
@@ -952,7 +1057,7 @@
                     <label id="relationship-x-binning-field" hidden>X numeric values <select id="relationship-x-binning"><option value="bins">Equal-width bins</option><option value="exact">Exact values</option></select></label>
                     <label id="relationship-y-binning-field" hidden>Y numeric values <select id="relationship-y-binning"><option value="bins">Equal-width bins</option><option value="exact">Exact values</option></select></label>
                     <label id="relationship-bins-field" hidden>Number of bins <input class="chart-k-input" id="relationship-bins" type="number" min="2" max="100" step="1" value="10" required/></label>
-                    <button id="relationship-png" class="chart-dl" data-canvas="relationship-chart" data-file="attribute-relationships.png" disabled>⬇ Download PNG</button>
+                    <button id="relationship-png" class="chart-dl" data-canvas="relationship-chart" data-file="attribute-relationships.png" disabled>⬇ Download PNG / SVG</button>
                     <button id="relationship-csv" class="chart-dl" disabled>Export CSV</button>
                 </div>
                 <p class="muted" id="relationship-note" aria-live="polite"></p>
@@ -971,7 +1076,7 @@
                     <label>Show <select class="chart-view-select" id="edgeattr-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
                     <label>Display order <select class="chart-view-select" id="edgeattr-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
                     <label hidden>k <input class="chart-k-input" type="number" id="edgeattr-chart-k" min="1" step="1" value="10"/></label>
-                    <button class="chart-dl" data-canvas="edgeattr-chart" data-file="edge-attribute-metric-distribution.png">⬇ Download PNG</button>
+                    <button class="chart-dl" data-canvas="edgeattr-chart" data-file="edge-attribute-metric-distribution.png">⬇ Download PNG / SVG</button>
                 </div>
                 <p class="muted chart-view-note" id="edgeattr-chart-view-note" aria-live="polite"></p>
                 <div class="chart-area"><div id="edgeattr-chart" class="echarts-chart"></div></div>
@@ -1146,7 +1251,7 @@
                     </nav>
                     <div class="diff-views">
                         <div class="diff-view" id="diff-view-graph">
-                            <label class="diff-renderer-picker"><span>Renderer</span><select id="diff-renderer"><option value="network" selected>Follow network renderer</option><option value="sigma">Sigma</option><option value="cosmograph">Cosmograph</option><option value="mercator">Geographic: Mercator</option><option value="equal-earth">Geographic: Equal Earth</option></select></label>
+                            <label class="diff-renderer-picker"><span>Renderer</span><select id="diff-renderer"><option value="network" selected>Follow network renderer</option><option value="sigma">Sigma</option><option value="cosmograph">Cosmograph</option><option value="mercator">Geographic: Mercator</option><option value="equal-earth">Geographic: Equal Earth</option><option value="globe">Geographic: Globe</option></select></label>
                             <div id="diff-sigma-container"></div>
                             <div id="diff-cosmograph-container" hidden></div>
                             <div id="diff-geographic-container" hidden aria-label="Geographic diffusion map"></div>
@@ -1162,8 +1267,11 @@
                                 <span id="diff-iter-label" class="pageinfo">iteration 0</span>
                                 <button id="btn-diff-gif" class="diff-dl-btn" data-tooltip="ui-btn-diff-gif">⬇ GIF</button>
                                 <button id="btn-diff-webm" class="diff-dl-btn" data-tooltip="ui-btn-diff-webm">⬇ WebM</button>
-                                <select id="diff-webm-res" class="diff-res-sel" data-tooltip="ui-diff-webm-res">
-                                    <option value="1920">1920px</option>
+                                <select id="diff-webm-res" class="diff-res-sel" data-tooltip="ui-diff-webm-res" aria-label="Animation resolution (GIF / WebM)">
+                                    <option value="1280">HD (1280px)</option>
+                                    <option value="1920" selected>Full HD (1920px)</option>
+                                    <option value="2560">QHD (2560px)</option>
+                                    <option value="3840">4K (3840px)</option>
                                     <option value="native">native</option>
                                 </select>
                             </div>
@@ -1172,7 +1280,7 @@
                             <div class="diffmetrics-pane">
                                 <div class="chart-controls">
                                     <label>Metric <select id="diffmetric-select"></select></label>
-                                    <button id="btn-diffmetric-png" class="chart-dl">⬇ Download PNG</button>
+                                    <button id="btn-diffmetric-png" class="chart-dl">⬇ Download PNG / SVG</button>
                                     <button id="btn-diffmetric-csv" class="chart-dl">⬇ Download CSV</button>
                                 </div>
                                 <p class="muted" id="diffmetrics-hint">Run a simulation (with metrics selected) to see plots over iterations.</p>
@@ -1212,7 +1320,7 @@
                                         <option value="stacked">Stacked area</option>
                                         <option value="lines">Lines</option>
                                     </select></label>
-                                    <button id="btn-diff-traj-png" class="chart-dl">⬇ Download PNG</button>
+                                    <button id="btn-diff-traj-png" class="chart-dl">⬇ Download PNG / SVG</button>
                                 </div>
                                 <p class="muted" id="diff-traj-hint">Run a simulation and select a node to see how its information exposure evolves.</p>
                                 <div class="chart-area" id="diff-traj-area"><div id="diff-traj-canvas" class="echarts-chart"></div></div>
@@ -1238,7 +1346,7 @@
                                         <option value="stacked">Stacked area</option>
                                         <option value="lines">Lines</option>
                                     </select></label>
-                                    <button id="btn-diff-ptraj-png" class="chart-dl">⬇ Download PNG</button>
+                                    <button id="btn-diff-ptraj-png" class="chart-dl">⬇ Download PNG / SVG</button>
                                 </div>
                                 <p class="muted" id="diff-ptraj-hint">Run a simulation and choose an information piece to see how many users receive / read / propagate / discard it over the iterations.</p>
                                 <div class="chart-area" id="diff-ptraj-area"><div id="diff-ptraj-canvas" class="echarts-chart"></div></div>
@@ -1267,7 +1375,7 @@
                                         <option value="stacked">Stacked area</option>
                                         <option value="lines">Lines</option>
                                     </select></label>
-                                    <button id="btn-diff-ftraj-png" class="chart-dl">⬇ Download PNG</button>
+                                    <button id="btn-diff-ftraj-png" class="chart-dl">⬇ Download PNG / SVG</button>
                                 </div>
                                 <p class="muted" id="diff-ftraj-hint">Run a simulation and choose a feature to see how its values spread across the network over the iterations.</p>
                                 <div class="chart-area" id="diff-ftraj-area"><div id="diff-ftraj-canvas" class="echarts-chart"></div></div>
@@ -1284,7 +1392,7 @@
                                     <label id="diff-dist-feat-field">Feature <select id="diff-dist-feature"></select></label>
                                     <label id="diff-dist-info-field" hidden>Info feature <select id="diff-dist-info"></select></label>
                                     <label id="diff-dist-user-field" hidden>User feature <select id="diff-dist-user"></select></label>
-                                    <button id="btn-diff-dist-png" class="chart-dl">⬇ Download PNG</button>
+                                    <button id="btn-diff-dist-png" class="chart-dl">⬇ Download PNG / SVG</button>
                                 </div>
                                 <p class="muted" id="diff-dist-hint">Run a simulation to see how received information distributes across feature values (over the whole simulation).</p>
                                 <div class="chart-area" id="diff-dist-area"><div id="diff-dist-canvas" class="echarts-chart"></div></div>
@@ -1481,14 +1589,15 @@
             <div id="select-path-fields" hidden>
                 <label class="field"><span>Source</span><input type="text" id="select-path-source" placeholder="type to search node"/></label>
                 <label class="field"><span>Target</span><input type="text" id="select-path-target" placeholder="type to search node"/></label>
+                <label class="field"><span>Search scope</span><select id="select-path-scope"><option value="filtered">Filtered graph</option><option value="whole">Whole graph</option></select></label>
                 <button id="btn-select-paths">Find all shortest paths</button>
             </div>
             <label class="field" id="select-view-mode-field">
                 <span>View mode</span>
                 <select id="select-mode">
                     <option value="highlight">Highlight node</option>
-                    <option value="path-highlight" hidden>Highlight all paths</option>
-                    <option value="path-only" hidden>Show all paths</option>
+                    <option value="path-highlight" hidden>Highlight selected paths</option>
+                    <option value="path-only" hidden>Show only selected paths</option>
                     <option value="edge-highlight" hidden>Highlight only edge</option>
                     <option value="edge-attribute-highlight" hidden>Highlight matching edge attributes</option>
                     <option value="edge-attribute-only" hidden>Show only matching edge attributes</option>
@@ -1496,7 +1605,7 @@
                     <option value="ego-only">Show only ego-network</option>
                     <option value="community-highlight">Highlight community</option>
                     <option value="community-only">Show only community</option>
-                    <option value="none">None (no emphasis)</option>
+                    <option value="none">None (no selection emphasis)</option>
                 </select>
             </label>
             <div id="select-path-color-controls" hidden>
@@ -1507,9 +1616,10 @@
                 <label class="field" id="path-edge-highlight-color-field" hidden><span>Highlight color</span><input type="color" id="path-edge-highlight-color" value="#ff9f43"/></label>
             </div>
             <button id="btn-clear-selection">Clear selection</button>
+            <p id="selection-notice" class="muted" aria-live="polite" hidden></p>
             <label class="field" id="select-edge-attribute-field" hidden><span>Edge attribute</span><select id="select-edge-attribute"></select></label>
             <label class="field" id="select-partition-field" hidden>
-                <span>Community partition</span>
+                <span>Community / node attribute</span>
                 <select id="select-partition"></select>
             </label>
             <div id="select-path-results" hidden>
@@ -1528,6 +1638,7 @@
 
 <dialog id="chart-png-dialog" class="chart-export-dialog" aria-labelledby="chart-png-title" aria-describedby="chart-png-description">
     <h2 id="chart-png-title">Download chart PNG</h2>
+    <label class="field"><span>Format</span><select id="chart-export-format"><option value="png">PNG</option><option value="svg">SVG (vector)</option></select></label>
     <p id="chart-png-description">Choose the visible view or include the offscreen parts at the same zoom scale. Zoom controls and their histogram are excluded.</p>
     <button id="chart-png-current" type="button">Current zoomed view <span id="chart-png-current-size"></span></button>
     <button id="chart-png-full" type="button">Complete chart at current zoom <span id="chart-png-full-size"></span></button>
@@ -1543,8 +1654,45 @@
     <button id="network-svg-cancel" type="button">Cancel</button>
 </dialog>
 
+<dialog id="filter-builder-nodes" class="filter-builder" aria-labelledby="filter-builder-title-nodes" aria-describedby="filter-builder-help-nodes">
+    <header class="filter-builder-header">
+        <h3 id="filter-builder-title-nodes">Build node filters</h3>
+        <button id="filter-builder-dismiss-nodes" type="button" class="filter-builder-dismiss" aria-label="Close node filter builder">×</button>
+    </header>
+    <div class="filter-builder-body">
+        <p id="filter-builder-help-nodes" class="muted">Choose AND or OR between conditions. AND is evaluated before OR; add groups for parentheses. You can use the same field more than once.</p>
+        <div id="filter-builder-editor-nodes"></div>
+        <p id="filter-builder-expression-nodes" class="filter-builder-expression" aria-live="polite"></p>
+        <p id="filter-builder-errors-nodes" class="filter-builder-errors" role="alert"></p>
+        <p id="filter-builder-preview-nodes" class="muted" aria-live="polite"></p>
+    </div>
+    <footer class="filter-builder-footer">
+        <p class="muted">Apply replaces this table's current filters. Column filters added afterward combine with the expression using AND.</p>
+        <div class="filter-builder-actions"><button id="filter-builder-apply-nodes" class="primary">Apply filters</button><button id="filter-builder-cancel-nodes" aria-label="Close without applying pending edits">Close</button></div>
+    </footer>
+</dialog>
+
+<dialog id="filter-builder-edges" class="filter-builder" aria-labelledby="filter-builder-title-edges" aria-describedby="filter-builder-help-edges">
+    <header class="filter-builder-header">
+        <h3 id="filter-builder-title-edges">Build edge filters</h3>
+        <button id="filter-builder-dismiss-edges" type="button" class="filter-builder-dismiss" aria-label="Close edge filter builder">×</button>
+    </header>
+    <div class="filter-builder-body">
+        <p id="filter-builder-help-edges" class="muted">Choose AND or OR between conditions. AND is evaluated before OR; add groups for parentheses. You can use the same field more than once.</p>
+        <div id="filter-builder-editor-edges"></div>
+        <p id="filter-builder-expression-edges" class="filter-builder-expression" aria-live="polite"></p>
+        <p id="filter-builder-errors-edges" class="filter-builder-errors" role="alert"></p>
+        <p id="filter-builder-preview-edges" class="muted" aria-live="polite"></p>
+    </div>
+    <footer class="filter-builder-footer">
+        <p class="muted">Apply replaces this table's current filters. Column filters added afterward combine with the expression using AND.</p>
+        <div class="filter-builder-actions"><button id="filter-builder-apply-edges" class="primary">Apply filters</button><button id="filter-builder-cancel-edges" aria-label="Close without applying pending edits">Close</button></div>
+    </footer>
+</dialog>
+
 <script src="pdf.js"></script>
 <script src="network-svg-export.js"></script>
+<script src="animation-export.js"></script>
 <script src="metric-charts.js"></script>
 <script src="chart-labels.js"></script>
 <script src="chart-export.js"></script>
@@ -1553,8 +1701,12 @@
 <script src="attribute-relationships.js"></script>
 <script src="chart-settings.js"></script>
 <script src="geographic-map.js"></script>
+<script src="h3-navigation.js"></script>
 <script src="geographic-export.js"></script>
+<script src="globe-map.js"></script>
 <script src="equal-earth-map.js"></script>
+<script src="network-view.js"></script>
+<script src="filter-builder.js"></script>
 <script src="app.js"></script>
 <script type="module" src="cosmograph-spike.js"></script>
 <script type="module" src="sigma-edge-curve.js"></script>

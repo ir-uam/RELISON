@@ -37,9 +37,14 @@ public final class LayoutPipeline<U> implements Layout<U>
         Set<U> nodes = result.getPositions().keySet();
         for (LayoutPostProcessor<U> processor : processors)
         {
+            int dimensions = result.getSpaceDimensions();
             result = Objects.requireNonNull(processor.process(graph, result, request));
+            if (result.getSpaceDimensions() != dimensions) throw new IllegalStateException("Processor changed layout dimensions");
             if (!result.getPositions().keySet().equals(nodes))
                 throw new IllegalStateException("Processor changed node coverage");
+            for (U node : request.getPinnedNodes())
+                if (dimensions == 3 && !Objects.equals(result.getPositions3D().get(node), request.getInitialPositions3D().get(node)))
+                    throw new IllegalStateException("Processor moved a spatial pin");
             for (U node : request.getPinnedNodes())
                 if (!Objects.equals(result.getPositions().get(node), request.getInitialPositions().get(node)))
                     throw new IllegalStateException("Processor moved a pinned node");

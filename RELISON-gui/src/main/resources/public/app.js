@@ -112,6 +112,7 @@ const state = {
     layoutRequest: null,
     relisonLayout: null,
     savedLayoutPositions: null,
+    savedLayoutPositions3D: null,
     dragNodes: false,     // when on, dragging a node repositions it instead of panning the canvas
     multiNodeSelect: false,
     areaSelectingNodes: false,
@@ -129,12 +130,16 @@ const state = {
     cosmographEdgeStart: null,
     editFirstNode: null,
     selection: { type: "node", node: null, mode: "highlight", partition: null, edgeAttribute: null },
-    pathFocus: null,   // { nodes: Set, edges: Set("s|t") } focused from the right-panel path selector
+    selectionModes: { node: "highlight", edge: "edge-highlight", path: "path-highlight" },
+    activePaths: [],
+    pathRequestVersion: 0,
+    networkRevision: 0,
+    pathFocus: null,   // derived display focus: eligible nodes, edge IDs, endpoint pairs and active paths
     pathEdgeHighlight: { mode: "default", color: "#ff9f43" },
     pathAppearance: { enlargeNodes: false, nodeScale: 1.5, edgeScale: 1 },
     pathEdgeStyles: new Map(),
     pathEdgeStyleSequence: 0,
-    pathEndpointFocusActive: true,
+    pathEndpointFocusActive: false,
     lastPaths: [],     // most recent shortest-path result (array of node-id arrays)
 
     // Computed results.
@@ -220,8 +225,8 @@ const state = {
         edgeShow: false, edgeSize: 9, edgeProp: false, edgeColorMode: "default", edgeColor: "#e6e6e6", edgeFont: "sans-serif",
     },
     tables: {
-        nodes: { sort: { col: "id", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null, columnOrder: [], hiddenColumns: [] },
-        edges: { sort: { col: "source", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null, columnOrder: [], hiddenColumns: [] },
+        nodes: { sort: { col: "id", dir: 1 }, filters: {}, filterMode: "and", filterExpression: null, filterDraft: null, page: 0, pageSize: 100, headerSig: null, columnOrder: [], hiddenColumns: [] },
+        edges: { sort: { col: "source", dir: 1 }, filters: {}, filterMode: "and", filterExpression: null, filterDraft: null, page: 0, pageSize: 100, headerSig: null, columnOrder: [], hiddenColumns: [] },
         rec: { sort: { col: "score", dir: -1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
     },
     catalog: null,
@@ -438,7 +443,7 @@ function stepTimeline(dir) {
 }
 
 /* --------------------- canvas animation export (GIF / WebM) --------------------- */
-// A generic recorder for the animated sigma canvases (the graph timeline and the diffusion playback). A "spec"
+// A generic recorder for graph timeline, diffusion and camera rotation playback. A "spec"
 // describes one animation: its renderer, the container/overlay canvases to composite, an ordered list of frame args,
 // a setFrame(arg) that advances the animation (and triggers a render), and a restore() to put things back afterwards.
 
@@ -446,16 +451,7 @@ const FRAME_DELAY_MS = 600;   // GIF per-frame delay / WebM per-frame hold
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-// gif.js runs its LZW encoder in a Web Worker; a cross-origin worker URL is blocked, so we fetch the CDN worker once
-// and hand gif.js a same-origin blob URL for it.
-let _gifWorkerUrl = null;
-async function gifWorkerUrl() {
-    if (_gifWorkerUrl) return _gifWorkerUrl;
-    const resp = await fetch("https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js");
-    if (!resp.ok) throw new Error("could not load the GIF worker");
-    _gifWorkerUrl = URL.createObjectURL(await resp.blob());
-    return _gifWorkerUrl;
-}
+let animationRecording = false;
 
 // The best-supported WebM codec for MediaRecorder, or "" to let the browser choose.
 function pickWebmMime() {
@@ -503,27 +499,31 @@ function captureRendererFrame(spec, arg) {
     });
 }
 
-// Records an animation spec to an animated GIF (frames captured up front, then encoded off the main thread).
+// Encode each frame before capturing the next so HD/4K GIFs retain only one RGBA frame at a time.
 async function recordGif(spec) {
-    if (typeof GIF === "undefined") { setStatus("GIF encoder not available (offline?).", "error"); return; }
+    if (animationRecording) { setStatus("An animation export is already in progress.", "busy"); return; }
     if (!spec.frameArgs.length) { setStatus("Nothing to record.", "error"); return; }
+    animationRecording = true;
     spec.button.disabled = true;
+    let encoder;
     try {
-        const workerScript = await gifWorkerUrl();
-        const gif = new GIF({ workers: 2, quality: 10, workerScript, background: cssVar("--canvas-bg", "#18191c") });
+        await spec.prepare?.();
+        encoder = await window.relisonAnimationExport.gifEncoder();
         for (let i = 0; i < spec.frameArgs.length; i++) {
             setStatus("Recording " + spec.name + "… frame " + (i + 1) + "/" + spec.frameArgs.length, "busy");
             const frame = await captureRendererFrame(spec, spec.frameArgs[i]);
-            if (frame) gif.addFrame(frame, { copy: true, delay: FRAME_DELAY_MS });
+            if (!frame) throw new Error("The renderer did not produce an animation frame.");
+            await encoder.addFrame(frame, spec.delayMs || FRAME_DELAY_MS);
         }
-        gif.on("progress", (p) => setStatus("Encoding GIF… " + Math.round(p * 100) + "%", "busy"));
-        gif.on("finished", (blob) => { download(spec.name + ".gif", blob, "image/gif"); setStatus(spec.name + " GIF downloaded (" + spec.frameArgs.length + " frames)."); });
-        gif.render();
+        const blob = await encoder.finish();
+        download(spec.name + ".gif", blob, "image/gif");
+        setStatus(spec.name + " GIF downloaded (" + spec.frameArgs.length + " frames).");
     } catch (e) {
         setStatus("Could not record the " + spec.name + ": " + e.message, "error");
     } finally {
-        spec.restore();
-        spec.button.disabled = false;
+        encoder?.close();
+        try { await spec.restore(); }
+        finally { spec.button.disabled = false; animationRecording = false; }
     }
 }
 
@@ -531,40 +531,57 @@ async function recordGif(spec) {
 // held on a recording canvas for FRAME_DELAY_MS while a 30fps stream is captured off it.
 async function recordWebm(spec) {
     if (typeof MediaRecorder === "undefined") { setStatus("WebM recording is not supported by this browser.", "error"); return; }
+    if (animationRecording) { setStatus("An animation export is already in progress.", "busy"); return; }
     if (!spec.frameArgs.length) { setStatus("Nothing to record.", "error"); return; }
+    animationRecording = true;
     spec.button.disabled = true;
+    let stream, recorder;
     try {
+        await spec.prepare?.();
         const first = await captureRendererFrame(spec, spec.frameArgs[0]);
         if (!first) throw new Error("nothing to record");
         const rec = document.createElement("canvas");
         rec.width = first.width; rec.height = first.height;
         const rctx = rec.getContext("2d");
         rctx.drawImage(first, 0, 0);
-        const stream = rec.captureStream(30);
+        stream = rec.captureStream(30);
         const mime = pickWebmMime();
-        const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        if (!mime) throw new Error("This browser has no supported WebM encoder.");
+        recorder = new MediaRecorder(stream, { mimeType: mime,
+            videoBitsPerSecond: window.relisonAnimationExport.videoBitrate(rec.width, rec.height) });
         const chunks = [];
         recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-        const stopped = new Promise((res) => { recorder.onstop = res; });
+        let recordingError = null;
+        const stopped = new Promise(resolve => { recorder.onstop = resolve;
+            recorder.onerror = event => { recordingError = event.error || new Error("The video encoder failed."); resolve(); }; });
         recorder.start();
         for (let i = 0; i < spec.frameArgs.length; i++) {
             setStatus("Recording " + spec.name + " (WebM)… frame " + (i + 1) + "/" + spec.frameArgs.length, "busy");
             if (i > 0) {
+                // Exclude time spent rendering high-resolution frames from playback duration.
+                recorder.pause();
                 const f = await captureRendererFrame(spec, spec.frameArgs[i]);
-                if (f) rctx.drawImage(f, 0, 0, rec.width, rec.height);
+                if (!f) throw new Error("The renderer did not produce an animation frame.");
+                if (f.width !== rec.width || f.height !== rec.height) throw new Error("The viewport size changed during recording. Restart the export at the new size.");
+                rctx.drawImage(f, 0, 0, rec.width, rec.height);
+                recorder.resume();
             }
-            await sleep(FRAME_DELAY_MS);
+            if (recordingError) throw recordingError;
+            await sleep(spec.delayMs || FRAME_DELAY_MS);
         }
-        recorder.stop();
+        if (recorder.state !== "inactive") recorder.stop();
         await stopped;
+        if (recordingError) throw recordingError;
         const blob = new Blob(chunks, { type: mime || "video/webm" });
         download(spec.name + ".webm", blob, mime || "video/webm");
         setStatus(spec.name + " WebM downloaded (" + spec.frameArgs.length + " frames).");
     } catch (e) {
         setStatus("Could not record the " + spec.name + ": " + e.message, "error");
     } finally {
-        spec.restore();
-        spec.button.disabled = false;
+        if (recorder && recorder.state !== "inactive") recorder.stop();
+        stream?.getTracks().forEach(track => track.stop());
+        try { await spec.restore(); }
+        finally { spec.button.disabled = false; animationRecording = false; }
     }
 }
 
@@ -577,15 +594,17 @@ function capFrames(pts) {
     return [...new Set(sampled)];
 }
 
-// The WebM frame width from a resolution selector: a pixel cap, or null for full native resolution.
-function webmMaxWidth(selectId) {
+// Requested render width, independent of the current viewport or monitor DPI.
+function animationExportWidth(selectId) {
     const sel = $(selectId);
-    return (sel && sel.value === "native") ? null : 1920;
+    if (sel?.value === "native") return null;
+    const value = Number(sel?.value);
+    return [1280, 1920, 2560, 3840].includes(value) ? value : 1920;
 }
 
 // ---- graph timeline (Network tab) ----
 // cap: whether to sample-cap the frames (GIF, where size/encode time matter) or keep them all (WebM).
-// maxWidth: frame width cap in px (null = full native resolution).
+// maxWidth: requested frame width (null = native resolution).
 function timelineRecordSpec(button, cap, maxWidth) {
     const tl = state.timeline;
     const savedT = tl.t;
@@ -596,17 +615,25 @@ function timelineRecordSpec(button, cap, maxWidth) {
         name: "timeline",
         button,
         renderer: state.renderer,
+        captureFrame: () => usingCosmograph()
+            ? window.relisonCosmograph.captureRotationFrame($("export-include-legend").checked ? state.colorLegend : null, { width: maxWidth })
+            : captureSigmaAnimationFrame(false, maxWidth),
         containerId: "sigma-container",
         overlayId: "rec-overlay",
         drawOverlay: drawRecOverlay,
         maxWidth,
         frameArgs: cap ? capFrames(pts) : pts,
-        setFrame: (t) => {
+        setFrame: async (t) => {
             tl.t = Math.max(tl.min, Math.min(tl.max, Math.round(t)));
             $("tl-slider").value = tl.t;
             $("tl-time").value = tl.t;
             updateTimelineReadout();
             applyReducers();
+            if (usingCosmograph()) {
+                clearTimeout(cosmographAppearanceRefreshTimer);
+                clearTimeout(cosmographTimelineRefreshTimer);
+                await window.relisonCosmograph.syncTimeline(state.graph, { ...cosmographInteractionCallbacks() });
+            }
         },
         restore: () => setTimelineT(savedT),
     };
@@ -616,14 +643,14 @@ function downloadTimelineGif() {
     if (state.timeline.min == null) { setStatus("Pick a time attribute with timestamps first.", "error"); return; }
     if (state.activeTab !== "network") switchTab("network");
     stopTimeline();
-    recordGif(timelineRecordSpec($("btn-tl-gif"), true, 900));
+    recordGif(timelineRecordSpec($("btn-tl-gif"), true, animationExportWidth("tl-webm-res")));
 }
 
 function downloadTimelineWebm() {
     if (state.timeline.min == null) { setStatus("Pick a time attribute with timestamps first.", "error"); return; }
     if (state.activeTab !== "network") switchTab("network");
     stopTimeline();
-    recordWebm(timelineRecordSpec($("btn-tl-webm"), false, webmMaxWidth("tl-webm-res")));   // WebM: no frame cap
+    recordWebm(timelineRecordSpec($("btn-tl-webm"), false, animationExportWidth("tl-webm-res")));   // WebM: no frame cap
 }
 
 // ---- diffusion playback (Diffusion tab) ----
@@ -637,7 +664,8 @@ function diffusionRecordSpec(button, cap, maxWidth) {
         name: "diffusion",
         button,
         renderer: state.diffusion.rendererType === "cosmograph" ? state.diffusion.cosmograph?.instance : state.diffusion.renderer,
-        captureFrame: state.diffusion.rendererType === "cosmograph" ? () => state.diffusion.cosmograph?.captureFrame(maxWidth) : null,
+        captureFrame: state.diffusion.rendererType === "cosmograph" ? () => state.diffusion.cosmograph?.captureFrame(maxWidth)
+            : () => captureSigmaAnimationFrame(true, maxWidth),
         containerId: "diff-sigma-container",
         overlayId: "diff-overlay",
         drawOverlay: drawDiffOverlay,
@@ -660,12 +688,12 @@ async function prepareDiffusionRecording() {
 
 async function downloadDiffusionGif() {
     if (!(await prepareDiffusionRecording())) return;
-    recordGif(diffusionRecordSpec($("btn-diff-gif"), true, 900));
+    recordGif(diffusionRecordSpec($("btn-diff-gif"), true, animationExportWidth("diff-webm-res")));
 }
 
 async function downloadDiffusionWebm() {
     if (!(await prepareDiffusionRecording())) return;
-    recordWebm(diffusionRecordSpec($("btn-diff-webm"), false, webmMaxWidth("diff-webm-res")));   // WebM: no frame cap
+    recordWebm(diffusionRecordSpec($("btn-diff-webm"), false, animationExportWidth("diff-webm-res")));   // WebM: no frame cap
 }
 
 /* ------------------------------ helpers ----------------------------- */
@@ -842,6 +870,7 @@ async function loadGraph() {
 // to the Network tab. Shared by the file-upload and the generator paths (both return the same payload).
 function applyLoadedGraph(data, multigraph) {
     if (state.graphId !== data.graphId) state.savedLayoutPositions = null;
+    if (state.graphId !== data.graphId) state.savedLayoutPositions3D = null;
     state.graphId = data.graphId;
     state.directed = data.stats.directed;
     state.weighted = data.stats.weighted;
@@ -974,6 +1003,9 @@ function resetTableViews() {
     for (const k of ["nodes", "edges"]) {
         const t = state.tables[k];
         t.filters = {};
+        t.filterMode = "and";
+        t.filterExpression = t.filterDraft = null;
+        cancelNetworkFilterBuilder(k);
         t.page = 0;
         t.headerSig = null;
         t.columnOrder = [];
@@ -985,6 +1017,7 @@ function resetTableViews() {
 
 function renderGraph(serialized) {
     leaveGeographicView();
+    window.relisonH3?.clear(); window.relisonPaper3d = null;
     state.cosmographDirty = true;
     stopLayout();
     if (state.renderer) { state.renderer.kill(); state.renderer = null; }
@@ -1702,6 +1735,10 @@ function zoomOut() {
 }
 function zoomFit() {
     if (usingGeographic()) { window.relisonGeographic.fitView(); return; }
+    if (usingCosmograph() && window.relisonCosmograph?.getDimensions?.() === 3) {
+        window.relisonCosmograph.fitView();
+        return;
+    }
     const view = fittedNetworkView();
     if (view) {
         if (usingCosmograph()) window.relisonCosmograph?.setNetworkView(view);
@@ -1813,6 +1850,10 @@ function restoreSigmaNetworkView(view) {
 
 async function setNetworkRenderer(name) {
     const pane = $("pane-network"), container = $("cosmograph-container"), select = $("network-renderer");
+    toggleHidden("network-dimensions-field", name !== "cosmograph");
+    toggleHidden("cosmograph-sphere-shading-field", name !== "cosmograph" || $("network-dimensions").value !== "3");
+    toggleHidden("network-3d-help", name !== "cosmograph" || $("network-dimensions").value !== "3");
+    toggleHidden("btn-project-network-2d", name !== "cosmograph" || $("network-dimensions").value !== "3");
     if (name === "geographic") {
         $("layout-type").value = "geographic";
         $("layout-advanced").open = true;
@@ -1826,7 +1867,9 @@ async function setNetworkRenderer(name) {
         if (view) window.relisonCosmograph.savePointPositions();
         pane.classList.remove("cosmograph-active");
         container.hidden = true;
+        window.relisonCosmograph?.refreshOrientationGizmo?.();
         restoreSigmaNetworkView(view);
+        if (typeof syncRotationExportControls === "function") syncRotationExportControls();
         // Preserve the completed Cosmograph canvas. It can be shown again
         // without reconstructing it when the shared graph is unchanged.
         select.value = "sigma";
@@ -1854,13 +1897,17 @@ async function setNetworkRenderer(name) {
             state.cosmographDirty = false;
         }
         pane.classList.add("cosmograph-active");
+        window.relisonCosmograph?.refreshOrientationGizmo?.();
         select.value = "cosmograph";
+        if (typeof syncRotationExportControls === "function") syncRotationExportControls();
         if (view) window.relisonCosmograph.setNetworkView(view);
         setStatus("Cosmograph visualization ready.");
     } catch (e) {
         container.hidden = true;
         pane.classList.remove("cosmograph-active");
+        window.relisonCosmograph?.refreshOrientationGizmo?.();
         select.value = "sigma";
+        if (typeof syncRotationExportControls === "function") syncRotationExportControls();
         setStatus("Cosmograph could not render this graph: " + e.message, "error");
     }
 }
@@ -1872,7 +1919,8 @@ window.addEventListener("relison-diffusion-cosmograph-ready", () => {
 
 function syncCosmographSelection() {
     if (!window.relisonCosmograph?.setFocusedSelection) return;
-    window.relisonCosmograph.setFocusedSelection(state.selection.type === "node" ? state.selectedNode : null, state.selection.type === "edge" ? state.selectedEdge : null)
+    const focus = networkView().emphasis;
+    window.relisonCosmograph.setFocusedSelection(focus?.selected ?? null, state.selection.type === "edge" && focus?.edges.has(state.selectedEdge) ? state.selectedEdge : null)
         .catch((error) => console.warn("Cosmograph selection sync failed.", error));
 }
 
@@ -1924,21 +1972,40 @@ window.addEventListener("relison-sigma-edge-curve-ready", () => {
 });
 
 function updateSelectionSummary() {
-    const edge = state.selection.type === "edge", path = state.selection.type === "path", kind = $("selection-kind"), summary = $("selection-summary");
+    const type = state.selection.type, kind = $("selection-kind"), summary = $("selection-summary");
     if (!kind || !summary) return;
-    kind.textContent = edge ? "Edge" : path ? "Path" : "Node";
-    if (edge && state.selectedEdge && state.graph?.hasEdge(state.selectedEdge)) {
-        const source = state.graph.source(state.selectedEdge), target = state.graph.target(state.selectedEdge);
-        const focus = selectionFocus();
-        summary.textContent = source + " → " + target + (focus ? " · " + focus.nodes.size + " nodes in focus" : "");
-    } else if (path && $("select-path-source").value && $("select-path-target").value) {
-        summary.textContent = $("select-path-source").value + " → " + $("select-path-target").value + (state.lastPaths.length ? " · " + state.lastPaths.length + " shortest path(s)" : "");
-    } else if (!edge && !path && state.selectedNode) {
-        const focus = selectionFocus();
-        summary.textContent = state.selectedNode + (focus ? " · " + focus.nodes.size + " nodes in focus" : "");
-    } else {
-        summary.textContent = edge ? "Click a link to inspect both endpoints." : path ? "Choose path endpoints to explore connections." : "Select a node to inspect it.";
+    kind.textContent = type === "edge" ? "Edge" : type === "path" ? "Path" : "Node";
+    const view = networkView(), focus = view.focus;
+    if (type === "edge" && state.selectedEdge && state.graph?.hasEdge(state.selectedEdge)) {
+        summary.textContent = state.graph.source(state.selectedEdge) + " → " + state.graph.target(state.selectedEdge);
+    } else if (type === "node" && state.selectedNode != null) summary.textContent = state.selectedNode;
+    else if (type === "path" && $("select-path-source").value && $("select-path-target").value) {
+        summary.textContent = $("select-path-source").value + " → " + $("select-path-target").value +
+            (state.pathResult ? " · " + state.lastPaths.length + " shortest path(s) · " + state.activePaths.length + " selected" : " · not searched");
+    } else summary.textContent = type === "edge" ? "Choose an edge to inspect it." : type === "path" ? "Choose path endpoints to explore connections." : "Select a node to inspect it.";
+    if (focus) summary.textContent += " · " + focus.nodes.size + " nodes / " + focus.edges.size + " edges in focus";
+    const notice = $("selection-notice");
+    if (!notice) return;
+    const messages = [];
+    if (type === "node" && state.selectedNode != null && !view.working.nodes.has(state.selectedNode) ||
+        type === "edge" && state.selectedEdge != null && !view.working.edges.has(state.selectedEdge)) messages.push("Outside current filters. Inspection is retained; filters remain active.");
+    if (type === "path" && state.activePaths.length) {
+        const nodes = new Set(), edges = new Set(), pairs = new Set();
+        state.activePaths.forEach(path => {
+            path.forEach(node => nodes.add(node));
+            for (let i = 1; i < path.length; i++) {
+                pairs.add(window.relisonNetworkView.pair(path[i - 1], path[i]));
+                if (!state.directed) pairs.add(window.relisonNetworkView.pair(path[i], path[i - 1]));
+            }
+        });
+        state.graph?.forEachEdge(edge => { if (pairs.has(window.relisonNetworkView.pair(state.graph.source(edge), state.graph.target(edge)))) edges.add(edge); });
+        const missingNodes = [...nodes].filter(node => !view.working.nodes.has(node)).length;
+        const missingEdges = [...edges].filter(edge => !view.working.edges.has(edge)).length;
+        if (missingNodes || missingEdges) messages.push(missingNodes + " nodes and " + missingEdges + " edges in the selected paths are outside current filters." + (view.isolate ? " Showing a partial path." : " Excluded steps remain dimmed."));
     }
+    if (focus?.unavailable) messages.push(focus.unavailable);
+    if (view.isolate && !view.tableNodes.size) messages.push("No selected entities match the current filters. Switch to Highlight or clear the relevant filter.");
+    notice.textContent = messages.join(" "); notice.hidden = !messages.length;
 }
 function populateEdgeSelector() {
     const select = $("select-edge-input"), graph = state.graph;
@@ -1991,9 +2058,9 @@ function updateSelectionTargetUI() {
     const edgeAttributeMode = edge && ["edge-attribute-highlight", "edge-attribute-only"].includes(state.selection.mode);
     $("select-edge-attribute-field").hidden = !edgeAttributeMode;
     const edgeAttributes = edgeAttrDefs().map((def) => def.name);
-    setSelectOptions("select-edge-attribute", edgeAttributes, edgeAttributes);
-    if (!state.selection.edgeAttribute || !edgeAttributes.includes(state.selection.edgeAttribute)) state.selection.edgeAttribute = edgeAttributes[0] || null;
-    if (state.selection.edgeAttribute) $("select-edge-attribute").value = state.selection.edgeAttribute;
+    setSelectOptions("select-edge-attribute", ["", ...edgeAttributes], ["— choose an attribute —", ...edgeAttributes]);
+    if (!edgeAttributes.includes(state.selection.edgeAttribute)) state.selection.edgeAttribute = null;
+    $("select-edge-attribute").value = state.selection.edgeAttribute || "";
     if (path && !["path-highlight", "path-only", "none"].includes(state.selection.mode)) state.selection.mode = "path-highlight";
     if (edge && !["edge-highlight", "edge-attribute-highlight", "edge-attribute-only", "ego-highlight", "ego-only", "community-highlight", "community-only", "none"].includes(state.selection.mode)) state.selection.mode = "edge-highlight";
     if (!edge && !path && ["edge-highlight", "edge-attribute-highlight", "edge-attribute-only", "path-highlight", "path-only"].includes(state.selection.mode)) state.selection.mode = "highlight";
@@ -2008,45 +2075,18 @@ function updateSelectionTargetUI() {
             : "Click a link, or Ctrl/Cmd-click its two endpoints.";
         $("edge-info-table").innerHTML = '<tr><td class="muted" colspan="2">' + prompt + '</td></tr>';
     }
-    updateSelectionSummary();
     updatePartitionField();
+    updateSelectionSummary();
 }
 
 function setSelectionType(type) {
-    const previousType = state.selection.type;
-    state.selection.type = type === "edge" ? "edge" : type === "path" ? "path" : "node";
-    if (previousType === "path" && state.selection.type !== "path") {
-        state.pathFocus = null;
-        state.pathEndpointFocusActive = false;
-    }
-    if (state.selection.type === "path") {
-        const previousNode = state.selectedNode;
-        state.selectedNode = null;
-        state.selection.node = null;
-        state.selectedEdge = null;
-        state.edgeSelectionPair = null;
-        state.cosmographEdgeStart = null;
-        state.pathFocus = null;
-        state.pathEndpointFocusActive = false;
-        state.selection.mode = "path-highlight";
-        $("select-node-input").value = "";
-        if (!$("select-path-source").value) $("select-path-source").value = previousNode || "";
-        renderNodeInfo(null);
-        clearEdgeSelection();
-        state.lastPaths = [];
-        $("select-paths-table").replaceChildren();
-        $("select-path-summary").textContent = "Choose a source and target to find all shortest paths.";
-    } else if (state.selection.type === "node") clearEdgeSelection();
-    else {
-        state.selectedNode = null;
-        state.selection.node = null;
-        $("select-node-input").value = "";
-        renderNodeInfo(null);
-    }
-    updateSelectionTargetUI();
-    applyReducers();
-    syncCosmographSelection();
-    renderTable(state.activeTableSubtab);
+    type = ["node", "edge", "path"].includes(type) ? type : "node";
+    if (state.selection.type === type) return;
+    const previousNode = state.selectedNode;
+    clearSelection({ refreshTable: false, refreshGraph: false });
+    rememberSelectionType(type);
+    if (type === "path" && previousNode) $("select-path-source").value = previousNode;
+    refreshNetworkView();
 }
 function clearEdgeSelection() {
     state.selectedEdge = null;
@@ -2081,23 +2121,18 @@ function renderEdgeInfo(edge) {
 }
 
 function selectEdge(edge) {
-    if (!state.graph || !state.graph.hasEdge(edge)) return;
-    state.pathFocus = null;
-    state.pathEndpointFocusActive = false;
-    // Selection is exclusive: an edge replaces any previously selected node.
-    state.selectedNode = null;
-    state.selection.node = null;
+    if (!state.graph?.hasEdge(edge)) return;
+    if (state.selection.type !== "edge") invalidatePathResults();
+    rememberSelectionType("edge");
+    state.selectedNode = state.selection.node = null;
+    state.cosmographEdgeStart = null;
     $("select-node-input").value = "";
     renderNodeInfo(null);
     state.selectedEdge = edge;
     state.edgeSelectionPair = null;
-    state.selection.type = "edge";
-    state.cosmographEdgeStart = null;
-    updateSelectionTargetUI();
     renderEdgeInfo(edge);
+    refreshNetworkView();
     $("select-edge-input").value = edge;
-    applyReducers();
-    syncCosmographSelection();
 }
 function edgeIdsBetween(source, target) {
     const graph = state.graph;
@@ -2143,19 +2178,10 @@ function setAreaNodeSelection(enabled) {
 }
 
 function chooseEdgeBetween(source, target) {
-    state.pathFocus = null;
-    state.pathEndpointFocusActive = false;
-    state.selectedNode = null;
-    state.selection.node = null;
-    state.selectedEdge = null;
+    clearSelection({ refreshTable: false, refreshGraph: false });
+    rememberSelectionType("edge");
     state.edgeSelectionPair = { source, target };
-    state.selection.type = "edge";
-    state.cosmographEdgeStart = null;
-    $("select-node-input").value = "";
-    renderNodeInfo(null);
-    updateSelectionTargetUI();
-    applyReducers();
-    syncCosmographSelection();
+    refreshNetworkView();
     setStatus("Choose the desired edge between " + source + " and " + target + " in the Edge selector.");
 }
 
@@ -2223,20 +2249,14 @@ function cosmographInteractionCallbacks() {
 }
 // Selects a node (from a click or the UI) and refreshes the info panel + visualization emphasis.
 function selectNode(node) {
-    if (!state.graph || !state.graph.hasNode(node)) return;
-    state.pathFocus = null;
-    state.pathEndpointFocusActive = false;
-    state.selectedNode = node;
-    state.selection.type = "node";
-    state.selection.node = node;
+    if (!state.graph?.hasNode(node)) return;
+    if (state.selection.type !== "node") invalidatePathResults();
+    rememberSelectionType("node");
+    state.selectedNode = state.selection.node = node;
     clearEdgeSelection();
-    updateSelectionTargetUI();
     $("select-node-input").value = node;
     renderNodeInfo(node);
-    updatePartitionField();
-    applyReducers();
-    syncCosmographSelection();
-    if (state.selection.mode === "ego-only" || state.selection.mode === "community-only") renderTable(state.activeTableSubtab);
+    refreshNetworkView();
 }
 function renderNodeInfo(node) {
     const graph = state.graph;
@@ -2271,28 +2291,15 @@ function renderNodeInfo(node) {
 }
 
 function clearSelection({ refreshTable = true, refreshGraph = true } = {}) {
-    const clearingPath = state.selection.type === "path";
-    state.selectedNode = null;
-    state.selection.type = "node";
-    state.selection.node = null;
+    state.selectedNode = state.selection.node = null;
     state.cosmographEdgeStart = null;
     $("select-node-input").value = "";
-    if (clearingPath) {
-        state.pathFocus = null;
-        state.pathEndpointFocusActive = false;
-        state.lastPaths = [];
-        $("select-path-source").value = $("select-path-target").value = "";
-        $("select-path-summary").textContent = "Choose a source and target to find all shortest paths.";
-        $("select-paths-table").replaceChildren();
-    }
+    $("select-edge-input").value = "";
+    invalidatePathResults({ clearInputs: true });
     renderNodeInfo(null);
     clearEdgeSelection();
-    updateSelectionTargetUI();
-    if (refreshGraph) {
-        applyReducers();
-        syncCosmographSelection();
-    }
-    if (refreshTable) renderTable(state.activeTableSubtab);
+    if (refreshGraph) refreshNetworkView({ refreshTable });
+    else { updateSelectionTargetUI(); if (refreshTable) { renderTable("nodes"); renderTable("edges"); } }
 }
 // Shows the community-partition picker only for community view modes, and keeps its options in sync.
 function groupingOptions() {
@@ -2318,69 +2325,99 @@ function updatePartitionField() {
     $("select-partition-field").hidden = !isCommunity;
     const groups = groupingOptions();
     const values = groups.map((group) => group.value), labels = groups.map((group) => group.label);
-    setSelectOptions("select-partition", values, labels);
-    if (!state.selection.partition || !values.includes(state.selection.partition)) state.selection.partition = values[0] || null;
-    if (state.selection.partition) $("select-partition").value = state.selection.partition;
+    setSelectOptions("select-partition", ["", ...values], ["— choose a grouping —", ...labels]);
+    if (!values.includes(state.selection.partition)) state.selection.partition = null;
+    $("select-partition").value = state.selection.partition || "";
 }
-function selectionFocus() {
-    const sel = state.selection, g = state.graph;
-    if (!g || sel.mode === "none") return null;
-    const edgeSelection = sel.type === "edge";
-    let seeds;
-    if (edgeSelection) {
-        if (!state.selectedEdge || !g.hasEdge(state.selectedEdge)) return null;
-        seeds = [g.source(state.selectedEdge), g.target(state.selectedEdge)];
-    } else {
-        if (!sel.node || !g.hasNode(sel.node)) return null;
-        seeds = [sel.node];
+function networkColumnType(key, col) {
+    if (["id", "source", "target", "edgeid"].includes(col)) return "id";
+    if (col.startsWith("a:") || col.startsWith("ea:")) {
+        const defs = key === "nodes" ? nodeAttrDefs() : edgeAttrDefs();
+        const definition = defs.find(def => def.name === col.slice(key === "nodes" ? 2 : 3));
+        return definition?.numeric ? "number" : definition?.type || "string";
     }
-    let nodes = new Set(seeds), only = false, matchingEdges = null;
-    if (edgeSelection && (sel.mode === "edge-attribute-highlight" || sel.mode === "edge-attribute-only")) {
-        const attribute = sel.edgeAttribute;
-        if (!attribute) return null;
-        const value = edgeAttrVal(state.selectedEdge, attribute);
-        matchingEdges = new Set(g.edges().filter((edge) => Object.is(edgeAttrVal(edge, attribute), value)));
-        matchingEdges.forEach((edge) => { nodes.add(g.source(edge)); nodes.add(g.target(edge)); });
-        only = sel.mode === "edge-attribute-only";
+    return col.startsWith("c:") ? "categorical" : "number";
+}
+
+function networkWorkingSet(overrides = {}) {
+    if (state.currentNetworkView && !Object.keys(overrides).length) return state.currentNetworkView.working;
+    const g = state.graph;
+    if (!g) return { nodes: new Set(), edges: new Set(), filtered: false, edgeFiltered: false };
+    const nodeExpression = Object.prototype.hasOwnProperty.call(overrides, "nodes") ? overrides.nodes : effectiveNetworkExpression("nodes");
+    const edgeExpression = Object.prototype.hasOwnProperty.call(overrides, "edges") ? overrides.edges : effectiveNetworkExpression("edges");
+    const nodeFiltered = window.relisonNetworkView.expressionConditions(nodeExpression).some(isFilterActive);
+    const edgeFiltered = window.relisonNetworkView.expressionConditions(edgeExpression).some(isFilterActive);
+    return window.relisonNetworkView.workingSet(g, networkExpressionPredicate("nodes", nodeExpression),
+        networkExpressionPredicate("edges", edgeExpression), edgeFiltered, nodeFiltered || edgeFiltered);
+}
+
+function networkView() {
+    if (state.currentNetworkView) return state.currentNetworkView;
+    const working = networkWorkingSet();
+    if (!state.graph) return { working, focus: null, emphasis: null, isolate: false, tableNodes: working.nodes, tableEdges: working.edges };
+    return window.relisonNetworkView.calculate(state.graph, working,
+        { ...state.selection, edge: state.selectedEdge, paths: state.activePaths },
+        { directed: state.directed, edgeValue: edgeAttrVal, edgeType: name => networkColumnType("edges", "ea:" + name),
+            groupValue: groupingValue, groupKey: groupingKey });
+}
+
+function selectionFocus() { return networkView().focus; }
+
+function rememberSelectionType(type) {
+    if (type === state.selection.type) return;
+    state.selectionModes[state.selection.type] = state.selection.mode;
+    state.selection.type = type;
+    state.selection.mode = state.selectionModes[type];
+}
+
+function invalidatePathResults({ clearInputs = false } = {}) {
+    if ($("btn-select-paths").disabled) setStatus("Path search cleared.");
+    state.pathRequestVersion++;
+    state.activePaths = [];
+    state.pathFocus = null;
+    state.pathEndpointFocusActive = false;
+    state.lastPaths = [];
+    state.pathResult = null;
+    if (clearInputs) $("select-path-source").value = $("select-path-target").value = "";
+    $("select-path-summary").textContent = "Choose a source and target to find all shortest paths.";
+    $("select-paths-table").replaceChildren();
+    $("btn-select-paths").disabled = false;
+}
+
+function refreshNetworkView({ refreshTable = true } = {}) {
+    reconcileNetworkFilters();
+    for (const key of ["nodes", "edges"]) $("filter-mode-" + key).value = state.tables[key].filterMode || "and";
+    if (state.selectedNode != null && !state.graph?.hasNode(state.selectedNode)) {
+        state.selectedNode = state.selection.node = null;
+        $("select-node-input").value = "";
+        renderNodeInfo(null);
     }
-    if (sel.mode === "ego-highlight" || sel.mode === "ego-only") {
-        seeds.forEach((seed) => g.neighbors(seed).forEach((node) => nodes.add(node)));
-        only = sel.mode === "ego-only";
-    } else if (sel.mode === "community-highlight" || sel.mode === "community-only") {
-        if (!sel.partition) return null;
-        const groups = new Set(seeds.map((seed) => groupingKey(groupingValue(sel.partition, seed))).filter(Boolean));
-        if (!groups.size) return null;
-        g.forEachNode((node) => { if (groups.has(groupingKey(groupingValue(sel.partition, node)))) nodes.add(node); });
-        only = sel.mode === "community-only";
-    }
-    return { nodes, only, selected: edgeSelection ? null : sel.node, edgeOnly: sel.mode === "edge-highlight", edge: edgeSelection ? state.selectedEdge : null, matchingEdges };
+    if (state.selectedEdge != null && !state.graph?.hasEdge(state.selectedEdge)) clearEdgeSelection();
+    updateSelectionTargetUI();
+    state.currentNetworkView = networkView();
+    try {
+        applyReducers();
+        syncCosmographSelection();
+        if (refreshTable) { renderTable("nodes"); renderTable("edges"); }
+        drawRecOverlay();
+        for (const key of ["nodes", "edges"]) if (state.tables[key].filterDraft) refreshFilterBuilder(key);
+    } finally { state.currentNetworkView = null; }
 }
 function setSelectionMode(mode) {
     state.selection.mode = mode;
-    if (state.selection.type === "path") {
-        if (mode === "none") {
-            state.pathFocus = null;
-            state.pathEndpointFocusActive = false;
-        } else if (state.pathFocus) {
-            state.pathFocus.only = mode === "path-only";
-        }
-        updateSelectionTargetUI();
-        applyReducers();
-        renderPathsTable(state.lastPaths);
-        renderTable(state.activeTableSubtab);
-        return;
-    }
-    updatePartitionField();
-    applyReducers();
-    renderTable(state.activeTableSubtab); // "show only" modes restrict the tables
+    state.selectionModes[state.selection.type] = mode;
+    if (state.selection.type === "path") renderPathsTable(state.lastPaths);
+    refreshNetworkView();
 }
 
-function setSelectionEdgeAttribute(attribute) { state.selection.edgeAttribute = attribute; applyReducers(); renderTable(state.activeTableSubtab); }
+function setSelectionEdgeAttribute(attribute) {
+    state.selection.edgeAttribute = attribute;
+    refreshNetworkView();
+}
 
 function setSelectionPartition(partition) {
     state.selection.partition = partition;
-    applyReducers();
-    renderTable(state.activeTableSubtab);
+    refreshNetworkView();
 }
 
 function selectFromInput() {
@@ -2498,12 +2535,87 @@ function initNodeCombos() {
 
 // Layouts that run continuously (animated) vs. one-shot layouts that are applied once.
 const ITERATIVE_LAYOUTS = new Set(["force"]);
-const RELISON_FORCE_LAYOUTS = new Set(["fruchterman-reingold", "relison-forceatlas2", "stress-majorization", "kamada-kawai", "multilevel-force"]);
-const RELISON_LAYOUTS = new Set([...RELISON_FORCE_LAYOUTS, "geographic", "community", "feature-grid", "ego-grid", "preset", "random", "grid", "circular", "shell", "concentric", "radial", "bipartite", "multipartite", "tree", "sugiyama"]);
+const LAYERED_3D_LAYOUTS = new Set(["shell-sphere-3d", "shell-cone-3d", "concentric-sphere-3d", "concentric-cone-3d", "radial-sphere-3d", "radial-cone-3d"]);
+const FLAT_2D_LAYOUTS = ["fruchterman-reingold", "relison-forceatlas2", "stress-majorization", "kamada-kawai", "multilevel-force",
+    "community", "preset", "random", "grid", "circular", "shell", "concentric", "radial", "feature-grid",
+    "ego-grid", "bipartite", "multipartite", "tree", "sugiyama"];
+const RELISON_3D_LAYOUTS = new Set(["spectral-3d", "spherical-mds-3d", "upward-grid-3d", "h3-3d", "fruchterman-reingold-3d", "stress-majorization-3d", "random-3d", "grid-3d", "spherical-3d", "sphere-packing-3d", "preset-3d", "radial-pyramid-3d", "feature-grid-3d", "community-3d", ...LAYERED_3D_LAYOUTS,
+    ...FLAT_2D_LAYOUTS.map(type => type + "-flat-3d")]);
+const RELISON_FORCE_LAYOUTS = new Set(["fruchterman-reingold", "relison-forceatlas2", "stress-majorization", "kamada-kawai", "multilevel-force", "fruchterman-reingold-3d", "stress-majorization-3d", "spherical-mds-3d"]);
+const RELISON_LAYOUTS = new Set([...RELISON_FORCE_LAYOUTS, ...RELISON_3D_LAYOUTS, "spectral", "geographic", "community", "feature-grid", "ego-grid", "preset", "random", "grid", "circular", "shell", "concentric", "radial", "bipartite", "multipartite", "tree", "sugiyama"]);
 
 function currentLayoutType() {
     const sel = $("layout-type");
     return sel ? sel.value : "force";
+}
+
+function isFlat3DLayout(type) { return typeof type === "string" && type.endsWith("-flat-3d"); }
+function flatLayoutBase(type) { return isFlat3DLayout(type) ? type.slice(0, -"-flat-3d".length) : type; }
+function layeredLayoutBase(type) {
+    const base = flatLayoutBase(type);
+    return LAYERED_3D_LAYOUTS.has(base) ? base.split("-")[0] : base;
+}
+
+function ensureFlat3DLayoutOptions() {
+    const select = $("layout-type");
+    for (const base of FLAT_2D_LAYOUTS) {
+        const value = base + "-flat-3d";
+        if (select.querySelector('option[value="' + value + '"]')) continue;
+        const source = select.querySelector('option[value="' + base + '"]');
+        if (!source?.parentElement) continue;
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = source.textContent + " 2D";
+        source.parentElement.append(option);
+    }
+}
+
+function layeredLayoutInputs(body, type) {
+    const base = layeredLayoutBase(type), nodes = body.nodeOrder;
+    const groupedLayout = isFlat3DLayout(type) && ["feature-grid", "community", "bipartite", "multipartite"].includes(base);
+    if (["feature-grid-3d", "community-3d", "sphere-packing-3d"].includes(type) || groupedLayout) {
+        const groupBy = $("circlepack-group").value, groups = new Map();
+        if (!groupBy && ["feature-grid-3d", "community-3d", "feature-grid", "community", "multipartite"].includes(base === type ? type : base))
+            throw new Error("Choose a community or node attribute in Group by.");
+        for (const node of nodes) {
+            const key = String(groupBy ? nodeGroupKey(groupBy, node) ?? "?" : "all");
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(node);
+        }
+        const partitions = [...groups.keys()].sort().map(key => groups.get(key));
+        if (type === "sphere-packing-3d") body.partitions = partitions;
+        else if (type === "feature-grid-3d" || type === "community-3d" || ["feature-grid", "community", "multipartite"].includes(base)
+            || (base === "bipartite" && groupBy)) {
+            if (base === "bipartite" && partitions.length !== 2) throw new Error("Bipartite grouping must have exactly two groups.");
+            if (base === "multipartite" && partitions.length < 2) throw new Error("Multipartite grouping must have at least two groups.");
+            body.partitions = partitions;
+        }
+    }
+    if (base === "shell") {
+        const groupBy = $("circlepack-group").value, groups = new Map();
+        for (const node of nodes) {
+            const key = groupBy ? String(nodeGroupKey(groupBy, node) ?? "?") : "all";
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(node);
+        }
+        body.shells = [...groups.keys()].sort().map(key => groups.get(key));
+    }
+    if (base === "concentric" && $("layout-score").value !== "degree") {
+        const spec = $("layout-score").value;
+        body.scores = Object.fromEntries(nodes.map(node => {
+            const value = spec.startsWith("attr:") ? nodeAttrVal(node, spec.slice(5)) : state.metricData[spec.slice(7)]?.[node];
+            if (value == null || value === "" || !Number.isFinite(Number(value)))
+                throw new Error("Score is missing or non-finite for node " + node + ". Choose a score available for every node.");
+            return [node, Number(value)];
+        }));
+    }
+    if (base === "geographic") {
+        const latitude = $("layout-geographic-latitude").value, longitude = $("layout-geographic-longitude").value;
+        if (!latitude || !longitude) throw new Error("Choose latitude and longitude attributes for this layout.");
+        body.latitudes = Object.fromEntries(nodes.map(node => [node, layoutCoordinateFeature(latitude, node, "latitude")]));
+        body.longitudes = Object.fromEntries(nodes.map(node => [node, layoutCoordinateFeature(longitude, node, "longitude")]));
+        body.params.projection = $("layout-geographic-projection").value === "equal-earth" ? "equal-earth" : "mercator";
+    }
 }
 
 // Keeps the layout button label in sync with the selected algorithm / running state.
@@ -2520,7 +2632,8 @@ function updateLayoutButton() {
         button.textContent = "Start layout";
         return;
     }
-    button.textContent = (ITERATIVE_LAYOUTS.has(currentLayoutType()) || RELISON_FORCE_LAYOUTS.has(currentLayoutType())) ? "Start layout" : "Apply layout";
+    const algorithm = flatLayoutBase(currentLayoutType());
+    button.textContent = (ITERATIVE_LAYOUTS.has(algorithm) || RELISON_FORCE_LAYOUTS.has(algorithm)) ? "Start layout" : "Apply layout";
 }
 
 // Button handler: toggles animated layouts, or applies a static layout once.
@@ -2546,8 +2659,14 @@ function leaveGeographicView(nextRenderer = geographicPreviousRenderer) {
         state.renderer?.refresh();
     }
     $("pane-network").classList.remove("geographic-active");
+    $("pane-network").classList.remove("geographic-globe-active");
+    if (typeof syncRotationExportControls === "function") syncRotationExportControls();
+    toggleHidden("network-globe-help", true);
+    toggleHidden("cosmograph-rotation-controls", true);
     if ($("network-renderer").value === "geographic") $("network-renderer").value = nextRenderer;
     for (const id of ["btn-noverlap", "btn-reset-layout", "drag-nodes", "edit-mode"]) $(id).disabled = false;
+    $("multi-node-select").disabled = !state.dragNodes;
+    $("btn-area-select-nodes").disabled = !state.dragNodes || !state.multiNodeSelect;
 }
 async function applyGeographicLayout() {
     const previous = usingGeographic() ? "geographic" : $("pane-network").classList.contains("cosmograph-active") ? "cosmograph" : "sigma";
@@ -2561,7 +2680,7 @@ async function applyGeographicLayout() {
         const coordinates = geographicCoordinates();
         await window.relisonGeographic.ensureLoaded(projection);
         if (controller.signal.aborted || state.graph !== graph) return;
-        const result = await api("/api/layout", { ...jsonBody({ graphId, algorithm: "geographic", nodeOrder: graph.nodes(),
+        const result = projection === "globe" ? null : await api("/api/layout", { ...jsonBody({ graphId, algorithm: "geographic", nodeOrder: graph.nodes(),
             latitudes: coordinates.latitudes, longitudes: coordinates.longitudes, params: { centralLongitude: coordinates.center, projection } }), signal: controller.signal });
         if (controller.signal.aborted || state.graph !== graph) return;
         await window.relisonGeographic.render(graph, {
@@ -2572,39 +2691,56 @@ async function applyGeographicLayout() {
             coordinates: () => geographicCoordinates(graph, latitude, longitude, projection),
             nodeDisplay: (node, data) => state.renderer?.getSetting("nodeReducer")?.(node, { ...data }) || data,
             edgeDisplay: (edge, data) => state.renderer?.getSetting("edgeReducer")?.(edge, { ...data }) || data,
-            selectedNode: () => state.selectedNode, labels: () => state.labelOpts,
-            onNodeClick: selectNode, onEdgeClick: selectEdge, onClearSelection: clearSelection,
+            selectedNode: () => networkView().emphasis?.selected ?? null, labels: () => state.labelOpts,
+            onNodeClick: handleNetworkPointClick, onEdgeClick: selectEdge, onClearSelection: clearSelection,
             onError: message => setStatus(message, "error"),
         });
         if (controller.signal.aborted || state.graph !== graph) { window.relisonGeographic.destroy(); return; }
         // Validate the complete result before replacing shared coordinates.
-        for (const node of graph.nodes()) {
+        if (result) for (const node of graph.nodes()) {
             const p = result.positions?.[node];
             if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) throw new Error("Incomplete geographic layout coordinates.");
         }
         // Retain the original layout across repeated map applications and
         // projection switches. Map renderers read latitude/longitude directly.
-        if (geographicPreviousPositions?.graph !== graph) {
+        if (result && geographicPreviousPositions?.graph !== graph) {
             geographicPreviousPositions = { graph, positions: new Map(graph.nodes().map(node => [node, {
                 x: graph.getNodeAttribute(node, "x"), y: graph.getNodeAttribute(node, "y"),
             }])) };
         }
-        for (const node of graph.nodes()) {
+        if (result) for (const node of graph.nodes()) {
             const p = result.positions[node];
             graph.mergeNodeAttributes(node, { x: p.x, y: p.y });
+        }
+        // The globe reads geographic attributes directly; undo temporary flat-map
+        // projection coordinates when switching from a map to the globe.
+        if (!result && geographicPreviousPositions?.graph === graph) {
+            for (const [node, position] of geographicPreviousPositions.positions) {
+                if (graph.hasNode(node)) graph.mergeNodeAttributes(node, position);
+            }
         }
         if (previous !== "geographic") geographicPreviousRenderer = previous;
         $("pane-network").classList.remove("cosmograph-active");
         $("cosmograph-container").hidden = true;
         $("pane-network").classList.add("geographic-active");
+        $("pane-network").classList.remove("geographic-globe-active");
+        if (projection === "globe") $("pane-network").classList.add("geographic-globe-active");
         $("network-renderer").value = "geographic";
         geographicActiveProjection = projection;
         $("edit-mode").checked = false;
         setEditMode(false);
-        for (const id of ["btn-noverlap", "btn-reset-layout", "drag-nodes", "edit-mode"]) $(id).disabled = true;
+        setAreaNodeSelection(false);
+        for (const id of ["btn-noverlap", "btn-reset-layout", "drag-nodes", "edit-mode", "multi-node-select", "btn-area-select-nodes"]) $(id).disabled = true;
         toggleHidden("edit-help", true); toggleHidden("network-drag-hint", true);
+        toggleHidden("network-globe-help", projection !== "globe");
+        toggleHidden("cosmograph-rotation-controls", projection !== "globe");
+        toggleHidden("network-dimensions-field", true);
+        toggleHidden("network-3d-help", true);
+        toggleHidden("btn-project-network-2d", true);
+        if (typeof syncRotationExportControls === "function") syncRotationExportControls();
         state.cosmographDirty = true;
-        setStatus("Geographic network ready. Pan and zoom the background map; click nodes or edges to select.");
+        setStatus(projection === "globe" ? "Globe ready. Drag to rotate; scroll to zoom; click nodes or links to select."
+            : "Geographic network ready. Pan and zoom the background map; click nodes or edges to select.");
     } catch (error) {
         if (!isAbort(error)) setStatus("Geographic view failed: " + error.message, "error");
         $("network-renderer").value = previous === "geographic" ? "geographic" : previous;
@@ -2632,13 +2768,27 @@ function syncCosmographRecommendation() {
     window.relisonCosmographRecommendation = { ...next, signature };
     return changed;
 }
-function geographicRecommendationEdges(model = state.rec.active && state.rec.models[state.rec.active], show = state.rec.show) {
-    return show && model ? model.edges.map(edge => ({ ...edge, color: state.rec.color, dashed: state.rec.diff,
-        label: "Recommended: " + edge.source + " → " + edge.target })) : [];
+function geographicRecommendationEdges(model = state.rec.active && state.rec.models[state.rec.active], show = state.rec.show, respectNetwork = true) {
+    if (!show || !model) return [];
+    const context = respectNetwork ? focusContext() : null;
+    return model.edges.flatMap(edge => {
+        const verdict = context ? overlayEdgeVerdict(edge.source, edge.target, context) : "normal";
+        return verdict === "hidden" ? [] : [{ ...edge, color: verdict === "dim" ? context.dimColor : state.rec.color, dashed: state.rec.diff,
+            label: "Recommended: " + edge.source + " → " + edge.target }];
+    });
 }
 
 function syncLayoutOptionsForRenderer() {
+    ensureFlat3DLayoutOptions();
     const active = usingCosmograph();
+    const spatial = active && $("network-dimensions").value === "3";
+    toggleHidden("btn-project-network-2d", !spatial);
+    $("edit-mode").disabled = spatial;
+    $("btn-reset-layout").disabled = spatial;
+    if (spatial && $("edit-mode").checked) {
+        $("edit-mode").checked = false;
+        setEditMode(false);
+    }
     const select = $("layout-type");
     const cosmographForce = select.querySelector('option[value="cosmograph-force"]');
     cosmographForce.hidden = !active;
@@ -2649,6 +2799,19 @@ function syncLayoutOptionsForRenderer() {
     }
     if (active && ITERATIVE_LAYOUTS.has(select.value)) select.value = "circular";
     if (!active && select.value === "cosmograph-force") select.value = "circular";
+    for (const option of select.options) {
+        if (!ITERATIVE_LAYOUTS.has(option.value) && option.value !== "cosmograph-force") {
+            const available = RELISON_3D_LAYOUTS.has(option.value) ? spatial : !spatial;
+            option.disabled = !available;
+            option.hidden = !available;
+        }
+    }
+    for (const group of select.querySelectorAll("optgroup")) {
+        group.hidden = ![...group.querySelectorAll("option")].some(option => !option.hidden && !option.disabled);
+    }
+    if (spatial && !RELISON_3D_LAYOUTS.has(select.value)) select.value = "cosmograph-force";
+    if (!spatial && RELISON_3D_LAYOUTS.has(select.value)) select.value = "circular";
+    cosmographForce.textContent = spatial ? "Cosmograph force 3D (animated)" : "Cosmograph force (animated)";
     updateLayoutButton();
     updateLayoutTypeUI();
 }
@@ -2682,12 +2845,14 @@ async function toggleCosmographForceLayout() {
 async function onLayoutButton() {
     if (!state.graph) { setStatus("Load a network first.", "error"); return; }
     const type = currentLayoutType();
+    if (type !== "h3-3d" && window.relisonH3?.active(state.graph)) { window.relisonH3.clear(); queueCosmographAppearanceRefresh(); }
+    if (!["h3-3d", "upward-grid-3d", "spherical-mds-3d"].includes(type)) window.relisonPaper3d = null;
     if (type === "geographic") return applyGeographicLayout();
     if (usingGeographic()) {
         leaveGeographicView();
         await setNetworkRenderer(geographicPreviousRenderer);
     }
-    if (RELISON_FORCE_LAYOUTS.has(type)) {
+    if (RELISON_FORCE_LAYOUTS.has(flatLayoutBase(type))) {
         if (state.relisonLayout) stopLayout();
         else return startRelisonAnimation(type);
         return;
@@ -2736,14 +2901,17 @@ function startIterativeLayout(type) {
 function relisonForceBody(type, g, graphId) {
     const nodes = g.nodes().sort();
     const body = { graphId, algorithm: type, nodeOrder: nodes, params: staticLayoutParams(type) };
+    const spatial = RELISON_3D_LAYOUTS.has(type);
     if ($("layout-warm-start").checked) {
         body.positions = Object.fromEntries(nodes.map(node => [node, {
             x: g.getNodeAttribute(node, "x"), y: g.getNodeAttribute(node, "y"),
         }]));
+        if (spatial) body.positions = window.relisonCosmograph.getSpatialNodePositions(g);
         if (nodes.some(node => !Number.isFinite(body.positions[node].x) || !Number.isFinite(body.positions[node].y)))
             throw new Error("Apply a layout before using current positions.");
     }
     body.params.removeOverlap = $("layout-remove-overlap").checked;
+    if (["spherical-mds-3d", "upward-grid-3d", "h3-3d"].includes(type)) body.params.removeOverlap = false;
     if (body.params.removeOverlap || body.params.adjustSizes) {
         const radius = Number($("layout-node-radius").value), gap = Number($("layout-overlap-gap").value);
         if (!Number.isFinite(radius) || radius < 0 || !Number.isFinite(gap) || gap < 0)
@@ -2751,7 +2919,7 @@ function relisonForceBody(type, g, graphId) {
         body.nodeSizes = Object.fromEntries(nodes.map(node => [node, radius]));
         body.params.overlapGap = gap;
     }
-    body.params.packComponents = $("layout-pack-components").checked;
+    body.params.packComponents = !spatial && $("layout-pack-components").checked;
     if (body.params.packComponents) {
         const gap = Number($("layout-packing-gap").value);
         if (!Number.isFinite(gap) || gap <= 0) throw new Error("Component gap must be positive and finite.");
@@ -2774,44 +2942,58 @@ function waitRelisonFrame(run) {
 }
 
 async function startRelisonAnimation(type) {
+    if (RELISON_3D_LAYOUTS.has(type) && (!usingCosmograph() || window.relisonCosmograph?.getDimensions() !== 3)) {
+        setStatus("Select Cosmograph 3D before starting a 3D layout.", "error"); return;
+    }
     stopLayout();
     const g = state.graph, graphId = state.graphId;
+    const flat3D = isFlat3DLayout(type), algorithm = flatLayoutBase(type);
+    const spatialView = RELISON_3D_LAYOUTS.has(type);
+    const spatial = spatialView && !flat3D;
     const run = { controller: new AbortController(), id: null, raf: null, resolveFrame: null, remoteCancelled: false };
     const current = () => state.relisonLayout === run && !run.controller.signal.aborted && state.graph === g && state.graphId === graphId;
     try {
-        const body = relisonForceBody(type, g, graphId), nodes = body.nodeOrder;
+        const body = relisonForceBody(algorithm, g, graphId), nodes = body.nodeOrder;
         state.relisonLayout = run;
         updateLayoutButton();
-        setStatus("Starting " + type + " layout…");
+        setStatus("Starting " + algorithm + (flat3D ? " 2D in 3D view" : "") + " layout…");
         // Keep the start response readable after Stop, so its allocated session can be cancelled.
         let frame = await api("/api/layout/session", jsonBody(body));
+        if (current() && algorithm === "spherical-mds-3d") window.relisonPaper3d = { graph: g, algorithm };
         if (typeof frame.sessionId !== "string") throw new Error("Missing layout session identifier.");
         run.id = frame.sessionId;
         while (current()) {
             const positions = frame.positions;
             if (!positions || Object.keys(positions).length !== g.order || nodes.length !== g.order
                 || nodes.some(node => !g.hasNode(node) || !Object.hasOwn(positions, node)
-                    || !Number.isFinite(positions[node]?.x) || !Number.isFinite(positions[node]?.y)))
+                    || !Number.isFinite(positions[node]?.x) || !Number.isFinite(positions[node]?.y)
+                    || (spatial && !Number.isFinite(positions[node]?.z))))
                 throw new Error("The network changed or an animation frame has incomplete coordinates.");
-            for (const node of nodes) {
+            if (!spatialView) for (const node of nodes) {
                 g.setNodeAttribute(node, "x", positions[node].x);
                 g.setNodeAttribute(node, "y", positions[node].y);
             }
             const cosmographVisible = usingCosmograph() && window.relisonCosmograph
                 && $("pane-network").classList.contains("active");
-            if (cosmographVisible) {
-                const updated = await window.relisonCosmograph.setNodePositions(positions);
+            if (cosmographVisible || spatialView) {
+                const displayedPositions = flat3D
+                    ? Object.fromEntries(nodes.map(node => [node, { x: positions[node].x, y: positions[node].y, z: 0 }]))
+                    : positions;
+                const updated = await window.relisonCosmograph.setNodePositions(displayedPositions);
                 if (!current()) break;
+                if (algorithm === "spherical-mds-3d" && frame.iterations === 0)
+                    await window.relisonCosmograph.render(g, { ...cosmographInteractionCallbacks() });
                 if (!updated) {
                     clearTimeout(cosmographAppearanceRefreshTimer);
                     await window.relisonCosmograph.render(g, { ...cosmographInteractionCallbacks() });
                 }
+                if (spatialView && frame.iterations === 0) window.relisonCosmograph.fitView();
             } else if (usingCosmograph()) state.cosmographDirty = true;
             // Graphology coordinate events schedule Sigma's render. No full refresh
             // or viewport rescale is needed for a frame that changes positions only.
             drawRecOverlay();
             if (!current()) break;
-            setStatus(type + ": " + frame.iterations + " iterations" + (frame.finished
+            setStatus(algorithm + (flat3D ? " 2D (z=0)" : "") + ": " + frame.iterations + " iterations" + (frame.finished
                 ? " (" + String(frame.termination).toLowerCase().replaceAll("_", " ") + ")." : "…"));
             if (frame.finished) break;
             await waitRelisonFrame(run);
@@ -2829,7 +3011,74 @@ async function startRelisonAnimation(type) {
 }
 
 // RELISON-viz computes Stage A layouts on the server; circle packing remains a client layout.
+async function applySpatialLayout(type, overlapsOnly = false) {
+    stopLayout();
+    const g = state.graph, graphId = state.graphId;
+    if (!g || !usingCosmograph() || window.relisonCosmograph?.getDimensions() !== 3) {
+        setStatus("Select Cosmograph 3D before applying a 3D layout.", "error"); return;
+    }
+    const controller = new AbortController();
+    try {
+        const body = relisonForceBody(type, g, graphId);
+        if (type === "h3-3d") body.parents = window.relisonH3.parents(g, body.params.root, body.params.direction);
+        if (isFlat3DLayout(type) || LAYERED_3D_LAYOUTS.has(type) || ["feature-grid-3d", "community-3d", "sphere-packing-3d"].includes(type)) layeredLayoutInputs(body, type);
+        if (type === "sphere-packing-3d") {
+            const radius = numInput("layout-node-radius", 5);
+            if (!Number.isFinite(radius) || radius < 0) throw new Error("Node radius must be finite and non-negative.");
+            body.nodeSizes = Object.fromEntries(g.nodes().map(node => [node, radius]));
+        }
+        if (type === "preset-3d") {
+            const saved = state.savedLayoutPositions3D;
+            if (overlapsOnly) body.positions = window.relisonCosmograph.getSpatialNodePositions(g);
+            else {
+                if (saved?.graphId !== graphId) throw new Error("Save 3D positions for this network first.");
+                body.positions = saved.positions;
+            }
+        }
+        if (isFlat3DLayout(type) && flatLayoutBase(type) === "preset") {
+            const nodes = g.nodes().sort(), xFeature = $("layout-preset-x").value, yFeature = $("layout-preset-y").value;
+            const saved = state.savedLayoutPositions;
+            if (!xFeature || !yFeature) {
+                if (!saved || saved.graphId !== graphId) throw new Error("Save positions for this network first, or choose a numeric feature for both axes.");
+                if (Object.keys(saved.positions).length !== nodes.length || nodes.some(node => !Object.hasOwn(saved.positions, node)))
+                    throw new Error("The network's nodes changed. Save positions again before restoring them.");
+            }
+            body.positions = Object.fromEntries(nodes.map(node => [node, {
+                x: xFeature ? layoutCoordinateFeature(xFeature, node, "X") : saved.positions[node].x,
+                y: yFeature ? layoutCoordinateFeature(yFeature, node, "Y") : saved.positions[node].y,
+                z: 0,
+            }]));
+        }
+        if (overlapsOnly) {
+            body.params.removeOverlap = true;
+            const radius = numInput("layout-node-radius", 5), gap = numInput("layout-overlap-gap", 5);
+            if (!Number.isFinite(radius) || radius < 0 || !Number.isFinite(gap) || gap < 0)
+                throw new Error("Node radius and gap must be finite and non-negative.");
+            body.nodeSizes = Object.fromEntries(g.nodes().map(node => [node, radius]));
+            body.params.overlapGap = gap;
+        }
+        state.layoutRequest = controller;
+        updateLayoutButton();
+        const response = await api("/api/layout", { ...jsonBody(body), signal: controller.signal });
+        if (controller.signal.aborted || state.layoutRequest !== controller || state.graph !== g || state.graphId !== graphId) return;
+        if (response.dimensions !== 3) throw new Error("The server did not return a 3D layout.");
+        window.relisonPaper3d = ["h3-3d", "upward-grid-3d"].includes(type) ? { graph: g, algorithm: type } : null;
+        window.relisonH3?.clear();
+        if (type === "h3-3d") window.relisonH3.activate(g, response.positions, body.params.radius, body.parents);
+        await window.relisonCosmograph.setNodePositions(response.positions);
+        queueCosmographAppearanceRefresh();
+        window.relisonCosmograph.fitView();
+        setStatus(overlapsOnly ? "Removed spatial node overlaps. Screen occlusion depends on camera angle." : "Applied " + type + " layout."
+            + (response.termination === "LIMIT_REACHED" ? " Eigensolver budget reached before convergence; increase sweeps for greater accuracy." : ""));
+    } catch (error) {
+        if (!isAbort(error)) setStatus("3D layout failed: " + error.message, "error");
+    } finally {
+        if (state.layoutRequest === controller) { state.layoutRequest = null; updateLayoutButton(); }
+    }
+}
+
 async function applyStaticLayout(type) {
+    if (RELISON_3D_LAYOUTS.has(type)) return applySpatialLayout(type);
     stopLayout();
     const g = state.graph;
     const graphId = state.graphId;
@@ -2910,6 +3159,8 @@ async function applyStaticLayout(type) {
             if (controller.signal.aborted || state.layoutRequest !== controller || state.graph !== g || state.graphId !== graphId) return;
             if (RELISON_FORCE_LAYOUTS.has(type) && Number.isInteger(response.iterations))
                 forceSummary = " (" + response.iterations + " iterations, " + String(response.termination).toLowerCase().replaceAll("_", " ") + ")";
+            if (type === "spectral") forceSummary = response.termination === "LIMIT_REACHED"
+                ? " (eigensolver limit reached; increase sweeps for greater accuracy)" : " (eigenvectors converged)";
             const positions = response.positions;
             if (!positions || Object.keys(positions).length !== g.order || nodes.length !== g.order
                 || nodes.some(node => !g.hasNode(node) || !Object.hasOwn(positions, node)
@@ -2947,6 +3198,42 @@ function staticLayoutParams(type) {
             throw new Error(input.closest("label").querySelector("span").textContent + " is invalid.");
         return value;
     };
+    if (isFlat3DLayout(type)) return staticLayoutParams(flatLayoutBase(type));
+    if (type === "spectral" || type === "spectral-3d") return { scale: read("layout-spectral-scale"),
+        normalized: $("layout-spectral-model").value !== "classical", weighted: $("layout-spectral-weighted").checked,
+        iterations: read("layout-spectral-iterations",true,0), tolerance: read("layout-spectral-tolerance") };
+    if (RELISON_3D_LAYOUTS.has(type)) {
+        if (type === "upward-grid-3d") return { spacing: read("layout-spacing") };
+        if (type === "h3-3d") return { root: $("layout-root").value || null, direction: $("layout-direction").value,
+            radius: read("layout-radius"), leafRadius: read("layout-h3-leaf"), areaScale: read("layout-h3-area") };
+        if (type === "spherical-mds-3d") return { iterations: read("layout-iterations",true,0), seed: read("layout-seed",true,-Number.MAX_SAFE_INTEGER),
+            radius: read("layout-radius"), learningRate: read("layout-smds-rate"), tolerance: read("layout-smds-tolerance",false,0), weighted: $("layout-distance-weighted").checked };
+        if (LAYERED_3D_LAYOUTS.has(type)) {
+            const params = staticLayoutParams(layeredLayoutBase(type));
+            if (type.endsWith("-cone-3d")) params.zScale = read("layout-z-scale");
+            return params;
+        }
+        if (type === "random-3d") return { width: read("layout-width"), height: read("layout-height"), depth: read("layout-depth"), seed: read("layout-seed",true,-Number.MAX_SAFE_INTEGER) };
+        if (type === "grid-3d") return { spacing: read("layout-spacing"), columns: read("layout-columns",true,0), depth: read("layout-grid-depth",true,0) };
+        if (type === "spherical-3d") return { radius: read("layout-radius") };
+        if (type === "sphere-packing-3d") return { spacing: read("layout-spacing") };
+        if (type === "radial-pyramid-3d") return { root: $("layout-root").value || null, direction: $("layout-direction").value,
+            spacing: read("layout-spacing"), zScale: read("layout-z-scale") };
+        if (type === "feature-grid-3d") return { spacing: read("layout-spacing"), levelSpacing: read("layout-level-spacing") };
+        if (type === "community-3d") return { iterations: read("layout-community-iterations", true, 0),
+            seed: read("layout-seed", true, -Number.MAX_SAFE_INTEGER), communityGap: read("layout-community-gap", false, 0),
+            innerLayout: $("layout-community-inner").value, outerLayout: $("layout-community-outer").value };
+        if (type === "preset-3d") return {};
+        const common = { iterations: read("layout-iterations",true,0), seed: read("layout-seed",true,-Number.MAX_SAFE_INTEGER),
+            theta: 0, tolerance: read("layout-tolerance",false,0) };
+        if (common.iterations > 5000) throw new Error("Iterations must be at most 5000.");
+        if (type === "stress-majorization-3d") return { ...common, edgeLength: read("layout-distance-length"), weighted: $("layout-distance-weighted").checked };
+        if ($("layout-fr-bounded").checked) return { ...common, bounded: true, width: read("layout-fr-width"), height: read("layout-fr-height"),
+            depth: read("layout-fr-depth"), initialTemperature: read("layout-fr-temperature"), weighted: $("layout-weighted").checked };
+        const cooling = read("layout-cooling");
+        if (cooling >= 1) throw new Error("Cooling must be less than one.");
+        return { ...common, bounded: false, idealLength: read("layout-ideal-length"), cooling, weighted: $("layout-weighted").checked };
+    }
     if (RELISON_FORCE_LAYOUTS.has(type)) {
         const common = { iterations: read("layout-iterations", true, 0), seed: read("layout-seed", true, -Number.MAX_SAFE_INTEGER),
             theta: read("layout-theta", false, 0), tolerance: read("layout-tolerance", false, 0) };
@@ -3005,6 +3292,11 @@ function layoutCoordinateFeature(spec, node, axis) {
 function saveLayoutPositions() {
     if (!state.graph) { setStatus("Load a network first.", "error"); return; }
     stopLayout();
+    if (usingCosmograph() && window.relisonCosmograph?.getDimensions() === 3) {
+        state.savedLayoutPositions3D = { graphId: state.graphId, positions: window.relisonCosmograph.getSpatialNodePositions(state.graph) };
+        setStatus("Saved 3D positions for " + state.graph.order + " nodes.");
+        return;
+    }
     if (usingCosmograph()) window.relisonCosmograph?.savePointPositions();
     const entries = state.graph.nodes().map(node => [node, {
         x: state.graph.getNodeAttribute(node, "x"), y: state.graph.getNodeAttribute(node, "y"),
@@ -3125,45 +3417,75 @@ function rebuildLayoutGroupOptions() {
 
 // Shows only the controls relevant to the selected layout.
 function updateLayoutTypeUI() {
-    const type = currentLayoutType();
+    const selectedType = currentLayoutType(), type = layeredLayoutBase(selectedType);
+    const spatial = RELISON_3D_LAYOUTS.has(selectedType);
+    const flat3D = isFlat3DLayout(selectedType);
     toggleHidden("layout-geographic-controls", type !== "geographic");
     toggleHidden("layout-geographic-hint", type !== "geographic");
     const force = RELISON_FORCE_LAYOUTS.has(type);
-    toggleHidden("layout-force-controls", !force);
-    toggleHidden("layout-fr-controls", type !== "fruchterman-reingold");
+    toggleHidden("layout-spectral-controls", type !== "spectral" && type !== "spectral-3d");
+    toggleHidden("layout-spectral-hint", type !== "spectral" && type !== "spectral-3d");
+    toggleHidden("layout-sphere-packing-hint", type !== "sphere-packing-3d");
+    $("layout-remove-overlap").closest("label").hidden = ["spherical-mds-3d", "upward-grid-3d", "h3-3d"].includes(type);
+    for (const [id, visible] of [["layout-smds-controls", type === "spherical-mds-3d"], ["layout-smds-hint", type === "spherical-mds-3d"],
+        ["layout-h3-controls", type === "h3-3d"], ["layout-h3-hint", type === "h3-3d"], ["layout-upward-hint", type === "upward-grid-3d"]]) toggleHidden(id, !visible);
+    toggleHidden("layout-force-controls", !force && (!spatial || flat3D));
+    for (const id of ["layout-iterations", "layout-warm-start", "layout-tolerance"])
+        $(id).closest("label").hidden = !force;
+    toggleHidden("layout-fr-controls", type !== "fruchterman-reingold" && type !== "fruchterman-reingold-3d");
     const framedFR = $("layout-fr-bounded").checked;
     for (const id of ["layout-fr-width", "layout-fr-height", "layout-fr-temperature"])
         $(id).closest("label").hidden = !framedFR;
     for (const id of ["layout-ideal-length", "layout-cooling"])
         $(id).closest("label").hidden = framedFR;
+    toggleHidden("layout-fr-depth-field", type !== "fruchterman-reingold-3d" || !framedFR);
     toggleHidden("layout-fa-controls", type !== "relison-forceatlas2");
-    const distance = type === "stress-majorization" || type === "kamada-kawai";
+    const distance = type === "stress-majorization" || type === "stress-majorization-3d" || type === "kamada-kawai" || type === "spherical-mds-3d";
     toggleHidden("layout-distance-controls", !distance);
-    $("layout-distance-length").closest("label").hidden = type !== "stress-majorization";
+    $("layout-distance-length").closest("label").hidden = type !== "stress-majorization" && type !== "stress-majorization-3d";
     for (const id of ["layout-kk-size", "layout-spring-constant"]) $(id).closest("label").hidden = type !== "kamada-kawai";
-    $("layout-theta").closest("label").hidden = distance;
+    $("layout-theta").closest("label").hidden = distance || (spatial && !flat3D);
     toggleHidden("layout-hu-controls", type !== "multilevel-force");
-    toggleHidden("layout-community-controls", type !== "community");
+    toggleHidden("layout-community-controls", type !== "community" && type !== "community-3d");
     $("layout-tolerance").dataset.tooltip = type === "stress-majorization" ? "ui-layout-stress-tolerance"
         : type === "kamada-kawai" ? "ui-layout-kk-tolerance" : type === "multilevel-force" ? "ui-layout-hu-tolerance" : "ui-layout-tolerance";
     $("layout-tolerance").closest("label").dataset.tooltip = $("layout-tolerance").dataset.tooltip;
     toggleHidden("layout-distance-hint", !distance);
+    if (type === "spherical-mds-3d") { toggleHidden("layout-distance-hint", true); $("layout-tolerance").closest("label").hidden = true; }
     toggleHidden("layout-hu-hint", type !== "multilevel-force");
-    toggleHidden("layout-community-hint", type !== "community");
-    toggleHidden("layout-force-hint", !force);
+    toggleHidden("layout-community-hint", type !== "community" && type !== "community-3d");
+    toggleHidden("layout-force-hint", !force || spatial);
+    toggleHidden("layout-3d-hint", !spatial || LAYERED_3D_LAYOUTS.has(selectedType) || flat3D);
+    if (["spectral-3d", "spherical-mds-3d", "h3-3d", "upward-grid-3d"].includes(type)) toggleHidden("layout-3d-hint", true);
+    toggleHidden("layout-flat-3d-hint", !flat3D);
+    toggleHidden("layout-layered-3d-hint", !LAYERED_3D_LAYOUTS.has(selectedType));
+    toggleHidden("layout-pyramid-3d-hint", selectedType !== "radial-pyramid-3d");
+    toggleHidden("layout-feature-grid-3d-hint", selectedType !== "feature-grid-3d");
+    toggleHidden("layout-community-3d-hint", selectedType !== "community-3d");
+    if (LAYERED_3D_LAYOUTS.has(selectedType)) {
+        const meaning = type === "shell" ? "zero-based shell number" : type === "concentric" ? "raw score" : "hop count (−1 for unreachable nodes)";
+        $("layout-layered-3d-hint").textContent = selectedType.endsWith("-cone-3d")
+            ? "Keeps the 2D rings and sets z to the " + meaning + " × Z-axis multiplier. Use 1 for original heights; larger values increase depth."
+            : "Replaces each 2D ring with a sphere of the same radius. Grouping and radial ordering match the 2D layout.";
+    }
     toggleHidden("layout-advanced", !RELISON_LAYOUTS.has(type) && type !== "circlepack");
-    toggleHidden("circlepack-group-field", !["circlepack", "shell", "bipartite", "multipartite", "feature-grid", "community"].includes(type));
-    toggleHidden("static-layout-params", !RELISON_LAYOUTS.has(type) || type === "preset");
-    toggleHidden("layout-radius-field", type !== "circular");
-    toggleHidden("layout-spacing-field", !["grid", "shell", "concentric", "radial", "bipartite", "multipartite", "tree", "feature-grid", "ego-grid", "sugiyama"].includes(type));
-    toggleHidden("layout-root-field", type !== "radial" && type !== "ego-grid" && type !== "tree");
-    toggleHidden("layout-direction-field", type !== "radial" && type !== "ego-grid");
+    toggleHidden("circlepack-group-field", !["circlepack", "shell", "bipartite", "multipartite", "feature-grid", "feature-grid-3d", "community", "community-3d", "sphere-packing-3d"].includes(type));
+    toggleHidden("static-layout-params", !RELISON_LAYOUTS.has(type) || type === "preset" || type === "preset-3d");
+    toggleHidden("layout-radius-field", !["circular", "spherical-3d", "spherical-mds-3d", "h3-3d"].includes(type));
+    toggleHidden("layout-spacing-field", !["grid", "grid-3d", "sphere-packing-3d", "shell", "concentric", "radial", "radial-pyramid-3d", "bipartite", "multipartite", "tree", "feature-grid", "feature-grid-3d", "ego-grid", "sugiyama"].includes(type));
+    if (type === "upward-grid-3d") toggleHidden("layout-spacing-field", false);
+    toggleHidden("layout-z-scale-field", !((LAYERED_3D_LAYOUTS.has(selectedType) && selectedType.endsWith("-cone-3d")) || selectedType === "radial-pyramid-3d"));
+    toggleHidden("layout-root-field", type !== "radial" && type !== "radial-pyramid-3d" && type !== "ego-grid" && type !== "tree");
+    toggleHidden("layout-direction-field", type !== "radial" && type !== "radial-pyramid-3d" && type !== "ego-grid");
+    if (type === "h3-3d") { toggleHidden("layout-root-field", false); toggleHidden("layout-direction-field", false); }
     toggleHidden("layout-column-spacing-field", !["bipartite", "multipartite", "feature-grid", "ego-grid"].includes(type));
     toggleHidden("layout-sweeps-field", !["bipartite", "multipartite", "feature-grid", "sugiyama"].includes(type));
-    toggleHidden("layout-level-spacing-field", type !== "tree" && type !== "sugiyama");
-    toggleHidden("layout-columns-field", type !== "grid");
-    for (const id of ["layout-width-field", "layout-height-field"]) toggleHidden(id, type !== "random");
-    toggleHidden("layout-seed-field", type !== "random" && type !== "community" && !force);
+    toggleHidden("layout-level-spacing-field", type !== "tree" && type !== "sugiyama" && type !== "feature-grid-3d");
+    toggleHidden("layout-columns-field", type !== "grid" && type !== "grid-3d");
+    toggleHidden("layout-grid-depth-field", type !== "grid-3d");
+    for (const id of ["layout-width-field", "layout-height-field"]) toggleHidden(id, type !== "random" && type !== "random-3d");
+    toggleHidden("layout-depth-field", type !== "random-3d");
+    toggleHidden("layout-seed-field", type !== "random" && type !== "random-3d" && type !== "community" && !force);
     toggleHidden("layout-score-field", type !== "concentric");
     toggleHidden("layout-score-reverse-field", type !== "concentric");
     toggleHidden("layout-shell-hint", type !== "shell");
@@ -3176,13 +3498,17 @@ function updateLayoutTypeUI() {
     toggleHidden("layout-partition-hint", type !== "bipartite" && type !== "multipartite");
     toggleHidden("layout-tree-hint", type !== "tree");
     toggleHidden("layout-sugiyama-hint", type !== "sugiyama");
-    toggleHidden("layout-packing-controls", !RELISON_LAYOUTS.has(type) || type === "geographic");
+    toggleHidden("layout-packing-controls", !RELISON_LAYOUTS.has(type) || type === "geographic" || spatial);
     toggleHidden("layout-packing-gap-field", !$("layout-pack-components").checked);
 }
 
 // Spreads overlapping nodes apart. Uses graphology-layout-noverlap when the bundle exposes it, otherwise a native pass.
 function removeOverlaps() {
     if (!state.graph) { setStatus("Load a network first.", "error"); return; }
+    if (window.relisonPaper3d?.graph === state.graph && usingCosmograph() && window.relisonCosmograph?.getDimensions() === 3) {
+        setStatus("Overlap removal would change this layout's sphere, hyperbolic or upward-grid geometry. Apply a Euclidean layout first.", "error"); return;
+    }
+    if (usingCosmograph() && window.relisonCosmograph?.getDimensions() === 3) return applySpatialLayout("preset-3d", true);
     const NOV = lib.layoutNoverlap || window.graphologyLayoutNoverlap;
     let ok = false;
     try {
@@ -3282,6 +3608,7 @@ function stopLayout() {
 function resetLayout() {
     const graph = state.graph;
     if (!graph) return;
+    window.relisonH3?.clear(); window.relisonPaper3d = null;
     $("layout-type").value = "circular";
     updateLayoutTypeUI();
     applyStaticLayout("circular");
@@ -3747,35 +4074,46 @@ async function findPaths(options = {}) {
     if (!requireGraph()) return;
     const source = String(options.source ?? $("select-path-source").value).trim();
     const target = String(options.target ?? $("select-path-target").value).trim();
-    if (!source || !target) { setStatus("Enter both source and target.", "error"); return; }
-    $("select-path-source").value = source;
-    $("select-path-target").value = target;
-    applyReducers();
-    const withRecommendation = false;
-    setStatus("Finding shortest paths…", "busy");
-    $("btn-select-paths").disabled = true;
-    try {
-        const res = await api("/api/paths", jsonBody({ graphId: state.graphId, source, target, withRecommendation }));
-        state.lastPaths = res.paths || [];
-        if (res.length < 0) {
-            $("select-path-summary").textContent = "No path from " + source + " to " + target + ".";
-        } else {
-            const resultText = res.count + (res.truncated ? "+" : "") + " shortest path(s) of length " + res.length +
-                " from " + source + " to " + target + (res.truncated ? " (showing first " + res.count + ")" : "") + ".";
-            $("select-path-summary").textContent = resultText;
-        }
-        renderPathsTable(state.lastPaths, "select-paths-table");
-        if (state.selection.type === "path") {
-            if (state.lastPaths.length) highlightPaths(state.lastPaths);
-            else { state.pathFocus = null; state.pathEndpointFocusActive = false; applyReducers(); }
-        }
-        updateSelectionSummary();
-        setStatus("Found " + res.count + " path(s).");
-    } catch (e) {
-        setStatus(e.message, "error");
-    } finally {
-        $("btn-select-paths").disabled = false;
+    invalidatePathResults();
+    if (!source || !target) { setStatus("Enter both source and target.", "error"); refreshNetworkView(); return; }
+    if (!state.graph.hasNode(source) || !state.graph.hasNode(target)) { setStatus("Both endpoints must exist in the graph.", "error"); refreshNetworkView(); return; }
+    $("select-path-source").value = source; $("select-path-target").value = target;
+    const scope = $("select-path-scope").value, working = networkWorkingSet();
+    if (scope === "filtered" && (!working.nodes.has(source) || !working.nodes.has(target))) {
+        $("select-path-summary").textContent = "An endpoint is outside current filters. Change the filters or choose Whole graph.";
+        setStatus("Both endpoints must belong to the filtered graph.", "error"); refreshNetworkView(); return;
     }
+    state.pathEndpointFocusActive = true;
+    const requestVersion = ++state.pathRequestVersion, graph = state.graph, graphId = state.graphId, revision = state.networkRevision;
+    const current = () => requestVersion === state.pathRequestVersion && state.graph === graph && state.graphId === graphId &&
+        revision === state.networkRevision && state.selection.type === "path" && $("select-path-source").value.trim() === source &&
+        $("select-path-target").value.trim() === target && $("select-path-scope").value === scope;
+    const body = { graphId, source, target, withRecommendation: false };
+    if (scope === "filtered") {
+        body.allowedNodes = [...working.nodes];
+        // Simple-graph edge keys are generated in the browser. Endpoint pairs define reachability;
+        // eligible parallel-edge IDs have already been accounted for in the shared working set.
+        body.allowedLinks = [...working.edges].map(edge => [graph.source(edge), graph.target(edge)]);
+    }
+    refreshNetworkView();
+    setStatus("Finding shortest paths…", "busy"); $("btn-select-paths").disabled = true;
+    try {
+        const res = await api("/api/paths", jsonBody(body));
+        if (!current()) return;
+        state.lastPaths = res.paths || [];
+        state.pathResult = { source, target, scope };
+        state.pathEndpointFocusActive = false;
+        $("select-path-summary").textContent = res.length < 0 ? "No path from " + source + " to " + target + " in the " + (scope === "filtered" ? "filtered" : "whole") + " graph." :
+            res.count + (res.truncated ? "+" : "") + " shortest path(s) of length " + res.length + " from " + source + " to " + target +
+            " in the " + (scope === "filtered" ? "filtered" : "whole") + " graph" + (res.truncated ? " (showing first " + res.count + ")" : "") + ".";
+        highlightPaths(state.lastPaths);
+        setStatus("Found " + res.count + " path(s).");
+    } catch (error) {
+        if (!current()) return;
+        state.pathEndpointFocusActive = false;
+        $("select-path-summary").textContent = error.message;
+        setStatus(error.message, "error"); refreshNetworkView();
+    } finally { if (current()) $("btn-select-paths").disabled = false; }
 }
 
 function getPathEdgeStyle(path, index = 0) {
@@ -3794,8 +4132,8 @@ function buildPathEdgeColors(path) {
         .sort((a, b) => a.style.priority - b.style.priority)
         .forEach(({ nodes, style }) => {
             for (let i = 1; i < nodes.length; i++) {
-                colors.set(pairKey(nodes[i - 1], nodes[i]), style.color);
-                if (!state.directed) colors.set(pairKey(nodes[i], nodes[i - 1]), style.color);
+                colors.set(window.relisonNetworkView.pair(nodes[i - 1], nodes[i]), style.color);
+                if (!state.directed) colors.set(window.relisonNetworkView.pair(nodes[i], nodes[i - 1]), style.color);
             }
         });
     return colors;
@@ -3823,8 +4161,8 @@ function renderPathsTable(paths, tableId = "select-paths-table") {
         const path = document.createElement("td"); path.textContent = p.join(" → "); path.style.textAlign = "left";
         const act = document.createElement("td");
         const btn = document.createElement("button");
-        const highlighted = (state.pathFocus?.paths || []).some((activePath) => JSON.stringify(activePath) === JSON.stringify(p));
-        btn.textContent = highlighted ? "De-highlight" : "Highlight";
+        const highlighted = state.activePaths.some((activePath) => JSON.stringify(activePath) === JSON.stringify(p));
+        btn.textContent = highlighted ? "Deselect" : "Select";
         btn.style.width = "auto"; btn.style.margin = "0"; btn.style.padding = "2px 8px";
         btn.addEventListener("click", () => togglePathHighlight(p));
         act.appendChild(btn);
@@ -3846,93 +4184,33 @@ function renderPathsTable(paths, tableId = "select-paths-table") {
 }
 
 function togglePathHighlight(path) {
-    const key = JSON.stringify(path);
-    const activePaths = state.pathFocus?.paths || [];
-    const remaining = activePaths.filter((activePath) => JSON.stringify(activePath) !== key);
-    if (remaining.length !== activePaths.length) {
-        if (remaining.length) highlightPaths(remaining);
-        else {
-            state.pathFocus = null;
-            state.pathEndpointFocusActive = false;
-            applyReducers();
-        }
-    } else {
-        highlightPaths([...activePaths, path]);
-    }
-    renderPathsTable(state.lastPaths);
+    const key = JSON.stringify(path), remaining = state.activePaths.filter(active => JSON.stringify(active) !== key);
+    highlightPaths(remaining.length !== state.activePaths.length ? remaining : [...state.activePaths, path]);
 }
 
 // Highlights one or more paths on the network (dims everything else).
 function highlightPaths(paths) {
-    if (!paths.length) return;
-    const previousPaths = new Set((state.pathFocus?.paths || []).map((path) => JSON.stringify(path)));
-    paths.forEach((path, index) => {
-        const style = getPathEdgeStyle(path, index);
-        if (!previousPaths.has(JSON.stringify(path))) style.priority = ++state.pathEdgeStyleSequence;
-    });
     if (state.selection.type !== "path") {
-        state.selection.type = "path";
-        state.selection.mode = "path-highlight";
-        state.selectedNode = null;
-        state.selection.node = null;
-        state.selectedEdge = null;
-        state.edgeSelectionPair = null;
-        $("select-node-input").value = "";
-        renderNodeInfo(null);
-        clearEdgeSelection();
+        rememberSelectionType("path");
+        state.selectedNode = state.selection.node = null;
+        $("select-node-input").value = ""; renderNodeInfo(null); clearEdgeSelection();
     }
-    if (state.selection.mode === "none") {
-        state.pathFocus = null;
-        state.pathEndpointFocusActive = false;
-        updateSelectionTargetUI();
-        syncCosmographSelection();
-        applyReducers();
-        return;
-    }
-    const nodes = new Set();
-    const edges = new Set();
-    for (const p of paths) {
-        for (let i = 0; i < p.length; i++) {
-            nodes.add(p[i]);
-            if (i > 0) {
-                edges.add(pairKey(p[i - 1], p[i]));
-                if (!state.directed) edges.add(pairKey(p[i], p[i - 1]));
-            }
-        }
-    }
-    const only = state.selection.mode === "path-only";
-    state.selection.mode = only ? "path-only" : "path-highlight";
-    state.pathFocus = { nodes, edges, only, paths: paths.map((path) => [...path]) };
+    const previous = new Set(state.activePaths.map(path => JSON.stringify(path)));
+    paths.forEach((path, index) => { if (!previous.has(JSON.stringify(path))) getPathEdgeStyle(path, index).priority = ++state.pathEdgeStyleSequence; });
+    state.activePaths = paths.map(path => [...path]);
     state.pathEndpointFocusActive = false;
-    updateSelectionTargetUI();
-    syncCosmographSelection();
-    applyReducers();
     renderPathsTable(state.lastPaths);
+    refreshNetworkView();
 }
 
 function showPathsBetween(source, target) {
-    $("select-path-source").value = source;
-    $("select-path-target").value = target;
-    state.selection.type = "path";
-    state.selection.mode = "path-highlight";
-    state.selectedNode = null;
-    state.selection.node = null;
-    state.selectedEdge = null;
-    state.edgeSelectionPair = null;
-    $("select-node-input").value = "";
-    renderNodeInfo(null);
-    clearEdgeSelection();
-    updateSelectionTargetUI();
-    state.pathFocus = null;
-    state.pathEndpointFocusActive = true;
-    syncCosmographSelection();
+    setSelectionType("path");
+    $("select-path-source").value = source; $("select-path-target").value = target;
     return findPaths({ source, target });
 }
 
 function findSelectedPaths() {
-    state.selection.type = "path";
-    state.pathEndpointFocusActive = true;
-    updateSelectionTargetUI();
+    if (state.selection.type !== "path") setSelectionType("path");
     return findPaths({ source: $("select-path-source").value, target: $("select-path-target").value });
 }
 
@@ -4074,6 +4352,8 @@ function confirmClears(action) {
 }
 
 function onGraphEdited(stats) {
+    state.networkRevision++;
+    invalidatePathResults();
     // Server cleared its caches, so all computed results (and any recommendation overlay) are stale.
     resetResults();
     resetRecommendation();
@@ -4271,6 +4551,9 @@ function switchTab(tab) {
     $("pane-recommend").classList.toggle("active", tab === "recommend");
     $("pane-diffusion").classList.toggle("active", tab === "diffusion");
 
+    window.relisonCosmograph?.refreshOrientationGizmo?.();
+    if (typeof syncRotationExportControls === "function") syncRotationExportControls();
+
     updatePanels(tab);
 
     if (tab === "network") setTimeout(() => {
@@ -4396,7 +4679,8 @@ function switchTableSubtab(sub) {
 
 // Refresh whichever data-driven views are currently visible after a computation.
 function refreshAfterCompute() {
-    if (state.activeTab === "tables") renderTable(state.activeTableSubtab);
+    if ($("select-path-scope").value === "filtered") invalidatePathResults();
+    refreshNetworkView();
     if (state.activeTab === "metrics") renderMetricsDashboard();
 }
 
@@ -4414,7 +4698,7 @@ function nodeColumns() {
 }
 
 function nodeRowValue(node, key) {
-    if (key === "id") return idValue(node);
+    if (key === "id") return node;
     if (key.startsWith("m:")) return state.metricData[key.slice(2)]?.[node];
     if (key.startsWith("c:")) return state.communityData[key.slice(2)]?.[node];
     if (key.startsWith("a:")) return nodeAttrVal(node, key.slice(2));
@@ -4436,9 +4720,9 @@ function edgeColumns() {
 function edgeRowValue(edge, key) {
     const g = state.graph;
     const s = g.source(edge), t = g.target(edge);
-    if (key === "source") return idValue(s);
-    if (key === "target") return idValue(t);
-    if (key === "edgeid") return idValue(edge);
+    if (key === "source") return s;
+    if (key === "target") return t;
+    if (key === "edgeid") return edge;
     if (key === "weight") return g.getEdgeAttribute(edge, "weight");
     if (key.startsWith("p:")) return state.pairData[key.slice(2)]?.[pairKey(s, t)];
     if (key.startsWith("ea:")) return edgeAttrVal(edge, key.slice(3));
@@ -4696,7 +4980,7 @@ function makeColFilter(existing, apply) {
     inp.type = "text"; inp.placeholder = "…";
     const inp2 = document.createElement("input");
     inp2.type = "text"; inp2.placeholder = "…"; inp2.className = "filter-hi";
-    if (existing) { sel.value = existing.op; inp.value = existing.value || ""; inp2.value = existing.value2 || ""; }
+    if (existing) { sel.value = existing.op; inp.value = existing.value ?? ""; inp2.value = existing.value2 ?? ""; }
     const updateVis = () => {
         inp.style.display = UNARY_OPS.has(sel.value) ? "none" : "";
         inp2.style.display = sel.value === "between" ? "" : "none";
@@ -4719,30 +5003,31 @@ function activeFilters(key, cols) {
         .map((col) => ({ col, op: filters[col].op, value: filters[col].value, value2: filters[col].value2 }));
 }
 
-// True if a row passes every active filter (AND).
-function rowPasses(valFn, id, filters) {
-    return filters.every((f) => matchFilter(valFn(id, f.col), f.op, f.value, f.value2));
+// Match all (AND) or any (OR) active column filters. No filters always includes the row.
+function rowPasses(valFn, id, filters, mode = "and") {
+    if (!filters.length) return true;
+    const matches = (f) => valFn === nodeRowValue || valFn === edgeRowValue
+        ? window.relisonNetworkView.match(valFn(id, f.col), f, networkColumnType(valFn === nodeRowValue ? "nodes" : "edges", f.col))
+        : matchFilter(valFn(id, f.col), f.op, f.value, f.value2);
+    return mode === "or" ? filters.some(matches) : filters.every(matches);
 }
 
 // Full filtered + sorted id list for a table (no pagination); used for rendering and export.
 function tableRows(key) {
-    const m = tableModel(key);
-    const t = state.tables[key];
-    const filters = activeFilters(key, m.cols);
-    let ids = Array.from(m.ids);
-    if (filters.length) ids = ids.filter((id) => rowPasses(m.val, id, filters));
-
-    // "Show only" selection modes (ego-only / community-only) also restrict the node/edge tables (not the rec table).
-    const focus = (key === "nodes" || key === "edges") ? selectionFocus() : null;
-    if (focus && focus.only) {
-        const g = state.graph;
-        ids = key === "nodes"
-            ? ids.filter((id) => focus.nodes.has(id))
-            : ids.filter((e) => focus.nodes.has(g.source(e)) && focus.nodes.has(g.target(e)));
+    const model = tableModel(key), t = state.tables[key];
+    let ids;
+    if (key === "nodes" || key === "edges") {
+        const view = networkView();
+        model.view = view; model.focus = view.focus;
+        ids = [...(key === "nodes" ? view.tableNodes : view.tableEdges)];
+    } else {
+        const filters = activeFilters(key, model.cols);
+        ids = Array.from(model.ids).filter(id => rowPasses(model.val, id, filters));
     }
-
-    ids.sort((a, b) => compareValues(m.val(a, t.sort.col), m.val(b, t.sort.col)) * t.sort.dir);
-    return { model: m, ids };
+    const identity = ["id", "source", "target", "edgeid"].includes(t.sort.col);
+    ids.sort((a, b) => compareValues(identity ? idValue(model.val(a, t.sort.col)) : model.val(a, t.sort.col),
+        identity ? idValue(model.val(b, t.sort.col)) : model.val(b, t.sort.col)) * t.sort.dir || String(a).localeCompare(String(b)));
+    return { model, ids };
 }
 
 function renderTable(key) {
@@ -4814,6 +5099,7 @@ function buildHeader(key, cols) {
         if (c.key === "_act") { filterRow.appendChild(th); return; }   // no filter on the actions column
         const wrap = makeColFilter(state.tables[key].filters[c.key],
             (op, value, value2) => setColFilter(key, c.key, op, value, value2));
+        if (key === "nodes" || key === "edges") wrap.dataset.filterCol = c.key;
         // Attribute columns get a remove (✕) control in the header.
         const isAttr = (key === "nodes" && c.key.startsWith("a:")) || (key === "edges" && c.key.startsWith("ea:"));
         if (isAttr) {
@@ -4863,6 +5149,7 @@ function renderBody(key) {
     const colIndexes = new Map(cols.map((c, i) => [c.key, i]));
     for (const id of pageIds) {
         const tr = document.createElement("tr");
+        if ((key === "nodes" || key === "edges") && model.focus?.[key].has(id)) tr.classList.add("network-focused-row");
         for (const c of cols) {
             const td = document.createElement("td");
             if ((key === "nodes" && c.key === "id") || (key === "edges" && (c.key === "source" || c.key === "target"))) {
@@ -4901,30 +5188,229 @@ function renderBody(key) {
     table.appendChild(tbody);
     setupResizableColumns(table);
     updatePager(key, total, pages, start, pageIds.length);
+    if (key === "nodes" || key === "edges") renderNetworkFilterSummary(key, model.view);
 }
 
 function setColFilter(key, col, op, value, value2) {
-    const networkFilter = key === "nodes" || key === "edges";
-    if (networkFilter) clearSelection({ refreshTable: false, refreshGraph: false });
-    const filters = state.tables[key].filters;
-    const f = { op, value, value2 };
-    if (isFilterActive(f)) filters[col] = f;
-    else delete filters[col];
+    const f = { op, value, value2 }, filters = state.tables[key].filters;
+    if (isFilterActive(f)) filters[col] = f; else delete filters[col];
     state.tables[key].page = 0;
-    renderBody(key);     // body only → keeps the filter input focused
-    applyReducers();   // emphasize the rows remaining after filtering
-    if (networkFilter) syncCosmographSelection();
+    if (key === "nodes" || key === "edges") {
+        if ($("select-path-scope").value === "filtered") invalidatePathResults();
+        refreshNetworkView();
+    } else { renderBody(key); applyReducers(); }
 }
 
 function clearFilters(key) {
-    const networkFilter = key === "nodes" || key === "edges";
-    if (networkFilter) clearSelection({ refreshTable: false, refreshGraph: false });
     state.tables[key].filters = {};
-    state.tables[key].headerSig = null; // force header rebuild so inputs reset
+    if (key === "nodes" || key === "edges") {
+        state.tables[key].filterExpression = null;
+        cancelNetworkFilterBuilder(key);
+    }
+    state.tables[key].headerSig = null;
     state.tables[key].page = 0;
-    renderTable(key);
-    applyReducers();
-    if (networkFilter) syncCosmographSelection();
+    if (key === "nodes" || key === "edges") {
+        if ($("select-path-scope").value === "filtered") invalidatePathResults();
+        refreshNetworkView();
+    } else { renderTable(key); applyReducers(); }
+}
+
+function setNetworkFilterMode(key, mode) {
+    if (key !== "nodes" && key !== "edges") return;
+    mode = mode === "or" ? "or" : "and";
+    if ((state.tables[key].filterMode || "and") === mode) return;
+    state.tables[key].filterMode = mode;
+    state.tables.nodes.page = state.tables.edges.page = 0;
+    if ($("select-path-scope").value === "filtered") invalidatePathResults();
+    refreshNetworkView();
+}
+
+function networkFilterColumns(key) {
+    return (key === "nodes" ? nodeColumns() : edgeColumns()).filter(column => column.key !== "_act");
+}
+
+function effectiveNetworkExpression(key) {
+    const table = state.tables[key], filters = activeFilters(key, networkFilterColumns(key));
+    const columns = { kind: "group", children: filters.map(filter => ({ ...filter, kind: "condition" })),
+        joins: filters.slice(1).map(() => table.filterMode || "and") };
+    return table.filterExpression ? { kind: "group", children: [table.filterExpression, columns], joins: ["and"] } : columns;
+}
+
+function networkExpressionPredicate(key, expression) {
+    const value = key === "nodes" ? nodeRowValue : edgeRowValue;
+    const available = new Set(networkFilterColumns(key).map(column => column.key));
+    return id => window.relisonNetworkView.expressionMatch(expression, col => value(id, col), col => networkColumnType(key, col),
+        condition => available.has(condition.col) && isFilterActive(condition));
+}
+
+function networkExpressionText(key, expression) {
+    const labels = new Map(networkFilterColumns(key).map(column => [column.key, column.label]));
+    return window.relisonNetworkView.expressionText(expression, col => labels.get(col) || col,
+        op => OPERATORS.find(operator => operator.value === op)?.label || op);
+}
+
+function openNetworkFilterBuilder(key) {
+    const dialog = $("filter-builder-" + key);
+    if (dialog.open) return;
+    for (const other of ["nodes", "edges"]) if (other !== key && $("filter-builder-" + other).open) cancelNetworkFilterBuilder(other);
+    const table = state.tables[key];
+    const expression = activeFilters(key, networkFilterColumns(key)).length ? effectiveNetworkExpression(key) :
+        table.filterExpression || { kind: "group", children: [], joins: [] };
+    table.filterDraft = window.relisonNetworkView.mapExpression(JSON.parse(JSON.stringify(expression)), condition => condition);
+    table.builderSchemaSignature = null;
+    $("btn-filter-builder-" + key).setAttribute("aria-expanded", "true");
+    refreshFilterBuilder(key);
+    dialog.showModal();
+    dialog.querySelector(".filter-builder-field, .filter-builder-group-actions button")?.focus();
+}
+
+function cancelNetworkFilterBuilder(key) {
+    state.tables[key].filterDraft = null;
+    const dialog = $("filter-builder-" + key), wasOpen = dialog.open;
+    if (wasOpen) dialog.close();
+    $("btn-filter-builder-" + key).setAttribute("aria-expanded", "false");
+    if (wasOpen) $("btn-filter-builder-" + key).focus();
+}
+
+function networkBuilderErrors(key, expression) {
+    const cols = new Set(networkFilterColumns(key).map(column => column.key));
+    return window.relisonNetworkView.expressionConditions(expression).flatMap((condition, index) => {
+        let error = !cols.has(condition.col) ? "Choose an available field." : "";
+        const type = networkColumnType(key, condition.col);
+        if (!error && !window.relisonFilterBuilder.operatorsFor(type, OPERATORS).some(operator => operator.value === condition.op)) error = "Choose an operator supported by this field.";
+        if (!error && !isFilterActive(condition)) error = condition.op === "between" ? "Enter at least one range bound." : "Enter a value.";
+        if (!error) error = window.relisonNetworkView.filterError(condition, type);
+        return error ? ["Condition " + (index + 1) + ": " + error] : [];
+    });
+}
+
+function updateFilterBuilderPreview(key) {
+    const draft = state.tables[key].filterDraft;
+    if (!draft) return;
+    const errors = networkBuilderErrors(key, draft);
+    $("filter-builder-expression-" + key).textContent = networkExpressionText(key, draft) || "No filters";
+    $("filter-builder-errors-" + key).textContent = errors.join(" ");
+    $("filter-builder-apply-" + key).disabled = errors.length > 0;
+    const preview = $("filter-builder-preview-" + key);
+    if (errors.length) preview.textContent = "Complete the conditions to preview matches.";
+    else {
+        const working = networkWorkingSet({ [key]: draft });
+        preview.textContent = "Would match " + working.nodes.size + " nodes and " + working.edges.size + " edges, including the other table's filters.";
+    }
+}
+
+function refreshFilterBuilder(key) {
+    const table = state.tables[key];
+    if (!table.filterDraft) return;
+    const cols = networkFilterColumns(key);
+    const signature = JSON.stringify(cols.map(column => [column.key, column.label, networkColumnType(key, column.key)]));
+    if (signature !== table.builderSchemaSignature) {
+        table.builderSchemaSignature = signature;
+        const newCondition = () => ({ kind: "condition", col: cols[0]?.key || "", op: "eq", value: "", value2: "" });
+        window.relisonFilterBuilder.render($("filter-builder-editor-" + key), {
+            expression: table.filterDraft, columns: cols, operators: OPERATORS,
+            typeOf: col => networkColumnType(key, col), newCondition,
+            newGroup: () => ({ kind: "group", children: [newCondition()], joins: [] }),
+            onChange: () => updateFilterBuilderPreview(key),
+        });
+    }
+    updateFilterBuilderPreview(key);
+}
+
+function applyNetworkFilterBuilder(key) {
+    const table = state.tables[key], draft = table.filterDraft;
+    if (!draft || networkBuilderErrors(key, draft).length) { updateFilterBuilderPreview(key); return; }
+    const expression = window.relisonNetworkView.mapExpression(JSON.parse(JSON.stringify(draft)), condition => condition);
+    table.filterExpression = window.relisonNetworkView.expressionConditions(expression).length ? expression : null;
+    table.filters = {};
+    table.headerSig = null;
+    state.tables.nodes.page = state.tables.edges.page = 0;
+    if ($("select-path-scope").value === "filtered") invalidatePathResults();
+    refreshNetworkView();
+    $("filter-builder-preview-" + key).textContent = "Applied. " + $("filter-builder-preview-" + key).textContent;
+}
+
+function removeNetworkCustomFilter(key) {
+    state.tables[key].filterExpression = null;
+    cancelNetworkFilterBuilder(key);
+    state.tables.nodes.page = state.tables.edges.page = 0;
+    if ($("select-path-scope").value === "filtered") invalidatePathResults();
+    refreshNetworkView();
+}
+
+function renderNetworkFilterSummary(key, view) {
+    const container = $("filters-" + key);
+    if (!container || !view) return;
+    container.replaceChildren();
+    for (const tableKey of ["nodes", "edges"]) {
+        const cols = tableKey === "nodes" ? nodeColumns() : edgeColumns();
+        const filters = activeFilters(tableKey, cols);
+        const expression = state.tables[tableKey].filterExpression;
+        if (window.relisonNetworkView.expressionConditions(expression).length) {
+            const group = document.createElement("div"); group.className = "network-expression-summary";
+            const text = document.createElement("span");
+            text.textContent = (tableKey === "nodes" ? "Nodes: " : "Edges: ") + networkExpressionText(tableKey, expression);
+            const edit = document.createElement("button"); edit.textContent = "Edit";
+            edit.addEventListener("click", () => { switchTableSubtab(tableKey); openNetworkFilterBuilder(tableKey); });
+            const remove = document.createElement("button"); remove.textContent = "Remove custom filter";
+            remove.setAttribute("aria-label", "Remove " + (tableKey === "nodes" ? "node" : "edge") + " custom filter");
+            remove.addEventListener("click", () => removeNetworkCustomFilter(tableKey));
+            group.append(text, edit, remove); container.appendChild(group);
+            if (filters.length) { const join = document.createElement("span"); join.className = "network-filter-group"; join.textContent = "AND column filters:"; container.appendChild(join); }
+        }
+        if (filters.length) {
+            const group = document.createElement("span");
+            group.className = "network-filter-group";
+            group.textContent = (tableKey === "nodes" ? "Node" : "Edge") + " filters: " +
+                (state.tables[tableKey].filterMode === "or" ? "match any (OR)" : "match all (AND)");
+            container.appendChild(group);
+        }
+        const controls = $(TABLE_IDS[tableKey]).querySelectorAll("[data-filter-col]");
+        controls.forEach(control => {
+            const f = state.tables[tableKey].filters[control.dataset.filterCol];
+            const error = f ? window.relisonNetworkView.filterError(f, networkColumnType(tableKey, control.dataset.filterCol)) : "";
+            control.querySelectorAll("input").forEach(input => { input.setCustomValidity(error); input.setAttribute("aria-invalid", String(Boolean(error))); });
+        });
+        for (const f of filters) {
+            const label = cols.find(col => col.key === f.col)?.label || f.col;
+            const error = window.relisonNetworkView.filterError(f, networkColumnType(tableKey, f.col));
+            const chip = document.createElement("button");
+            chip.className = "network-filter-chip" + (error ? " invalid" : "");
+            const hidden = (state.tables[tableKey].hiddenColumns || []).includes(f.col);
+            chip.textContent = (tableKey === "nodes" ? "Nodes: " : "Edges: ") + label + " " + f.op +
+                (UNARY_OPS.has(f.op) ? "" : " " + f.value + (f.op === "between" ? " … " + (f.value2 || "") : "")) + (hidden ? " (hidden column)" : "") + " ×";
+            chip.setAttribute("aria-label", "Remove " + tableKey + " filter on " + label);
+            chip.addEventListener("click", () => {
+                state.tables[tableKey].headerSig = null;
+                setColFilter(tableKey, f.col, "contains", "", "");
+            });
+            container.appendChild(chip);
+            if (error) { const message = document.createElement("span"); message.textContent = label + ": " + error; container.appendChild(message); }
+        }
+    }
+    const info = document.createElement("span");
+    info.className = "network-result-count";
+    const working = key === "nodes" ? view.working.nodes : view.working.edges;
+    const shown = key === "nodes" ? view.tableNodes : view.tableEdges;
+    const total = key === "nodes" ? state.graph?.order || 0 : state.graph?.size || 0;
+    info.textContent = working.size + " of " + total + " " + key + " match filters" + (view.isolate ? " · " + shown.size + " shown by selection" : "") +
+        (view.working.filtered ? " · Node and edge filters apply together." : "");
+    if (!shown.size) info.textContent += view.isolate ? " No selected entities match the filters." :
+        view.working.edgeFiltered ? " No edges match both the node and edge filters." : " No entities match the node filters.";
+    container.appendChild(info);
+}
+
+function reconcileNetworkFilters() {
+    for (const key of ["nodes", "edges"]) {
+        const cols = key === "nodes" ? nodeColumns() : edgeColumns();
+        const available = new Set(cols.map(col => col.key));
+        for (const col of Object.keys(state.tables[key].filters)) {
+            if (!available.has(col)) { delete state.tables[key].filters[col]; state.tables[key].headerSig = null; }
+        }
+        state.tables[key].filterExpression = window.relisonNetworkView.mapExpression(state.tables[key].filterExpression,
+            condition => available.has(condition.col) ? condition : null);
+        if (!available.has(state.tables[key].sort.col)) state.tables[key].sort.col = key === "nodes" ? "id" : "source";
+    }
 }
 
 /* -------------------------- inline attribute editing -------------------- */
@@ -4967,7 +5453,8 @@ async function commitRename(oldId, td) {
         renderGraph(data.graph);
         state.graph.forEachNode((n) => { if (pos[n]) { state.graph.setNodeAttribute(n, "x", pos[n].x); state.graph.setNodeAttribute(n, "y", pos[n].y); } });
         if (data.stats) { $("ov-nodes").textContent = data.stats.nodes; $("ov-edges").textContent = data.stats.edges; }
-        state.pathFocus = null;
+        state.networkRevision++;
+        invalidatePathResults();
 
         rebuildAppearanceOptions();
         applyAppearance();
@@ -5035,7 +5522,8 @@ async function removeAttrColumn(target, name) {
         state.tables.edges.headerSig = null;
         rebuildAppearanceOptions();
         applyAppearance();
-        renderTable(state.activeTableSubtab);
+        if ($("select-path-scope").value === "filtered") invalidatePathResults();
+        refreshNetworkView();
         setStatus("Removed attribute " + name + ".");
     } catch (e) { setStatus(e.message, "error"); }
 }
@@ -5056,16 +5544,20 @@ async function renameAttrColumn(target, oldName) {
         table.columnOrder = table.columnOrder.map((column) => column === oldKey ? newKey : column);
         table.hiddenColumns = table.hiddenColumns.map((column) => column === oldKey ? newKey : column);
         if (table.filters[oldKey]) { table.filters[newKey] = table.filters[oldKey]; delete table.filters[oldKey]; }
+        for (const name of ["filterExpression", "filterDraft"]) table[name] = window.relisonNetworkView.mapExpression(table[name],
+            condition => condition.col === oldKey ? { ...condition, col: newKey } : condition);
         if (table.sort.col === oldKey) table.sort.col = newKey;
         table.headerSig = null;
 
         if (target === "node") {
+            if (state.selection.partition === "attribute:" + encodeURIComponent(oldName)) state.selection.partition = "attribute:" + encodeURIComponent(trimmed);
             state.graph.forEachNode((node) => {
                 const attrs = Object.assign({}, state.graph.getNodeAttribute(node, "attrs") || {});
                 if (Object.prototype.hasOwnProperty.call(attrs, oldName)) { attrs[trimmed] = attrs[oldName]; delete attrs[oldName]; }
                 state.graph.setNodeAttribute(node, "attrs", attrs);
             });
         } else {
+            if (state.selection.edgeAttribute === oldName) state.selection.edgeAttribute = trimmed;
             state.graph.forEachEdge((edge) => {
                 const attrs = Object.assign({}, state.graph.getEdgeAttribute(edge, "attrs") || {});
                 if (Object.prototype.hasOwnProperty.call(attrs, oldName)) { attrs[trimmed] = attrs[oldName]; delete attrs[oldName]; }
@@ -5078,7 +5570,8 @@ async function renameAttrColumn(target, oldName) {
         syncAttributeCommunityMetricControls();
         syncEdgeAttributeMetricControls();
         applyAppearance();
-        renderTable(tableKey);
+        if ($("select-path-scope").value === "filtered") invalidatePathResults();
+        refreshNetworkView();
         setStatus("Renamed attribute " + oldName + " to " + trimmed + ".");
     } catch (e) { setStatus(e.message, "error"); }
 }
@@ -5113,6 +5606,8 @@ async function commitAttrEdit(kind, id, name, td) {
             g.setEdgeAttribute(id, "attrs", attrs);
         }
         applyAppearance();   // the edited attribute may drive size / colour / labels
+        if ($("select-path-scope").value === "filtered") invalidatePathResults();
+        refreshNetworkView();
         setStatus("Updated " + name + ".");
     } catch (e) {
         setStatus(e.message, "error");
@@ -5153,24 +5648,9 @@ function updatePager(key, total, pages, start, shown) {
 
 // The whole filtered table, independent of sorting and pagination, defines
 // the graph emphasis. Edge filters also emphasize the remaining endpoints.
-function tableFilterFocus(g) {
-    // A manual selection takes over graph emphasis while table filters remain
-    // available in the table. Editing a filter explicitly clears the selection.
-    if (state.selectedNode != null || state.selectedEdge != null || state.edgeSelectionPair || state.pathFocus || state.pathEndpointFocusActive) return null;
-    const nodeFilters = activeFilters("nodes", nodeColumns());
-    const edgeFilters = activeFilters("edges", edgeColumns());
-    if (!nodeFilters.length && !edgeFilters.length) return null;
-    const matchingNodes = new Set();
-    g.forEachNode((node) => { if (rowPasses(nodeRowValue, node, nodeFilters)) matchingNodes.add(node); });
-    const nodes = edgeFilters.length ? new Set() : matchingNodes;
-    const edges = new Set();
-    g.forEachEdge((edge) => {
-        const source = g.source(edge), target = g.target(edge);
-        if (!matchingNodes.has(source) || !matchingNodes.has(target) || !rowPasses(edgeRowValue, edge, edgeFilters)) return;
-        edges.add(edge);
-        if (edgeFilters.length) { nodes.add(source); nodes.add(target); }
-    });
-    return { nodes, edges, edgeFiltered: edgeFilters.length > 0 };
+function tableFilterFocus() {
+    const working = networkWorkingSet();
+    return working.filtered ? working : null;
 }
 
 // Combines two view effects into sigma's reducers:
@@ -5178,145 +5658,77 @@ function tableFilterFocus(g) {
 //  - node selection: depending on the mode, the focus set is highlighted (others dimmed) or isolated (others hidden).
 // Neither affects metric computation (always done over the whole graph on the server).
 function applyReducers() {
-    if (!state.renderer || !state.graph) return;
-    const g = state.graph;
-
-    const tableFocus = tableFilterFocus(g);
-
-    // Timeline: at timestamp t, only nodes/edges whose time attribute covers t are shown (empty value → never shown).
+    if (!state.graph) return;
+    const g = state.graph, view = networkView(), dimColor = cssVar("--border", "#3a3c41");
     const tl = state.timeline;
-    const tlNode = !!(tl.nodeAttr && tl.t != null && tl.min != null);
-    const tlEdge = !!(tl.edgeAttr && tl.t != null && tl.min != null);
-    let presentNodes = null;
-    if (tlNode) {
-        presentNodes = new Set();
-        g.forEachNode((n) => { if (timelineMatches(nodeAttrVal(n, tl.nodeAttr))) presentNodes.add(n); });
+    const tlNode = Boolean(tl.nodeAttr && tl.t != null && tl.min != null), tlEdge = Boolean(tl.edgeAttr && tl.t != null && tl.min != null);
+    const presentNodes = tlNode ? new Set(g.nodes().filter(node => timelineMatches(nodeAttrVal(node, tl.nodeAttr)))) : null;
+    const presentEdges = tlEdge ? new Set(g.edges().filter(edge => timelineMatches(edgeAttrVal(edge, tl.edgeAttr)))) : null;
+    const nodeVerdicts = new Map(g.nodes().map(node => [node, presentNodes && !presentNodes.has(node) ? "hidden" : view.nodeVerdict(node)]));
+    const edgeVerdicts = new Map(g.edges().map(edge => [edge, (presentNodes && (!presentNodes.has(g.source(edge)) || !presentNodes.has(g.target(edge))) ||
+        presentEdges && !presentEdges.has(edge)) ? "hidden" : view.edgeVerdict(edge)]));
+    const endpointNodes = new Set();
+    if (state.selection.type === "path" && state.selection.mode !== "none" && state.pathEndpointFocusActive && !state.activePaths.length) {
+        [$("select-path-source").value.trim(), $("select-path-target").value.trim()].forEach(node => {
+            if (view.working.nodes.has(node)) endpointNodes.add(node);
+        });
+        if (endpointNodes.size) {
+            nodeVerdicts.forEach((verdict, node) => { if (verdict !== "hidden" && !endpointNodes.has(node)) nodeVerdicts.set(node, "dim"); });
+            edgeVerdicts.forEach((verdict, edge) => { if (verdict !== "hidden" && (!endpointNodes.has(g.source(edge)) || !endpointNodes.has(g.target(edge)))) edgeVerdicts.set(edge, "dim"); });
+        }
     }
-
-    let presentEdges = null;
-    if (tlEdge) {
-        presentEdges = new Set();
-        g.forEachEdge((e) => { if (timelineMatches(edgeAttrVal(e, tl.edgeAttr))) presentEdges.add(e); });
+    let path = null;
+    if (view.emphasis?.type === "path") {
+        const pairs = new Set();
+        view.emphasis.edges.forEach(edge => {
+            pairs.add(window.relisonNetworkView.pair(g.source(edge), g.target(edge)));
+            if (!state.directed) pairs.add(window.relisonNetworkView.pair(g.target(edge), g.source(edge)));
+        });
+        path = { nodes: view.emphasis.nodes, edges: pairs, edgeIds: view.emphasis.edges, only: view.isolate, paths: state.activePaths };
     }
-
-    const path = state.pathFocus;           // highlighting shortest paths takes priority over selection
+    state.pathFocus = path;
     const pathEdgeColor = state.pathEdgeHighlight.mode === "single" ? state.pathEdgeHighlight.color : null;
     const pathEdgeColors = buildPathEdgeColors(path);
     const nodeSizeScale = state.pathAppearance.enlargeNodes ? state.pathAppearance.nodeScale : 1;
     const edgeWidthScale = state.pathAppearance.edgeScale;
-    const focus = path ? null : selectionFocus();
-    const dim = focus && !focus.only;       // highlight modes: dim non-focus
-    const isolate = focus && focus.only;    // "show only" modes: hide non-focus
-    const dimColor = cssVar("--border", "#3a3c41");
-
-    const nodeActive = tableFocus || focus || path || tlNode || state.multiSelectedNodes.size > 0;
-    state.renderer.setSetting("nodeReducer", (node, sourceData) => {
-        // Convert shared diameter values to Sigma's radius convention before
-        // applying focus/path modifiers, so every Sigma view stays consistent.
-        const data = { ...sourceData, size: (Number.isFinite(sourceData.size) ? sourceData.size : 0) / 2 };
-        if (!nodeActive) return data;
-        if (presentNodes && !presentNodes.has(node)) return { ...data, hidden: true };
-        if (path?.only && !path.nodes.has(node)) return { ...data, hidden: true };
-        if (isolate && !focus.nodes.has(node)) return { ...data, hidden: true };
-        if (state.multiSelectedNodes.has(node)) return { ...data, highlighted: true, zIndex: 2 };
-        if (tableFocus && !tableFocus.nodes.has(node)) return { ...data, color: dimColor, highlighted: false, zIndex: 0 };
-        if (path) {
-            if (path.nodes.has(node)) return { ...data, size: data.size * nodeSizeScale, zIndex: 2 };
-            return path.only
-                ? { ...data, hidden: true }
-                : { ...data, color: dimColor, zIndex: 0 };
-        }
-        if (isolate && !focus.nodes.has(node)) return { ...data, hidden: true };
-        if (focus && node === focus.selected) return { ...data, highlighted: true, zIndex: 2 };
-        if (dim && !focus.nodes.has(node)) return { ...data, color: dimColor, zIndex: 0 };
-        if ((focus && focus.nodes.has(node)) || tableFocus) return { ...data, zIndex: 1 };
-        return data;
-    });
-
-    const edgeActive = tableFocus || focus || path || tlNode || tlEdge;
-    state.renderer.setSetting("edgeReducer", edgeActive ? (edge, data) => {
-        const s = g.source(edge), t = g.target(edge);
-        if (presentNodes && (!presentNodes.has(s) || !presentNodes.has(t))) return { ...data, hidden: true };
-        if (presentEdges && !presentEdges.has(edge)) return { ...data, hidden: true };
-        if (path?.only && !path.edges.has(pairKey(s, t))) return { ...data, hidden: true };
-        if (isolate && (!focus.nodes.has(s) || !focus.nodes.has(t) || (focus.matchingEdges && !focus.matchingEdges.has(edge)))) return { ...data, hidden: true };
-        if (tableFocus && !tableFocus.edges.has(edge)) return { ...data, color: dimColor, zIndex: 0 };
-        if (path) {
-            if (path.edges.has(pairKey(s, t))) return { ...data, size: data.size * edgeWidthScale, color: pathEdgeColors.get(pairKey(s, t)) || pathEdgeColor || data.color, zIndex: 2 };
-            return path.only ? { ...data, hidden: true } : { ...data, color: dimColor, zIndex: 0 };
-        }
-        if (isolate && (!focus.nodes.has(s) || !focus.nodes.has(t))) return { ...data, hidden: true };
-        if (focus?.matchingEdges && !focus.matchingEdges.has(edge)) return focus.only ? { ...data, hidden: true } : { ...data, color: dimColor };
-        if (focus?.edgeOnly && edge !== focus.edge) return { ...data, color: dimColor };
-        if (dim && (!focus.nodes.has(s) || !focus.nodes.has(t))) return { ...data, color: dimColor };
-        return data;
-    } : null);
-
-    state.renderer.refresh();
-    const cosmographTimelineActive = tlNode || tlEdge;
-    if (usingGeographic()) window.relisonGeographic.refresh();
-    const cosmographFocusActive = Boolean(focus);
-    window.relisonCosmographTableFocus = tableFocus ? {
-        nodes: new Set([...tableFocus.nodes].map(String)),
-        edges: new Set([...tableFocus.edges].map(String)),
-        edgeFiltered: tableFocus.edgeFiltered,
-        dimColor,
-    } : null;
-    const tableSignature = JSON.stringify(tableFocus ? {
-        nodes: [...tableFocus.nodes].map(String).sort(),
-        edges: [...tableFocus.edges].map(String).sort(),
-        edgeFiltered: tableFocus.edgeFiltered,
-    } : null);
-    const cosmographTableChanged = tableSignature !== state.cosmographTableSignature;
-    state.cosmographTableSignature = tableSignature;
-    window.relisonCosmographTemporal = {
-        nodes: presentNodes ? new Set([...presentNodes].map(String)) : null,
-        edges: presentEdges ? new Set([...presentEdges].map(String)) : null,
-    };
-    // Cosmograph has its own data projection. Feed it the same selection set
-    // used above by Sigma's reducers so highlight and show-only modes agree.
-    window.relisonCosmographFocus = focus ? {
-        nodes: new Set([...focus.nodes].map(String)),
-        only: Boolean(focus.only),
-        selected: focus.selected == null ? null : String(focus.selected),
-        edgeOnly: Boolean(focus.edgeOnly),
-        edge: focus.edge == null ? null : String(focus.edge),
-        matchingEdges: focus.matchingEdges ? new Set([...focus.matchingEdges].map(String)) : null,
-        dimColor,
-    } : null;
-    const pathSelectionNodes = new Set((state.pathEndpointFocusActive ? [$("select-path-source").value.trim(), $("select-path-target").value.trim()] : [])
-        .filter((node) => node && g.hasNode(node)));
-    window.relisonCosmographPath = path ? {
-        nodes: new Set([...path.nodes].map(String)),
-        edges: new Set([...path.edges].map(String)),
-        only: Boolean(path.only),
-        edgeColor: pathEdgeColor,
-        edgeColors: pathEdgeColors,
-        nodeSizeScale,
-        edgeWidthScale,
-        dimColor,
-    } : null;
-    window.relisonCosmographPathSelection = !path && pathSelectionNodes.size ? {
-        nodes: pathSelectionNodes,
-        dimColor,
-    } : null;
-    const pathSignature = JSON.stringify({
-        path: path ? { nodes: [...path.nodes].map(String).sort(), edges: [...path.edges].map(String).sort(), only: Boolean(path.only), edgeColor: pathEdgeColor, edgeColors: [...pathEdgeColors].sort(), nodeSizeScale, edgeWidthScale } : null,
-        endpoints: [...pathSelectionNodes].sort(),
-    });
-    const cosmographPathChanged = pathSignature !== state.cosmographPathSignature;
-    state.cosmographPathSignature = pathSignature;
-    state.cosmographPathActive = Boolean(path || pathSelectionNodes.size);
-    // A focus change changes colours and, in show-only mode, the active data.
-    // Use the regular projection refresh rather than a timeline-only delta so
-    // retained points receive their new dimmed/visible mapping too.
-    if (cosmographFocusActive || state.cosmographFocusActive || cosmographPathChanged || cosmographTableChanged) {
-        queueCosmographAppearanceRefresh();
-    } else if (cosmographTimelineActive || state.cosmographTimelineActive) {
-        queueCosmographTimelineRefresh();
+    if (state.renderer) {
+        state.renderer.setSetting("nodeReducer", (node, sourceData) => {
+            const data = { ...sourceData, size: (Number.isFinite(sourceData.size) ? sourceData.size : 0) / 2 };
+            const verdict = nodeVerdicts.get(node);
+            if (verdict === "hidden") return { ...data, hidden: true, highlighted: false };
+            if (verdict === "dim") return { ...data, color: dimColor, highlighted: false, zIndex: 0 };
+            const highlighted = state.multiSelectedNodes.has(node) || view.emphasis?.selected === node;
+            return { ...data, size: data.size * (path?.nodes.has(node) ? nodeSizeScale : 1), highlighted, zIndex: highlighted || path?.nodes.has(node) ? 2 : 1 };
+        });
+        state.renderer.setSetting("edgeReducer", (edge, data) => {
+            const verdict = edgeVerdicts.get(edge);
+            if (verdict === "hidden") return { ...data, hidden: true };
+            if (verdict === "dim") return { ...data, color: dimColor, zIndex: 0 };
+            if (path?.edgeIds.has(edge)) return { ...data, size: data.size * edgeWidthScale,
+                color: pathEdgeColors.get(window.relisonNetworkView.pair(g.source(edge), g.target(edge))) || pathEdgeColor || data.color, zIndex: 2 };
+            return data;
+        });
+        state.renderer.refresh();
     }
-    state.cosmographTimelineActive = cosmographTimelineActive;
-    state.cosmographFocusActive = cosmographFocusActive;
+    window.relisonNetworkViewSnapshot = { nodeVerdicts, edgeVerdicts, dimColor };
+    window.relisonNetworkViewSnapshot.recommendationVerdict = (source, target) => {
+        if (presentNodes && (!presentNodes.has(source) || !presentNodes.has(target)) || view.isolate) return "hidden";
+        if (view.working.edgeFiltered || !view.working.nodes.has(source) || !view.working.nodes.has(target) || view.emphasis || endpointNodes.size) return "dim";
+        return "normal";
+    };
+    window.relisonCosmographTableFocus = view.working.filtered ? { ...view.working, dimColor } : null;
+    window.relisonCosmographFocus = !path && view.emphasis ? { ...view.emphasis, matchingEdges: view.emphasis.edges, dimColor } : null;
+    window.relisonCosmographTemporal = { nodes: presentNodes, edges: presentEdges };
+    window.relisonCosmographPath = path ? { ...path, edgeColor: pathEdgeColor, edgeColors: pathEdgeColors, nodeSizeScale, edgeWidthScale, dimColor } : null;
+    window.relisonCosmographPathSelection = endpointNodes.size ? { nodes: endpointNodes, dimColor } : null;
+    const signature = JSON.stringify({ nodes: [...nodeVerdicts], edges: [...edgeVerdicts], path: path && { paths: state.activePaths, colors: [...pathEdgeColors],
+        edgeColor: pathEdgeColor, nodeSizeScale, edgeWidthScale } });
+    if (signature !== state.cosmographViewSignature) {
+        state.cosmographViewSignature = signature;
+        queueCosmographAppearanceRefresh();
+    }
+    if (usingGeographic()) window.relisonGeographic.refresh();
+    updateSelectionSummary();
 }
 
 /* ------------------------- metrics dashboard ------------------------ */
@@ -5620,9 +6032,68 @@ async function exportGeographicImage(format, diffusion = false) {
             includeLegend: $(diffusion ? "diff-export-include-legend" : "export-include-legend").checked,
         });
         if (!exported) throw new Error("The geographic map is not ready to export.");
-        setStatus("Geographic " + format.toUpperCase() + " downloaded.");
+        const globe = (diffusion ? state.diffusion.rendererType : geographicActiveProjection) === "globe";
+        setStatus("Geographic " + format.toUpperCase() + " downloaded." + (globe && format === "svg"
+            ? " Globe geometry is an embedded high-resolution image; labels and legend are vector." : ""));
     } catch (error) { setStatus("Map export failed: " + error.message, "error"); }
 }
+
+function activeRotationRenderer() {
+    if (usingGeographic() && geographicActiveProjection === "globe") return window.relisonGeographic;
+    if (usingCosmograph() && window.relisonCosmograph?.getDimensions?.() === 3) return window.relisonCosmograph;
+    return null;
+}
+
+function syncRotationExportControls() {
+    const available = Boolean(activeRotationRenderer());
+    toggleHidden("btn-export-rotation-gif", !available);
+    toggleHidden("btn-export-rotation-webm", !available);
+    toggleHidden("rotation-export-resolution-field", !available);
+}
+
+function rotationExportSpec(button) {
+    const renderer = activeRotationRenderer();
+    if (!renderer?.getRotationSnapshot || !renderer?.setRotationFrame || !renderer?.captureRotationFrame) {
+        setStatus("Rotation export is available only for a rendered 3D view.", "error"); return null;
+    }
+    const axis = ["x", "y", "z"].map(name => Number($("cosmograph-rotation-axis-" + name).value));
+    const magnitude = Math.hypot(...axis);
+    if (!Number.isFinite(magnitude) || magnitude < 1e-8) { setStatus("Choose a non-zero rotation axis.", "error"); return null; }
+    const normalizedAxis = axis.map(value => value / magnitude);
+    const snapshot = renderer.getRotationSnapshot();
+    if (!snapshot) { setStatus("The 3D camera is not ready to export.", "error"); return null; }
+    const frames = 72, reverse = $("cosmograph-reverse-rotation").checked;
+    const autoRotate = $("cosmograph-auto-rotate").checked;
+    const rotationSettings = { axis: normalizedAxis, speed: Number($("cosmograph-rotation-speed").value) || 25, reverse };
+    const geographic = usingGeographic();
+    const setRotationEnabled = enabled => geographic
+        ? renderer.setContinuousRotation?.({ ...rotationSettings, enabled })
+        : renderer.setContinuousRotation?.(enabled);
+    const width = animationExportWidth("rotation-export-resolution");
+    const includeLegend = $("export-include-legend").checked;
+    return {
+        name: "network-rotation", button, renderer, frameArgs: Array.from({ length: frames }, (_, index) => index),
+        delayMs: Math.round(8000 / frames),
+        setFrame: index => renderer.setRotationFrame(snapshot, normalizedAxis, (reverse ? -1 : 1) * 360 * index / frames),
+        prepare: () => { setRotationEnabled(false); $("cosmograph-auto-rotate").checked = false; },
+        captureFrame: () => renderer.captureRotationFrame(includeLegend && !geographic ? state.colorLegend : null, { width, includeLegend }),
+        restore: () => {
+            renderer.setRotationFrame(snapshot, normalizedAxis, 0);
+            $("cosmograph-auto-rotate").checked = autoRotate;
+            if (autoRotate) setRotationEnabled(true);
+        },
+    };
+}
+
+function exportRotationGif() {
+    const spec = rotationExportSpec($("btn-export-rotation-gif"));
+    if (spec) recordGif(spec);
+}
+function exportRotationWebm() {
+    const spec = rotationExportSpec($("btn-export-rotation-webm"));
+    if (spec) recordWebm(spec);
+}
+
 // Nodes/edges are drawn with WebGL, whose buffer reads blank outside a render pass, so we capture inside
 // sigma's own "afterRender" event (synchronously, before the buffer is cleared) to match the on-screen plot.
 async function exportPng() {
@@ -5678,11 +6149,20 @@ async function exportSvg(fullNetwork) {
 // Reconstruct Sigma's current viewport as vector primitives. Display data is
 // resolved after node/edge reducers, so hidden and dimmed selections match the
 // live graph without rasterizing Sigma's WebGL canvas.
-function buildSigmaSvg({ fullNetwork = false } = {}) {
-    const renderer = state.renderer, graph = state.graph;
+async function captureSigmaAnimationFrame(diffusion, width) {
+    let svg = buildSigmaSvg({ diffusion });
+    if (!svg) throw new Error("The graph is not ready to record.");
+    const container = $(diffusion ? "diff-sigma-container" : "sigma-container");
+    if (!diffusion && $("export-include-legend").checked) svg = window.relisonGeographicExport.withLegend(svg, state.colorLegend);
+    return window.relisonAnimationExport.svgFrame(svg, container.clientWidth, container.clientHeight,
+        width || container.querySelector("canvas")?.width || container.clientWidth);
+}
+
+function buildSigmaSvg({ fullNetwork = false, diffusion = false } = {}) {
+    const renderer = diffusion ? state.diffusion.renderer : state.renderer, graph = diffusion ? state.diffusion.graph : state.graph;
     if (!renderer || !graph || !renderer.getNodeDisplayData || !renderer.getEdgeDisplayData) return null;
     renderer.refresh({ schedule: false });
-    const container = $("sigma-container");
+    const container = $(diffusion ? "diff-sigma-container" : "sigma-container");
     const width = container.clientWidth, height = container.clientHeight;
     if (!width || !height) return null;
     const scaleSize = (size) => renderer.scaleSize ? renderer.scaleSize(size) : size / Math.sqrt(renderer.getCamera().getState().ratio || 1);
@@ -5745,7 +6225,7 @@ function buildSigmaSvg({ fullNetwork = false } = {}) {
         const d = p.data;
         nodeMarkup.push('<circle cx="' + p.x + '" cy="' + p.y + '" r="' + p.radius + '" fill="' + esc(d.color || "#4f9dff") + '"/>');
         if (state.nodeBorder.on) {
-            const verdict = overlayNodeVerdict(node, focusContext());
+            const verdict = diffusion ? "normal" : overlayNodeVerdict(node, focusContext());
             if (verdict !== "hidden") nodeMarkup.push('<circle cx="' + p.x + '" cy="' + p.y + '" r="' + p.radius
                 + '" fill="none" stroke="' + esc(verdict === "dim" ? cssVar("--border", "#3a3c41") : state.nodeBorder.color)
                 + '" stroke-width="' + state.nodeBorder.width + '"/>');
@@ -5759,17 +6239,18 @@ function buildSigmaSvg({ fullNetwork = false } = {}) {
         }
     }
     const overlayMarkup = [];
-    const model = state.rec.active && state.rec.models[state.rec.active];
-    if (model && state.rec.show) {
-        const context = focusContext();
+    const recKey = diffusion ? state.diffusion.recKey : state.rec.active;
+    const model = recKey && state.rec.models[recKey];
+    if (model && (diffusion || state.rec.show)) {
+        const context = diffusion ? null : focusContext();
         for (const link of model.edges) {
             const s = positions.get(link.source), t = positions.get(link.target);
             if (!s || !t) continue;
-            const verdict = overlayEdgeVerdict(link.source, link.target, context);
+            const verdict = diffusion ? "normal" : overlayEdgeVerdict(link.source, link.target, context);
             if (verdict === "hidden") continue;
-            const color = verdict === "dim" ? context.dimColor : (context.pathEdgeColors.get(pairKey(link.source, link.target)) || (context.path && context.pathEdgeColor) || state.rec.color);
+            const color = verdict === "dim" ? context.dimColor : state.rec.color;
             const dash = state.rec.diff ? ' stroke-dasharray="6 4"' : "";
-            const thickness = 1.5 * (context.path?.edges.has(pairKey(link.source, link.target)) ? state.pathAppearance.edgeScale : 1);
+            const thickness = 1.5;
             if ($("edge-shape").value === "curved") {
                 const dx = t.x - s.x, dy = t.y - s.y, length = Math.hypot(dx, dy) || 1;
                 const cx = (s.x + t.x) / 2 - dy / length * length * 0.25;
@@ -5784,6 +6265,21 @@ function buildSigmaSvg({ fullNetwork = false } = {}) {
                 overlayMarkup.push('<polygon points="' + tx + ',' + ty + ' ' + (tx - len * Math.cos(angle - Math.PI / 7)) + ',' + (ty - len * Math.sin(angle - Math.PI / 7))
                     + ' ' + (tx - len * Math.cos(angle + Math.PI / 7)) + ',' + (ty - len * Math.sin(angle + Math.PI / 7)) + '" fill="' + esc(color) + '"/>');
             }
+        }
+    }
+    if (diffusion && state.diffusion.result) {
+        const propagating = state.diffusion.result.iterations[state.diffusion.iteration]?.propagating || [];
+        let drawn = 0;
+        for (const node of propagating) {
+            const source = positions.get(node);
+            if (!source || drawn > 3000) continue;
+            const draw = neighbor => {
+                const target = positions.get(neighbor);
+                if (!target || drawn++ > 3000) return;
+                overlayMarkup.push('<line x1="' + source.x + '" y1="' + source.y + '" x2="' + target.x + '" y2="' + target.y
+                    + '" stroke="' + esc(DIFF_COL.prop) + '" stroke-width="1.4" stroke-dasharray="5 4"/>');
+            };
+            if (state.directed) graph.forEachOutNeighbor(node, draw); else graph.forEachNeighbor(node, draw);
         }
     }
     return '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height
@@ -5833,11 +6329,14 @@ function exportAveragesCsv(name, order, data) {
 
 // Appearance controls captured by value, so the visual state returns exactly as it was left.
 const SESSION_CONTROLS = [
+    "layout-grid-depth",
+    "layout-spectral-model", "layout-spectral-scale", "layout-spectral-weighted", "layout-spectral-iterations", "layout-spectral-tolerance",
+    "layout-smds-rate", "layout-smds-tolerance", "layout-h3-leaf", "layout-h3-area", "layout-h3-nontree",
     "node-label-attribute", "edge-label-attribute",
     "edge-shape",
     "size-by", "node-color-mode", "node-color-single", "color-by", "node-size-uniform", "node-size-min", "node-size-max", "node-size-scale", "node-size-reverse", "node-color-low", "node-color-high",
     "edge-size-by", "edge-size-uniform", "edge-size-min", "edge-size-max", "edge-size-scale", "edge-size-reverse", "edge-color-mode", "edge-color-single", "edge-color-by", "edge-color-low", "edge-color-high",
-    "node-border-on", "node-border-color", "node-border-width", "layout-type",
+    "node-border-on", "node-border-color", "node-border-width", "cosmograph-sphere-shading", "layout-type",
     "layout-radius", "layout-spacing", "layout-columns", "layout-width", "layout-height", "layout-seed", "layout-score", "layout-score-reverse", "circlepack-group",
     "layout-preset-x", "layout-preset-y",
     "layout-geographic-latitude", "layout-geographic-longitude", "layout-geographic-projection",
@@ -6467,14 +6966,22 @@ function exportGexf() {
 
 // Parses a CSS colour (#hex, rgb(), hsl()) into {r,g,b}, or null if it can't.
 function colorToRgb(color) {
+    if (typeof color !== "string") return null;
+    color = color.trim();
     if (!color) return null;
     if (color[0] === "#") {
         const h = color.slice(1);
-        const n = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+        if (!/^(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i.test(h)) return null;
+        const n = h.length <= 4 ? h.split("").map((c) => c + c).join("") : h;
         return { r: parseInt(n.slice(0, 2), 16), g: parseInt(n.slice(2, 4), 16), b: parseInt(n.slice(4, 6), 16) };
     }
-    let m = color.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
-    if (m) return { r: +m[1], g: +m[2], b: +m[3] };
+    let m = color.match(/^rgba?\(([^)]+)\)$/i);
+    if (m) {
+        const channels = m[1].split("/")[0].trim().split(/[\s,]+/).slice(0, 3);
+        if (channels.length !== 3 || channels.some(channel => !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)%?$/.test(channel))) return null;
+        const values = channels.map(channel => Math.max(0, Math.min(255, channel.endsWith("%") ? parseFloat(channel) * 255 / 100 : parseFloat(channel))));
+        return { r: values[0], g: values[1], b: values[2] };
+    }
     m = color.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%/i);
     if (m) return hslToRgb(+m[1], +m[2] / 100, +m[3] / 100);
     return null;
@@ -6609,6 +7116,10 @@ function applyTheme(theme) {
     applyLogo(!light);
     try { localStorage.setItem("relison-theme", theme); } catch (e) { /* ignore */ }
     redrawVisibleCharts();
+    // Globe.gl updates its material and country accessors during refresh. A
+    // theme toggle does not otherwise produce graph events or camera motion.
+    if (usingGeographic()) window.relisonGeographic?.refresh();
+    if (usingDiffGeographic()) state.diffusion.geographic?.refresh();
 }
 
 function redrawVisibleCharts() {
@@ -7203,58 +7714,27 @@ function clearRecOverlay() {
 // The current emphasis context (table filters + selection focus / path focus), mirroring applyReducers, so the
 // overlay can apply the same hide/dim decisions to its recommended edges and node copies.
 function focusContext() {
-    const g = state.graph;
-    const tableFocus = tableFilterFocus(g);
-    const path = state.pathFocus;
-    const focus = path ? null : selectionFocus();
-    // Timeline presence: nodes absent at the current timestamp are hidden in the overlay too, so recommended links
-    // between them disappear along with the base graph.
-    const tl = state.timeline;
-    let presentNodes = null;
-    if (tl.nodeAttr && tl.t != null && tl.min != null) {
-        presentNodes = new Set();
-        g.forEachNode((n) => { if (timelineMatches(nodeAttrVal(n, tl.nodeAttr))) presentNodes.add(n); });
-    }
-    return {
-        presentNodes,
-        tableFocus,
+    const view = networkView(), tl = state.timeline, g = state.graph;
+    const presentNodes = tl.nodeAttr && tl.t != null && tl.min != null ? new Set(g.nodes().filter(node => timelineMatches(nodeAttrVal(node, tl.nodeAttr)))) : null;
+    return { view, presentNodes, tableFocus: view.working.filtered ? view.working : null, path: state.pathFocus,
         pathEdgeColor: state.pathEdgeHighlight.mode === "single" ? state.pathEdgeHighlight.color : null,
-        pathEdgeColors: buildPathEdgeColors(path),
-        path,
-        focus,
-        dim: !!(focus && !focus.only),
-        isolate: !!(focus && focus.only),
-        dimColor: cssVar("--border", "#3a3c41"),
-    };
+        pathEdgeColors: buildPathEdgeColors(state.pathFocus), focus: view.emphasis, dim: Boolean(view.emphasis && !view.isolate),
+        isolate: view.isolate, dimColor: cssVar("--border", "#3a3c41") };
 }
 
 // "hidden" | "dim" | "normal" for a node, matching the nodeReducer in applyReducers.
-function overlayNodeVerdict(node, c) {
-    if (c.presentNodes && !c.presentNodes.has(node)) return "hidden";
-    if (c.path?.only && !c.path.nodes.has(node)) return "hidden";
-    if (c.isolate && !c.focus.nodes.has(node)) return "hidden";
-    if (c.tableFocus && !c.tableFocus.nodes.has(node)) return "dim";
-    if (c.path) return c.path.nodes.has(node) ? "normal" : (c.path.only ? "hidden" : "dim");
-    if (c.focus) {
-        if (c.isolate) return c.focus.nodes.has(node) ? "normal" : "hidden";
-        if (node === c.focus.selected) return "normal";
-        return c.focus.nodes.has(node) ? "normal" : "dim";
-    }
-    return "normal";
+function overlayNodeVerdict(node, context) {
+    if (context.presentNodes && !context.presentNodes.has(node)) return "hidden";
+    return window.relisonNetworkViewSnapshot?.nodeVerdicts.get(node) || context.view.nodeVerdict(node);
 }
 
 // "hidden" | "dim" | "normal" for a recommended edge, matching the edgeReducer (a path may run over rec edges).
-function overlayEdgeVerdict(s, t, c) {
-    if (c.presentNodes && (!c.presentNodes.has(s) || !c.presentNodes.has(t))) return "hidden";
-    if (c.path?.only && !c.path.edges.has(pairKey(s, t)) && !c.path.edges.has(pairKey(t, s))) return "hidden";
-    if (c.isolate && (!c.focus.nodes.has(s) || !c.focus.nodes.has(t))) return "hidden";
-    if (c.tableFocus && (c.tableFocus.edgeFiltered || !c.tableFocus.nodes.has(s) || !c.tableFocus.nodes.has(t))) return "dim";
-    if (c.path) {
-        if (c.path.edges.has(pairKey(s, t)) || c.path.edges.has(pairKey(t, s))) return "normal";
-        return c.path.only ? "hidden" : "dim";
-    }
-    if (c.isolate) return (c.focus.nodes.has(s) && c.focus.nodes.has(t)) ? "normal" : "hidden";
-    if (c.dim) return (c.focus.nodes.has(s) && c.focus.nodes.has(t)) ? "normal" : "dim";
+function overlayEdgeVerdict(source, target, context) {
+    if (context.presentNodes && (!context.presentNodes.has(source) || !context.presentNodes.has(target))) return "hidden";
+    // Transient recommendations are not members of the loaded network's working edge set.
+    if (context.isolate) return "hidden";
+    if (context.view.working.edgeFiltered || !context.view.working.nodes.has(source) || !context.view.working.nodes.has(target)) return "dim";
+    if (context.view.emphasis || window.relisonCosmographPathSelection) return "dim";
     return "normal";
 }
 
@@ -7310,9 +7790,9 @@ function drawRecOverlay() {
                 if (sxy == null || txy == null) continue;
                 const ps = pos(e.source), pt = pos(e.target);
                 const dimmed = verdict === "dim";
-                const color = dimmed ? c.dimColor : (c.pathEdgeColors.get(pairKey(e.source, e.target)) || (c.path && c.pathEdgeColor) || state.rec.color);
+                const color = dimmed ? c.dimColor : state.rec.color;
                 ctx.strokeStyle = color;
-                ctx.lineWidth = 1.5 * (c.path?.edges.has(pairKey(e.source, e.target)) ? state.pathAppearance.edgeScale : 1);
+                ctx.lineWidth = 1.5;
                 ctx.beginPath();
                 ctx.moveTo(ps.x, ps.y);
                 if ($("edge-shape").value === "curved") {
@@ -7366,7 +7846,7 @@ function drawRecOverlay() {
             const curved = $("edge-shape").value === "curved";
             g.forEachEdge((edge) => {
                 const source = g.source(edge), target = g.target(edge);
-                if (!path.edges.has(pairKey(source, target))) return;
+                if (!path.edgeIds.has(edge)) return;
                 const data = r.getEdgeDisplayData(edge);
                 if (!data || data.hidden || overlayNodeVerdict(source, c) === "hidden" || overlayNodeVerdict(target, c) === "hidden") return;
                 const from = pos(source), to = pos(target);
@@ -7527,12 +8007,16 @@ function initDiffGraph() {
 function restoreDiffCosmograph() {
     requestAnimationFrame(() => requestAnimationFrame(() => {
         if (state.activeTab !== "diffusion" || state.diffusion.subview !== "graph" || state.diffusion.rendererType !== "cosmograph") return;
-        if (!state.diffusion.cosmograph) {
+        if (!state.diffusion.cosmograph || state.diffusion.cosmograph.getDimensions?.() !== mainNetworkDimensions()) {
             initDiffCosmograph();
             return;
         }
         state.diffusion.cosmograph.resize();
     }));
+}
+
+function mainNetworkDimensions() {
+    return Number($("network-dimensions")?.value) === 3 ? 3 : 2;
 }
 
 async function initDiffCosmograph() {
@@ -7546,10 +8030,13 @@ async function initDiffCosmograph() {
         window.relisonDiffusionRecColor = state.rec.color;
         window.relisonDiffusionRecDashed = state.rec.diff;
         window.relisonDiffusionDirected = state.directed;
+        const dimensions = mainNetworkDimensions();
+        const positions = dimensions === 3 ? (window.relisonCosmograph?.getSpatialNodePositions?.(state.graph) || {}) : {};
         const cosmograph = await window.relisonDiffusionCosmograph.create(
             graph,
             $("diff-cosmograph-container"),
             (node) => selectDiffNode(node),
+            { dimensions, positions },
         );
         // The user may have switched renderers or loaded another graph while the
         // asynchronous Cosmograph upload was in flight. Never publish a stale instance.
@@ -7576,7 +8063,7 @@ function setDiffRenderer(type) {
     $("diff-renderer").value = type;
     if (type === "network") type = mainDiffRendererType();
     const view = $("diff-view-graph");
-    const geographic = type === "mercator" || type === "equal-earth";
+    const geographic = ["mercator", "equal-earth", "globe"].includes(type);
     state.diffusion.geographic?.destroy(); state.diffusion.geographic = null;
     state.diffusion.rendererType = geographic ? type : type === "cosmograph" ? "cosmograph" : "sigma";
     view.classList.toggle("geographic-active", geographic);
@@ -7587,7 +8074,7 @@ function setDiffRenderer(type) {
     if (geographic) {
         initDiffGeographic(type);
     } else if (state.diffusion.rendererType === "cosmograph") {
-        if (!state.diffusion.cosmograph) initDiffCosmograph();
+        if (!state.diffusion.cosmograph || state.diffusion.cosmograph.getDimensions?.() !== mainNetworkDimensions()) initDiffCosmograph();
         else state.diffusion.cosmograph.resize();
         if (state.diffusion.result) state.diffusion.cosmograph?.setIteration(state.diffusion.iteration, state.diffusion.result, DIFF_COL);
     } else {
@@ -7595,11 +8082,11 @@ function setDiffRenderer(type) {
         drawDiffOverlay();
     }
 }
-function usingDiffGeographic() { return ["mercator", "equal-earth"].includes(state.diffusion.rendererType); }
+function usingDiffGeographic() { return ["mercator", "equal-earth", "globe"].includes(state.diffusion.rendererType); }
 function geographicDiffusionEdges() {
     const g = state.diffusion.graph, result = state.diffusion.result;
     const model = state.diffusion.recKey && state.rec.models[state.diffusion.recKey];
-    const edges = geographicRecommendationEdges(model, Boolean(model));
+    const edges = geographicRecommendationEdges(model, Boolean(model), false);
     const frame = result?.iterations[state.diffusion.iteration];
     if (g && frame) for (const source of frame.propagating) {
         if (!g.hasNode(source)) continue;
@@ -7678,7 +8165,10 @@ function syncDiffAppearance() {
         r.setSetting("edgeLabelFont", o.edgeFont);
         r.refresh();
     }
-    state.diffusion.cosmograph?.syncAppearance(g, o);
+    const dimensions = mainNetworkDimensions();
+    const positions = dimensions === 3 ? (window.relisonCosmograph?.getSpatialNodePositions?.(main) || {}) : {};
+    if (!state.diffusion.cosmograph || state.diffusion.cosmograph.getDimensions?.() === dimensions)
+        state.diffusion.cosmograph?.syncAppearance(g, o, positions);
     drawDiffOverlay();
 }
 
@@ -9464,6 +9954,18 @@ $("tl-step-back").addEventListener("click", () => stepTimeline(-1));
 $("tl-step-fwd").addEventListener("click", () => stepTimeline(1));
 $("btn-tl-gif").addEventListener("click", downloadTimelineGif);
 $("btn-tl-webm").addEventListener("click", downloadTimelineWebm);
+async function focusH3(origin = false) {
+    try {
+        if (!usingCosmograph() || window.relisonCosmograph?.getDimensions() !== 3) throw new Error("Select Cosmograph 3D to navigate H3.");
+        const positions = window.relisonH3.focus(state.graph, origin ? null : state.selectedNode);
+        if (!origin && !state.selectedNode) throw new Error("Select a node first.");
+        await window.relisonCosmograph.setNodePositions(positions); window.relisonCosmograph.fitView();
+        setStatus(origin ? "Restored H3 origin." : "Hyperbolic focus: " + state.selectedNode);
+    } catch (error) { setStatus(error.message, "error"); }
+}
+$("btn-h3-focus").addEventListener("click", () => focusH3());
+$("btn-h3-origin").addEventListener("click", () => focusH3(true));
+$("layout-h3-nontree").addEventListener("change", queueCosmographAppearanceRefresh);
 $("btn-layout").addEventListener("click", onLayoutButton);
 $("btn-save-layout").addEventListener("click", saveLayoutPositions);
 $("layout-pack-components").addEventListener("change", updateLayoutTypeUI);
@@ -9640,6 +10142,59 @@ $("btn-zoom-in").addEventListener("click", zoomIn);
 $("btn-zoom-out").addEventListener("click", zoomOut);
 $("btn-zoom-fit").addEventListener("click", zoomFit);
 $("network-renderer").addEventListener("change", (e) => setNetworkRenderer(e.target.value));
+$("network-dimensions").addEventListener("change", async (event) => {
+    const select = event.target, previous = window.relisonCosmograph?.getDimensions?.() || 2;
+    stopLayout();
+    window.relisonCosmograph?.stopForceLayout();
+    state.cosmographLayoutRunning = false;
+    select.disabled = true;
+    try {
+        if (!window.relisonCosmograph) throw new Error("Cosmograph is still loading.");
+        await window.relisonCosmograph.setDimensions(select.value);
+        toggleHidden("cosmograph-sphere-shading-field", select.value !== "3" || !usingCosmograph());
+        window.relisonCosmograph.refreshOrientationGizmo?.();
+        if (typeof syncRotationExportControls === "function") syncRotationExportControls();
+        toggleHidden("network-3d-help", select.value !== "3");
+        syncLayoutOptionsForRenderer();
+        if (state.diffusion.graph) syncDiffAppearance();
+        setStatus(select.value === "3" ? "3D view ready. Start the Cosmograph force layout to spread nodes in three dimensions." : "2D view restored.");
+    } catch (error) {
+        select.value = String(previous);
+        setStatus("Could not change dimensions: " + error.message, "error");
+    } finally { select.disabled = false; }
+});
+$("cosmograph-sphere-shading").addEventListener("change", async () => {
+    if (!usingCosmograph() || window.relisonCosmograph?.getDimensions() !== 3 || !state.graph) return;
+    try {
+        await window.relisonCosmograph.render(state.graph, { ...cosmographInteractionCallbacks() });
+        state.cosmographDirty = false;
+    } catch (error) {
+        setStatus("Could not update Cosmograph sphere shading: " + error.message, "error");
+    }
+});
+$("btn-project-network-2d").addEventListener("click", async () => {
+    const button = $("btn-project-network-2d"), dimensions = $("network-dimensions");
+    stopLayout();
+    button.disabled = true;
+    dimensions.disabled = true;
+    try {
+        const count = await window.relisonCosmograph.projectTo2D();
+        dimensions.value = "2";
+        state.cosmographDirty = false;
+        state.renderer?.refresh();
+        drawRecOverlay();
+        setStatus("Projected " + count + " nodes to 2D. The 3D layout is retained.");
+    } catch (error) {
+        setStatus("Could not project to 2D: " + error.message, "error");
+    } finally {
+        dimensions.value = String(window.relisonCosmograph.getDimensions());
+        toggleHidden("network-3d-help", dimensions.value !== "3");
+        syncLayoutOptionsForRenderer();
+        if (state.diffusion.graph) syncDiffAppearance();
+        button.disabled = false;
+        dimensions.disabled = false;
+    }
+});
 $("edge-shape").addEventListener("change", applyEdgeShape);
 $("network-renderer").addEventListener("change", () => setTimeout(syncCosmographLabelColorControls, 0));
 $("btn-vertex").addEventListener("click", runVertexMetric);
@@ -9718,6 +10273,7 @@ $("btn-network-redo").addEventListener("click", historyRedo);
 // Keyboard: Ctrl/Cmd+Z undo, Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z redo. Ignored while typing so native field undo still works.
 document.addEventListener("keydown", (e) => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    if (e.target?.closest?.(".filter-builder")) return;
     const t = e.target;
     if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
     const k = e.key.toLowerCase();
@@ -9727,12 +10283,12 @@ document.addEventListener("keydown", (e) => {
 
 $("select-node-input").addEventListener("change", selectFromInput);
 $("select-type").addEventListener("change", (e) => setSelectionType(e.target.value));
-$("select-edge-input").addEventListener("change", (e) => { if (e.target.value) selectEdge(e.target.value); else clearEdgeSelection(); });
+$("select-edge-input").addEventListener("change", (e) => { if (e.target.value) selectEdge(e.target.value); else clearSelection(); });
 initNodeCombos();
 $("select-mode").addEventListener("change", (e) => setSelectionMode(e.target.value));
 $("select-partition").addEventListener("change", (e) => setSelectionPartition(e.target.value));
 $("select-edge-attribute").addEventListener("change", (e) => setSelectionEdgeAttribute(e.target.value));
-$("btn-clear-selection").addEventListener("click", clearSelection);
+$("btn-clear-selection").addEventListener("click", () => clearSelection());
 $("select-mode").value = state.selection.mode;
 updateSelectionTargetUI();
 
@@ -9764,8 +10320,12 @@ $("path-edge-highlight-color").addEventListener("input", (event) => {
     applyReducers();
     drawRecOverlay();
 });
-$("select-path-source").addEventListener("change", () => { state.pathFocus = null; state.pathEndpointFocusActive = true; updateSelectionSummary(); renderPathsTable(state.lastPaths); applyReducers(); });
-$("select-path-target").addEventListener("change", () => { state.pathFocus = null; state.pathEndpointFocusActive = true; updateSelectionSummary(); renderPathsTable(state.lastPaths); applyReducers(); });
+for (const id of ["select-path-source", "select-path-target"]) {
+    const changed = () => { invalidatePathResults(); state.pathEndpointFocusActive = true; refreshNetworkView(); };
+    $(id).addEventListener("input", changed);
+    $(id).addEventListener("change", changed);
+}
+$("select-path-scope").addEventListener("change", () => { invalidatePathResults(); refreshNetworkView(); });
 
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 document.querySelectorAll(".subtab").forEach((b) => b.addEventListener("click", () => switchSubtab(b.dataset.subtab)));
@@ -9789,6 +10349,8 @@ $("btn-diffmetric-csv").addEventListener("click", downloadDiffMetricsCsv);
 
 $("btn-export-png").addEventListener("click", exportPng);
 $("btn-export-svg").addEventListener("click", exportSvg);
+$("btn-export-rotation-gif").addEventListener("click", exportRotationGif);
+$("btn-export-rotation-webm").addEventListener("click", exportRotationWebm);
 $("btn-export-gexf").addEventListener("click", exportGexf);
 $("btn-export-nodes").addEventListener("click", exportNodesCsv);
 $("btn-export-edges").addEventListener("click", exportEdgesCsv);
@@ -9818,6 +10380,23 @@ $("edge-csv-file").addEventListener("change", (e) => { setDefaultEdgeSeparator("
 
 $("btn-clear-nodes-filters").addEventListener("click", () => clearFilters("nodes"));
 $("btn-clear-edges-filters").addEventListener("click", () => clearFilters("edges"));
+for (const key of ["nodes", "edges"]) $("filter-mode-" + key).addEventListener("change", event => setNetworkFilterMode(key, event.target.value));
+for (const key of ["nodes", "edges"]) {
+    $("btn-filter-builder-" + key).addEventListener("click", () => {
+        if (!$("filter-builder-" + key).open) openNetworkFilterBuilder(key); else cancelNetworkFilterBuilder(key);
+    });
+    $("filter-builder-apply-" + key).addEventListener("click", () => applyNetworkFilterBuilder(key));
+    $("filter-builder-cancel-" + key).addEventListener("click", () => cancelNetworkFilterBuilder(key));
+    $("filter-builder-dismiss-" + key).addEventListener("click", () => cancelNetworkFilterBuilder(key));
+    const dialog = $("filter-builder-" + key);
+    dialog.addEventListener("cancel", event => { event.preventDefault(); cancelNetworkFilterBuilder(key); });
+    dialog.addEventListener("close", () => { if (!dialog.open && state.tables[key].filterDraft) cancelNetworkFilterBuilder(key); });
+    dialog.addEventListener("click", event => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) cancelNetworkFilterBuilder(key);
+    });
+}
 $("btn-node-columns").addEventListener("click", () => toggleColumnVisibilityMenu("nodes"));
 $("btn-edge-columns").addEventListener("click", () => toggleColumnVisibilityMenu("edges"));
 
@@ -9875,7 +10454,7 @@ window.addEventListener("resize", () => {
 });
 
 document.addEventListener("keydown", (e) => {
-    if (!$("edit-mode").checked) return;
+    if (e.target?.closest?.(".filter-builder") || !$("edit-mode").checked) return;
     if ((e.key === "Delete" || e.key === "Backspace") && state.selectedNode != null) {
         const node = state.selectedNode;
         if (!window.confirm('Delete node "' + node + '" and its edges?' + pendingClearsSuffix())) return;

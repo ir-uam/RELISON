@@ -5,6 +5,24 @@ graph IO and social-network-analysis metrics, and serves a [sigma.js](https://ww
 interactive visualization.
 
 ## Features
+
+- **Sphere packing 3D** mirrors circle packing: one filled ball without
+  grouping, or one compact ball per community/attribute arranged around a
+  sphere. Cluster envelopes stay separated even with unequal group sizes.
+
+- **Spectral 2D / 3D**: classical Laplacian or Koren degree-normalized
+  eigenprojection, with optional similarity weights. Disconnected components
+  are solved separately. Scale, residual tolerance and eigensolver sweep budget
+  are available in Advanced layout settings. Nonconvergence is reported.
+
+- **Paper-defined 3D models** (select Cosmograph 3D): spherical MDS
+  (Miller–Huroyan–Kobourov, animated), upward DAG grid
+  (Dujmovic–Wood, Theorem 3.1), and H3 hyperbolic hierarchy (Munzner).
+  H3 provides root/traversal selection, non-tree-link visibility, and selected-node
+  hyperbolic focus/reset controls. Spherical MDS requires a connected graph;
+  upward grid rejects directed cycles. See the
+  [algorithm contracts and references](../RELISON-viz/README.md#paper-defined-non-euclidean-and-upward-models)
+  for precision limits, supported paper variants and viewer differences.
 - **Load** a tab-separated edge list (`source⇥target[⇥weight]`) as a directed/undirected, weighted, multigraph
   and/or self-looping network.
 - **Visualize** with sigma.js: pan/zoom, hover, ForceAtlas2 layout (start/stop), circular reset.
@@ -29,6 +47,11 @@ interactive visualization.
   community metrics (modularity, community-size Gini, weak ties, inter-community edge Gini, …).
 - **Editing**: add/remove nodes and edges interactively; metric/community results are recomputed against the
   edited graph.
+- **Chart exports**: metric and diffusion chart downloads offer PNG and vector SVG,
+  with either the current view or the complete chart at the current zoom. Both
+  retain chart styling and legend selections while excluding zoom controls.
+  SVG supports complete charts beyond the PNG pixel-size limit without allocating
+  a full-size raster canvas.
 
 ## Build
 From the repository root (builds the whole reactor including this module):
@@ -109,6 +132,71 @@ The server listens on `http://localhost:7070` (override with the optional `port`
 Load an edge list (e.g. the repository's `data/train.txt`, directed + weighted) to begin.
 
 ## Notes
+
+### Filters and selection
+
+The Nodes & Edges tables share a working network. Each table offers **Match all
+(AND)** (default) or **Match any (OR)** for combining its active column filters.
+For example, edge filters `source = A` and `target = A` with OR match links
+incident to A. The two table groups still apply together: eligible edges must
+satisfy their edge filter group and have two eligible endpoints satisfying the
+node filter group. With no active filters, either mode includes every row.
+Clearing filters preserves the combination preference; loading a new network
+resets both tables to AND. Changing the combination retains selected targets,
+refreshes tables, renderers and exports, and invalidates filtered path results.
+Choose **Build filters…** to open a large overlay above the table and use multiple conditions on the same field, individual
+AND/OR connectors, and nested groups. AND binds before OR; groups provide explicit
+parentheses, and the displayed expression makes the grouping visible. For example,
+`(country = Spain OR country = Portugal) AND age > 30` can be built with a country
+group and an age condition. Operators follow the selected field's type.
+
+The builder copies the currently applied filters into a draft. Edits show a node
+and edge match preview without changing the view until **Apply filters** is pressed.
+Incomplete conditions and invalid values block Apply. **Close** discards unapplied
+edits. Escape, the × button and a backdrop click also close the overlay without
+applying pending edits. The editor scrolls independently while Apply and Close
+remain visible, and closing returns keyboard focus to Build filters. Applying
+replaces that table's column filters with the expression; new
+column filters added afterward combine with it using AND. Opening the builder
+again includes those additional filters so they can be regrouped. **Remove custom filter**
+beside an applied expression clears only that expression, preserving column filters.
+**Clear filters**
+removes both the expression and column filters. Removing a field prunes its applied
+conditions; renaming an attribute preserves conditions using that attribute.
+With edge filters active, the nodes table contains the matching edges' endpoints.
+Without edge filters, matching isolated nodes remain. Filter chips in both tables
+show all active constraints, including filters on hidden columns.
+
+Selection is independent of filters. **None** removes selection emphasis while
+retaining filter emphasis. **Highlight** keeps the working rows and marks the
+selection; **Show only** restricts tables and graph to the same node and edge
+sets. Clearing selection retains filters, entity type and view-mode preference.
+Clearing either table's filters retains valid selected targets. An excluded
+target remains in the inspector with an explanation; empty isolation never
+silently expands the working set. Each selection type remembers its view mode.
+
+Path searches default to **Filtered graph**, traversing eligible nodes and links
+on the server. **Whole graph** searches the complete network, while its selected
+paths remain subject to view filters; clipped paths are explicitly identified.
+Changing endpoints or search scope invalidates results immediately. Filtered
+search results also expire when their filters or relevant data change; late
+responses cannot restore them. All returned paths are initially selected, and
+individual paths can be deselected without losing the results. None preserves
+selected paths. Directed paths exclude reverse links; eligible parallel links
+between consecutive path nodes participate in the same node-sequence path.
+
+CSV exports contain every row of the effective table result, across pages, in
+the current sort order. IDs and string/categorical equality are exact;
+substring search is case-insensitive. Numeric and boolean comparisons follow
+the declared column types; invalid numeric bounds are identified beside filters.
+
+Regression checks:
+
+```sh
+node --test RELISON-gui/src/test/js/network-selection.test.cjs
+mvn -pl RELISON-gui -am -Dtest=PathControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
 - Node identifiers can be arbitrary tokens (numeric or textual): they are read as strings (`Parsers.sp`), so no
   node-type configuration is needed. The node-id fields in the UI are searchable selectors — start typing an id to
   filter the matches.
@@ -135,7 +223,43 @@ overlap removal and packing run only on natural completion. Batch computation
 remains available through POST /api/layout.
 
 Animation protocol: POST /api/layout/session accepts the same request as the batch endpoint and returns sessionId, finished, coordinates and diagnostics. POST /api/layout/session/{id}/step accepts integer iterations from 1 to 10. DELETE /api/layout/session/{id} cancels immediately. The browser requests one iteration per frame with no overlapping steps; start responses arriving after Stop are cleaned up without applying coordinates. Sessions are removed on completion, cancellation or failure, with idle entries reaped after two minutes on subsequent requests. At most 128 sessions can be retained.
-### Equal Earth background
+### Geographic maps and Globe.gl
+
+For a rotatable globe, choose **Geographic map / globe** in the network renderer
+selector, then **Globe (Globe.gl)** under Advanced layout settings → Projection.
+Select numeric latitude/longitude node attributes (decimal degrees), then Apply
+layout. Nodes are anchored to the surface; no altitude attribute is needed.
+Globe view does not modify the network's XY/Z layout coordinates. Drag rotates,
+scroll zooms, and the toolbar zoom/fit controls operate on the globe camera.
+Node/link selection, shared appearance reducers, labels, filters, path highlights,
+recommendation overlays and legends use the same graph as other renderers.
+Links follow raised great-circle curves, with arrows for directed links and
+separate curves for parallel edges. Coincident endpoints use small loops.
+
+Diffusion supports **Geographic: Globe** and automatically uses it with **Follow
+network renderer** when the network is a globe. State colours and propagation
+overlays update during playback. Each globe has an independent camera.
+Graph editing, node dragging and force layouts are unavailable in geographic views.
+
+Globe.gl 2.46.2 and Three.js 0.180.0 are loaded on demand from esm.sh; TopoJSON
+3.1.0 converts world-atlas 2.0.2 country boundaries (Natural Earth) from jsDelivr.
+An internet connection and WebGL are required. No imagery service/API key is used.
+The globe export captures the current camera at twice the viewport resolution.
+Its PNG includes labels, optional legend and attribution. Its SVG embeds the
+WebGL globe/network as a high-resolution raster image, with vector labels and
+legend; it is **not a fully vector globe export**.
+
+GIF and WebM animation exports provide HD (1280px wide), Full HD (1920px,
+the default), QHD (2560px), 4K (3840px), and native-resolution choices.
+These settings apply to network rotation cycles, timeline exports and
+Sigma/Cosmograph diffusion playback. The viewport's aspect ratio is preserved,
+so a 16:9 viewport produces 3840×2160 at 4K. Vector frames are rasterized at
+the selected size; Globe and diffusion Cosmograph captures render at the
+corresponding pixel density and then restore the live renderer settings.
+WebM uses a bitrate scaled to the output dimensions. GIF frames are encoded
+sequentially in a worker to avoid retaining all uncompressed frames. WebM is
+recommended for detailed or shaded networks because GIF has a limited colour
+palette and produces larger files.
 
 The network export toolbar provides **Include colour legend** (checked by
 default). PNG and SVG exports respect this option for every layout in Sigma,

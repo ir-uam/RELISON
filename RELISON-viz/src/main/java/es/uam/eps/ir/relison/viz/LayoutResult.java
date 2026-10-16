@@ -16,6 +16,8 @@ public final class LayoutResult<U>
     private final Bounds2D bounds;
     private final LayoutDiagnostics diagnostics;
     private final List<EdgeRoute<U>> edgeRoutes;
+    private final Map<U, Point3D> positions3D;
+    private final Bounds3D bounds3D;
 
     /**
      * @param positions node coordinates
@@ -32,7 +34,13 @@ public final class LayoutResult<U>
      * @param edgeRoutes edge polylines in original edge direction
      */
     public LayoutResult(Map<U, Pair<Double>> positions, LayoutDiagnostics diagnostics, List<EdgeRoute<U>> edgeRoutes)
+    { this(positions, diagnostics, edgeRoutes, null); }
+
+    private LayoutResult(Map<U, Pair<Double>> positions, LayoutDiagnostics diagnostics, List<EdgeRoute<U>> edgeRoutes,
+                         Map<U, Point3D> spatial)
     {
+        this.positions3D = spatial == null ? Collections.emptyMap() : Collections.unmodifiableMap(new LinkedHashMap<>(spatial));
+        this.bounds3D = spatial == null ? null : Bounds3D.of(positions3D.values());
         Map<U, Pair<Double>> copy = new LinkedHashMap<>(positions);
         copy.forEach((node, point) -> { Objects.requireNonNull(node); Objects.requireNonNull(point); });
         this.positions = Collections.unmodifiableMap(copy);
@@ -54,6 +62,24 @@ public final class LayoutResult<U>
     }
     /** @return immutable coordinates in layout order */
     public Map<U, Pair<Double>> getPositions() { return positions; }
+    /**
+     * @param positions finite 3D coordinates
+     * @param diagnostics progress
+     * @param <U> node type
+     * @return a spatial result
+     */
+    public static <U> LayoutResult<U> spatial(Map<U, Point3D> positions, LayoutDiagnostics diagnostics) {
+        Map<U, Pair<Double>> xy = new LinkedHashMap<>();
+        positions.forEach((node, point) -> { Objects.requireNonNull(node); Objects.requireNonNull(point);
+            xy.put(node, new Pair<>(point.getX(), point.getY())); });
+        return new LayoutResult<>(xy, diagnostics, Collections.emptyList(), positions);
+    }
+    /** @return dimensionality; getPositions() remains the x/y projection for compatibility */
+    public int getSpaceDimensions() { return bounds3D == null ? 2 : 3; }
+    /** @return immutable spatial coordinates, empty for 2D results */
+    public Map<U, Point3D> getPositions3D() { return positions3D; }
+    /** @return spatial bounds if this is a 3D result */
+    public Optional<Bounds3D> getBounds3D() { return Optional.ofNullable(bounds3D); }
     /** @return coordinate bounds */
     public Bounds2D getBounds() { return bounds; }
     /** @return computation diagnostics */

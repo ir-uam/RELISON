@@ -70,24 +70,60 @@ function downloadChartPng(chartId, filename) {
         setStatus("Nothing to download yet — draw the chart first.", "error"); return;
     }
     CHART_PNG_REQUEST = { chart, filename: filename || "chart.png" };
-    const plan = fullChartPngPlan(chart);
-    $("chart-png-current-size").textContent = Math.round(chart.getWidth() * CHART_PNG_PIXEL_RATIO) + " × "
-        + Math.round(chart.getHeight() * CHART_PNG_PIXEL_RATIO) + " pixels";
-    $("chart-png-full-size").textContent = plan.pixelWidth + " × " + plan.pixelHeight + " pixels";
-    $("chart-png-full").disabled = plan.tooLarge;
-    $("chart-png-limit").hidden = !plan.tooLarge;
+    updateChartExportDialog();
     $("chart-png-dialog").showModal();
+}
+
+function updateChartExportDialog() {
+    const chart = CHART_PNG_REQUEST?.chart;
+    if (!chart || chart.isDisposed()) return;
+    const svg = $("chart-export-format").value === "svg";
+    const plan = fullChartPngPlan(chart);
+    const ratio = svg ? 1 : CHART_PNG_PIXEL_RATIO;
+    $("chart-png-title").textContent = "Download chart " + (svg ? "SVG" : "PNG");
+    $("chart-png-current-size").textContent = Math.round(chart.getWidth() * ratio) + " × "
+        + Math.round(chart.getHeight() * ratio) + (svg ? " · scalable vector" : " pixels");
+    $("chart-png-full-size").textContent = Math.round(plan.width * ratio) + " × " + Math.round(plan.height * ratio)
+        + (svg ? " · scalable vector" : " pixels");
+    $("chart-png-full").disabled = !svg && plan.tooLarge;
+    $("chart-png-limit").hidden = svg || !plan.tooLarge;
+}
+
+function chartSvgOption(chart, mode) {
+    const full = mode === "full" ? fullChartPngPlan(chart) : null;
+    const option = full ? full.option : chart.getOption();
+    option.backgroundColor = echartColors().background;
+    option.animation = false;
+    option.toolbox = [];
+    // Retain dataZoom's filtering for the current view, but hide its UI and histogram.
+    option.dataZoom = (option.dataZoom || []).map(zoom => ({ ...zoom, show: false }));
+    option.series = (option.series || []).map(series => ({ ...series, animation: false, progressive: 0, large: false }));
+    return { option, width: full ? full.width : chart.getWidth(), height: full ? full.height : chart.getHeight() };
 }
 
 async function exportChartPng(mode) {
     const request = CHART_PNG_REQUEST;
+    const format = $("chart-export-format").value === "svg" ? "svg" : "png";
     $("chart-png-dialog").close();
     CHART_PNG_REQUEST = null;
     if (!request || request.chart.isDisposed()) return;
     let exportChart = null, host = null;
     try {
+        const base = request.filename.replace(/\.(?:png|svg)$/i, "");
+        const filename = base + (mode === "full" ? "-full" : "") + "." + format;
+        if (format === "svg") {
+            const plan = chartSvgOption(request.chart, mode);
+            // SVG's string renderer allocates no full-size canvas, so even charts
+            // beyond the PNG pixel limits can keep the current label/mark scale.
+            exportChart = echarts.init(null, null, { renderer: "svg", ssr: true, width: plan.width, height: plan.height });
+            exportChart.setOption(plan.option, { notMerge: true, lazyUpdate: false });
+            const svg = exportChart.renderToSVGString();
+            if (!svg || !/<svg(?:\s|>)/.test(svg)) throw new Error("Could not create the SVG chart.");
+            download(filename, svg, "image/svg+xml;charset=utf-8");
+            return;
+        }
         const settings = { type: "png", pixelRatio: CHART_PNG_PIXEL_RATIO,
-            backgroundColor: echartColors().background, excludeComponents: ["dataZoom"] };
+            backgroundColor: echartColors().background, excludeComponents: ["dataZoom", "toolbox"] };
         let url;
         if (mode === "full") {
             const plan = fullChartPngPlan(request.chart);
@@ -104,13 +140,13 @@ async function exportChartPng(mode) {
         } else url = request.chart.getDataURL(settings);
         if (!url || !url.startsWith("data:image/png")) throw new Error("Could not create the PNG image at this size.");
         const blob = await (await fetch(url)).blob();
-        const filename = mode === "full" ? request.filename.replace(/(?:\.png)?$/i, "-full.png") : request.filename;
         download(filename, blob, "image/png");
     } catch (error) { setStatus("Chart export failed: " + error.message, "error"); }
     finally { if (exportChart) exportChart.dispose(); if (host) host.remove(); }
 }
 
 function setupChartPngExport() {
+    $("chart-export-format").addEventListener("change", updateChartExportDialog);
     $("chart-png-current").addEventListener("click", () => exportChartPng("current"));
     $("chart-png-full").addEventListener("click", () => exportChartPng("full"));
     $("chart-png-cancel").addEventListener("click", () => $("chart-png-dialog").close());

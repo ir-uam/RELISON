@@ -35,7 +35,7 @@
 
     // Choose the smallest longitudinal arc containing the nodes, including date-line networks.
     function readCoordinates(nodes, latitude, longitude, projection = "mercator") {
-        const limit = projection === "equal-earth" ? 90 : MAX_LATITUDE;
+        const limit = projection === "equal-earth" || projection === "globe" ? 90 : MAX_LATITUDE;
         const raw = nodes.map(id => {
             const lat = latitude(id), lon = longitude(id);
             if (!Number.isFinite(lat) || Math.abs(lat) > limit)
@@ -91,7 +91,7 @@
                 fillOpacity: 1,
             }).addTo(layers);
             marker.bindTooltip(text(display.label || id), { permanent: Boolean(options.labels().nodeShow), direction: "top", className: "geographic-node-label" });
-            marker.on("click", event => { window.L.DomEvent.stopPropagation(event); options.onNodeClick(id); });
+            marker.on("click", event => { window.L.DomEvent.stopPropagation(event); options.onNodeClick(id, event.originalEvent); });
         }
     }
     function scheduleRefresh() {
