@@ -1,4 +1,4 @@
-package es.uam.eps.ir.relison.sna.metrics.attributes.nodes;
+package es.uam.eps.ir.relison.sna.community.detection.attributes;
 
 import es.uam.eps.ir.relison.sna.community.Communities;
 

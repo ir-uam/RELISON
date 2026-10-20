@@ -144,6 +144,7 @@ public class GuiServer
 
             // Communities.
             config.routes.post("/api/communities", communityController::detect);
+            config.routes.post("/api/communities/graph", communityController::graph);
             config.routes.post("/api/communities/global", communityController::globalMetric);
             config.routes.post("/api/communities/individual", communityController::individual);
 
@@ -202,6 +203,7 @@ public class GuiServer
             config.routes.post("/api/graph/{id}/attributes/remove", attributeController::remove);
             config.routes.post("/api/graph/{id}/attributes/rename", attributeController::rename);
             config.routes.post("/api/graph/{id}/attributes/node", attributeController::setNode);
+            config.routes.post("/api/graph/{id}/attributes/nodes/value", attributeController::setNodes);
             config.routes.post("/api/graph/{id}/attributes/edge", attributeController::setEdge);
             config.routes.exception(Exception.class, (e, ctx) ->
             {

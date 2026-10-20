@@ -996,6 +996,7 @@ function resetResults() {
     state.edgeAttributeMetricData = {};
     state.edgeAttributeMetricOrder = [];
     state.recMetricData = { vertex: {}, graph: {}, pair: {}, nodePair: {}, comm: {} };
+    if (typeof resetCommunityExplorer === "function") resetCommunityExplorer();
 }
 
 // Clears table filters/paging on a fresh load (sort defaults kept).
@@ -1376,7 +1377,8 @@ function colorByMetric(metricName) {
 }
 
 function colorByCommunity(algo) {
-    applyCategorical("community:" + algo, state.communityData[algo] || {}, "community: " + algo);
+    applyCategorical("community:" + algo, state.communityData[algo] || {}, "community: " + algo,
+        id => communityLabel(id, algo));
 }
 
 // Colours nodes by a numeric attribute, using the configured low→high colour ramp.
@@ -1405,7 +1407,7 @@ function colorByNodeCategorical(name) {
 
 // Shared categorical colouring: assigns one colour per distinct value (honouring per-category user overrides in
 // state.catColors[colorKey]) and records the value→colour mapping in state.colorLegend for the legend.
-function applyCategorical(colorKey, values, title) {
+function applyCategorical(colorKey, values, title, labelOf) {
     const graph = state.graph;
     const order = [];
     const seen = new Set();
@@ -1428,7 +1430,7 @@ function applyCategorical(colorKey, values, title) {
 
     state.colorLegend = {
         type: "categorical", colorKey, title,
-        entries: order.map((cat) => ({ value: cat, color: colorOf[cat] })),
+        entries: order.map((cat) => ({ value: cat, color: colorOf[cat], ...(labelOf ? { label: labelOf(cat) } : {}) })),
         hasMissing,
     };
 }
@@ -1558,7 +1560,7 @@ function buildNodeLegend() {
         const list = document.createElement("div");
         list.className = "legend-list";
         for (const entry of lg.entries) {
-            list.appendChild(legendCategoryRow(lg.colorKey, entry.value, entry.color, true));
+            list.appendChild(legendCategoryRow(lg.colorKey, entry.value, entry.color, true, entry.label ?? entry.value));
         }
         if (lg.hasMissing) list.appendChild(legendCategoryRow(null, "(none)", "#888888", false));
         el.appendChild(list);
@@ -1567,7 +1569,7 @@ function buildNodeLegend() {
 }
 
 // One legend row: an editable colour swatch (for real categories) + the category label.
-function legendCategoryRow(colorKey, value, color, editable) {
+function legendCategoryRow(colorKey, value, color, editable, label = value) {
     const row = document.createElement("div");
     row.className = "legend-row";
     if (editable) {
@@ -1575,7 +1577,7 @@ function legendCategoryRow(colorKey, value, color, editable) {
         sw.type = "color";
         sw.className = "legend-swatch-input";
         sw.value = toHexColor(color);
-        setTooltip(sw, "js-colour-for", { value });
+        setTooltip(sw, "js-colour-for", { value: label });
         sw.addEventListener("input", () => {
             if (!state.catColors[colorKey]) state.catColors[colorKey] = {};
             state.catColors[colorKey][value] = sw.value;
@@ -1590,7 +1592,7 @@ function legendCategoryRow(colorKey, value, color, editable) {
     }
     const lab = document.createElement("span");
     lab.className = "legend-label";
-    lab.textContent = value;
+    lab.textContent = label;
     row.appendChild(lab);
     return row;
 }
@@ -3623,23 +3625,25 @@ async function loadCatalog() {
         state.defs = {
             vertex: indexById(cat.vertex), graph: indexById(cat.graph), pair: indexById(cat.pair),
             community: indexById(cat.community), communityIndividual: indexById(cat.communityIndividual),
+            intraCommunityIndividual: indexById(cat.intraCommunityIndividual),
+            intraAttributeIndividual: indexById(cat.intraAttributeIndividual),
             communityGlobal: indexById(cat.communityGlobal),
         };
         fillSelect("vertex-metric", cat.vertex);
         fillSelect("graph-metric", cat.graph);
         fillSelect("pair-metric", cat.pair);
         fillCommunitySelect("community-algo", cat.community);
-        fillSelect("indiv-comm-metric", cat.communityIndividual);
+        fillSelect("indiv-comm-metric", [...(cat.communityIndividual || []), ...(cat.intraCommunityIndividual || [])]);
         fillSelect("global-comm-metric", cat.communityGlobal);
-        fillAttributeMetricSelect("attribute-indiv-comm-metric", cat.communityIndividual);
+        fillAttributeMetricSelect("attribute-indiv-comm-metric", [...(cat.communityIndividual || []), ...(cat.intraAttributeIndividual || [])]);
         fillAttributeMetricSelect("attribute-global-comm-metric", cat.communityGlobal);
         renderParams("vertex-params", "vertex", $("vertex-metric").value);
         renderParams("graph-params", "graph", $("graph-metric").value);
         renderParams("pair-params", "pair", $("pair-metric").value);
         renderParams("community-params", "community", $("community-algo").value);
-        renderParams("indiv-comm-params", "communityIndividual", $("indiv-comm-metric").value);
+        renderIndividualCommunityParams("indiv-comm-params", $("indiv-comm-metric").value, false);
         renderParams("global-comm-params", "communityGlobal", $("global-comm-metric").value);
-        renderParams("attribute-indiv-comm-params", "communityIndividual", $("attribute-indiv-comm-metric").value);
+        renderIndividualCommunityParams("attribute-indiv-comm-params", $("attribute-indiv-comm-metric").value, true);
         renderParams("attribute-global-comm-params", "communityGlobal", $("attribute-global-comm-metric").value);
         syncAttributeCommunityMetricControls();
     } catch (e) {
@@ -3664,9 +3668,21 @@ function fillAttributeMetricSelect(id, items) {
     const select = $(id);
     select.innerHTML = "";
     (items || []).forEach((metric) => {
-        const label = metric.label.replace(/\bcommunities\b/gi, "attributes").replace(/\bcommunity\b/gi, "attribute");
+        const label = metric.id.startsWith("intra-attribute:") ? metric.label
+            : metric.label.replace(/\bcommunities\b/gi, "attributes").replace(/\bcommunity\b/gi, "attribute");
         select.appendChild(option(metric.id, label));
     });
+}
+function renderIndividualCommunityParams(containerId, metricId, byAttribute) {
+    const intra = metricId.startsWith(byAttribute ? "intra-attribute:" : "intra-community:");
+    renderParams(containerId, intra ? (byAttribute ? "intraAttributeIndividual" : "intraCommunityIndividual") : "communityIndividual", metricId);
+}
+function individualCommunityMetricLabel(metricId) {
+    for (const family of ["communityIndividual", "intraCommunityIndividual", "intraAttributeIndividual"]) {
+        const def = state.defs[family]?.[metricId];
+        if (def?.label) return def.label;
+    }
+    return metricId;
 }
 function fillCommunitySelect(id, items) {
     const select = $(id);
@@ -3886,13 +3902,23 @@ async function detectCommunity() {
     if (jobBusy("btn-community")) return cancelJob("btn-community");
     if (!requireGraph()) return;
     const algorithm = $("community-algo").value;
+    const graphId = state.graphId, graph = state.graph, revision = state.networkRevision, params = collectParams("community-params");
+    const existing = findCommunityPartition(algorithm, params);
+    if (existing !== undefined) {
+        selectCommunityPartition(existing);
+        $("community-result").textContent = existing + " — " + communityRows().length + " communities";
+        setStatus("Selected existing partition: " + existing + ".");
+        return;
+    }
     setStatus("Detecting communities (" + algorithm + ")…", "busy");
     const signal = beginJob("btn-community", "community");
     try {
         const res = await api("/api/communities",
-            { ...jsonBody({ graphId: state.graphId, algorithm, params: collectParams("community-params") }), signal });
+            { ...jsonBody({ graphId, algorithm, params }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
+        if (graphId !== state.graphId || graph !== state.graph || revision !== state.networkRevision) return;
         state.communityData[res.algorithm] = res.values;
+        communityDetected(res.algorithm, algorithm, params, res.numCommunities);
         rebuildAppearanceOptions();
         $("node-color-mode").value = "attribute";
         $("color-by").value = "community:" + res.algorithm;
@@ -3901,7 +3927,7 @@ async function detectCommunity() {
         $("community-result").textContent = res.label + " — " + res.numCommunities + " communities";
         $("btn-global-comm").disabled = false;
         $("btn-indiv-comm").disabled = false;
-        const algos = Object.keys(state.communityData);
+        const algos = Object.keys(state.communityData).filter(name => !name.startsWith("attribute:"));
         setSelectOptions("indiv-comm-partition", algos, algos);
         $("indiv-comm-partition").value = res.algorithm;
         setSelectOptions("global-comm-partition", algos, algos);
@@ -3922,6 +3948,7 @@ async function runGlobalCommMetric() {
     if (jobBusy("btn-global-comm")) return cancelJob("btn-global-comm");
     if (!requireGraph()) return;
     const algorithm = $("global-comm-partition").value;
+    const graphId = state.graphId, partition = state.communityData[algorithm];
     if (!algorithm || !state.communityData[algorithm]) { setStatus("Detect a partition first.", "error"); return; }
     const metric = $("global-comm-metric").value;
     setStatus("Computing global " + metric + "…", "busy");
@@ -3930,13 +3957,14 @@ async function runGlobalCommMetric() {
         const res = await api("/api/communities/global",
             { ...jsonBody({ graphId: state.graphId, algorithm, metric, params: collectParams("global-comm-params") }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
+        if (graphId !== state.graphId || partition !== state.communityData[algorithm]) return;
         const label = res.label + " (" + algorithm + ")";
         state.graphMetrics[label] = res.value;
         if (state.rec.active && $("global-comm-rec").checked) {
             try {
                 const r2 = await api("/api/communities/global", { ...jsonBody(
                     { graphId: state.graphId, algorithm, metric, params: collectParams("global-comm-params"), withRecommendation: true }), signal });
-                if (!r2.cancelled) storeRecMetric("graph", label, r2.value);
+                if (!r2.cancelled && graphId === state.graphId && partition === state.communityData[algorithm]) storeRecMetric("graph", label, r2.value);
             } catch (e) { /* recommendation metric is optional */ }
         }
         refreshAfterCompute();
@@ -3953,6 +3981,7 @@ async function runIndividualCommMetric() {
     if (jobBusy("btn-indiv-comm")) return cancelJob("btn-indiv-comm");
     if (!requireGraph()) return;
     const algorithm = $("indiv-comm-partition").value;
+    const graphId = state.graphId, partition = state.communityData[algorithm];
     if (!algorithm || !state.communityData[algorithm]) { setStatus("Detect a partition first.", "error"); return; }
     const metric = $("indiv-comm-metric").value;
     setStatus("Computing per-community " + metric + "…", "busy");
@@ -3961,14 +3990,15 @@ async function runIndividualCommMetric() {
         const res = await api("/api/communities/individual",
             { ...jsonBody({ graphId: state.graphId, algorithm, metric, params: collectParams("indiv-comm-params") }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
+        if (graphId !== state.graphId || partition !== state.communityData[algorithm]) return;
         const label = res.label + " · " + algorithm;
         if (!state.commMetricOrder.includes(label)) state.commMetricOrder.push(label);
-        state.commMetricData[label] = { algorithm, values: numericMap(res.values) };
+        state.commMetricData[label] = { algorithm, metric, axisLabel: individualCommunityMetricLabel(metric), values: numericMap(res.values) };
         if (state.rec.active && $("comm-rec").checked) {
             try {
                 const r2 = await api("/api/communities/individual", { ...jsonBody(
                     { graphId: state.graphId, algorithm, metric, params: collectParams("indiv-comm-params"), withRecommendation: true }), signal });
-                if (!r2.cancelled) storeRecMetric("comm", label, numericMap(r2.values));
+                if (!r2.cancelled && graphId === state.graphId && partition === state.communityData[algorithm]) storeRecMetric("comm", label, numericMap(r2.values));
             } catch (e) { /* recommendation metric is optional */ }
         }
         refreshAfterCompute();
@@ -4025,7 +4055,7 @@ async function runAttributeIndividualCommMetric() {
         if (res.cancelled) { setStatus("Stopped."); return; }
         const label = res.label + " · " + res.algorithm;
         if (!state.attributeMetricOrder.includes(label)) state.attributeMetricOrder.push(label);
-        state.attributeMetricData[label] = { attribute, values: numericMap(res.values), valueLabels: res.valueLabels || {} };
+        state.attributeMetricData[label] = { attribute, metric, axisLabel: individualCommunityMetricLabel(metric), values: numericMap(res.values), valueLabels: res.valueLabels || {} };
         if (state.rec.active && $("attribute-comm-rec").checked) {
             try {
                 const r2 = await api("/api/communities/individual", { ...jsonBody({ ...body, withRecommendation: true }), signal });
@@ -4542,11 +4572,13 @@ function applyPieceRemove(index) {
 /* ------------------------------ tabs -------------------------------- */
 
 function switchTab(tab) {
+    if (state.activeTab === "communities" && tab !== "communities") leaveCommunityExplorer();
     state.activeTab = tab;
     document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
     $("pane-import").classList.toggle("active", tab === "import");
     $("pane-network").classList.toggle("active", tab === "network");
     $("pane-tables").classList.toggle("active", tab === "tables");
+    $("pane-communities").classList.toggle("active", tab === "communities");
     $("pane-metrics").classList.toggle("active", tab === "metrics");
     $("pane-recommend").classList.toggle("active", tab === "recommend");
     $("pane-diffusion").classList.toggle("active", tab === "diffusion");
@@ -4567,6 +4599,7 @@ function switchTab(tab) {
         }
     }, 0);
     if (tab === "tables") renderTable(state.activeTableSubtab);
+    if (tab === "communities") refreshCommunityExplorer();
     if (tab === "metrics") renderMetricsDashboard();
     if (tab === "recommend") { loadRecCatalog(); renderTable("rec"); }
     if (tab === "diffusion") enterDiffusionTab();
@@ -4619,13 +4652,9 @@ function statsActive(view) {
 }
 
 // Shows/hides the side panels per tab and resizes the layout grid accordingly:
-// import → no panels; network → left (layout/visualization) + right (selection); metrics → right (runners);
-// tables/paths → no panels (full-width content).
-// The left panel carries the controls of whichever tab needs them — layout/appearance on Network, the metric and
-// community runners on Metrics — so configuration always sits on the left. The right panel is now only the
-// canvas-side Selection block, which is meaningful on the Network tab alone.
+// Network has layout/selection panels, Communities has detection, and Metrics has metric runners.
 function updatePanels(tab) {
-    const showLeft = tab === "network" || tab === "metrics";
+    const showLeft = tab === "network" || tab === "metrics" || tab === "communities";
     const showRight = tab === "network";
     $("left").style.display = showLeft ? "" : "none";
     $("right").style.display = showRight ? "" : "none";
@@ -4636,6 +4665,7 @@ function updatePanels(tab) {
 
     toggleHidden("left-layout", tab !== "network");
     toggleHidden("left-metrics", tab !== "metrics");
+    toggleHidden("left-communities", tab !== "communities");
 }
 
 // Disables the Recommendation tab for multigraphs (recommenders need a simple FastGraph); switches away if needed.
@@ -4682,6 +4712,7 @@ function refreshAfterCompute() {
     if ($("select-path-scope").value === "filtered") invalidatePathResults();
     refreshNetworkView();
     if (state.activeTab === "metrics") renderMetricsDashboard();
+    if (typeof refreshCommunityExplorer === "function") refreshCommunityExplorer();
 }
 
 /* ---------------------------- table models -------------------------- */
@@ -4692,7 +4723,8 @@ function nodeColumns() {
     // Attribute columns come before the computed metric / community columns.
     nodeAttrDefs().forEach((d) => cols.push({ key: "a:" + d.name, label: d.name }));
     state.metricOrder.forEach((m) => cols.push({ key: "m:" + m, label: m }));
-    Object.keys(state.communityData).forEach((a) => cols.push({ key: "c:" + a, label: "comm:" + a }));
+    Object.keys(state.communityData).filter(a => !a.startsWith("attribute:"))
+        .forEach((a) => cols.push({ key: "c:" + a, label: "comm:" + a }));
     cols.push({ key: "_act", label: "" });   // trailing remove-row column
     return cols;
 }
@@ -4768,7 +4800,8 @@ function orderedTableColumns(key, cols) {
 function tableColumnGroup(key, column) {
     if (key === "nodes") {
         if (column.key.startsWith("a:")) return "attribute";
-        if (column.key.startsWith("m:") || column.key.startsWith("c:")) return "metric";
+        if (column.key.startsWith("m:")) return "metric";
+        if (column.key.startsWith("c:")) return "community";
     }
     if (key === "edges") {
         if (column.key.startsWith("ea:")) return "attribute";
@@ -4784,6 +4817,7 @@ function renderColumnVisibilityMenu(key) {
     const groups = [
         { key: "attribute", label: "Attributes" },
         { key: "metric", label: "Metrics" },
+        ...(key === "nodes" ? [{ key: "community", label: "Communities" }] : []),
         { key: null, label: "Other columns" },
     ];
     for (const group of groups) {
@@ -5061,7 +5095,8 @@ function buildHeader(key, cols) {
             th.classList.add("column-type-" + columnGroup);
             const tag = document.createElement("span");
             tag.className = "column-type-tag";
-            tag.textContent = columnGroup === "attribute" ? "ATTR" : "METRIC";
+            tag.textContent = columnGroup === "attribute" ? "ATTR"
+                : columnGroup === "community" ? "COMMUNITY" : "METRIC";
             th.insertBefore(tag, th.firstChild);
         }
         if ((key === "nodes" && c.key === "id") || (key === "edges" && (c.key === "source" || c.key === "target"))) th.classList.add("identity-col", "identity-col-" + index);
@@ -6361,6 +6396,7 @@ function collectSessionClientState() {
 
     return {
         positions,
+        communityExplorer: collectCommunityExplorer(),
         savedLayoutPositions: state.savedLayoutPositions?.graphId === state.graphId ? state.savedLayoutPositions.positions : null,
         controls,
         metrics: {
@@ -6404,6 +6440,7 @@ function applySessionClientState(c) {
     if (m.nodePairAgg) { state.nodePairAgg = m.nodePairAgg; state.nodePairOrder = m.nodePairOrder || []; }
     if (m.graphMetrics) state.graphMetrics = m.graphMetrics;
     if (m.communityData) state.communityData = m.communityData;
+    restoreCommunityExplorer(c.communityExplorer);
     if (m.commMetricData) { state.commMetricData = m.commMetricData; state.commMetricOrder = m.commMetricOrder || []; }
     if (m.attributeMetricData) { state.attributeMetricData = m.attributeMetricData; state.attributeMetricOrder = m.attributeMetricOrder || []; }
     if (m.edgeAttributeMetricData) { state.edgeAttributeMetricData = m.edgeAttributeMetricData; state.edgeAttributeMetricOrder = m.edgeAttributeMetricOrder || []; }
@@ -6428,7 +6465,7 @@ function applySessionClientState(c) {
     }
 
     // The community-metric buttons are gated on having a partition.
-    const algos = Object.keys(state.communityData);
+    const algos = Object.keys(state.communityData).filter(name => !name.startsWith("attribute:"));
     if (algos.length) {
         setSelectOptions("indiv-comm-partition", algos, algos);
         setSelectOptions("global-comm-partition", algos, algos);
@@ -7120,6 +7157,7 @@ function applyTheme(theme) {
     // theme toggle does not otherwise produce graph events or camera motion.
     if (usingGeographic()) window.relisonGeographic?.refresh();
     if (usingDiffGeographic()) state.diffusion.geographic?.refresh();
+    if (state.activeTab === "communities") updateCommunityGraphAppearance();
 }
 
 function redrawVisibleCharts() {
@@ -10222,9 +10260,9 @@ $("vertex-metric").addEventListener("change", (e) => renderParams("vertex-params
 $("graph-metric").addEventListener("change", (e) => renderParams("graph-params", "graph", e.target.value));
 $("pair-metric").addEventListener("change", (e) => renderParams("pair-params", "pair", e.target.value));
 $("community-algo").addEventListener("change", (e) => renderParams("community-params", "community", e.target.value));
-$("indiv-comm-metric").addEventListener("change", (e) => renderParams("indiv-comm-params", "communityIndividual", e.target.value));
+$("indiv-comm-metric").addEventListener("change", (e) => renderIndividualCommunityParams("indiv-comm-params", e.target.value, false));
 $("global-comm-metric").addEventListener("change", (e) => renderParams("global-comm-params", "communityGlobal", e.target.value));
-$("attribute-indiv-comm-metric").addEventListener("change", (e) => renderParams("attribute-indiv-comm-params", "communityIndividual", e.target.value));
+$("attribute-indiv-comm-metric").addEventListener("change", (e) => renderIndividualCommunityParams("attribute-indiv-comm-params", e.target.value, true));
 $("attribute-global-comm-metric").addEventListener("change", (e) => renderParams("attribute-global-comm-params", "communityGlobal", e.target.value));
 $("edit-mode").addEventListener("change", (e) => setEditMode(e.target.checked));
 $("theme-toggle").addEventListener("click", toggleTheme);
@@ -10455,6 +10493,7 @@ window.addEventListener("resize", () => {
 
 document.addEventListener("keydown", (e) => {
     if (e.target?.closest?.(".filter-builder") || !$("edit-mode").checked) return;
+    if (state.activeTab !== "network" || e.target?.closest?.("input, textarea, select, [contenteditable]")) return;
     if ((e.key === "Delete" || e.key === "Backspace") && state.selectedNode != null) {
         const node = state.selectedNode;
         if (!window.confirm('Delete node "' + node + '" and its edges?' + pendingClearsSuffix())) return;

@@ -44,7 +44,9 @@ interactive visualization.
     embeddedness, weakness, edge betweenness.
 - **Community detection** (full RELISON algorithm set): connected components, Louvain, FastGreedy, Girvan-Newman,
   label propagation, Infomap, balanced/size-/Gini-weighted FastGreedy, ratio-/normalized-cut spectral; plus global
-  community metrics (modularity, community-size Gini, weak ties, inter-community edge Gini, …).
+  community metrics (modularity, community-size Gini, weak ties, inter-community edge Gini, …). Individual metrics
+  also include each graph-global metric computed on the induced subgraph of every detected community or node-attribute
+  value (for example, `Intra-community Density` and `Intra-Attribute Clustering coefficient`).
 - **Editing**: add/remove nodes and edges interactively; metric/community results are recomputed against the
   edited graph.
 - **Chart exports**: metric and diffusion chart downloads offer PNG and vector SVG,
@@ -73,6 +75,99 @@ Layout integration tests:
 ```sh
 mvn -pl RELISON-gui -am -Dtest=BasicLayoutsTest,StructuralLayoutsTest,LayoutControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
 node --test RELISON-gui/src/test/js/layouts.test.cjs
+```
+
+## Exploring communities
+
+The **Communities** tab appears before **Metrics**. Its left panel contains the
+blue **Detect** button and partition controls, including the summary, partition
+metrics and **View in Metrics**. Choose a partition and switch between **Graph**
+and **Table**. Detect selects an existing result when the method and typed parameter
+values match a stored configuration, preserving its labels, metrics and selection.
+New configurations run detection. Saved configuration metadata supports reuse
+after restoring a session; older results without that metadata are detected again.
+These are separate views with a shared community selection and inspector.
+Detection and exploration use the whole loaded network, independently of Network
+table filters. All metric computation remains in **Metrics**; **View in Metrics**
+selects the current partition there. Existing saved sessions remain supported.
+
+The graph offers independent **Cosmograph 2D**, **Cosmograph 3D**, and **Sigma**
+renderers. Cosmograph loads on demand from the same CDN/version as the Network
+renderer. Community graph controls share Network's renderer/dimensions pickers,
+camera buttons, Export menu and canvas styling. Renderer and dimension choices
+remain independent of Network; choosing Sigma hides the dimensions picker while
+retaining the last Cosmograph dimension preference. Cosmograph
+requires internet access and WebGL. Layouts include circular/spherical,
+grid, seeded random, spectral, Fruchterman–Reingold, stress majorization,
+Kamada–Kawai, multilevel force (Hu), ForceAtlas2, and concentric grouping by
+community-graph degree. RELISON-viz computes their coordinates. Cosmograph 3D uses
+native spatial variants where available; Kamada–Kawai, multilevel force and
+ForceAtlas2 explicitly use planar layouts in 3D. Switching views preserves community selection; renderer cameras are
+independent of Network and Diffusion and are retained in saved sessions.
+
+Switching partitions, renderers or views cancels pending community renderer
+initialization and removes its canvas without waiting for a stalled upload.
+Cosmograph initialization has a 30-second timeout, with **Apply layout** to retry
+or **Sigma** as an alternative. Obsolete loads cannot overwrite the active graph
+or its status.
+
+Graph nodes represent communities, sized by membership and coloured consistently
+with Network's partition colouring (including legend overrides). **Aggregated
+weights** uses RELISON-sna's `SimpleCommunityGraphGenerator`, including weighted
+parallel edges. The **Complete** and **Inter-community** modes use the corresponding
+RELISON-sna generators; their displayed link values are generator multiplicities
+over adjacent original node pairs, not original parallel-edge counts. Directed
+links retain direction. Isolated communities remain visible. **Show internal
+connections** only controls loop visibility and does not change metric values.
+
+In **Appearance → Edges → Shape**, choose **Curved** (the default) or **Straight**
+for Sigma and Cosmograph 2D/3D. Edge labels and SVG/PNG exports follow the chosen
+shape; internal connections remain loops. The shape is retained in saved sessions,
+and changing it automatically fits the graph.
+
+Expand **Appearance** in the Graph view to set minimum/maximum community node
+radii, proportional or percentile size scaling (matching Network), and optional
+node borders with a chosen colour and width. Node sizes scale by member count within
+the chosen bounds; equal bounds give uniform sizes. Node and edge labels have
+independent visibility, size, font and proportional-size controls. Default labels
+in Cosmograph follow Network's viewport-dependent dynamic selection (up to 200),
+instead of displaying every node label. Hovering always shows the community label,
+even when **Show node labels** is off, in both renderers. Label colours
+are white in Cosmograph and black in Sigma; single colours and node/edge colours
+are also available. A shared SVG foreground keeps all labels above nodes, edges
+and internal loops, including in exported images. Edge thickness can be uniform or scaled by the
+absolute connection value, with configurable minimum/maximum widths. Edge colours
+can use the default, a single colour, the average of the two community colours,
+or the source/target community colour.
+For undirected graphs, source/target colours follow the displayed endpoint order.
+Internal loops use the same edge settings. Appearance updates preserve layout
+coordinates and automatically Fit the graph. Cosmograph updates are serialized;
+Fit runs after the latest upload, so a late update cannot restore an obsolete
+camera. Selection-only refreshes retain the camera. Appearance applies to exports
+and is saved in sessions. A width of zero hides links.
+
+The searchable, sortable community table shows IDs, editable display labels,
+membership counts, network shares and metrics already computed for that partition.
+Selecting a community opens its inspector in either view. The inspector includes
+a searchable, paginated member list with selectable attributes/node metrics, and
+its incoming/outgoing or undirected community connections. Member and community
+CSV exports include all matching rows across pages. Network actions highlight or
+isolate the members while retaining existing Network filters. Clicking a member
+opens its node details in Network and preserves the community selection.
+
+Graph exports provide PNG and SVG of the current projected view, including labels
+and a size/link legend. Cosmograph 3D exports flatten the current camera projection
+to circles and curves; sphere shading is not included. Session files retain labels,
+partition metadata, selected community, renderer, positions and cameras. Rerunning
+the same detection configuration replaces its partition and clears that partition's
+old community metric results and labels. Structural edits use the existing result
+invalidation flow.
+
+Regression checks:
+
+```sh
+mvn -pl RELISON-gui -am -Dtest=CommunityGraphTest,LayoutControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
+node --test RELISON-gui/src/test/js/community-explorer.test.cjs RELISON-gui/src/test/js/community-cosmograph.test.cjs
 ```
 
 ## Using the basic layouts

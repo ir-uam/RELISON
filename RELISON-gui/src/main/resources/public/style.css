@@ -210,6 +210,71 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
 .tabpane { position: absolute; inset: 0; display: none; }
 .tabpane.active { display: block; }
 
+/* Communities: Graph and Table are separate views, each sharing the selected-community inspector. */
+#pane-communities { overflow: auto; }
+.community-partition-controls { overflow-wrap: anywhere; }
+.community-partition-controls p { line-height: 1.6; }
+.community-empty { padding: 30px; color: var(--muted); max-width: 650px; line-height: 1.6; }
+.community-view-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--panel-2); }
+.community-view-tabs button { width: auto; padding: 10px 24px; margin: 0; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
+.community-view-tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+.community-workspace { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.community-workspace.has-inspector { grid-template-columns: minmax(0, 1fr) 340px; }
+.community-main { min-width: 0; padding: 12px; }
+.community-main .toolbar { margin: 0 0 10px; }
+.community-main .toolbar label { display: inline-flex; align-items: center; gap: 6px; }
+.community-main .toolbar select { max-width: 240px; }
+.community-main .scroll-table { max-height: 60vh; }
+#community-table .community-note-input { width: 180px; min-width: 150px; box-sizing: border-box; padding: 4px 6px; }
+#explorer-graph-view { margin: -12px; }
+#community-graph-toolbar { margin: 0; }
+#community-graph-stage { position: relative; height: max(360px, calc(100vh - 390px)); min-width: 0; }
+#explorer-graph-view .community-appearance { margin: 12px; }
+#explorer-legend, #explorer-graph-status, #explorer-edge-info { margin-left: 12px; margin-right: 12px; }
+#community-sigma, #community-loops, #community-foreground { position: absolute; inset: 0; width: 100%; height: 100%; }
+#community-sigma { z-index: 0; isolation: isolate; }
+.community-cosmograph-host { position: absolute; inset: 0; background: var(--canvas-bg); }
+/* Native labels choose visibility; the SVG foreground paints their boxes above all edges/nodes. */
+.community-cosmograph-host .css-label--label {
+    color: transparent !important; background: transparent !important;
+    border-color: transparent !important; box-shadow: none !important; text-shadow: none !important;
+    pointer-events: none !important;
+}
+#community-loops { pointer-events: none; z-index: 2; }
+#community-foreground { pointer-events: none; z-index: 3; overflow: hidden; }
+.community-legend { line-height: 1.5; }
+.community-appearance { margin: 8px 0 12px; padding: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; }
+.community-appearance > summary { cursor: pointer; }
+.community-appearance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; margin-top: 12px; }
+.community-appearance-grid fieldset { min-width: 0; border: 1px solid var(--border); border-radius: 4px; }
+.community-appearance-grid label { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0; }
+.community-appearance-grid input[type="number"] { width: 80px; }
+.community-appearance-grid input[type="color"] { width: 45px; height: 28px; padding: 2px; }
+.community-appearance-grid select { min-width: 0; max-width: 65%; flex: 0 1 180px; }
+.community-appearance-grid p { font-size: 11px; line-height: 1.5; }
+#community-inspector { min-width: 0; padding: 12px; border-left: 1px solid var(--border); background: var(--panel); overflow-wrap: anywhere; }
+#community-inspector .toolbar { display: flex; align-items: center; justify-content: space-between; }
+#community-inspector h2 { font-size: 16px; margin: 0; }
+#community-inspector h3 { font-size: 13px; margin-top: 20px; }
+#community-inspector .scroll-table { max-height: 300px; }
+#community-inspector .data { min-width: 0; font-size: 12px; }
+#community-details-scroll { max-height: 220px; overflow: auto; }
+#community-details { width: 100%; max-width: 100%; table-layout: fixed; }
+#community-details th { width: 70%; white-space: normal; overflow-wrap: anywhere; }
+#community-details td { width: 30%; white-space: nowrap; }
+#community-inspector .pagination { flex-wrap: wrap; gap: 6px; font-size: 11px; }
+#community-inspector .field { margin-top: 10px; }
+#community-inspector .community-actions { margin-top: 12px; }
+#community-inspector .community-actions button { width: 100%; }
+#community-table button, #community-members button, #community-connections button { width: auto; margin: 0; padding: 3px 5px; background: transparent; border: 1px solid transparent; color: var(--accent); text-align: left; }
+#community-table button:hover, #community-members button:hover, #community-connections button:hover { border-color: var(--accent); }
+.community-selected { background: color-mix(in srgb, var(--accent) 15%, transparent); }
+.community-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; }
+@media (max-width: 1100px) {
+    .community-workspace.has-inspector { grid-template-columns: minmax(0, 1fr); }
+    #community-inspector { border-left: 0; border-top: 1px solid var(--border); }
+}
+
 /* Keep the two WebGL graph panes laid out while inactive. Cosmograph otherwise
    observes a zero-sized canvas and can lose its drawing when the pane returns. */
 #pane-network, #pane-diffusion { display: block; visibility: hidden; pointer-events: none; z-index: 0; }
@@ -217,10 +282,11 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
 
 #pane-network { background: var(--canvas-bg); }
 #pane-network, #pane-network.active { display: flex; flex-direction: column; }
-#network-graph-stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
-#network-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; flex: 0 0 auto; padding: 8px 10px; background: var(--panel); border-bottom: 1px solid var(--border); }
-#network-toolbar button { width: auto; margin: 0; }
-#network-toolbar .canvas-btn { width: 34px; height: 34px; min-width: 34px; flex: 0 0 34px; padding: 0; box-sizing: border-box; }
+#network-graph-stage { position: relative; flex: 1 1 auto; min-height: 0; }
+#network-graph-stage, #community-graph-stage { overflow: hidden; background: var(--canvas-bg); }
+#network-toolbar, #community-graph-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; flex: 0 0 auto; padding: 8px 10px; background: var(--panel); border-bottom: 1px solid var(--border); }
+#network-toolbar button, #community-graph-toolbar button { width: auto; margin: 0; }
+#network-toolbar .canvas-btn, #community-graph-toolbar .canvas-btn { width: 34px; height: 34px; min-width: 34px; flex: 0 0 34px; padding: 0; box-sizing: border-box; }
 .network-interactions, .network-history { display: flex; align-items: center; gap: 6px; }
 .network-export-menu { position:relative; z-index:8; }
 .network-export-menu > summary { list-style:none; cursor:pointer; border:1px solid var(--border); border-radius:5px; padding:7px 12px; color:var(--text); background:var(--panel-2); font-size:12px; }
@@ -475,7 +541,7 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
 .tl-export button { flex: 1 1 auto; margin: 0; }
 
 /* Camera controls share the graph toolbar, outside the renderer viewport. */
-#canvas-tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+#canvas-tools, .graph-camera-tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .canvas-btn {
     width: 34px; height: 34px; margin: 0; padding: 0;
     font-size: 18px; line-height: 1; text-align: center;
@@ -544,8 +610,9 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
 .column-menu-item input:disabled { cursor: not-allowed; }
 .column-menu-heading { margin: 5px 4px 2px; padding: 5px 4px 3px; border-top: 1px solid var(--border); color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
 .column-menu-heading:first-child { margin-top: 0; border-top: 0; }
-.column-menu-heading-attribute { color: #65b9a8; }
-.column-menu-heading-metric { color: var(--accent); }
+.column-menu-heading-attribute { color: #0072b2; }
+.column-menu-heading-metric { color: #009e73; }
+.column-menu-heading-community { color: #d55e00; }
 
 .addgroup { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .addgroup input[type="text"], .addgroup input[type="number"] { width: 150px; }
@@ -593,11 +660,13 @@ table.data th:last-child, table.data td:last-child { overflow: visible; }
 table.data th:first-child, table.data td:first-child { text-align: left; }
 /* Column titles are centred; data cells keep their numeric right / first-column left alignment. */
 table.data thead tr:first-child th { text-align: center; }
-table.data thead th.column-type-attribute { box-shadow: inset 0 2px #65b9a8; }
-table.data thead th.column-type-metric { box-shadow: inset 0 2px var(--accent); }
+table.data thead th.column-type-attribute { box-shadow: inset 0 2px #0072b2; }
+table.data thead th.column-type-metric { box-shadow: inset 0 2px #009e73; }
+table.data thead th.column-type-community { box-shadow: inset 0 2px #d55e00; }
 .column-type-tag { display: block; margin: 0 0 2px; font-size: 9px; line-height: 11px; font-weight: 700; letter-spacing: .06em; }
-table.data thead th.column-type-attribute .column-type-tag { color: #65b9a8; }
-table.data thead th.column-type-metric .column-type-tag { color: var(--accent); }
+table.data thead th.column-type-attribute .column-type-tag { color: #0072b2; }
+table.data thead th.column-type-metric .column-type-tag { color: #009e73; }
+table.data thead th.column-type-community .column-type-tag { color: #d55e00; }
 table.data thead th {
     position: sticky; top: 0;
     background: var(--panel-2);
@@ -854,7 +923,7 @@ body.quiet-light { --bg: #f6f7f4; --panel: #ffffff; --panel-2: #eef0ec; --border
 #geographic-container .geographic-node-label { background: #334155; border-color: #334155; color: #ffffff; }
 .renderer-picker { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; }
 .renderer-picker select { width: 145px; margin: 0; padding: 4px 5px; font-size: 11px; }
-#network-dimensions { width: 58px; min-width: 0; }
+#network-dimensions, #explorer-dimensions { width: 58px; min-width: 0; }
 
 #selection-block .selection-context { display:flex; align-items:center; gap:8px; margin:0 0 12px; }
 .selection-kind { padding:3px 8px; border:1px solid var(--accent); border-radius:999px; color:var(--accent); font-size:10px; font-weight:700; text-transform:uppercase; }

@@ -3,8 +3,8 @@ package es.uam.eps.ir.relison.sna.metrics.attributes.nodes.indiv;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.sna.metrics.IndividualCommunityMetric;
 import es.uam.eps.ir.relison.sna.metrics.IndividualNodeAttributeMetric;
-import es.uam.eps.ir.relison.sna.metrics.attributes.nodes.AttributeCommunityBuilder;
-import es.uam.eps.ir.relison.sna.metrics.attributes.nodes.AttributePartition;
+import es.uam.eps.ir.relison.sna.community.detection.attributes.AttributeCommunityBuilder;
+import es.uam.eps.ir.relison.sna.community.detection.attributes.AttributePartition;
 import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 
 import java.util.Map;

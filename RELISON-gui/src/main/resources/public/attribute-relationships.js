@@ -33,7 +33,7 @@ function relationshipMissing(value, numeric) {
 }
 
 // Keys distinguish unset values from a literal category named "Missing".
-function relationshipCategories(values, numeric, binning, bins) {
+function relationshipCategories(values, numeric, binning, bins, labelForValue = null) {
     let min = Infinity, max = -Infinity;
     if (numeric) for (const value of values) {
         if (!relationshipMissing(value, true)) { min = Math.min(min, Number(value)); max = Math.max(max, Number(value)); }
@@ -59,8 +59,10 @@ function relationshipCategories(values, numeric, binning, bins) {
             label = categories.get(key).label;
             order = index;
         } else {
-            label = numeric ? String(Number(value)) : (typeof value === "object" ? JSON.stringify(value) : String(value));
-            key = "value:" + label; order = numeric ? Number(value) : 0;
+            label = labelForValue ? labelForValue(value)
+                : numeric ? String(Number(value)) : (typeof value === "object" ? JSON.stringify(value) : String(value));
+            // Keep community IDs as category keys even when two custom labels happen to match.
+            key = "value:" + (labelForValue ? String(value) : label); order = numeric ? Number(value) : 0;
         }
         if (!categories.has(key)) categories.set(key, { key, label, order });
         return key;
@@ -73,10 +75,10 @@ function relationshipCategories(values, numeric, binning, bins) {
     return { labels: sorted.map(category => category.label), indices: entries.map(key => indices.get(key)) };
 }
 
-function buildRelationshipMatrix(pairs, xNumeric, yNumeric, xBinning, yBinning, bins, includeMissing) {
+function buildRelationshipMatrix(pairs, xNumeric, yNumeric, xBinning, yBinning, bins, includeMissing, labelers = []) {
     const included = includeMissing ? pairs : pairs.filter(pair => !relationshipMissing(pair[0], xNumeric) && !relationshipMissing(pair[1], yNumeric));
-    const x = relationshipCategories(included.map(pair => pair[0]), xNumeric, xBinning, bins);
-    const y = relationshipCategories(included.map(pair => pair[1]), yNumeric, yBinning, bins);
+    const x = relationshipCategories(included.map(pair => pair[0]), xNumeric, xBinning, bins, labelers[0]);
+    const y = relationshipCategories(included.map(pair => pair[1]), yNumeric, yBinning, bins, labelers[1]);
     const counts = new Map(), rows = Array(y.labels.length).fill(0), columns = Array(x.labels.length).fill(0);
     included.forEach((pair, i) => {
         const column = x.indices[i], row = y.indices[i], key = row + ":" + column;
@@ -122,8 +124,10 @@ function renderAttributeRelationships() {
     const collect = id => pairs.push([value(id, 0), value(id, 1)]);
     if (types[0] === "edge") state.graph.forEachEdge(collect);
     else state.graph.forEachNode(collect);
+    const communityLabelers = types.map((type, index) => type === "community"
+        ? value => communityLabel(value, names[index]) : null);
     const result = buildRelationshipMatrix(pairs, !!definitions[0].numeric, !!definitions[1].numeric,
-        binnings[0], binnings[1], bins, $("relationship-missing").value === "include");
+        binnings[0], binnings[1], bins, $("relationship-missing").value === "include", communityLabelers);
     result.names = names; result.display = $("relationship-display").value;
     result.entity = types[0] === "edge" ? "edges" : "nodes";
     const displayLabel = { count: "Counts", row: "Row percentages", column: "Column percentages" }[result.display];
@@ -145,8 +149,10 @@ function renderAttributeRelationships() {
         axisLabel: { color: colors.muted, fontSize: colors.labelSize, hideOverlap: true },
         axisLine: { show: true, lineStyle: { color: colors.border } },
         axisTick: { show: true, inside: false, length: 6, lineStyle: { color: colors.border } }, splitLine: { show: false } });
-    chartOption.xAxis = axis(result.x, names[0]);
-    chartOption.yAxis = { ...axis(result.y, names[1]), inverse: true };
+    // The selected attribute/partition names remain available in tooltips and
+    // selectors; keep the chart axes focused on their category tick labels.
+    chartOption.xAxis = axis(result.x, "");
+    chartOption.yAxis = { ...axis(result.y, ""), inverse: true };
     const points = []; let max = 0;
     result.y.forEach((label, row) => result.x.forEach((label, column) => {
         const cell = relationshipCell(result, column, row);

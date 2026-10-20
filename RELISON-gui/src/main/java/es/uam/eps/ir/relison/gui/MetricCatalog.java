@@ -134,6 +134,8 @@ public final class MetricCatalog
         result.put("pair", familyJson(PairMetricCatalog.pairMetrics()));
         result.put("community", CommunityCatalog.toJson());
         result.put("communityIndividual", CommunityCatalog.individualJson());
+        result.put("intraCommunityIndividual", CommunityCatalog.intraCommunityIndividualJson());
+        result.put("intraAttributeIndividual", CommunityCatalog.intraAttributeIndividualJson());
         result.put("communityGlobal", CommunityCatalog.globalJson());
         return result;
     }

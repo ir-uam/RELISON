@@ -197,7 +197,11 @@ coincident; use seeded initialization to obtain depth from a flat layout.
 
 `OverlapRemoval3D` separates spheres using request radii and a surface gap in
 layout units, preserving pins. It does not prevent screen occlusion from every
-camera angle. Existing 2D transforms/packing reject spatial inputs instead of
+camera angle. A dynamic spatial hash checks neighbouring cells and updates as
+spheres move, preserving deterministic pair order. Sparse scenes avoid exhaustive
+pair scans; dense scenes fall back to exhaustive scans and still have quadratic
+worst-case cost. The configured pass limit and unresolved-overlap errors remain.
+Existing 2D transforms/packing reject spatial inputs instead of
 discarding depth. `LayoutPipeline` checks dimensionality and spatial pins.
 
 In the GUI, select Cosmograph **3D** to expose spatial layouts in their

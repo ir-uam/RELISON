@@ -12,19 +12,32 @@ import es.uam.eps.ir.relison.grid.Grid;
 import es.uam.eps.ir.relison.grid.community.CommunityDetectionSelector;
 import es.uam.eps.ir.relison.grid.sna.comm.global.GlobalCommunityMetricSelector;
 import es.uam.eps.ir.relison.grid.sna.comm.indiv.IndividualCommunityMetricSelector;
+import es.uam.eps.ir.relison.grid.sna.graph.GraphMetricSelector;
 import es.uam.eps.ir.relison.sna.community.Communities;
+import es.uam.eps.ir.relison.sna.community.detection.attributes.AttributeCommunityDetector;
+import es.uam.eps.ir.relison.sna.community.graph.SimpleCommunityGraphGenerator;
+import es.uam.eps.ir.relison.sna.community.graph.CompleteCommunityGraphGenerator;
+import es.uam.eps.ir.relison.sna.community.graph.InterCommunityGraphGenerator;
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.graph.fast.FastDirectedWeightedGraph;
+import es.uam.eps.ir.relison.graph.fast.FastUndirectedWeightedGraph;
+import es.uam.eps.ir.relison.graph.multigraph.MultiGraph;
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.metrics.CommunityMetric;
 import es.uam.eps.ir.relison.sna.metrics.IndividualCommunityMetric;
 import es.uam.eps.ir.relison.sna.metrics.NodeAttributeMetric;
 import es.uam.eps.ir.relison.sna.metrics.IndividualNodeAttributeMetric;
+import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
+import es.uam.eps.ir.relison.sna.metrics.distance.CompleteDistanceCalculator;
+import es.uam.eps.ir.relison.sna.metrics.communities.indiv.IndividualCommunityGraphMetric;
 import es.uam.eps.ir.relison.sna.metrics.attributes.nodes.graph.CommunityBasedNodeAttributeMetric;
 import es.uam.eps.ir.relison.sna.metrics.attributes.nodes.indiv.CommunityBasedIndividualNodeAttributeMetric;
 import io.javalin.http.Context;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.function.Supplier;
 
 /**
@@ -35,6 +48,10 @@ import java.util.function.Supplier;
  */
 public class CommunityController
 {
+    static final List<String> GRAPH_LAYOUTS = List.of("circular", "fruchterman-reingold", "grid", "random", "spectral",
+            "stress-majorization", "kamada-kawai", "multilevel-force", "relison-forceatlas2", "concentric",
+            "spherical-3d", "fruchterman-reingold-3d", "grid-3d", "random-3d", "spectral-3d", "stress-majorization-3d",
+            "kamada-kawai-flat-3d", "multilevel-force-flat-3d", "relison-forceatlas2-flat-3d", "concentric-sphere-3d");
     private final GraphStore store;
     private final JobManager jobs;
     /** Temporary directory required by some detection algorithms (e.g. Infomap). */
@@ -44,6 +61,87 @@ public class CommunityController
     {
         this.store = store;
         this.jobs = jobs;
+    }
+
+    /** Community graph for a stored partition. Display aggregation never changes the source network. */
+    public void graph(Context ctx)
+    {
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        GraphSession session = requireSession(ctx, body);
+        if (session == null) return;
+        String attribute = attributeOf(body);
+        Communities<String> partition;
+        if (attribute != null)
+        {
+            if (session.getGraph().getNodeAttributeType(attribute) == null)
+            {
+                ctx.status(400).json(Map.of("error", "Unknown node attribute: " + attribute));
+                return;
+            }
+            partition = new AttributeCommunityDetector<String>(attribute).detectCommunities(session.getGraph());
+        }
+        else partition = session.getCommunities().get(String.valueOf(body.get("algorithm")));
+        if (partition == null)
+        {
+            ctx.status(400).json(Map.of("error", "Partition is no longer available. Run detection again."));
+            return;
+        }
+        try
+        {
+            ctx.json(communityGraph(session.getGraph(), partition, body));
+        }
+        catch (IllegalArgumentException e)
+        {
+            ctx.status(400).json(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** JSON contract kept independent of HTTP so generator semantics can be verified directly. */
+    static Map<String, Object> communityGraph(Graph<String> graph, Communities<String> partition, Map<?, ?> body)
+    {
+        graph.getAllNodes().forEach(node -> {
+            if (partition.getCommunity(node) < 0)
+                throw new IllegalArgumentException("Partition does not cover the current network. Run detection again.");
+        });
+        String mode = body.containsKey("mode") ? String.valueOf(body.get("mode")) : "weighted";
+        String layout = body.containsKey("layout") ? String.valueOf(body.get("layout")) : "circular";
+        if (!GRAPH_LAYOUTS.contains(layout))
+            throw new IllegalArgumentException("Unknown community graph layout: " + layout);
+        Graph<Integer> communityGraph;
+        if ("weighted".equals(mode))
+        {
+            SimpleCommunityGraphGenerator<String> generator = new SimpleCommunityGraphGenerator<>();
+            generator.configure(graph, partition, true);
+            try { communityGraph = generator.generate(); }
+            catch (Exception e) { throw new IllegalArgumentException("Community graph generation failed: " + e.getMessage(), e); }
+        }
+        else if ("complete".equals(mode)) communityGraph = new CompleteCommunityGraphGenerator<String>().generate(graph, partition);
+        else if ("inter".equals(mode)) communityGraph = new InterCommunityGraphGenerator<String>().generate(graph, partition);
+        else throw new IllegalArgumentException("Unknown community graph mode: " + mode);
+        if (communityGraph == null) throw new IllegalArgumentException("Community graph generation failed.");
+
+        Graph<String> display = graph.isDirected() ? new FastDirectedWeightedGraph<>() : new FastUndirectedWeightedGraph<>();
+        List<Map<String, Object>> nodes = new ArrayList<>();
+        List<Map<String, Object>> edges = new ArrayList<>();
+        partition.getCommunities().forEach(id -> {
+            display.addNode(Integer.toString(id));
+            nodes.add(Map.of("id", Integer.toString(id), "size", partition.getCommunitySize(id)));
+        });
+        final Graph<Integer> generated = communityGraph;
+        generated.getAllNodes().forEach(source -> generated.getAdjacentNodes(source).forEach(target -> {
+            if (!generated.isDirected() && source > target) return;
+            // A single visible link per pair; keep the exact RELISON generator's multiplicity as its value.
+            double value = generated instanceof MultiGraph
+                    ? ((MultiGraph<Integer>) generated).getNumEdges(source, target)
+                    : generated.getEdgeWeight(source, target);
+            if (!Double.isFinite(value)) throw new IllegalArgumentException("Community graph contains a non-finite connection weight.");
+            edges.add(Map.of("source", source.toString(), "target", target.toString(), "weight", value));
+            display.addEdge(source.toString(), target.toString(), Math.abs(value));
+        }));
+        Map<String, Object> positions = LayoutController.compute(display, Map.of("algorithm", layout,
+                "params", Map.of("iterations", 250, "seed", 42)));
+        return Map.of("nodes", nodes, "edges", edges, "directed", graph.isDirected(), "mode", mode,
+                "positions", positions.get("positions"));
     }
 
     /**
@@ -169,13 +267,35 @@ public class CommunityController
         if (session == null) return;
 
         String metricId = String.valueOf(body.get("metric"));
-        MetricCatalog.MetricDef def = CommunityCatalog.individualMetrics().get(metricId);
+        boolean intraCommunity = metricId.startsWith("intra-community:");
+        boolean intraAttribute = metricId.startsWith("intra-attribute:");
+        String graphMetricId = intraCommunity ? metricId.substring("intra-community:".length())
+                : intraAttribute ? metricId.substring("intra-attribute:".length()) : null;
+        MetricCatalog.MetricDef def = graphMetricId == null ? CommunityCatalog.individualMetrics().get(metricId)
+                : MetricCatalog.graphMetrics().get(graphMetricId);
         if (def == null) { ctx.status(400).json(Map.of("error", "Unknown individual community metric: " + metricId)); return; }
 
         Grid grid = Grids.build(def.params, MetricController.paramsOf(body));
-        IndividualCommunityMetricSelector<String> selector = new IndividualCommunityMetricSelector<>();
-        Map<String, Supplier<IndividualCommunityMetric<String>>> metrics = selector.getMetrics(metricId, grid);
-        if (metrics == null || metrics.isEmpty()) { ctx.status(400).json(Map.of("error", "Metric " + metricId + " could not be configured.")); return; }
+        IndividualCommunityMetric<String> metric;
+        if (graphMetricId == null)
+        {
+            IndividualCommunityMetricSelector<String> selector = new IndividualCommunityMetricSelector<>();
+            Map<String, Supplier<IndividualCommunityMetric<String>>> metrics = selector.getMetrics(metricId, grid);
+            if (metrics == null || metrics.isEmpty()) { ctx.status(400).json(Map.of("error", "Metric " + metricId + " could not be configured.")); return; }
+            metric = metrics.values().iterator().next().get();
+        }
+        else
+        {
+            GraphMetricSelector<String> selector = new GraphMetricSelector<>();
+            Map<String, Supplier<GraphMetric<String>>> metrics = selector.getMetrics(graphMetricId, grid,
+                    new CompleteDistanceCalculator<>());
+            if (metrics == null || metrics.isEmpty()) { ctx.status(400).json(Map.of("error", "Metric " + graphMetricId + " could not be configured.")); return; }
+            metric = new IndividualCommunityGraphMetric<>(() -> {
+                Map<String, Supplier<GraphMetric<String>>> perGroup = new GraphMetricSelector<String>()
+                        .getMetrics(graphMetricId, grid, new CompleteDistanceCalculator<>());
+                return perGroup.values().iterator().next().get();
+            });
+        }
 
         String attribute = attributeOf(body);
         String algorithm = attribute == null ? String.valueOf(body.get("algorithm")) : "Attribute: " + attribute;
@@ -185,7 +305,6 @@ public class CommunityController
 
         boolean withRec = MetricController.useRecommendation(body, session);
         Graph<String> graph = withRec ? session.getAugmentedGraph() : session.getGraph();
-        IndividualCommunityMetric<String> metric = metrics.values().iterator().next().get();
         Map<String, Double> out = new LinkedHashMap<>();
         Map<String, String> valueLabels = new LinkedHashMap<>();
         try
@@ -214,7 +333,8 @@ public class CommunityController
         double average = out.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("metric", metricId);
-        response.put("label", def.label + Grids.suffix(def.params, MetricController.paramsOf(body)));
+        String prefix = intraCommunity ? "Intra-community " : intraAttribute ? "Intra-Attribute " : "";
+        response.put("label", prefix + def.label + Grids.suffix(def.params, MetricController.paramsOf(body)));
         response.put("algorithm", algorithm);
         response.put("values", out);
         response.put("valueLabels", valueLabels);

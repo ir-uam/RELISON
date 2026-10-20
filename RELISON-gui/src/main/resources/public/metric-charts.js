@@ -293,8 +293,8 @@ function drawCommChart() {
         const sv = state.commMetricData[sortBy]?.values || values;
         comms.sort((a, b) => (sv[b] ?? 0) - (sv[a] ?? 0));
     }
-    const items = comms.map((c) => ({ label: "community " + c, value: values[c] ?? 0 }));
-    drawBarChart("comm-chart", "comm-chart-tip", items, metric, "communities", metric);
+    const items = comms.map((c) => ({ label: communityLabel(c, entry.algorithm), value: values[c] ?? 0 }));
+    drawBarChart("comm-chart", "comm-chart-tip", items, metric, "", communityMetricAxisTitle(entry, metric));
 }
 
 function drawAttributeCommChart() {
@@ -312,7 +312,20 @@ function drawAttributeCommChart() {
         ids.sort((a, b) => (compared[b] ?? 0) - (compared[a] ?? 0));
     }
     const items = ids.map((id) => ({ label: String(labels[id] ?? id), value: values[id] ?? 0 }));
-    drawBarChart("attrcomm-chart", "attrcomm-chart-tip", items, metric, "attribute values", metric);
+    drawBarChart("attrcomm-chart", "attrcomm-chart-tip", items, metric, "", communityMetricAxisTitle(entry, metric));
+}
+
+function communityMetricAxisTitle(entry, fullLabel) {
+    if (entry.axisLabel) return entry.axisLabel;
+    const families = ["communityIndividual", "intraCommunityIndividual", "intraAttributeIndividual"];
+    for (const family of families) {
+        const label = state.defs[family]?.[entry.metric]?.label;
+        if (label) return label;
+    }
+    const metricLabel = String(fullLabel).split(" · ")[0];
+    const catalogLabels = families.flatMap(family => Object.values(state.defs[family] || {}).map(def => def.label))
+        .filter(Boolean).sort((a, b) => b.length - a.length);
+    return catalogLabels.find(label => metricLabel === label || metricLabel.startsWith(label + " ")) || metricLabel;
 }
 function drawEdgeAttributeChart() {
     const metric = $("edgeattr-chart-metric").value;
@@ -381,7 +394,7 @@ function setupMetricBarControls() {
     });
 }
 
-function drawBarChart(canvasId, tipId, items, title, xLabel, yLabel) {
+function drawBarChart(canvasId, tipId, items, title, xLabel, yLabel, showAxisNames = true) {
     const view = metricBarView(canvasId, items);
     items = view.items;
     const horizontal = view.horizontal;
@@ -399,14 +412,14 @@ function drawBarChart(canvasId, tipId, items, title, xLabel, yLabel) {
         return item ? escapeChartHtml(xLabel || "x") + ": " + escapeChartHtml(item.label)
             + "<br>" + escapeChartHtml(yLabel || "value") + ": <b>" + escapeChartHtml(fmt(item.value)) + "</b>" : "";
     } };
-    const categoryAxis = { type: "category", name: xLabel, nameLocation: "middle", nameGap: horizontal ? categoryLabelWidth + 28 : 58,
+    const categoryAxis = { type: "category", name: showAxisNames ? xLabel : "", nameLocation: "middle", nameGap: horizontal ? categoryLabelWidth + 28 : 58,
         inverse: horizontal,
         nameTextStyle: { color: colors.text, fontSize: colors.fontSize + 1, fontWeight: 600 }, data: items.map((d) => String(d.label)),
         axisLabel: { color: colors.muted, fontSize: colors.labelSize, hideOverlap: true, interval: items.length > 40 ? "auto" : 0,
             rotate: !horizontal && items.length > 8 ? 28 : 0, width: categoryLabelWidth, overflow: horizontal ? "truncate" : undefined },
         axisLine: { lineStyle: { color: colors.border } }, axisTick: { show: false },
         splitLine: { show: false } };
-    const valueAxis = { type: "value", name: yLabel, nameLocation: "middle", nameGap: horizontal ? 40 : yLabel ? 58 : 44,
+    const valueAxis = { type: "value", name: showAxisNames ? yLabel : "", nameLocation: "middle", nameGap: horizontal ? 40 : yLabel ? 58 : 44,
         nameTextStyle: { color: colors.text, fontSize: colors.fontSize + 1, fontWeight: 600 },
         axisLabel: { color: colors.muted, fontSize: colors.labelSize, formatter: (v) => fmt(v) },
         axisLine: { show: true, lineStyle: { color: colors.border } }, axisTick: { show: true, inside: false, length: 6, lineStyle: { color: colors.border } },

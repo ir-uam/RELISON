@@ -60,7 +60,7 @@
             group.appendChild(element("text", { x: boxWidth - 10, y: 61, "text-anchor": "end" }, Number(data.max).toLocaleString()));
         } else {
             rows.forEach((entry, index) => {
-                const y = 34 + index * 20, label = String(entry.value);
+                const y = 34 + index * 20, label = String(entry.label ?? entry.value);
                 group.appendChild(element("rect", { x: 10, y: y - 1, width: 12, height: 12, fill: entry.color, stroke: "#94a3b8" }));
                 group.appendChild(element("text", { x: 30, y: y + 10 }, label.length > 26 ? label.slice(0, 25) + "…" : label));
             });

@@ -92,6 +92,7 @@
     <button class="tab active" data-tab="import">Import</button>
     <button class="tab" data-tab="network">Network</button>
     <button class="tab" data-tab="tables">Nodes &amp; Edges</button>
+    <button class="tab" data-tab="communities">Communities</button>
     <button class="tab" data-tab="metrics">Metrics</button>
     <button class="tab" data-tab="recommend" id="tab-recommend">Recommendation</button>
     <button class="tab" data-tab="diffusion" id="tab-diffusion">Diffusion</button>
@@ -499,7 +500,25 @@
 
         </div>
 
-        <!-- Metric / community controls: Metrics tab only (moved here from the old right column). -->
+        <div id="left-communities" hidden>
+        <section class="block">
+            <h2>Community detection</h2>
+            <select id="community-algo" aria-label="Community detection algorithm"></select>
+            <div class="params" id="community-params"></div>
+            <button id="btn-community" class="primary">Detect</button>
+            <p class="muted" id="community-result"></p>
+            <p class="muted">Detection and exploration use the whole loaded network. Compute community metrics in the Metrics tab.</p>
+        </section>
+        <section class="block community-partition-controls">
+            <h2>Partition</h2>
+            <select id="explorer-partition" aria-label="Community partition"></select>
+            <p id="explorer-summary" class="muted" aria-live="polite"></p>
+            <p id="explorer-partition-metrics" class="muted community-partition-metrics" hidden></p>
+            <button id="explorer-metrics">View in Metrics</button>
+        </section>
+        </div>
+
+        <!-- All metric computation stays on the Metrics tab. -->
         <div id="left-metrics" hidden>
         <section class="block">
             <h2>Vertex metrics</h2>
@@ -529,12 +548,7 @@
         </section>
 
         <section class="block">
-            <h2>Communities</h2>
-            <select id="community-algo"></select>
-            <div class="params" id="community-params"></div>
-            <button id="btn-community">Detect</button>
-            <p class="muted" id="community-result"></p>
-            <hr class="sep"/>
+            <h2>Community metrics</h2>
             <span class="sublabel">Global community metric</span>
             <label class="field">
                 <span>Partition</span>
@@ -904,7 +918,115 @@
 
         </div>
 
-        <!-- TAB 3: computed metrics -->
+        <div class="tabpane" id="pane-communities">
+            <p id="explorer-empty" class="community-empty">Detect communities using the controls on the left to explore their graph, members and metrics.</p>
+            <div id="explorer-content" hidden>
+                <nav class="community-view-tabs" aria-label="Community views">
+                    <button id="explorer-view-graph" class="active" aria-pressed="true">Graph</button>
+                    <button id="explorer-view-table" aria-pressed="false">Table</button>
+                </nav>
+                <div class="community-workspace" id="community-workspace">
+                    <div class="community-main">
+                        <div id="explorer-graph-view">
+                            <div id="community-graph-toolbar" class="toolbar" role="toolbar" aria-label="Community graph controls">
+                                <label class="renderer-picker"><span>Renderer</span><select id="explorer-renderer"><option value="cosmograph">Cosmograph</option><option value="sigma">Sigma</option></select></label>
+                                <label class="renderer-picker" id="explorer-dimensions-field"><span>Dimensions</span><select id="explorer-dimensions"><option value="2">2D</option><option value="3">3D</option></select></label>
+                                <label class="renderer-picker"><span>Graph</span><select id="explorer-mode"><option value="weighted">Aggregated weights</option><option value="complete">Complete community multigraph</option><option value="inter">Inter-community multigraph</option></select></label>
+                                <label class="renderer-picker"><span>Layout</span><select id="explorer-layout"></select></label>
+                                <button id="explorer-apply-layout">Apply layout</button>
+                                <label class="interaction-toggle"><input type="checkbox" id="explorer-loops"/> Show internal connections</label>
+                                <div class="graph-camera-tools" aria-label="Community graph camera">
+                                    <button id="explorer-zoom-in" class="canvas-btn" title="Zoom in" aria-label="Zoom in">+</button>
+                                    <button id="explorer-zoom-out" class="canvas-btn" title="Zoom out" aria-label="Zoom out">−</button>
+                                    <button id="explorer-fit" class="canvas-btn" title="Fit graph" aria-label="Fit graph">⤢</button>
+                                </div>
+                                <details class="network-export-menu">
+                                    <summary>Export</summary>
+                                    <div class="network-export-options">
+                                        <button id="explorer-export-png">Export community graph (PNG)</button>
+                                        <button id="explorer-export-svg">Export community graph (SVG)</button>
+                                    </div>
+                                </details>
+                            </div>
+                            <details class="community-appearance">
+                                <summary>Appearance</summary>
+                                <div class="community-appearance-grid">
+                                    <fieldset><legend>Nodes</legend>
+                                        <label>Minimum size <input id="community-node-min" type="number" min="0.1" max="200" step="0.1" value="4"/></label>
+                                        <label>Maximum size <input id="community-node-max" type="number" min="0.1" max="200" step="0.1" value="25"/></label>
+                                        <label>Scale values <select id="community-node-scale"><option value="proportional">Proportional to value</option><option value="percentile">Percentile rank</option></select></label>
+                                        <label><span>Node borders</span><input id="community-node-border-on" type="checkbox"/></label>
+                                        <label id="community-node-border-color-field" hidden>Border colour <input id="community-node-border-color" type="color" value="#1b1c1f"/></label>
+                                        <label id="community-node-border-width-field" hidden>Border width <input id="community-node-border-width" type="number" min="0" max="20" step="0.5" value="1"/></label>
+                                        <p class="muted">Sizes are radii in pixels, scaled by member count. Equal bounds give a uniform size.</p>
+                                    </fieldset>
+                                    <fieldset><legend>Labels</legend>
+                                        <label><span>Show node labels</span><input id="community-label-show" type="checkbox" checked/></label>
+                                        <label>Size <input id="community-label-size" type="number" min="1" max="100" step="1" value="12"/></label>
+                                        <label>Font <select id="community-label-font"></select></label>
+                                        <label><span>Proportional to node size</span><input id="community-label-prop" type="checkbox"/></label>
+                                        <label>Colour <select id="community-label-mode"><option value="default">Default</option><option value="single">Single colour</option><option value="node">Node colour</option></select></label>
+                                        <label id="community-label-color-field" hidden>Single colour <input id="community-label-color" type="color" value="#ffffff"/></label>
+                                        <hr class="sep"/>
+                                        <label><span>Show edge labels</span><input id="community-edge-label-show" type="checkbox"/></label>
+                                        <label>Size <input id="community-edge-label-size" type="number" min="1" max="100" step="1" value="9"/></label>
+                                        <label>Font <select id="community-edge-label-font"></select></label>
+                                        <label><span>Proportional to thickness</span><input id="community-edge-label-prop" type="checkbox"/></label>
+                                        <label>Colour <select id="community-edge-label-mode"><option value="default">Default</option><option value="single">Single colour</option><option value="edge">Edge colour</option></select></label>
+                                        <label id="community-edge-label-color-field" hidden>Single colour <input id="community-edge-label-color" type="color" value="#ffffff"/></label>
+                                    </fieldset>
+                                    <fieldset><legend>Edges</legend>
+                                        <label>Shape <select id="community-edge-shape"><option value="curved">Curved</option><option value="straight">Straight</option></select></label>
+                                        <label>Thickness <select id="community-edge-size-mode"><option value="weight">Scale by connection value</option><option value="uniform">Uniform</option></select></label>
+                                        <label id="community-edge-width-field" hidden>Width <input id="community-edge-width" type="number" min="0" max="50" step="0.1" value="2"/></label>
+                                        <label id="community-edge-min-field">Minimum width <input id="community-edge-min" type="number" min="0" max="50" step="0.1" value="0.5"/></label>
+                                        <label id="community-edge-max-field">Maximum width <input id="community-edge-max" type="number" min="0" max="50" step="0.1" value="5.5"/></label>
+                                        <label>Colour <select id="community-edge-color-mode"><option value="default">Default</option><option value="single">Single colour</option><option value="average">Average between communities</option><option value="source">Source community colour</option><option value="target">Target community colour</option></select></label>
+                                        <label id="community-edge-color-field" hidden>Single colour <input id="community-edge-color" type="color" value="#8c96a5"/></label>
+                                        <p class="muted">For undirected links, source and target follow the displayed endpoint order. Internal connections share these settings and remain loops in both shape modes.</p>
+                                    </fieldset>
+                                </div>
+                                <p id="community-appearance-status" class="muted" role="status"></p>
+                            </details>
+                            <p class="muted community-legend" id="explorer-legend"></p>
+                            <p class="muted" id="explorer-graph-status" role="status"></p>
+                            <div id="community-graph-stage"><div id="community-sigma"></div><svg id="community-loops" aria-hidden="true"></svg><svg id="community-foreground" aria-hidden="true"></svg></div>
+                            <p id="explorer-edge-info" class="muted" aria-live="polite">Select a community or connection to inspect it.</p>
+                        </div>
+                        <div id="explorer-table-view" hidden>
+                            <div class="toolbar">
+                                <label>Search communities <input id="explorer-search" type="search" placeholder="ID or label"/></label>
+                                <button id="explorer-export-table">Export CSV</button>
+                            </div>
+                            <div class="scroll-table"><table id="community-table" class="data" aria-label="Communities"></table></div>
+                            <div id="community-table-pager" class="pagination"></div>
+                            <p class="muted">Select a row to inspect its members. Run metrics in Metrics → Community metrics to add columns.</p>
+                        </div>
+                    </div>
+                    <aside id="community-inspector" hidden aria-label="Community inspector">
+                        <div class="toolbar"><h2 id="community-inspector-title">Community</h2><button id="explorer-close-inspector" aria-label="Close community inspector">×</button></div>
+                        <p id="community-inspector-identity" class="muted"></p>
+                        <label class="field"><span>Label</span><input id="community-label" maxlength="120"/></label>
+                        <button id="community-save-label">Save label</button>
+                        <div id="community-details-scroll" class="scroll-table">
+                            <table id="community-details" class="data" aria-label="Selected community metrics"></table>
+                        </div>
+                        <div class="toolbar community-actions"><button id="community-highlight">Highlight members in Network</button><button id="community-isolate">Show only members in Network</button></div>
+                        <h3>Members</h3>
+                        <label class="field"><span>Search members</span><input id="community-members-search" type="search" placeholder="Node ID or attribute value"/></label>
+                        <label class="field"><span>Additional member column</span><select id="community-member-column"></select></label>
+                        <button id="community-export-members">Export members CSV</button>
+                        <div class="scroll-table"><table id="community-members" class="data" aria-label="Community members"></table></div>
+                        <div id="community-members-pager" class="pagination"></div>
+                        <h3>Connections</h3>
+                        <p id="community-connections-note" class="muted"></p>
+                        <div class="scroll-table"><table id="community-connections" class="data" aria-label="Community connections"></table></div>
+                    </aside>
+                </div>
+            </div>
+        </div>
+
+        <!-- Computed metrics -->
         <div class="tabpane" id="pane-metrics">
             <nav id="subtabbar">
                 <button class="subtab active" data-subtab="global">Global</button>
@@ -1003,7 +1125,7 @@
                 <h2>Per-community metric averages</h2>
                 <div class="toolbar"><button id="btn-export-comm-averages">Export CSV</button></div>
                 <div class="scroll-table"><table class="data metric-summary-table" id="comm-averages-table" aria-label="Community metric averages"></table></div>
-                <p class="muted">Detect a partition, then run a per-community metric from the Communities panel.</p>
+                <p class="muted">Detect a partition in Communities, then run a per-community metric using the controls on this tab.</p>
                 <h2>Per-community metric distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="comm-chart-metric"></select></label>
@@ -1707,6 +1829,7 @@
 <script src="equal-earth-map.js"></script>
 <script src="network-view.js"></script>
 <script src="filter-builder.js"></script>
+<script src="community-explorer.js"></script>
 <script src="app.js"></script>
 <script type="module" src="cosmograph-spike.js"></script>
 <script type="module" src="sigma-edge-curve.js"></script>

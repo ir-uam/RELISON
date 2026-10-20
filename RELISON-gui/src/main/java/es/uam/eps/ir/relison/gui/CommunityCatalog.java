@@ -158,6 +158,32 @@ public final class CommunityCatalog
         return MetricCatalog.familyJson(INDIVIDUAL);
     }
 
+    /** Graph metrics exposed as per-community induced-subgraph metrics. */
+    public static List<Map<String, Object>> intraCommunityIndividualJson()
+    {
+        return intraGraphMetricsJson("intra-community:", "Intra-community ");
+    }
+
+    /** Graph metrics exposed as per-node-attribute-value induced-subgraph metrics. */
+    public static List<Map<String, Object>> intraAttributeIndividualJson()
+    {
+        return intraGraphMetricsJson("intra-attribute:", "Intra-Attribute ");
+    }
+
+    private static List<Map<String, Object>> intraGraphMetricsJson(String idPrefix, String labelPrefix)
+    {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (MetricCatalog.MetricDef graphMetric : MetricCatalog.graphMetrics().values())
+        {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("id", idPrefix + graphMetric.id);
+            entry.put("label", labelPrefix + graphMetric.label);
+            entry.put("params", MetricCatalog.paramsJson(graphMetric.params));
+            list.add(entry);
+        }
+        return list;
+    }
+
     /** Catalog payload for the global community metrics. */
     public static List<Map<String, Object>> globalJson()
     {

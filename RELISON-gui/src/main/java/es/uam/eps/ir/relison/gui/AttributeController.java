@@ -286,6 +286,59 @@ public class AttributeController
         ctx.json(Map.of("ok", true));
     }
 
+    /** Updates one node attribute value for a set of nodes as a single validated operation. */
+    public void setNodes(Context ctx)
+    {
+        GraphSession session = session(ctx);
+        if (session == null) return;
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        Graph<String> graph = session.getGraph();
+        String name = str(body.get("name"));
+        AttributeType type = name == null ? null : graph.getNodeAttributeType(name);
+        if (type == null)
+        {
+            ctx.status(400).json(Map.of("error", "Unknown node attribute: " + name));
+            return;
+        }
+        Object rawNodesValue = body.get("nodes");
+        if (!(rawNodesValue instanceof List<?>) || ((List<?>) rawNodesValue).isEmpty())
+        {
+            ctx.status(400).json(Map.of("error", "Expected a non-empty nodes list."));
+            return;
+        }
+        List<?> rawNodes = (List<?>) rawNodesValue;
+        try
+        {
+            Object value = coerce(type, body.get("value"));
+            java.util.Set<String> existingNodes = graph.getAllNodes().collect(Collectors.toSet());
+            java.util.Set<String> nodes = new java.util.LinkedHashSet<>();
+            for (Object rawNode : rawNodes)
+            {
+                String node = str(rawNode);
+                if (node == null || !existingNodes.contains(node))
+                {
+                    ctx.status(400).json(Map.of("error", "A selected node no longer exists."));
+                    return;
+                }
+                nodes.add(node);
+            }
+            for (String node : nodes)
+            {
+                if (!graph.setNodeAttribute(node, name, value))
+                {
+                    ctx.status(400).json(Map.of("error", "Could not set the attribute for node " + node + "."));
+                    return;
+                }
+            }
+        }
+        catch (IllegalArgumentException e)
+        {
+            ctx.status(400).json(Map.of("error", e.getMessage()));
+            return;
+        }
+        ctx.json(Map.of("ok", true));
+    }
+
     /**
      * Handles {@code POST /api/graph/{id}/attributes/edge}: sets an edge attribute value.
      * @param ctx the request context, with body {@code {source, target, name, value}}.
