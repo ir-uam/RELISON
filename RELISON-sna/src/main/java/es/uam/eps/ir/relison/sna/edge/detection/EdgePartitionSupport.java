@@ -1,6 +1,7 @@
 package es.uam.eps.ir.relison.sna.edge.detection;
 
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.graph.multigraph.MultiGraph;
 import es.uam.eps.ir.relison.sna.edge.Edge;
 
@@ -16,6 +17,15 @@ public final class EdgePartitionSupport
 
     public static <U> void forEachEdge(Graph<U> graph, Consumer<Edge<U>> consumer)
     {
+        ComputationMonitor monitor = ComputationMonitor.current();
+        monitor.progress("Processing edge partition membership", 0, graph.getEdgeCount(), "edges");
+        long[] done = {0};
+        Consumer<Edge<U>> tracked = monitor == ComputationMonitor.NONE ? consumer : edge -> {
+            monitor.checkCancelled(); consumer.accept(edge);
+            long count = ++done[0];
+            if (count == 1 || (count & 255) == 0 || count == graph.getEdgeCount())
+                monitor.progress("Processing edge partition membership", count, graph.getEdgeCount(), "edges");
+        };
         Set<Edge<U>> seen = graph.isDirected() ? null : new HashSet<>();
         if (graph instanceof MultiGraph<?>)
         {
@@ -29,7 +39,7 @@ public final class EdgePartitionSupport
                 {
                     Long id = index < ids.size() ? ids.get(index) : null;
                     Edge<U> edge = new Edge<>(source, target, index, id, graph.isDirected());
-                    if (seen == null || seen.add(edge)) consumer.accept(edge);
+                    if (seen == null || seen.add(edge)) tracked.accept(edge);
                 }
             }));
         }
@@ -38,7 +48,7 @@ public final class EdgePartitionSupport
             graph.getAllNodes().forEach(source -> graph.getAdjacentNodes(source).forEach(target ->
             {
                 Edge<U> edge = new Edge<>(source, target, graph.isDirected());
-                if (seen == null || seen.add(edge)) consumer.accept(edge);
+                if (seen == null || seen.add(edge)) tracked.accept(edge);
             }));
         }
     }

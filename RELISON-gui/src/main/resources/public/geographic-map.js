@@ -15,17 +15,17 @@
             new Promise((resolve, reject) => {
                 const css = document.createElement("link");
                 css.rel = "stylesheet";
-                css.href = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css";
+                css.href = "vendor/leaflet/leaflet.css";
                 css.onload = resolve;
-                css.onerror = () => { css.remove(); reject(new Error("Could not load the map stylesheet. Check your connection.")); };
+                css.onerror = () => { css.remove(); reject(new Error("Could not load the bundled map stylesheet.")); };
                 document.head.appendChild(css);
             }),
             new Promise((resolve, reject) => {
                 if (window.L) { resolve(); return; }
                 const script = document.createElement("script");
-                script.src = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js";
+                script.src = "vendor/leaflet/leaflet.js";
                 script.onload = resolve;
-                script.onerror = () => { script.remove(); reject(new Error("Could not load the map library. Check your connection.")); };
+                script.onerror = () => { script.remove(); reject(new Error("Could not load the bundled map library.")); };
                 document.head.appendChild(script);
             }),
         ]).then(() => { if (!window.L) throw new Error("The map library did not initialize."); ready = true; })
@@ -127,7 +127,11 @@
             window.L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 maxZoom: 19, crossOrigin: "anonymous", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             }).on("tileerror", () => {
-                if (!tileErrorShown) { tileErrorShown = true; options?.onError("Background map tiles could not load. Check your internet connection; geographic nodes remain available."); }
+                if (!tileErrorShown) {
+                    tileErrorShown = true;
+                    if (options?.onTileError) options.onTileError();
+                    else options?.onError("Background map tiles could not load; select the offline Earth map in Settings.");
+                }
             }).addTo(map);
             layers = window.L.layerGroup().addTo(map);
             map.on("click", () => options?.onClearSelection());

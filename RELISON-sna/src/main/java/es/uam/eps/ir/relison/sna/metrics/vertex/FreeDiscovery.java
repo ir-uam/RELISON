@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.vertex;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
@@ -49,7 +51,7 @@ public class FreeDiscovery<U> implements VertexMetric<U>
     @Override
     public Map<U, Double> compute(Graph<U> graph)
     {
-        Map<U, Double> values = new HashMap<>();
+        Map<U, Double> values = ComputationMonitor.current().track(new HashMap<>(), "Computing node values", graph.getVertexCount(), "nodes");
         Map<U, Double> sizes = new HashMap<>();
         double value = graph.getAllNodes().mapToDouble(u ->
         {

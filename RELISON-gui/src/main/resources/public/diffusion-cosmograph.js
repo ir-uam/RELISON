@@ -1,4 +1,4 @@
-import { Cosmograph } from "https://esm.sh/@cosmograph/cosmograph@2.5.1?bundle";
+import { Cosmograph } from "./vendor/esm/cosmograph.js";
 
 const rgb = (hex) => {
     const value = String(hex || "#888888").replace("#", "");

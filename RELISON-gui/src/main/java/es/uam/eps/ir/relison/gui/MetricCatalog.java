@@ -137,6 +137,9 @@ public final class MetricCatalog
         result.put("intraCommunityIndividual", CommunityCatalog.intraCommunityIndividualJson());
         result.put("intraAttributeIndividual", CommunityCatalog.intraAttributeIndividualJson());
         result.put("communityGlobal", CommunityCatalog.globalJson());
+        result.put("edgePartitionGlobal", familyJson(EdgePartitionMetricCatalog.globalMetrics()));
+        result.put("edgePartitionIndividual", familyJson(EdgePartitionMetricCatalog.individualMetrics()));
+        result.put("intraEdgePartitionIndividual", EdgePartitionMetricCatalog.intraJson());
         return result;
     }
 

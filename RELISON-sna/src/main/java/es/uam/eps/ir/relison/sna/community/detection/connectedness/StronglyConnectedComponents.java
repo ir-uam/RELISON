@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.connectedness;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.graph.Graph;
@@ -36,9 +38,11 @@ public class StronglyConnectedComponents<U> implements CommunityDetectionAlgorit
         int i = 0;
         for (Collection<U> cc : scc)
         {
+            ComputationMonitor.current().checkCancelled();
             comm.addCommunity();
             for (U u : cc)
             {
+                ComputationMonitor.current().checkCancelled();
                 comm.add(u, i);
             }
             ++i;
@@ -74,6 +78,7 @@ public class StronglyConnectedComponents<U> implements CommunityDetectionAlgorit
         discovered = new HashSet<>();
         for (U u : vertices)
         {
+            ComputationMonitor.current().checkCancelled();
             if (!discovered.contains(u))
             {
                 Collection<U> component = new HashSet<>()
@@ -101,6 +106,7 @@ public class StronglyConnectedComponents<U> implements CommunityDetectionAlgorit
      */
     private void visit(U u, Graph<U> g, Set<U> discovered, Map<U, Integer> processed)
     {
+        ComputationMonitor.current().checkCancelled();
         discovered.add(u);
         g.getAdjacentNodes(u).forEach(v -> {
             if (!discovered.contains(v))
@@ -125,6 +131,7 @@ public class StronglyConnectedComponents<U> implements CommunityDetectionAlgorit
      */
     private void transposedVisit(U u, Graph<U> g, Set<U> discovered, Collection<U> component)
     {
+        ComputationMonitor.current().checkCancelled();
         component.add(u);
         discovered.add(u);
         g.getIncidentNodes(u).forEach(v -> {

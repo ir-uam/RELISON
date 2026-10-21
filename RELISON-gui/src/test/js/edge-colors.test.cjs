@@ -20,6 +20,10 @@ function setup(dimensions = 2) {
     const graph = { type: "directed", nodes: () => [...nodes.keys()], edges: () => [...edges.keys()],
         source: id => edges.get(id).source, target: id => edges.get(id).target,
         getNodeAttribute: (id, key) => nodes.get(id)[key], getNodeAttributes: id => nodes.get(id),
+        setNodeAttribute: (id, key, value) => { nodes.get(id)[key] = value; },
+        forEachNode: callback => nodes.forEach((attrs, id) => callback(id, attrs)),
+        forEachEdge: callback => edges.forEach((attrs, id) => callback(id, attrs, attrs.source, attrs.target)),
+        getEdgeAttribute: (id, key) => edges.get(id)[key],
         getEdgeAttributes: id => edges.get(id), setEdgeAttribute: (id, key, value) => { edges.get(id)[key] = value; } };
     const controls = { "edge-size-by": { value: "" }, "edge-color-mode": { value: "endpoints" },
         "edge-color-single": { value: "#123456" }, "edge-color-by": { value: "" } };
@@ -27,7 +31,7 @@ function setup(dimensions = 2) {
     const window = { relisonNetworkViewSnapshot: { dimColor: "#444444", nodeVerdicts: new Map([["a", "normal"], ["b", "normal"]]),
         edgeVerdicts: new Map([...edges.keys()].map(id => [id, "normal"])) } };
     const pointPositions = new Map([...nodes.keys()].map((id, index) => [id, { x: index + 10, y: index + 20, z: index + 30 }]));
-    const context = vm.createContext({ state: { graph, pairData: {} }, graph, window, spaceDimensions: dimensions,
+    const context = vm.createContext({ state: { graph, pairData: {}, catColors: {} }, graph, window, spaceDimensions: dimensions,
         spatialPositions: () => pointPositions,
         $: id => controls[id], numInput: () => 1, edgeAttrDefs: () => [], edgeAttrVal: () => undefined,
         linkStyleColumnRevision: 0,
@@ -35,11 +39,43 @@ function setup(dimensions = 2) {
             uploads.push({ config, points, links });
             return { points, links, cosmographConfig: { linkColorBy: config.links.linkColorBy } };
         } });
-    vm.runInContext(["applyEdgeAppearance", "averageColor", "colorToRgb", "hslToRgb"].map(name => extract(source, name)).join("\n") +
+    vm.runInContext(["applyEdgeAppearance", "averageColor", "colorNodesByEdges", "toHexColor", "networkLegendData", "scopedNetworkLegend", "colorToRgb", "hslToRgb"].map(name => extract(source, name)).join("\n") +
         "\n" + ["projectGraph", "prepareGraph"].map(name => extract(cosmograph, name)).join("\n"), context);
     return { nodes, edges, controls, uploads, window, context,
-        handlers: vm.runInContext("({applyEdgeAppearance,averageColor,colorToRgb,prepareGraph})", context) };
+        handlers: vm.runInContext("({applyEdgeAppearance,averageColor,colorNodesByEdges,networkLegendData,colorToRgb,prepareGraph})", context) };
 }
+
+test("incident edge averages include incoming and parallel edges, count loops once and keep isolated nodes visible", () => {
+    const h = setup();
+    h.nodes.set("isolated", { color: "#000000", size: 4 });
+    h.edges.get("ab").color = "#ff0000";
+    h.edges.get("parallel").color = "#0000ff";
+    h.edges.get("loop").color = "#00ff00";
+    h.handlers.colorNodesByEdges();
+    assert.equal(h.nodes.get("a").color, "#555555");
+    assert.equal(h.nodes.get("b").color, "#800080");
+    assert.equal(h.nodes.get("isolated").color, "#4f9dff");
+    h.edges.get("parallel").color = "#00ff00";
+    h.handlers.colorNodesByEdges();
+    assert.equal(h.nodes.get("a").color, "#55aa00");
+    assert.equal(h.nodes.get("b").color, "#808000");
+});
+
+test("node and edge legend visibility independently controls export legends", () => {
+    const h = setup();
+    h.context.state.colorLegend = { type: "numeric", title: "Node metric", low: "#000000", high: "#ffffff", min: 0, max: 1 };
+    h.context.state.edgeColorLegend = { type: "categorical", title: "Edge groups", entries: [] };
+    h.controls["network-node-legend"] = { checked: true };
+    h.controls["network-edge-legend"] = { checked: false };
+    assert.equal(h.handlers.networkLegendData().scope, "Nodes");
+    h.controls["network-node-legend"].checked = false;
+    h.controls["network-edge-legend"].checked = true;
+    assert.equal(h.handlers.networkLegendData().scope, "Edges");
+    h.controls["network-node-legend"].checked = true;
+    assert.equal(h.handlers.networkLegendData().legends.length, 2);
+    h.controls["network-node-legend"].checked = h.controls["network-edge-legend"].checked = false;
+    assert.equal(h.handlers.networkLegendData(), null);
+});
 
 test("endpoint averages accept imported RGBA and alpha hex colours without a grey fallback", () => {
     const { handlers } = setup();

@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.vertex;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
 
@@ -102,7 +104,7 @@ public class PageRank<U> implements VertexMetric<U>
         for (U v : users)
         {
             int index = ids.get(v);
-            Map<U, Double> inWeights = new HashMap<>();
+            Map<U, Double> inWeights = ComputationMonitor.current().track(new HashMap<>(), "Computing node values", graph.getVertexCount(), "nodes");
             double outSum = 0.0;
 
             Set<U> inUsers = graph.getIncidentNodes(v).collect(Collectors.toCollection(HashSet::new));
@@ -129,6 +131,8 @@ public class PageRank<U> implements VertexMetric<U>
         boolean hasConverged = false;
         for (int i = 0; i < MAXITER && !hasConverged; i++)
         {
+            ComputationMonitor.current().checkCancelled();
+            ComputationMonitor.current().progress("Computing centrality", i, -1, "iterations");
             if (this.u == null || !ids.containsKey(this.u))
             {
                 for (int w = 0; w < N; w++)

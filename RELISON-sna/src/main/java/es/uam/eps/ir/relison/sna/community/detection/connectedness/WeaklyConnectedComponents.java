@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.connectedness;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.graph.Graph;
@@ -36,9 +38,11 @@ public class WeaklyConnectedComponents<U> implements CommunityDetectionAlgorithm
         int i = 0;
         for (Collection<U> cc : scc)
         {
+            ComputationMonitor.current().checkCancelled();
             comm.addCommunity();
             for (U u : cc)
             {
+                ComputationMonitor.current().checkCancelled();
                 comm.add(u, i);
             }
             ++i;
@@ -88,6 +92,7 @@ public class WeaklyConnectedComponents<U> implements CommunityDetectionAlgorithm
      */
     private void visit(U u, Graph<U> g, Set<U> discovered, Collection<U> component)
     {
+        ComputationMonitor.current().checkCancelled();
         component.add(u);
         discovered.add(u);
         g.getNeighbourNodes(u).forEach(v ->

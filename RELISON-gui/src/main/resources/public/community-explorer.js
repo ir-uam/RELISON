@@ -331,7 +331,8 @@ function renderCommunityTable() {
     table.innerHTML = "<thead><tr><th>Colour</th>" + columns.map(col => '<th aria-sort="' + (col.key === e.sort ? e.descending ? "descending" : "ascending" : "none")
         + '"><button type="button" data-community-sort="' + esc(col.key) + '">' + esc(col.label) + (col.key === e.sort ? e.descending ? " ▼" : " ▲" : "") + "</button></th>").join("") + "</tr></thead><tbody>"
         + rows.slice(e.page * COMMUNITY_PAGE_SIZE, (e.page + 1) * COMMUNITY_PAGE_SIZE).map(row => '<tr class="' + (e.selected[e.partition] === row.id ? "community-selected" : "")
-            + '"><td><span class="community-swatch" style="background:' + colors[row.id] + '"></span></td>' + columns.map(col => {
+            + '"><td><input type="color" class="partition-color-input" data-community-color="' + esc(row.id)
+                + '" value="' + toHexColor(colors[row.id]) + '" aria-label="Colour for ' + esc(row.label) + '"></td>' + columns.map(col => {
                 const value = communityValue(row, col.key);
                 return "<td>" + (col.key === "id" ? '<button data-community-id="' + esc(row.id) + '">' + esc(row.id) + "</button>"
                     : col.key === "label" ? '<button data-community-id="' + esc(row.id) + '">' + esc(row.label) + "</button>"
@@ -340,6 +341,8 @@ function renderCommunityTable() {
                     : esc(value == null ? "—" : typeof value === "number" ? fmt(value) : String(value))) + "</td>";
             }).join("") + "</tr>").join("") + (rows.length ? "" : '<tr><td colspan="' + (columns.length + 1) + '">No matching communities.</td></tr>') + "</tbody>";
     table.querySelectorAll("[data-community-id]").forEach(button => button.onclick = () => selectCommunity(button.dataset.communityId));
+    table.querySelectorAll("[data-community-color]").forEach(input => input.oninput = () =>
+        setCategoricalColor("community:" + e.partition, input.dataset.communityColor, input.value));
     table.querySelectorAll("[data-community-sort]").forEach(button => button.onclick = () => {
         e.descending = e.sort === button.dataset.communitySort ? !e.descending : false;
         e.sort = button.dataset.communitySort; e.page = 0; renderCommunityTable();

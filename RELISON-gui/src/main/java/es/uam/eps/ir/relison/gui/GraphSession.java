@@ -12,6 +12,7 @@ import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.generator.GraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.GraphCloneGenerator;
 import es.uam.eps.ir.relison.sna.community.Communities;
+import es.uam.eps.ir.relison.sna.edge.EdgePartition;
 import es.uam.eps.ir.relison.sna.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Holds a single loaded network together with the auxiliary structures the GUI computes over it
@@ -49,6 +51,13 @@ public class GraphSession
     private DistanceCalculator<String> distanceCalculator;
     /** Community partitions detected during the session, keyed by a user-facing name. */
     private final Map<String, Communities<String>> communities = new HashMap<>();
+    /** Edge partitions retained for metric computation during the loaded-graph session. */
+    private final Map<String, EdgePartition<String>> edgePartitions = new ConcurrentHashMap<>();
+
+    public Map<String, EdgePartition<String>> getEdgePartitions()
+    {
+        return edgePartitions;
+    }
 
     /** Recommendations/predictions computed during the session, keyed by their model signature. */
     private final Map<String, RecommendationResult> recommendations = new LinkedHashMap<>();
@@ -282,6 +291,7 @@ public class GraphSession
     {
         this.distanceCalculator = null;
         this.communities.clear();
+        this.edgePartitions.clear();
         this.recommendations.clear();
         this.activeRecommendation = null;
         this.augmentedGraph = null;

@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.pair;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.sna.metrics.PairMetric;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
@@ -52,7 +54,7 @@ public abstract class AbstractPairMetric<U> implements PairMetric<U>
     @Override
     public Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph)
     {
-        Map<Pair<U>, Double> values = new HashMap<>();
+        Map<Pair<U>, Double> values = ComputationMonitor.current().track(new HashMap<>(), "Computing edge values", ComputationMonitor.current() == ComputationMonitor.NONE ? -1 : graph.isMultigraph() ? 0 : graph.getAllNodes().mapToLong(source -> graph.getAdjacentNodes(source).filter(target -> !source.equals(target)).count()).sum(), "endpoint pairs");
         if (!graph.isMultigraph())
         {
             graph.getAllNodes().forEach((orig) -> graph.getAdjacentNodes(orig).forEach(dest ->

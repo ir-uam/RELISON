@@ -43,6 +43,8 @@ public class IndividualCommunityMetricSelector<U>
             case COMMSIZE -> new CommSizeGridSearch<>();
             case COMMDEGREE -> new CommDegreeGridSearch<>();
             case VOLUME -> new VolumeGridSearch<>();
+            case BOUNDARYNODES, BOUNDARYNODERATIO, NEIGHBORINGCOMMUNITIES, INTERNALVOLUMEFRACTION, CONDUCTANCE, EDGEEXPANSION, MODULARITYCONTRIBUTION
+                    -> new CommunityBoundaryMetricGridSearch<>(metric);
             default -> null;
         };
     }

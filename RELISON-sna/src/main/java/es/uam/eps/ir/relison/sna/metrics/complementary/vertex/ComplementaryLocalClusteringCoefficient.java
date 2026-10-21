@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.complementary.vertex;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
@@ -133,7 +135,7 @@ public class ComplementaryLocalClusteringCoefficient<U> implements VertexMetric<
             this.initialize(graph);
         }
 
-        Map<U, Double> result = new HashMap<>();
+        Map<U, Double> result = ComputationMonitor.current().track(new HashMap<>(), "Computing node values", graph.getVertexCount(), "nodes");
         graph.getAllNodes().forEach(u -> result.put(u, this.compute(graph, u)));
         return result;
     }

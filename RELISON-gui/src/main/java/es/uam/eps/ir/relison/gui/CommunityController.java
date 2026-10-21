@@ -15,6 +15,8 @@ import es.uam.eps.ir.relison.grid.sna.comm.indiv.IndividualCommunityMetricSelect
 import es.uam.eps.ir.relison.grid.sna.graph.GraphMetricSelector;
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.community.detection.attributes.AttributeCommunityDetector;
+import es.uam.eps.ir.relison.sna.community.detection.attributes.NumericAttributeCommunityDetector;
+import es.uam.eps.ir.relison.sna.community.detection.attributes.AttributePartition;
 import es.uam.eps.ir.relison.sna.community.graph.SimpleCommunityGraphGenerator;
 import es.uam.eps.ir.relison.sna.community.graph.CompleteCommunityGraphGenerator;
 import es.uam.eps.ir.relison.sna.community.graph.InterCommunityGraphGenerator;
@@ -192,9 +194,10 @@ public class CommunityController
             return;
         }
 
+        if (communities == null) { ctx.status(500).json(Map.of("error", "Community detection returned no partition.")); return; }
+
         // Key by algorithm + parameters so the same algorithm with different parameters yields distinct partitions.
         String key = def.label + Grids.suffix(def.params, MetricController.paramsOf(body));
-        session.getCommunities().put(key, communities);
 
         Map<String, Integer> assignment = new LinkedHashMap<>();
         session.getGraph().getAllNodes().forEach(node ->
@@ -206,6 +209,57 @@ public class CommunityController
         response.put("numCommunities", communities.getNumCommunities());
         response.put("values", assignment);
         ctx.json(response);
+        JobManager.publish(() -> session.getCommunities().put(key, communities));
+    }
+
+    /** Detects node communities by fixed-width bins over a numeric node attribute. */
+    public void detectAttributeBins(Context ctx)
+    {
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        GraphSession session = requireSession(ctx, body);
+        if (session == null) return;
+        Object rawAttribute = body.get("attribute"), rawWidth = body.get("binWidth");
+        if (rawAttribute == null || rawAttribute.toString().trim().isEmpty() || rawWidth == null)
+        {
+            ctx.status(400).json(Map.of("error", "Choose a numeric node attribute and bin width."));
+            return;
+        }
+        String attribute = rawAttribute.toString();
+        double binWidth;
+        try { binWidth = Double.parseDouble(rawWidth.toString()); }
+        catch (NumberFormatException e) { ctx.status(400).json(Map.of("error", "Bin width must be numeric.")); return; }
+
+        NumericAttributeCommunityDetector<String> detector;
+        try { detector = new NumericAttributeCommunityDetector<>(attribute, binWidth); }
+        catch (IllegalArgumentException e) { ctx.status(400).json(Map.of("error", e.getMessage())); return; }
+        AttributePartition<String, Object> attributePartition;
+        try
+        {
+            attributePartition = jobs.run(MetricController.jobKey(body, "community"),
+                    () -> detector.detectAttributePartition(session.getGraph()));
+        }
+        catch (JobCancelledException e) { ctx.json(Map.of("cancelled", true)); return; }
+        catch (IllegalArgumentException e) { ctx.status(400).json(Map.of("error", e.getMessage())); return; }
+        catch (Exception e) { ctx.status(500).json(Map.of("error", "Numeric attribute partition failed: " + e.getMessage())); return; }
+
+        Communities<String> communities = attributePartition.getCommunities();
+        String key = "Attribute bins: " + attribute + " (width " + binWidth + ")";
+        session.getCommunities().put(key, communities);
+        Map<String, Integer> assignment = new LinkedHashMap<>();
+        session.getGraph().getAllNodes().forEach(node -> assignment.put(node, communities.getCommunity(node)));
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("algorithm", key);
+        response.put("label", key);
+        response.put("numCommunities", communities.getNumCommunities());
+        response.put("values", assignment);
+        response.put("attribute", attribute);
+        response.put("binWidth", binWidth);
+        Map<Integer, String> communityLabels = new LinkedHashMap<>();
+        attributePartition.getMapping().forEach((id, value) -> communityLabels.put(id,
+                value == null ? "Unknown" : String.valueOf(value)));
+        response.put("communityLabels", communityLabels);
+        ctx.json(response);
+        JobManager.publish(() -> session.getCommunities().put(key, communities));
     }
 
     /**
@@ -275,27 +329,31 @@ public class CommunityController
                 : MetricCatalog.graphMetrics().get(graphMetricId);
         if (def == null) { ctx.status(400).json(Map.of("error", "Unknown individual community metric: " + metricId)); return; }
 
-        Grid grid = Grids.build(def.params, MetricController.paramsOf(body));
         IndividualCommunityMetric<String> metric;
-        if (graphMetricId == null)
+        try
         {
-            IndividualCommunityMetricSelector<String> selector = new IndividualCommunityMetricSelector<>();
-            Map<String, Supplier<IndividualCommunityMetric<String>>> metrics = selector.getMetrics(metricId, grid);
-            if (metrics == null || metrics.isEmpty()) { ctx.status(400).json(Map.of("error", "Metric " + metricId + " could not be configured.")); return; }
-            metric = metrics.values().iterator().next().get();
+            Grid grid = Grids.build(def.params, MetricController.paramsOf(body));
+            if (graphMetricId == null)
+            {
+                IndividualCommunityMetricSelector<String> selector = new IndividualCommunityMetricSelector<>();
+                Map<String, Supplier<IndividualCommunityMetric<String>>> metrics = selector.getMetrics(metricId, grid);
+                if (metrics == null || metrics.isEmpty()) { ctx.status(400).json(Map.of("error", "Metric " + metricId + " could not be configured.")); return; }
+                metric = metrics.values().iterator().next().get();
+            }
+            else
+            {
+                GraphMetricSelector<String> selector = new GraphMetricSelector<>();
+                Map<String, Supplier<GraphMetric<String>>> metrics = selector.getMetrics(graphMetricId, grid,
+                        new CompleteDistanceCalculator<>());
+                if (metrics == null || metrics.isEmpty()) { ctx.status(400).json(Map.of("error", "Metric " + graphMetricId + " could not be configured.")); return; }
+                metric = new IndividualCommunityGraphMetric<>(() -> {
+                    Map<String, Supplier<GraphMetric<String>>> perGroup = new GraphMetricSelector<String>()
+                            .getMetrics(graphMetricId, grid, new CompleteDistanceCalculator<>());
+                    return perGroup.values().iterator().next().get();
+                });
+            }
         }
-        else
-        {
-            GraphMetricSelector<String> selector = new GraphMetricSelector<>();
-            Map<String, Supplier<GraphMetric<String>>> metrics = selector.getMetrics(graphMetricId, grid,
-                    new CompleteDistanceCalculator<>());
-            if (metrics == null || metrics.isEmpty()) { ctx.status(400).json(Map.of("error", "Metric " + graphMetricId + " could not be configured.")); return; }
-            metric = new IndividualCommunityGraphMetric<>(() -> {
-                Map<String, Supplier<GraphMetric<String>>> perGroup = new GraphMetricSelector<String>()
-                        .getMetrics(graphMetricId, grid, new CompleteDistanceCalculator<>());
-                return perGroup.values().iterator().next().get();
-            });
-        }
+        catch (IllegalArgumentException e) { ctx.status(400).json(Map.of("error", e.getMessage())); return; }
 
         String attribute = attributeOf(body);
         String algorithm = attribute == null ? String.valueOf(body.get("algorithm")) : "Attribute: " + attribute;
@@ -328,9 +386,14 @@ public class CommunityController
             }
         }
         catch (JobCancelledException e) { ctx.json(Map.of("cancelled", true)); return; }
+        catch (IllegalArgumentException e) { ctx.status(400).json(Map.of("error", e.getMessage())); return; }
         catch (Exception e) { ctx.status(500).json(Map.of("error", String.valueOf(e))); return; }
 
-        double average = out.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        double average = out.values().stream().mapToDouble(Double::doubleValue)
+                .filter(Double::isFinite).average().orElse(Double.NaN);
+        // Undefined boundary ratios are JSON nulls, not strings such as "NaN".
+        // The frontend preserves them as missing values and excludes them from averages.
+        out.replaceAll((id, value) -> Double.isFinite(value) ? value : null);
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("metric", metricId);
         String prefix = intraCommunity ? "Intra-community " : intraAttribute ? "Intra-Attribute " : "";
@@ -338,7 +401,7 @@ public class CommunityController
         response.put("algorithm", algorithm);
         response.put("values", out);
         response.put("valueLabels", valueLabels);
-        response.put("average", average);
+        response.put("average", Double.isFinite(average) ? average : null);
         response.put("recommendation", withRec ? session.getActiveRecommendationKey() : null);
         ctx.json(response);
     }

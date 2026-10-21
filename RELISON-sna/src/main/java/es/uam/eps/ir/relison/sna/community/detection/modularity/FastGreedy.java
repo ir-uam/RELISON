@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.modularity;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.community.graph.CompleteCommunityGraphGenerator;
 import es.uam.eps.ir.relison.graph.Graph;
@@ -55,6 +57,7 @@ public class FastGreedy<U> extends AbstractFastGreedy<U>
         Pair<Integer> maxPair = null;
         for (int i = 0; i < numComm && graph.getEdgeCount() > 0; ++i)
         {
+            ComputationMonitor.current().checkCancelled();
             double edgesFromI = commGraph.getAdjacentEdgesCount(i) / (graph.getEdgeCount() + 0.0);
             edgesFromComm.put(i, edgesFromI);
             double edgesToI = commGraph.getIncidentEdgesCount(i) / (graph.getEdgeCount() + 0.0);
@@ -62,6 +65,7 @@ public class FastGreedy<U> extends AbstractFastGreedy<U>
 
             for (int j = 0; j < i; ++j)
             {
+                ComputationMonitor.current().checkCancelled();
                 double edgesFromJ = edgesFromComm.get(j);
                 double edgesToJ = edgesToComm.get(j);
                 double edgesIJ = 0.0;
@@ -92,6 +96,7 @@ public class FastGreedy<U> extends AbstractFastGreedy<U>
             int second = first;
             while (second == first)
             {
+                ComputationMonitor.current().checkCancelled();
                 second = rng.nextInt(numComm);
             }
             maxPair = new Pair<>(first, second);

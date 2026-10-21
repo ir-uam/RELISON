@@ -1,4 +1,4 @@
-import EdgeCurveProgram, { EdgeCurvedArrowProgram } from "https://esm.sh/@sigma/edge-curve@3.1.0?bundle";
+import EdgeCurveProgram, { EdgeCurvedArrowProgram } from "./vendor/esm/sigma-edge-curve.js";
 
 window.relisonSigmaEdgePrograms = {
     curve: EdgeCurveProgram,

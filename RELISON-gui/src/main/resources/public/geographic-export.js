@@ -37,36 +37,72 @@
             save(png, filename); return true;
         } finally { URL.revokeObjectURL(url); }
     }
-    function legend(svg, width, height, data) {
-        if (!data || data.type === "none") return;
-        const boxWidth = Math.min(230, width - 24);
-        if (boxWidth < 60 || height < 100) return;
+    function legend(svg, width, height, data, placement = null) {
+        if (!data || data.type === "none") return 0;
+        if (data.type === "group") {
+            const legends = data.legends.filter(item => item && item.type !== "none").slice(0, 2);
+            let top = 12;
+            legends.forEach((item, index) => {
+                const remaining = legends.length - index;
+                const available = (height - top - 12 - (remaining - 1) * 12) / remaining;
+                top += legend(svg, width, available + 24, item, { top, id: String(index) }) + 12;
+            });
+            return top - 12;
+        }
+        const boxWidth = Math.min(230, placement?.width ?? width - 24);
+        if (boxWidth < 60 || height < 100) return 0;
         const entries = [...(data.entries || [])];
         if (data.hasMissing) entries.push({ value: "(none)", color: "#888888" });
         const maxRows = Math.max(1, Math.floor((height - 100) / 20));
         const rows = entries.slice(0, maxRows), omitted = entries.length - rows.length;
-        const boxHeight = data.type === "numeric" ? 72 : 34 + rows.length * 20 + (omitted ? 20 : 0);
-        const group = element("g", { transform: "translate(12 12)", "font-family": "sans-serif", "font-size": 12, fill: "#0f172a" });
+        const description = [];
+        if (data.type === "text") {
+            let line = "";
+            for (const word of String(data.description || "").split(/\s+/)) {
+                if (line && (line + " " + word).length > Math.max(10, Math.floor((boxWidth - 20) / 7))) { description.push(line); line = ""; }
+                line += (line ? " " : "") + word;
+            }
+            if (line) description.push(line);
+            const limit = Math.max(1, Math.floor((height - 58) / 16));
+            if (description.length > limit) {
+                description.length = limit;
+                description[limit - 1] += "…";
+            }
+        }
+        const boxHeight = data.type === "numeric" ? 72 + (data.hasMissing ? 20 : 0)
+            : data.type === "text" ? 34 + description.length * 16 : 34 + rows.length * 20 + (omitted ? 20 : 0);
+        const group = element("g", { transform: `translate(12 ${placement?.top ?? 12})`, "font-family": "sans-serif", "font-size": 12, fill: "#0f172a" });
         group.appendChild(element("rect", { width: boxWidth, height: boxHeight, rx: 5, fill: "white", opacity: .95, stroke: "#94a3b8" }));
         const title = String(data.title || "Node colour");
-        group.appendChild(element("text", { x: 10, y: 21 }, title.length > 30 ? title.slice(0, 29) + "…" : title));
-        if (data.type === "numeric") {
-            const defs = element("defs"), gradient = element("linearGradient", { id: "geographic-legend-gradient" });
+        const titleLimit = Math.max(5, Math.floor((boxWidth - 20) / 7));
+        group.appendChild(element("text", { x: 10, y: 21 }, title.length > titleLimit ? title.slice(0, titleLimit - 1) + "…" : title));
+        if (data.type === "text") {
+            description.forEach((line, index) => group.appendChild(element("text", { x: 10, y: 40 + index * 16 }, line)));
+        } else if (data.type === "numeric") {
+            const gradientId = "geographic-legend-gradient" + (placement ? "-" + placement.id : "");
+            const defs = element("defs"), gradient = element("linearGradient", { id: gradientId });
             gradient.appendChild(element("stop", { offset: "0%", "stop-color": data.low }));
             gradient.appendChild(element("stop", { offset: "100%", "stop-color": data.high }));
             defs.appendChild(gradient); group.appendChild(defs);
-            group.appendChild(element("rect", { x: 10, y: 32, width: boxWidth - 20, height: 12, fill: "url(#geographic-legend-gradient)" }));
+            group.appendChild(element("rect", { x: 10, y: 32, width: boxWidth - 20, height: 12, fill: `url(#${gradientId})` }));
             group.appendChild(element("text", { x: 10, y: 61 }, Number(data.min).toLocaleString()));
             group.appendChild(element("text", { x: boxWidth - 10, y: 61, "text-anchor": "end" }, Number(data.max).toLocaleString()));
+            if (data.hasMissing) {
+                group.appendChild(element("rect", { x: 10, y: 72, width: 12, height: 3, fill: "#888888" }));
+                group.appendChild(element("text", { x: 30, y: 80 }, "(none)"));
+            }
         } else {
             rows.forEach((entry, index) => {
                 const y = 34 + index * 20, label = String(entry.label ?? entry.value);
-                group.appendChild(element("rect", { x: 10, y: y - 1, width: 12, height: 12, fill: entry.color, stroke: "#94a3b8" }));
-                group.appendChild(element("text", { x: 30, y: y + 10 }, label.length > 26 ? label.slice(0, 25) + "…" : label));
+                group.appendChild(element("rect", { x: 10, y: data.scope === "Edges" ? y + 4 : y - 1,
+                    width: data.scope === "Edges" ? 18 : 12, height: data.scope === "Edges" ? 3 : 12, fill: entry.color, stroke: "#94a3b8" }));
+                const labelLimit = Math.max(3, Math.floor((boxWidth - 42) / 7));
+                group.appendChild(element("text", { x: 34, y: y + 10 }, label.length > labelLimit ? label.slice(0, labelLimit - 1) + "…" : label));
             });
             if (omitted) group.appendChild(element("text", { x: 10, y: boxHeight - 10 }, "+ " + omitted + " more categories"));
         }
         svg.appendChild(group);
+        return boxHeight;
     }
     function withLegend(source, data) {
         if (!data || data.type === "none") return source;

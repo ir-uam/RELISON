@@ -159,7 +159,8 @@ test('the shared geographic adapter dispatches globe camera/export/refresh and r
     const calls=[];
     const adapter=name=>Object.fromEntries(['readCoordinates','ensureLoaded','render','refresh','destroy','fitView','exportPng','exportSvg','zoomIn','zoomOut']
         .map(method=>[method,()=>{calls.push(name+'.'+method);return true;}]));
-    const context=vm.createContext({window:{createRelisonMercator:()=>adapter('mercator'),createRelisonGlobe:()=>adapter('globe')}});
+    const context=vm.createContext({window:{createRelisonMercator:()=>adapter('mercator'),createRelisonGlobe:()=>adapter('globe'),
+        relisonMapSettings:{useOnlineTiles:()=>true,subscribe:()=>()=>{}}}});
     vm.runInContext(source('equal-earth-map.js'),context);
     const map=context.window.relisonGeographic;
     await map.render({}, {projection:'globe',isCurrent:()=>true});

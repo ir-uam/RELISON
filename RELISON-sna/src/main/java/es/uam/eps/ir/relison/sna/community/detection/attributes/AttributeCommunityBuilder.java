@@ -1,6 +1,7 @@
 package es.uam.eps.ir.relison.sna.community.detection.attributes;
 
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.graph.attributes.AttributeType;
 import es.uam.eps.ir.relison.sna.community.Communities;
 
@@ -34,8 +35,11 @@ public class AttributeCommunityBuilder<U>
         Map<Object, Integer> valueToCommunity = new LinkedHashMap<>();
         Communities<U> communities = new Communities<>();
 
+        ComputationMonitor monitor = ComputationMonitor.current();
+        long[] processed = {0};
         graph.getAllNodes().forEach(user ->
         {
+            monitor.checkCancelled();
             Object value = graph.getNodeAttribute(user, attribute);
             if (value != null && binWidth != null)
             {
@@ -56,6 +60,9 @@ public class AttributeCommunityBuilder<U>
                 communities.addCommunity();
             }
             communities.add(user, community);
+            long count = ++processed[0];
+            if (count == 1 || (count & 255) == 0 || count == graph.getVertexCount())
+                monitor.progress("Grouping nodes by attribute", count, graph.getVertexCount(), "nodes");
         });
 
         return new AttributePartition<>(communities, communityToValue, valueToCommunity);

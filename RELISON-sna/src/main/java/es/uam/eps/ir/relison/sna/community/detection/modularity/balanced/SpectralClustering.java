@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.modularity.balanced;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.impl.DenseDoubleMatrix1D;
@@ -68,6 +70,7 @@ public abstract class SpectralClustering<U> implements CommunityDetectionAlgorit
         DoubleMatrix2D degree = new SparseDoubleMatrix2D(vertexCount, vertexCount);
         for (int i = 0; i < vertexCount; ++i)
         {
+            ComputationMonitor.current().checkCancelled();
             // To ensure the presence of eigenvalues, we 
             degree.setQuick(i, i, graph.getNeighbourhoodSize(index.idx2object(i), EdgeOrientation.UND));
         }
@@ -81,6 +84,7 @@ public abstract class SpectralClustering<U> implements CommunityDetectionAlgorit
         List<Tuple2id> eigenvalues = new ArrayList<>();
         for (int i = 0; i < vertexCount; ++i)
         {
+            ComputationMonitor.current().checkCancelled();
             eigenvalues.add(new Tuple2id(i, eigenvaluesMatr.getQuick(i, i)));
         }
 
@@ -91,9 +95,11 @@ public abstract class SpectralClustering<U> implements CommunityDetectionAlgorit
         List<DoubleMatrix1D> vectors = new ArrayList<>();
         for (int i = 0; i < graph.getVertexCount(); ++i)
         {
+            ComputationMonitor.current().checkCancelled();
             DoubleMatrix1D vector = new DenseDoubleMatrix1D(length - 1);
             for (int j = 1; j < length; ++j)
             {
+                ComputationMonitor.current().checkCancelled();
                 int col = eigenvalues.get(j).v1;
                 // Each column of eigenvaluesMatr represents the eigenvector, and each 
                 vector.setQuick(j - 1, eigenvectors.getQuick(i, col));

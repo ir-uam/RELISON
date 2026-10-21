@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.distance;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import com.google.common.util.concurrent.AtomicDouble;
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
@@ -102,6 +104,10 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
             return true;
         }
 
+        ComputationMonitor monitor = ComputationMonitor.current();
+        monitor.phase("Preparing shortest paths");
+        this.graph = null;
+        this.flag = true;
         CommunityDetectionAlgorithm<U> sccAlg = new StronglyConnectedComponents<>();
         this.scc = sccAlg.detectCommunities(graph);
         // Initialize the values for node betweenness, edge betweenness and distances
@@ -148,6 +154,7 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
         // We compute this in parallel to obtain much faster results.
         Pair<Double> pair = graph.getAllNodes().map(u ->
         {
+            monitor.checkCancelled();
             double asl = 0.0;
             double counter = 0.0;
             // We want to create a tree.
@@ -185,6 +192,7 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
                 visited.add(u);
                 while (!queue.isEmpty())
                 {
+                    monitor.checkCancelled();
                     U current = queue.poll();
                     if(!visited.contains(current))
                     {
@@ -230,6 +238,7 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
                 Map<U, Double> accumulated = new HashMap<>();
                 while (level >= 0.0)
                 {
+                    monitor.checkCancelled();
                     Set<U> ithLevel = levels.get(level);
                         ithLevel.forEach(node ->
                     {
@@ -303,6 +312,7 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
 
 
             int count = atom.incrementAndGet();
+            monitor.progress("Computing shortest paths", count, graph.getVertexCount(), "source nodes");
             if(count % 1000 == 0)
             {
                 System.err.println("Run over " + count + " users." );
@@ -326,6 +336,7 @@ public class CompleteDistanceCalculator<U> implements DistanceCalculator<U>
             return false;
         }
 
+        monitor.checkCancelled();
         this.graph = graph;
         return true;
     }

@@ -77,6 +77,8 @@ RELISON portable for Windows
 
 Java is included. Keep the app and runtime folders beside RELISON.exe.
 Use Windows with the same processor architecture as the build JDK.
+Libraries, fonts, icons and Earth map boundaries are included for offline use.
+Settings > Use online street maps enables optional OpenStreetMap downloads.
 '@ | Set-Content -LiteralPath (Join-Path $appDirectory 'README.txt') -Encoding UTF8
 
 $zipPath = Join-Path $buildDirectory 'RELISON-Windows.zip'

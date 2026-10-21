@@ -1,4 +1,4 @@
-/* Equal Earth: one spherical projection and camera for background and network. */
+/* Local Earth backgrounds: one selected projection and camera for background and network. */
 (() => {
     function create(containerId = "geographic-container") {
     const mercator = window.createRelisonMercator(containerId);
@@ -7,22 +7,26 @@
         "edgeAttributesUpdated", "eachNodeAttributesUpdated", "eachEdgeAttributesUpdated"];
     let loading, world, svg, scene, network, projection, path, zoom, graph, options, observer, frame = null;
     let active = "mercator", width = 1, height = 1;
+    let current = null, unsubscribe = null;
+    const effectiveProjection = mode => mode === "mercator" && !window.relisonMapSettings?.useOnlineTiles()
+        ? "offline-mercator" : mode;
+    const usingEarth = () => active === "equal-earth" || active === "offline-mercator";
     function script(url, global) {
         if (window[global]) return Promise.resolve();
         return new Promise((resolve, reject) => {
             const tag = document.createElement("script"); tag.src = url;
             tag.onload = () => window[global] ? resolve() : reject(new Error("Map library did not initialize."));
-            tag.onerror = () => { tag.remove(); reject(new Error("Could not load Equal Earth map libraries. Check your connection.")); };
+            tag.onerror = () => { tag.remove(); reject(new Error("Could not load the bundled Earth map libraries.")); };
             document.head.appendChild(tag);
         });
     }
     function load() {
         if (world) return Promise.resolve();
         if (!loading) loading = Promise.all([
-            script("https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js", "d3"),
-            script("https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js", "topojson"),
-            fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json").then(r => {
-                if (!r.ok) throw new Error("Could not load the Equal Earth background."); return r.json();
+            script("vendor/d3.min.js", "d3"),
+            script("vendor/topojson-client.min.js", "topojson"),
+            fetch("vendor/countries-110m.json").then(r => {
+                if (!r.ok) throw new Error("Could not load the Earth background."); return r.json();
             }),
         ]).then(([, , data]) => { world = data; }).catch(e => { loading = null; throw e; });
         return loading;
@@ -115,7 +119,9 @@
         settings.coordinates(); destroyEarth(); mercator.destroy();
         graph = input; options = settings;
         const d3 = window.d3, container = document.getElementById(containerId); container.hidden = false;
-        projection = d3.geoEqualEarth().rotate([-settings.coordinates().center, 0]); path = d3.geoPath(projection);
+        projection = (settings.projection === "mercator" ? d3.geoMercator() : d3.geoEqualEarth())
+            .rotate([-settings.coordinates().center, 0]);
+        path = d3.geoPath(projection);
         svg = d3.select(container).append("svg").style("display", "block").style("background", "#e2e8f0");
         scene = svg.append("g");
         scene.append("path").datum({ type: "Sphere" }).attr("class", "earth-background").attr("fill", "#dbeafe");
@@ -128,7 +134,8 @@
         network = scene.append("g");
         zoom = d3.zoom().scaleExtent([.2, 256]).on("zoom", event => { scene.attr("transform", event.transform); sizes(); });
         svg.call(zoom).on("click", () => options?.onClearSelection());
-        const credit = document.createElement("a"); credit.href = "https://www.naturalearthdata.com/"; credit.textContent = "Natural Earth · Equal Earth";
+        const credit = document.createElement("a"); credit.href = "https://www.naturalearthdata.com/";
+        credit.textContent = settings.projection === "mercator" ? "Offline Earth map · Natural Earth · Web Mercator" : "Natural Earth · Equal Earth";
         credit.className = "equal-earth-credit"; credit.target = "_blank"; credit.rel = "noopener"; container.appendChild(credit);
         resize(); fit(); observer = new ResizeObserver(resize); observer.observe(container);
         for (const event of events) graph.on(event, schedule);
@@ -142,28 +149,53 @@
         snapshot.insertBefore(E.element("rect", { width, height, fill: "#e2e8f0" }), snapshot.firstChild);
         snapshot.querySelectorAll("text").forEach(node => node.setAttribute("font-family", "sans-serif"));
         if (includeLegend) E.legend(snapshot, width, height, options.legend?.());
-        E.credit(snapshot, width, height, "Natural Earth · Equal Earth · naturalearthdata.com");
+        E.credit(snapshot, width, height, "Natural Earth · " + (options.projection === "mercator" ? "Web Mercator" : "Equal Earth") + " · naturalearthdata.com");
         return snapshot;
+    }
+    function ensureLoaded(mode) {
+        mode = effectiveProjection(mode);
+        return mode === "globe" ? globe.ensureLoaded() : mode === "equal-earth" || mode === "offline-mercator" ? load() : mercator.ensureLoaded();
+    }
+    async function render(input, settings, forceEarth = false) {
+        const request = { input, settings };
+        current = request;
+        if (!unsubscribe) unsubscribe = window.relisonMapSettings?.subscribe(() => {
+            const shown = current;
+            if (shown && (!shown.settings.isCurrent || shown.settings.isCurrent()))
+                render(shown.input, shown.settings).catch(error => shown.settings.onError?.(error.message));
+        });
+        const isCurrent = () => current === request && (!settings.isCurrent || settings.isCurrent());
+        const projection = forceEarth ? "offline-mercator" : effectiveProjection(settings.projection);
+        await (projection === "globe" ? globe.ensureLoaded() : projection === "equal-earth" || projection === "offline-mercator" ? load() : mercator.ensureLoaded());
+        if (!isCurrent()) return;
+        const guarded = { ...settings, isCurrent };
+        if (projection === "globe") {
+            destroyEarth(); mercator.destroy(); active = "globe"; await globe.render(input, guarded);
+        } else if (projection === "equal-earth" || projection === "offline-mercator") {
+            globe.destroy(); active = projection; await renderEarth(input, guarded);
+        } else {
+            destroyEarth(); globe.destroy(); active = "mercator";
+            await mercator.render(input, { ...guarded, onTileError: () => {
+                if (isCurrent()) render(input, settings, true).catch(error => settings.onError?.(error.message));
+            } });
+        }
     }
     return {
         readCoordinates: mercator.readCoordinates,
-        ensureLoaded: mode => mode === "globe" ? globe.ensureLoaded() : mode === "equal-earth" ? load() : mercator.ensureLoaded(),
-        render: async (input, settings) => {
-            await (settings.projection === "globe" ? globe.ensureLoaded() : settings.projection === "equal-earth" ? load() : mercator.ensureLoaded());
-            if (settings.isCurrent && !settings.isCurrent()) return;
-            if (settings.projection === "globe") { destroyEarth(); mercator.destroy(); await globe.render(input, settings); active = "globe"; }
-            else if (settings.projection === "equal-earth") { globe.destroy(); await renderEarth(input, settings); active = "equal-earth"; }
-            else { destroyEarth(); globe.destroy(); await mercator.render(input, settings); active = "mercator"; }
+        ensureLoaded,
+        render,
+        refresh: () => active === "globe" ? globe.refresh() : usingEarth() ? schedule() : mercator.refresh(),
+        destroy: () => {
+            current = null; unsubscribe?.(); unsubscribe = null;
+            destroyEarth(); mercator.destroy(); globe.destroy(); active = "mercator";
         },
-        refresh: () => active === "globe" ? globe.refresh() : active === "equal-earth" ? schedule() : mercator.refresh(),
-        destroy: () => { destroyEarth(); mercator.destroy(); globe.destroy(); active = "mercator"; },
-        fitView: () => active === "globe" ? globe.fitView() : active === "equal-earth" ? fit() : mercator.fitView(),
-        exportPng: (filename = "network.png", settings = {}) => active === "globe" ? globe.exportPng(filename, settings) : active === "equal-earth"
+        fitView: () => active === "globe" ? globe.fitView() : usingEarth() ? fit() : mercator.fitView(),
+        exportPng: (filename = "network.png", settings = {}) => active === "globe" ? globe.exportPng(filename, settings) : usingEarth()
             ? window.relisonGeographicExport.exportImage(() => buildExportSvg(settings.includeLegend !== false), "png", filename) : mercator.exportPng(filename, settings),
-        exportSvg: (filename = "network.svg", settings = {}) => active === "globe" ? globe.exportSvg(filename, settings) : active === "equal-earth"
+        exportSvg: (filename = "network.svg", settings = {}) => active === "globe" ? globe.exportSvg(filename, settings) : usingEarth()
             ? window.relisonGeographicExport.exportImage(() => buildExportSvg(settings.includeLegend !== false), "svg", filename) : mercator.exportSvg(filename, settings),
-        zoomIn: () => active === "globe" ? globe.zoomIn() : active === "equal-earth" ? svg?.call(zoom.scaleBy, 2) : mercator.zoomIn(),
-        zoomOut: () => active === "globe" ? globe.zoomOut() : active === "equal-earth" ? svg?.call(zoom.scaleBy, .5) : mercator.zoomOut(),
+        zoomIn: () => active === "globe" ? globe.zoomIn() : usingEarth() ? svg?.call(zoom.scaleBy, 2) : mercator.zoomIn(),
+        zoomOut: () => active === "globe" ? globe.zoomOut() : usingEarth() ? svg?.call(zoom.scaleBy, .5) : mercator.zoomOut(),
         setContinuousRotation: settings => active === "globe" ? globe.setContinuousRotation(settings) : false,
         getRotationSnapshot: () => active === "globe" ? globe.getRotationSnapshot() : null,
         setRotationFrame: (snapshot, axis, degrees) => active === "globe" ? globe.setRotationFrame(snapshot, axis, degrees) : false,

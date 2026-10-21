@@ -36,6 +36,7 @@ public final class StreamingSimulationConsumer implements SimulationConsumer<Str
     private final BinarySimulationWriter<String, String, String> writer = new BinarySimulationWriter<>();
     private final List<DiffusionResult.IterationSummary> summaries = new ArrayList<>();
     private boolean ok;
+    private boolean finished;
 
     /**
      * @param data the diffusion data (used to resolve identifiers when writing).
@@ -68,7 +69,8 @@ public final class StreamingSimulationConsumer implements SimulationConsumer<Str
         // format can be reused; nothing is retained once it has been written.
         Simulation<String, String, String> single = new Simulation<>(data, iteration.getIterationNumber());
         single.addIteration(iteration);
-        writer.writeIteration(single, iteration.getIterationNumber());
+        if (!writer.writeIteration(single, iteration.getIterationNumber()))
+            throw new IllegalStateException("Could not write diffusion iteration " + iteration.getIterationNumber());
 
         List<String> propagating = iteration.getPropagatingUsers().collect(Collectors.toList());
         List<String> newlyInformed = iteration.getReceivingUsers().collect(Collectors.toList());
@@ -78,7 +80,10 @@ public final class StreamingSimulationConsumer implements SimulationConsumer<Str
     @Override
     public void finish()
     {
-        writer.close();
+        if (ok && !finished) {
+            if (!writer.close()) throw new IllegalStateException("Could not close the diffusion backing file.");
+            finished = true;
+        }
     }
 
     /** @return the compact per-iteration summaries collected while streaming. */

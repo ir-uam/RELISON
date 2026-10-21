@@ -55,6 +55,54 @@ interactive visualization.
   SVG supports complete charts beyond the PNG pixel-size limit without allocating
   a full-size raster canvas.
 
+## Tracking background processes
+
+Open **Processes** in the top bar from any tab to see active computations and the
+100 most recent finished processes. Metrics, community detection, edge-partition
+detection, recommendations/evaluation and diffusion share this registry. Each run
+has its own identifier, configuration, graph, phase, running time and queue time.
+The list is restored from the running server after a browser reload; it is not
+saved in `.relison` files or retained across server restarts.
+
+Progress counts completed node values, existing-link endpoint pairs, individual
+communities/edge groups and diffusion turns. Shortest-path preprocessing reports
+completed source nodes. All-pairs statistics and histogram construction have
+separate phases; sampled computations report sample draws rather than claiming
+to enumerate all pairs. Native matrix operations and algorithms without a known
+total show their phase and elapsed time. Percentages describe work units, not
+remaining time. Diffusion starts at iteration zero, so an upper iteration index
+of 50 produces 51 completed turns under the existing stop-condition semantics.
+
+**Cancel** in this panel and the existing **Stop** buttons target the same run.
+An accepted request remains **Cancelling** until the worker and its cleanup have
+finished. Blocking numerical operations may have to return before they can stop.
+Cancelled runs do not publish partial results. Computations on one graph queue
+behind each other to protect shared caches; different graphs can run concurrently.
+Graph edits return a conflict while that graph is in use, including cancellation
+cleanup. Infomap runs in an isolated temporary directory and its child process
+is terminated on cancellation.
+
+The API exposes `GET /api/jobs` and `POST /api/jobs/cancel` with
+`{graphId, jobId}`. Computation requests accept an optional `X-Relison-Job-ID`
+UUID header; the browser generates a fresh ID for each request. The legacy
+`{graphId, kind}` cancellation form remains available.
+
+Library monitoring is opt-in through a scoped `ComputationMonitor` in
+`RELISON-core`; existing method signatures and bulk computations remain intact.
+Without a scope, result maps are returned directly without tracking wrappers.
+Parallel code must capture the monitor before dispatch and pass that reference
+to its worker callbacks. Progress notifications are batched in output maps.
+
+Regression checks:
+
+```sh
+mvn -o -pl RELISON-gui -am -Dtest=JobManagerTest,ProgressMonitoringTest,ProcessAdapterTest,ProcessControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
+node --test RELISON-gui/src/test/js/process-panel.test.cjs
+```
+
+`ProcessControllerTest` uses localhost and is skipped when the Windows sandbox
+denies HttpClient's loopback connection. The other process tests require no sockets.
+
 ## Build
 From the repository root (builds the whole reactor including this module):
 
@@ -92,12 +140,12 @@ table filters. All metric computation remains in **Metrics**; **View in Metrics*
 selects the current partition there. Existing saved sessions remain supported.
 
 The graph offers independent **Cosmograph 2D**, **Cosmograph 3D**, and **Sigma**
-renderers. Cosmograph loads on demand from the same CDN/version as the Network
+renderers. Cosmograph loads on demand from the same local bundle/version as the Network
 renderer. Community graph controls share Network's renderer/dimensions pickers,
 camera buttons, Export menu and canvas styling. Renderer and dimension choices
 remain independent of Network; choosing Sigma hides the dimensions picker while
 retaining the last Cosmograph dimension preference. Cosmograph
-requires internet access and WebGL. Layouts include circular/spherical,
+requires WebGL. Layouts include circular/spherical,
 grid, seeded random, spectral, Fruchterman–Reingold, stress majorization,
 Kamada–Kawai, multilevel force (Hu), ForceAtlas2, and concentric grouping by
 community-graph degree. RELISON-viz computes their coordinates. Cosmograph 3D uses
@@ -305,7 +353,44 @@ mvn -pl RELISON-gui -am -Dtest=PathControllerTest -Dsurefire.failIfNoSpecifiedTe
   computation that is cached and shared per session; the first such metric on a large network may take a while.
 - `Infomap` requires an external binary and the spectral algorithms need extra numeric libraries; they are listed
   in the UI but report a clear error if their prerequisites are missing.
-- The frontend currently loads sigma.js / graphology from a CDN, so the first run needs internet access.
+- Frontend libraries, icons, fonts, map boundaries and Cosmograph's DuckDB workers/WASM are packaged locally;
+  the first run works without internet access or a populated browser cache.
+
+### Offline use and frontend dependencies
+
+The runnable JAR and portable Windows distribution include the browser assets under
+`public/vendor`. Normal Maven builds copy these resources automatically and do not
+require Node.js, npm, or a frontend download step. The portable runtime includes Java.
+External algorithm prerequisites (such as the Infomap executable) remain separate.
+
+**Settings → Use online street maps** is off by default and is remembered on this
+browser/device. While off, the **Web Mercator (street / offline Earth)** choice uses the bundled
+Natural Earth land and country boundaries in Web Mercator projection, retaining network
+nodes, links, selection, pan/zoom and PNG/SVG exports. Equal Earth and Globe work
+offline directly. Enabling online street maps requests OpenStreetMap tiles;
+disconnecting or a tile-load failure falls back to the local Mercator Earth map. The preference
+applies independently of saved graph sessions and is shared by Network and Diffusion.
+The offline background shows countries and coastlines, without street detail.
+
+The page's content security policy restricts scripts, fonts and data connections to
+local assets. Optional OpenStreetMap tile images are the only automatic external
+resource allowed. Help and attribution links still open external websites when clicked.
+
+To update the pinned dependencies (maintainers only; this step needs internet access):
+
+```sh
+cd RELISON-gui
+npm ci
+npm run build:vendor
+node --test src/test/js/offline-assets.test.cjs src/test/js/globe-map.test.cjs src/test/js/animation-export.test.cjs
+```
+
+Check in `package.json`, `package-lock.json` and the generated `public/vendor` files.
+The vendor build retains package license notices and produces a SHA-256 manifest.
+It also adapts the pinned Cosmograph DuckDB loader to use local workers and WASM;
+upstream loader changes cause the build to fail for review. Node/npm are needed only
+when regenerating these checked-in assets. The browser still connects to the local
+server using HTTP; bundling assets does not configure HTTPS.
 
 Additional layouts: `feature-grid` (`FeatureGridLayout`) places feature-value groups in columns and permits within-group edges; one group is valid. `ego-grid` (`EgoGridLayout`) places hop distances in columns, with a selectable root and `EdgeOrientation` traversal. Unreachable nodes occupy a final column. Both accept column spacing and row spacing; feature grids also support ordering passes.
 RELISON animated force choices: fruchterman-reingold and relison-forceatlas2.
@@ -336,9 +421,9 @@ network renderer** when the network is a globe. State colours and propagation
 overlays update during playback. Each globe has an independent camera.
 Graph editing, node dragging and force layouts are unavailable in geographic views.
 
-Globe.gl 2.46.2 and Three.js 0.180.0 are loaded on demand from esm.sh; TopoJSON
-3.1.0 converts world-atlas 2.0.2 country boundaries (Natural Earth) from jsDelivr.
-An internet connection and WebGL are required. No imagery service/API key is used.
+Globe.gl 2.46.2 and Three.js 0.180.0 are loaded on demand from local bundles; TopoJSON
+3.1.0 converts the packaged world-atlas 2.0.2 country boundaries (Natural Earth).
+WebGL is required. No internet connection, imagery service or API key is needed.
 The globe export captures the current camera at twice the viewport resolution.
 Its PNG includes labels, optional legend and attribution. Its SVG embeds the
 WebGL globe/network as a high-resolution raster image, with vector labels and
@@ -392,8 +477,9 @@ form, rather than an ellipsoidal coordinate reference system.
 Equal Earth projects Natural Earth land and country boundaries, graticules,
 nodes and geodesic edges through one D3 projection and pan/zoom transform.
 Its world background has no street detail. D3 7.9.0, TopoJSON client 3.1.0 and
-world-atlas 2.0.2 (Natural Earth 1:110m data) load from jsDelivr on demand.
-Mercator retains its OpenStreetMap tiles. Both views retain selection and
+world-atlas 2.0.2 (Natural Earth 1:110m data) load locally on demand.
+The street-map choice uses the offline Earth background unless online tiles are enabled in Settings.
+Both views retain selection and
 appearance settings. PNG/SVG exports capture the current map viewport, including
 visible nodes, labels, edges, recommendation/propagation overlays and attribution.
 Mercator SVG files embed loaded OpenStreetMap raster tiles with vector graph

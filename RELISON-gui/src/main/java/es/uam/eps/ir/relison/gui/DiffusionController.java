@@ -9,6 +9,7 @@
 package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.diffusion.data.Data;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.diffusion.data.filter.DataFilter;
 import es.uam.eps.ir.relison.diffusion.metrics.MetricsSimulationConsumer;
 import es.uam.eps.ir.relison.diffusion.metrics.SimulationMetric;
@@ -97,6 +98,7 @@ public class DiffusionController
 
         try
         {
+            ComputationMonitor.current().phase("Preparing diffusion data");
             // Run over the base graph, or — when the request asks for it and a recommendation is overlaid — over the
             // graph augmented with the active recommendation's edges, so information can spread along recommended links.
             boolean withRec = MetricController.useRecommendation(body, session);
@@ -134,6 +136,7 @@ public class DiffusionController
                 return;
             }
 
+            ComputationMonitor.current().phase("Filtering diffusion data");
             Data<String, String, String> filtered = pair.v2().filter(data);
             Simulator<String, String, String> simulator = pair.v1();
             simulator.initialize(filtered);
@@ -163,28 +166,37 @@ public class DiffusionController
             {
                 jobs.run(MetricController.jobKey(body, "diffusion"), () ->
                 {
-                    sim.simulate(new CompositeSimulationConsumer<>(streamer, metricConsumer));
+                    try { sim.simulate(new CompositeSimulationConsumer<>(streamer, metricConsumer)); }
+                    finally { streamer.finish(); }
                     return null;
                 });
             }
-            catch (JobCancelledException ce)
+            catch (Exception | Error ce)
             {
-                new File(simFile.getAbsolutePath()).delete();
-                ctx.json(Map.of("cancelled", true));
-                return;
+                streamer.finish();
+                Files.deleteIfExists(simFile.toPath());
+                throw ce;
             }
 
-            Map<String, List<Double>> series = metricConsumer.getResults();
-            DiffusionResult result = new DiffusionResult(filtered, simFile.getAbsolutePath(),
-                    streamer.getNumIterations(), streamer.getSummaries(), series, labels);
-            session.setDiffusion(result);
+            try
+            {
+                Map<String, List<Double>> series = metricConsumer.getResults();
+                DiffusionResult result = new DiffusionResult(filtered, simFile.getAbsolutePath(),
+                        streamer.getNumIterations(), streamer.getSummaries(), series, labels);
 
-            Map<String, Object> response = result.toJson();
-            // Report any metrics that were dropped (typically ran out of memory) so the client can warn the user.
-            List<String> skipped = new ArrayList<>();
-            for (String id : metricConsumer.getFailed()) skipped.add(labels.getOrDefault(id, id));
-            if (!skipped.isEmpty()) response.put("skippedMetrics", skipped);
-            ctx.json(response);
+                Map<String, Object> response = result.toJson();
+                // Report any metrics that were dropped (typically ran out of memory) so the client can warn the user.
+                List<String> skipped = new ArrayList<>();
+                for (String id : metricConsumer.getFailed()) skipped.add(labels.getOrDefault(id, id));
+                if (!skipped.isEmpty()) response.put("skippedMetrics", skipped);
+                ctx.json(response);
+                JobManager.publish(() -> session.setDiffusion(result));
+            }
+            catch (Exception | Error error) { Files.deleteIfExists(simFile.toPath()); throw error; }
+        }
+        catch (JobCancelledException | java.util.concurrent.CancellationException cancelled)
+        {
+            ctx.json(Map.of("cancelled", true));
         }
         catch (Exception | NoClassDefFoundError | UnsatisfiedLinkError e)
         {

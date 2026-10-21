@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' blob: data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'"/>
     <title>RELISON Spectrum</title>
     <link rel="icon" type="image/svg+xml" href="img/relison-favicon.svg"/>
     <link rel="icon" type="image/png" sizes="any" href="img/relison-logo.png"/>
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&icon_names=dark_mode,help,lab_profile,lasso_select,light_mode,save,settings&display=block"/>
+    <link rel="stylesheet" href="vendor/fonts/material-symbols.css"/>
     <link rel="stylesheet" href="style.css"/>
     <!-- graphology (graph model) + graphology-library (layouts/metrics helpers) + sigma (rendering). -->
-    <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/graphology-library@0.8.0/dist/graphology-library.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sigma@3.0.3/dist/sigma.min.js"></script>
+    <script src="vendor/graphology.min.js"></script>
+    <script src="vendor/graphology-library.min.js"></script>
+    <script src="vendor/sigma.min.js"></script>
     <!-- Apache ECharts for interactive metric and diffusion charts. -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@6.1.0/dist/echarts.min.js"></script>
+    <script src="vendor/echarts.min.js"></script>
 </head>
 <body>
 <header id="topbar">
     <img id="logo" src="img/RELISON-full-logo.png" alt="RELISON Spectrum"/>
     <span id="status" class="status"></span>
+    <button id="processes-button" class="icon-btn" type="button" aria-label="Processes, 0 active" aria-expanded="false" aria-controls="processes-panel" data-tooltip="Open process monitor"><span class="material-symbols-outlined" aria-hidden="true">pending_actions</span><span id="processes-count">0</span></button>
     <button id="btn-undo" class="icon-btn" data-tooltip="ui-btn-undo" disabled>↶</button>
     <button id="btn-redo" class="icon-btn" data-tooltip="ui-btn-redo" disabled>↷</button>
     <span class="menu-wrap">
@@ -43,7 +43,9 @@
     <button id="theme-toggle" class="icon-btn" data-tooltip="ui-theme-toggle" aria-label="Toggle light and dark mode"><span class="material-symbols-outlined" aria-hidden="true">dark_mode</span></button>
     <span class="menu-wrap">
         <button id="settings-button" class="icon-btn settings-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu" data-tooltip="ui-settings-button"><span class="material-symbols-outlined" aria-hidden="true">settings</span><span>Settings</span></button>
-<div id="settings-menu" class="menu menu-right settings-menu" role="dialog" aria-label="Appearance settings" hidden>
+<div id="settings-menu" class="menu menu-right settings-menu" role="dialog" aria-label="Application settings" hidden>
+            <label><input id="online-street-maps" type="checkbox"> Use online street maps</label>
+            <p class="muted">Off: use the bundled Earth map. On: download street tiles when available.</p>
             <label for="style-selector">Interface appearance</label>
             <select id="style-selector">
                 <option value="modern-slate">Modern Slate</option>
@@ -78,6 +80,16 @@
     <!-- <button id="focus-toggle" class="icon-btn" data-tooltip="ui-focus-toggle" aria-pressed="false">Focus</button> -->
 </header>
 
+<aside id="processes-panel" hidden aria-labelledby="processes-title">
+    <div class="process-panel-heading"><h2 id="processes-title">Processes</h2><div class="process-panel-actions"><label class="process-graph-filter" title="Include processes from all graphs"><input id="processes-all-graphs" type="checkbox"> Other graphs</label><button id="processes-compact" class="icon-btn" type="button" aria-label="Use compact view" aria-pressed="false" title="Use compact view"><span class="material-symbols-outlined" aria-hidden="true">density_small</span></button><button id="processes-close" class="icon-btn" type="button" aria-label="Close processes" title="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div></div>
+    <div class="process-filters">
+        <label>Type <select id="process-filter-type"><option value="">All types</option></select></label>
+        <label>Status <select id="process-filter-status"><option value="">All statuses</option></select></label>
+    </div>
+    <p id="processes-status" role="status"></p>
+    <div id="processes-list"></div>
+</aside>
+
 <!-- Debug console: replaces the tabs + content (everything below the top bar) when toggled on; only available with --debug. -->
 <div id="debug-view">
     <div class="terminal-toolbar">
@@ -93,6 +105,7 @@
     <button class="tab" data-tab="network">Network</button>
     <button class="tab" data-tab="tables">Nodes &amp; Edges</button>
     <button class="tab" data-tab="communities">Communities</button>
+    <button class="tab" data-tab="edge-partitions">Edge partitions</button>
     <button class="tab" data-tab="metrics">Metrics</button>
     <button class="tab" data-tab="recommend" id="tab-recommend">Recommendation</button>
     <button class="tab" data-tab="diffusion" id="tab-diffusion">Diffusion</button>
@@ -200,11 +213,11 @@
                 <label data-tooltip="ui-layout-seed-field" id="layout-seed-field"><span>Random seed</span><input data-tooltip="ui-layout-seed" type="number" id="layout-seed" step="1" value="42"/></label>
             </div>
             <div class="params" id="layout-geographic-controls" hidden>
-                <label data-tooltip="ui-geographic-projection"><span>Projection</span><select id="layout-geographic-projection"><option value="mercator">Web Mercator (street map)</option><option value="equal-earth">Equal Earth (world map)</option><option value="globe">Globe (Globe.gl)</option></select></label>
+                <label data-tooltip="ui-geographic-projection"><span>Projection</span><select id="layout-geographic-projection"><option value="mercator">Web Mercator (street / offline Earth)</option><option value="equal-earth">Equal Earth (world map)</option><option value="globe">Globe (Globe.gl)</option></select></label>
                 <label data-tooltip="ui-geographic-latitude"><span>Latitude attribute</span><select id="layout-geographic-latitude" data-tooltip="ui-geographic-latitude"><option value="">Choose latitude</option></select></label>
                 <label data-tooltip="ui-geographic-longitude"><span>Longitude attribute</span><select id="layout-geographic-longitude" data-tooltip="ui-geographic-longitude"><option value="">Choose longitude</option></select></label>
             </div>
-            <p class="muted" id="layout-geographic-hint" hidden>Coordinates use decimal degrees. Mercator supports ±85.05112878° latitude; Equal Earth and Globe support ±90°. Globe anchors nodes to the surface without altitude attributes. Forces, node dragging and packing are disabled. Loading maps requires an internet connection.</p>
+            <p class="muted" id="layout-geographic-hint" hidden>Coordinates use decimal degrees. The street-map choice supports ±85.05112878° latitude; Equal Earth and Globe support ±90°. Globe anchors nodes to the surface without altitude attributes. Forces, node dragging and packing are disabled. Earth maps work offline; enable online street maps in Settings for street detail.</p>
             <div class="params" id="layout-force-controls" hidden>
                 <label data-tooltip="markup-0001"><span>Iterations</span><input data-tooltip="ui-layout-iterations" id="layout-iterations" type="number" min="0" max="5000" value="500"/></label>
                 <label data-tooltip="markup-0002"><span>Barnes–Hut theta (0 = exact)</span><input data-tooltip="ui-layout-theta" id="layout-theta" type="number" min="0" max="2" step="0.1" value="0.8"/></label>
@@ -344,6 +357,7 @@
                     <option value="imported">Imported colour</option>
                     <option value="single">Single colour</option>
                     <option value="attribute">By attribute</option>
+                    <option value="edges">Average of edges</option>
                 </select>
             </label>
             <label class="field" id="node-color-single-field" hidden>
@@ -398,6 +412,7 @@
                     <option value="single">Single colour</option>
                     <option value="endpoints">Average of endpoints</option>
                     <option value="attribute">By edge attribute</option>
+                    <option value="partition">By edge partition</option>
                 </select>
             </label>
             <label class="field" id="edge-color-single-field" hidden>
@@ -415,6 +430,10 @@
                     <span>→</span>
                     <input type="color" id="edge-color-high" value="#ff5b5b"/>
                 </span>
+            </label>
+            <label class="field" id="edge-color-partition-field" hidden>
+                <span>Edge partition</span>
+                <select id="edge-color-partition" aria-label="Edge colouring partition"></select>
             </label>
             <div id="rec-edge-block" hidden>
                 <hr class="sep"/>
@@ -509,12 +528,46 @@
             <p class="muted" id="community-result"></p>
             <p class="muted">Detection and exploration use the whole loaded network. Compute community metrics in the Metrics tab.</p>
         </section>
+        <section class="block">
+            <h2>Numeric attribute bins</h2>
+            <label class="field"><span>Numeric node attribute</span><select id="community-bin-attribute"></select></label>
+            <label class="field"><span>Bin width</span><input id="community-bin-width" type="number" min="0.000000001" step="any" value="10"/></label>
+            <button id="btn-community-bins" class="primary">Detect attribute bins</button>
+            <p class="muted">Creates one community per fixed-width bin. Each interval includes its lower bound and excludes its upper bound; missing values share an Unknown community.</p>
+        </section>
         <section class="block community-partition-controls">
             <h2>Partition</h2>
             <select id="explorer-partition" aria-label="Community partition"></select>
             <p id="explorer-summary" class="muted" aria-live="polite"></p>
             <p id="explorer-partition-metrics" class="muted community-partition-metrics" hidden></p>
             <button id="explorer-metrics">View in Metrics</button>
+        </section>
+        </div>
+
+        <div id="left-edge-partitions" hidden>
+        <section class="block">
+            <h2>Partition edges by</h2>
+            <label class="field"><span>Grouping</span><select id="edge-partition-kind">
+                <option value="edge-attribute">Numeric edge attribute bins</option>
+                <option value="node-attribute-relation">Endpoint node-attribute pair</option>
+                <option value="community-internal-external">Within / between communities</option>
+                <option value="community-relations">Community pair</option>
+            </select></label>
+            <label class="field" id="edge-partition-edge-attribute-field"><span>Numeric edge attribute</span><select id="edge-partition-edge-attribute"></select></label>
+            <label class="field" id="edge-partition-node-attribute-field" hidden><span>Node attribute</span><select id="edge-partition-node-attribute"></select></label>
+            <label class="field" id="edge-partition-bin-width-field" hidden><span>Numeric bin width</span><input id="edge-partition-bin-width" type="number" min="0.000000001" step="any" value="10"/></label>
+            <label class="field" id="edge-partition-community-field" hidden><span>Community partition</span><select id="edge-partition-community"></select></label>
+            <button id="btn-edge-partition" class="primary">Detect edge groups</button>
+            <p id="edge-partition-status" class="muted" role="status"></p>
+            <p class="muted">Detection and exploration use the whole loaded network. Compute edge partition metrics in the Metrics tab.</p>
+            <p class="muted">Select categorical, string or boolean edge attributes directly under Partition. Numeric bins have the specified width, start at multiples of that width, and include the lower bound only.</p>
+        </section>
+        <section class="block community-partition-controls">
+            <h2>Partition</h2>
+            <select id="edge-partition-select" aria-label="Edge partition"></select>
+            <p id="edge-partition-summary" class="muted" aria-live="polite"></p>
+            <p id="edge-partition-globals" class="muted community-partition-metrics" hidden></p>
+            <button id="edge-partition-view-metrics">View in Metrics</button>
         </section>
         </div>
 
@@ -525,7 +578,7 @@
             <select id="vertex-metric"></select>
             <div class="params" id="vertex-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="vertex-rec"/> Include active recommendation</label>
-            <button id="btn-vertex">Run</button>
+            <button id="btn-vertex" class="primary">Run</button>
             <p class="muted" id="vertex-result"></p>
         </section>
 
@@ -534,7 +587,7 @@
             <select id="graph-metric"></select>
             <div class="params" id="graph-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="graph-rec"/> Include active recommendation</label>
-            <button id="btn-graph">Run</button>
+            <button id="btn-graph" class="primary">Run</button>
         </section>
 
         <section class="block">
@@ -543,7 +596,7 @@
             <div class="params" id="pair-params"></div>
             <label class="inline-check"><input type="checkbox" id="pair-allpairs"/> All node pairs (not just edges)</label>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="pair-rec"/> Include active recommendation</label>
-            <button id="btn-pair">Run</button>
+            <button id="btn-pair" class="primary">Run</button>
             <p class="muted" id="pair-result"></p>
         </section>
 
@@ -557,7 +610,7 @@
             <select id="global-comm-metric"></select>
             <div class="params" id="global-comm-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="global-comm-rec"/> Include active recommendation</label>
-            <button id="btn-global-comm" disabled>Run global community metric</button>
+            <button id="btn-global-comm" disabled class="primary">Run global community metric</button>
             <hr class="sep"/>
             <span class="sublabel">Per-community metric</span>
             <label class="field">
@@ -567,7 +620,21 @@
             <select id="indiv-comm-metric"></select>
             <div class="params" id="indiv-comm-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="comm-rec"/> Include active recommendation</label>
-            <button id="btn-indiv-comm" disabled>Run per-community metric</button>
+            <button id="btn-indiv-comm" disabled class="primary">Run per-community metric</button>
+            <p class="muted">Boundary metrics also work for attribute partitions. UND combines incoming and outgoing connections. Weighted variants require nonnegative weights. Newman contributions use standard modularity, rather than the existing global Modularity normalization. Undefined ratios appear as — and are excluded from averages.</p>
+        </section>
+        <section class="block">
+            <h2>Edge partition metrics</h2>
+            <label class="field"><span>Global partition</span><select id="ep-global-partition"></select></label>
+            <select id="ep-global-metric"></select>
+            <div class="params" id="ep-global-params"></div>
+            <button id="btn-ep-global" disabled class="primary">Run global partition metric</button>
+            <hr class="sep"/>
+            <label class="field"><span>Individual partition</span><select id="ep-individual-partition"></select></label>
+            <select id="ep-individual-metric"></select>
+            <div class="params" id="ep-individual-params"></div>
+            <button id="btn-ep-individual" disabled class="primary">Run per-group metric</button>
+            <p class="muted">Detect a partition in Edge partitions first. Connectivity uses weak components. Weight Gini requires nonnegative weights. Entropy is measured in bits.</p>
         </section>
         <section class="block">
             <h2>Attribute-based metrics</h2>
@@ -580,13 +647,13 @@
             <select id="attribute-global-comm-metric"></select>
             <div class="params" id="attribute-global-comm-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="attribute-global-comm-rec"/> Include active recommendation</label>
-            <button id="btn-attribute-global-comm" disabled>Run global metric</button>
+            <button id="btn-attribute-global-comm" disabled class="primary">Run global metric</button>
             <hr class="sep"/>
             <span class="sublabel">Per-attribute-value metric</span>
             <select id="attribute-indiv-comm-metric"></select>
             <div class="params" id="attribute-indiv-comm-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="attribute-comm-rec"/> Include active recommendation</label>
-            <button id="btn-attribute-indiv-comm" disabled>Run per-value metric</button>
+            <button id="btn-attribute-indiv-comm" disabled class="primary">Run per-value metric</button>
         </section>
         <section class="block">
             <h2>Edge attribute metrics</h2>
@@ -594,11 +661,11 @@
             <label class="field"><span>Edge attribute</span><select id="edge-attribute-metric-attribute"></select></label>
             <span class="sublabel">Global metric</span>
             <select id="edge-attribute-global-metric"><option value="num-attributes">Number of attribute values</option></select>
-            <button id="btn-edge-attribute-global" disabled>Run global metric</button>
+            <button id="btn-edge-attribute-global" disabled class="primary">Run global metric</button>
             <hr class="sep"/>
             <span class="sublabel">Per-value metric</span>
             <select id="edge-attribute-indiv-metric"><option value="count">Edge count</option></select>
-            <button id="btn-edge-attribute-indiv" disabled>Run per-value metric</button>
+            <button id="btn-edge-attribute-indiv" disabled class="primary">Run per-value metric</button>
         </section>
         </div>
     </aside>
@@ -717,6 +784,13 @@
                 <button id="btn-zoom-out" class="canvas-btn" data-tooltip="ui-btn-zoom-out">−</button>
                 <button id="btn-zoom-fit" class="canvas-btn" data-tooltip="ui-btn-zoom-fit">⤢</button>
                 </div>
+                <details class="network-export-menu" id="network-legend-menu">
+                    <summary>Legends</summary>
+                    <div class="network-export-options">
+                        <label class="inline-check"><input id="network-node-legend" type="checkbox" checked/> Show node legend</label>
+                        <label class="inline-check"><input id="network-edge-legend" type="checkbox" checked/> Show edge legend</label>
+                    </div>
+                </details>
                 <details class="network-export-menu">
                     <summary>Export</summary>
                     <div class="network-export-options">
@@ -734,7 +808,7 @@
                         </label>
                         <button id="btn-export-rotation-gif" hidden>Export rotation cycle (GIF)</button>
                         <button id="btn-export-rotation-webm" hidden>Export rotation cycle (WebM)</button>
-                        <label class="inline-check"><input id="export-include-legend" type="checkbox" checked/> Include colour legend</label>
+                        <label class="inline-check"><input id="export-include-legend" type="checkbox" checked/> Include visible legends</label>
                         <button id="btn-export-gexf">Export graph (GEXF)</button>
                         <label class="inline-check"><input type="checkbox" id="export-gexf-numeric-ids"/> Use numeric node IDs in GEXF</label>
                     </div>
@@ -767,7 +841,10 @@
                 <label class="inline-check"><input type="checkbox" id="cosmograph-reverse-rotation"/> Reverse</label>
             </div>
             <div id="geographic-container" hidden aria-label="Geographic network map"></div>
-            <div id="node-legend" class="node-legend" hidden></div>
+            <div class="network-legends" aria-label="Network legends">
+                <div id="node-legend" class="node-legend" hidden aria-label="Node colour legend"></div>
+                <div id="edge-legend" class="node-legend edge-legend" hidden aria-label="Edge colour legend"></div>
+            </div>
             <div id="empty-hint">Load an edge list to begin.</div>
             </div>
             <div id="network-timeline" hidden aria-label="Network timeline">
@@ -1026,6 +1103,40 @@
             </div>
         </div>
 
+        <div class="tabpane" id="pane-edge-partitions">
+            <p id="edge-partition-empty" class="community-empty">Choose a grouping method on the left and detect edge groups.</p>
+            <div id="edge-partition-content" hidden>
+            <div id="edge-partition-workspace" class="community-workspace">
+                <div class="community-main">
+                    <div class="toolbar">
+                        <label>Search groups <input id="edge-partition-search" type="search" placeholder="ID or label"/></label>
+                        <button id="edge-partition-export-table">Export CSV</button>
+                    </div>
+                    <div class="scroll-table"><table id="edge-partition-groups" class="data" aria-label="Edge partition groups"></table></div>
+                    <div id="edge-partition-table-pager" class="pagination"></div>
+                    <p class="muted">Select a row to inspect its edges. Run metrics in Metrics → Edge partition metrics to add columns.</p>
+                </div>
+                <aside id="edge-partition-inspector" hidden aria-label="Edge group inspector">
+                    <div class="toolbar"><h2 id="edge-partition-inspector-title">Edge group</h2><button id="edge-partition-close-inspector" aria-label="Close edge group inspector">×</button></div>
+                    <p id="edge-partition-inspector-summary" class="muted"></p>
+                    <label class="field"><span>Label</span><input id="edge-partition-label" maxlength="120"/></label>
+                    <button id="edge-partition-save-label">Save label</button>
+                    <div id="edge-partition-details-scroll" class="scroll-table"><table id="edge-partition-details" class="data" aria-label="Selected edge group metrics"></table></div>
+                    <div class="toolbar community-actions"><button id="edge-partition-highlight">Highlight edges in Network</button><button id="edge-partition-isolate">Show only edges in Network</button></div>
+                    <h3>Edges</h3>
+                    <label class="field"><span>Search edges</span><input id="edge-partition-members-search" type="search" placeholder="Endpoint, edge ID or attribute value"/></label>
+                    <label class="field"><span>Additional edge column</span><select id="edge-partition-member-column"></select></label>
+                    <button id="edge-partition-export" disabled>Export edges CSV</button>
+                    <div class="scroll-table"><table id="edge-partition-members" class="data" aria-label="Edges in selected group"></table></div>
+                    <div id="edge-partition-members-pager" class="pagination"></div>
+                    <h3>Connections</h3>
+                    <p class="muted">Groups are connected when their edges share endpoints.</p>
+                    <div class="scroll-table"><table id="edge-partition-connections" class="data" aria-label="Groups sharing endpoints"></table></div>
+                </aside>
+            </div>
+            </div>
+        </div>
+
         <!-- Computed metrics -->
         <div class="tabpane" id="pane-metrics">
             <nav id="subtabbar">
@@ -1036,8 +1147,32 @@
                 <button class="subtab" data-subtab="comm">Community metrics</button>
                 <button class="subtab" data-subtab="attrcomm">Attribute metrics</button>
                 <button class="subtab" data-subtab="edgeattr">Edge attribute metrics</button>
+                <button class="subtab" data-subtab="edgepartitions">Edge partition metrics</button>
                 <button class="subtab" data-subtab="relationships">Attribute relationships</button>
             </nav>
+
+            <div class="subpane" id="subpane-edgepartitions">
+                <h2>Global edge partition metrics</h2>
+                <div class="toolbar"><button id="ep-export-metrics">Export partition metrics CSV</button></div>
+                <div class="scroll-table"><table id="ep-global-results" class="data metric-summary-table" aria-label="Global edge partition metrics"></table></div>
+                <h2>Per-group metric averages</h2>
+                <div class="toolbar"><button id="ep-export-averages">Export CSV</button></div>
+                <div class="scroll-table"><table id="ep-average-results" class="data metric-summary-table" aria-label="Per-group metric averages"></table></div>
+                <p class="muted">Detect edge groups, then compute metrics from the controls on the left.</p>
+                <h2>Per-group metric distribution</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="ep-chart-metric"></select></label>
+                    <label>Sort by <select id="ep-chart-sort"></select></label>
+                    <label>Orientation <select class="chart-view-select" id="ep-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="ep-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="ep-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="ep-chart-k" min="1" step="1" value="10"/></label>
+                    <button class="chart-dl" data-canvas="ep-chart" data-file="edge-partition-metric-distribution.png">⬇ Download PNG / SVG</button>
+                </div>
+                <p class="muted chart-view-note" id="ep-chart-view-note" aria-live="polite"></p>
+                <div class="chart-area"><div id="ep-chart" class="echarts-chart"></div></div>
+                <p class="muted">A dash means the metric is undefined for that group. Averages include only finite values. Intra-partition metrics use each group's edges and endpoints, preserving direction, loops, weights and parallel edges.</p>
+            </div>
 
             <div class="subpane active" id="subpane-global">
                 <h2>Global metrics</h2>
@@ -1211,6 +1346,14 @@
                 <!-- Left: the model configuration, plus the evaluation setup when that subtab is showing. -->
                 <aside class="rec-config">
                     <section class="block">
+                        <label class="field">
+                            <span>Computed results</span>
+                            <select id="rec-computed" disabled>
+                                <option value="" disabled selected>No computed results</option>
+                            </select>
+                        </label>
+                    </section>
+                    <section class="block">
                         <h2>Link recommendation / prediction</h2>
                         <label class="field">
                             <span>Task</span>
@@ -1377,7 +1520,6 @@
                             <div id="diff-sigma-container"></div>
                             <div id="diff-cosmograph-container" hidden></div>
                             <div id="diff-geographic-container" hidden aria-label="Geographic diffusion map"></div>
-                            <div id="diff-geographic-export" hidden><label class="inline-check"><input id="diff-export-include-legend" type="checkbox" checked/> Include legend</label><button id="btn-diff-map-png">Export PNG</button><button id="btn-diff-map-svg">Export SVG</button></div>
                             <canvas id="diff-overlay"></canvas>
                             <div id="diff-legend" class="diff-legend" hidden></div>
                             <div id="diff-empty-hint">Configure and run a simulation to begin.</div>
@@ -1721,6 +1863,8 @@
                     <option value="path-highlight" hidden>Highlight selected paths</option>
                     <option value="path-only" hidden>Show only selected paths</option>
                     <option value="edge-highlight" hidden>Highlight only edge</option>
+                    <option value="edge-group-highlight" hidden>Highlight edge group</option>
+                    <option value="edge-group-only" hidden>Show only edge group</option>
                     <option value="edge-attribute-highlight" hidden>Highlight matching edge attributes</option>
                     <option value="edge-attribute-only" hidden>Show only matching edge attributes</option>
                     <option value="ego-highlight">Highlight ego-network</option>
@@ -1822,6 +1966,7 @@
 <script src="diffusion-charts.js"></script>
 <script src="attribute-relationships.js"></script>
 <script src="chart-settings.js"></script>
+<script src="offline-maps.js"></script>
 <script src="geographic-map.js"></script>
 <script src="h3-navigation.js"></script>
 <script src="geographic-export.js"></script>
@@ -1830,6 +1975,8 @@
 <script src="network-view.js"></script>
 <script src="filter-builder.js"></script>
 <script src="community-explorer.js"></script>
+<script src="edge-partition-explorer.js"></script>
+<script src="process-panel.js"></script>
 <script src="app.js"></script>
 <script type="module" src="cosmograph-spike.js"></script>
 <script type="module" src="sigma-edge-curve.js"></script>

@@ -9,6 +9,7 @@
 package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.grid.Grid;
 import es.uam.eps.ir.relison.grid.sna.graph.GraphMetricSelector;
 import es.uam.eps.ir.relison.grid.sna.pair.PairMetricIdentifiers;
@@ -342,11 +343,11 @@ public class MetricController
         long evaluated;
         if (estimated)
         {
-            evaluated = samplePairs(graph, nodes, metric, collect);
+            evaluated = samplePairs(graph, nodes, metric, collect, "Sampling pairs: statistics");
         }
         else
         {
-            forEachPair(graph, nodes, directed, metric, collect);
+            forEachPair(graph, nodes, directed, metric, collect, "Computing pairs: statistics");
             evaluated = totalPairs;
         }
 
@@ -368,8 +369,8 @@ public class MetricController
                 if (idx < 0) idx = 0;
                 counts[idx]++;
             };
-            if (estimated) samplePairs(graph, nodes, metric, bin);
-            else forEachPair(graph, nodes, directed, metric, bin);
+            if (estimated) samplePairs(graph, nodes, metric, bin, "Sampling pairs: histogram");
+            else forEachPair(graph, nodes, directed, metric, bin, "Computing pairs: histogram");
         }
 
         List<Map<String, Object>> histogram = new ArrayList<>();
@@ -400,9 +401,13 @@ public class MetricController
     }
 
     /** Applies the consumer to the metric value of every ordered (directed) / unordered (undirected) node pair. */
-    private void forEachPair(Graph<String> graph, List<String> nodes, boolean directed, PairMetric<String> metric, java.util.function.DoubleConsumer consumer)
+    private void forEachPair(Graph<String> graph, List<String> nodes, boolean directed, PairMetric<String> metric, java.util.function.DoubleConsumer consumer, String phase)
     {
         int n = nodes.size();
+        ComputationMonitor monitor = ComputationMonitor.current();
+        long total = directed ? (long) n * (n - 1) : (long) n * (n - 1) / 2;
+        long done = 0;
+        monitor.progress(phase, 0, total, "pairs");
         for (int i = 0; i < n; i++)
         {
             // Cooperative cancellation: the all-pairs sweep can be enormous, so bail out promptly when the Stop
@@ -412,15 +417,20 @@ public class MetricController
             for (int j = jStart; j < n; j++)
             {
                 if (directed && i == j) continue;
+                monitor.checkCancelled();
                 consumer.accept(metric.compute(graph, nodes.get(i), nodes.get(j)));
+                done++;
+                if (done == 1 || done == total || (done & 1023) == 0) monitor.progress(phase, done, total, "pairs");
             }
         }
     }
 
     /** Applies the consumer to a fixed-size random sample of distinct node pairs (same seed for both passes). */
-    private long samplePairs(Graph<String> graph, List<String> nodes, PairMetric<String> metric, java.util.function.DoubleConsumer consumer)
+    private long samplePairs(Graph<String> graph, List<String> nodes, PairMetric<String> metric, java.util.function.DoubleConsumer consumer, String phase)
     {
         int n = nodes.size();
+        ComputationMonitor monitor = ComputationMonitor.current();
+        monitor.progress(phase, 0, SAMPLE_SIZE, "sample draws");
         Random rnd = new Random(42);
         long taken = 0;
         for (int k = 0; k < SAMPLE_SIZE; k++)
@@ -428,9 +438,11 @@ public class MetricController
             if ((k & 0xFFF) == 0 && Thread.currentThread().isInterrupted())
                 throw new java.util.concurrent.CancellationException();
             int i = rnd.nextInt(n), j = rnd.nextInt(n);
-            if (i == j) continue;
+            monitor.checkCancelled();
+            if (i == j) { if ((k & 1023) == 0 || k + 1 == SAMPLE_SIZE) monitor.progress(phase, k + 1L, SAMPLE_SIZE, "sample draws"); continue; }
             consumer.accept(metric.compute(graph, nodes.get(i), nodes.get(j)));
             taken++;
+            if (k == 0 || (k & 1023) == 0 || k + 1 == SAMPLE_SIZE) monitor.progress(phase, k + 1L, SAMPLE_SIZE, "sample draws");
         }
         return taken;
     }

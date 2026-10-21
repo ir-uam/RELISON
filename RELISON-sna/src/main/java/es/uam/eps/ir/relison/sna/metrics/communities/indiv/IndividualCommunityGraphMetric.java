@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.communities.indiv;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.generator.SubGraphGenerator;
 import es.uam.eps.ir.relison.sna.community.Communities;
@@ -60,7 +62,7 @@ public class IndividualCommunityGraphMetric<U> implements IndividualCommunityMet
     @Override
     public Map<Integer, Double> compute(Graph<U> graph, Communities<U> communities)
     {
-        Map<Integer, Double> values = new LinkedHashMap<>();
+        Map<Integer, Double> values = ComputationMonitor.current().track(new LinkedHashMap<>(), "Computing community values", communities.getNumCommunities(), "communities");
         communities.getCommunities().forEach(community -> values.put(community, compute(graph, communities, community)));
         return values;
     }

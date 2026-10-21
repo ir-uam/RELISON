@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.distance.vertex;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.relison.sna.metrics.distance.FastDistanceCalculator;
@@ -112,7 +114,7 @@ public class Closeness<U> implements VertexMetric<U>
     @Override
     public Map<U, Double> compute(Graph<U> graph)
     {
-        Map<U, Double> closeness = new HashMap<>();
+        Map<U, Double> closeness = ComputationMonitor.current().track(new HashMap<>(), "Computing node values", graph.getVertexCount(), "nodes");
         graph.getAllNodes().forEach(u -> closeness.put(u, this.compute(graph, u)));
         return closeness;
     }

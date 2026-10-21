@@ -120,6 +120,13 @@
         const nodes = new Set(), edges = new Set();
         const only = mode.endsWith("-only");
         const result = { nodes, edges, only, type, selected: type === "node" ? selection.node : null };
+        if (mode.startsWith("edge-group-")) {
+            (selection.edgeGroup || []).forEach(edge => {
+                if (!working.edges.has(edge)) return;
+                edges.add(edge); nodes.add(graph.source(edge)); nodes.add(graph.target(edge));
+            });
+            return result;
+        }
         if (type === "path") {
             if (!selection.paths.length) return null;
             const pairs = new Set();

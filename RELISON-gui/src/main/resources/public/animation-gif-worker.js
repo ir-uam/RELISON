@@ -4,9 +4,8 @@ self.onmessage = async ({ data }) => {
     const { id, type } = data;
     try {
         if (type === "start") {
-            // Use the published native ESM source. The CDN-transformed bundle
-            // exposes only the default constructor and drops the palette helpers.
-            const module = await import("https://cdn.jsdelivr.net/npm/gifenc@1.0.3/src/index.js");
+            // The local ESM bundle retains the encoder and palette helpers.
+            const module = await import("./vendor/esm/gifenc.js");
             library = [module, module.default].find(candidate => candidate &&
                 ["GIFEncoder", "quantize", "applyPalette"].every(name => typeof candidate[name] === "function"));
             if (!library) throw new Error("The GIF module did not expose a compatible encoder.");

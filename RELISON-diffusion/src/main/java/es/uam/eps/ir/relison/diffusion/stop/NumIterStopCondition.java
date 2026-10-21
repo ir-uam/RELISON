@@ -37,6 +37,9 @@ public class NumIterStopCondition<U extends Serializable,I extends Serializable,
         this.limit = limit;
     }
     
+    /** The configured upper iteration index (iteration zero is included). */
+    public int getLimit() { return limit; }
+
     @Override
     public boolean stop(int numIter, int numPropagated, int propagatingUsers, long newlyPropagated, long totalPropagated, Data<U, I, F> data, Long timestamp)
     {

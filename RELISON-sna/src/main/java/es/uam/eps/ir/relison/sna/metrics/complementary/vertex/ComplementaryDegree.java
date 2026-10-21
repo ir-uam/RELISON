@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.complementary.vertex;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.DirectedGraph;
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.UndirectedGraph;
@@ -58,7 +60,7 @@ public class ComplementaryDegree<U> implements VertexMetric<U>
     @Override
     public Map<U, Double> compute(Graph<U> graph)
     {
-        Map<U, Double> metrics = new HashMap<>();
+        Map<U, Double> metrics = ComputationMonitor.current().track(new HashMap<>(), "Computing node values", graph.getVertexCount(), "nodes");
         graph.getAllNodes().forEach((node) -> metrics.put(node, this.compute(graph, node)));
         return metrics;
     }

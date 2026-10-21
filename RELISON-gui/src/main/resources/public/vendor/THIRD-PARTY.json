@@ -1,0 +1,1480 @@
+[
+  {
+    "name": "@babel/runtime",
+    "version": "7.29.10",
+    "license": "MIT",
+    "notices": [
+      "licenses/@babel__runtime/LICENSE"
+    ]
+  },
+  {
+    "name": "@cosmograph/cosmograph",
+    "version": "2.5.1",
+    "license": "CC-BY-NC-4.0",
+    "notices": [
+      "licenses/@cosmograph__cosmograph/LICENSE"
+    ]
+  },
+  {
+    "name": "@cosmograph/cosmos",
+    "version": "2.5.1",
+    "license": "CC-BY-NC-4.0",
+    "notices": [
+      "licenses/@cosmograph__cosmos/LICENSE"
+    ]
+  },
+  {
+    "name": "@cosmograph/ui",
+    "version": "2.5.1",
+    "license": "CC-BY-NC-4.0",
+    "notices": [
+      "licenses/@cosmograph__ui/LICENSE"
+    ]
+  },
+  {
+    "name": "@duckdb/duckdb-wasm",
+    "version": "1.32.0",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "@esbuild/win32-x64",
+    "version": "0.28.2",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "@fontsource-variable/material-symbols-outlined",
+    "version": "5.3.9",
+    "license": "OFL-1.1",
+    "notices": [
+      "licenses/@fontsource-variable__material-symbols-outlined/LICENSE"
+    ]
+  },
+  {
+    "name": "@interacta/css-labels",
+    "version": "0.6.0",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "@juggle/resize-observer",
+    "version": "3.4.0",
+    "license": "Apache-2.0",
+    "notices": [
+      "licenses/@juggle__resize-observer/LICENSE"
+    ]
+  },
+  {
+    "name": "@luma.gl/core",
+    "version": "9.3.6",
+    "license": "MIT",
+    "notices": [
+      "licenses/@luma.gl__core/LICENSE"
+    ]
+  },
+  {
+    "name": "@luma.gl/engine",
+    "version": "9.3.6",
+    "license": "MIT",
+    "notices": [
+      "licenses/@luma.gl__engine/LICENSE"
+    ]
+  },
+  {
+    "name": "@luma.gl/shadertools",
+    "version": "9.3.6",
+    "license": "MIT",
+    "notices": [
+      "licenses/@luma.gl__shadertools/LICENSE"
+    ]
+  },
+  {
+    "name": "@luma.gl/webgl",
+    "version": "9.3.6",
+    "license": "MIT",
+    "notices": [
+      "licenses/@luma.gl__webgl/LICENSE"
+    ]
+  },
+  {
+    "name": "@math.gl/core",
+    "version": "4.1.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@math.gl__core/LICENSE"
+    ]
+  },
+  {
+    "name": "@math.gl/types",
+    "version": "4.1.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@math.gl__types/LICENSE"
+    ]
+  },
+  {
+    "name": "@observablehq/plot",
+    "version": "0.6.17",
+    "license": "ISC",
+    "notices": [
+      "licenses/@observablehq__plot/LICENSE"
+    ]
+  },
+  {
+    "name": "@probe.gl/env",
+    "version": "4.1.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/@probe.gl__env/LICENSE"
+    ]
+  },
+  {
+    "name": "@probe.gl/log",
+    "version": "4.1.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/@probe.gl__log/LICENSE"
+    ]
+  },
+  {
+    "name": "@probe.gl/stats",
+    "version": "4.1.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/@probe.gl__stats/LICENSE"
+    ]
+  },
+  {
+    "name": "@sigma/edge-curve",
+    "version": "3.1.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@sigma__edge-curve/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "@supabase/auth-js",
+    "version": "2.118.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@supabase__auth-js/LICENSE"
+    ]
+  },
+  {
+    "name": "@supabase/functions-js",
+    "version": "2.118.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@supabase__functions-js/LICENSE"
+    ]
+  },
+  {
+    "name": "@supabase/phoenix",
+    "version": "0.4.5",
+    "license": "MIT",
+    "notices": [
+      "licenses/@supabase__phoenix/LICENSE.md"
+    ]
+  },
+  {
+    "name": "@supabase/postgrest-js",
+    "version": "2.118.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@supabase__postgrest-js/LICENSE"
+    ]
+  },
+  {
+    "name": "@supabase/realtime-js",
+    "version": "2.118.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@supabase__realtime-js/LICENSE"
+    ]
+  },
+  {
+    "name": "@supabase/storage-js",
+    "version": "2.118.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@supabase__storage-js/LICENSE"
+    ]
+  },
+  {
+    "name": "@supabase/supabase-js",
+    "version": "2.118.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@supabase__supabase-js/LICENSE"
+    ]
+  },
+  {
+    "name": "@swc/helpers",
+    "version": "0.5.23",
+    "license": "Apache-2.0",
+    "notices": [
+      "licenses/@swc__helpers/LICENSE"
+    ]
+  },
+  {
+    "name": "@turf/boolean-point-in-polygon",
+    "version": "7.4.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@turf__boolean-point-in-polygon/LICENSE"
+    ]
+  },
+  {
+    "name": "@turf/helpers",
+    "version": "7.4.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@turf__helpers/LICENSE"
+    ]
+  },
+  {
+    "name": "@turf/invariant",
+    "version": "7.4.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@turf__invariant/LICENSE"
+    ]
+  },
+  {
+    "name": "@tweenjs/tween.js",
+    "version": "25.0.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/@tweenjs__tween.js/LICENSE"
+    ]
+  },
+  {
+    "name": "@types/command-line-args",
+    "version": "5.2.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/@types__command-line-args/LICENSE"
+    ]
+  },
+  {
+    "name": "@types/command-line-usage",
+    "version": "5.0.4",
+    "license": "MIT",
+    "notices": [
+      "licenses/@types__command-line-usage/LICENSE"
+    ]
+  },
+  {
+    "name": "@types/geojson",
+    "version": "7946.0.16",
+    "license": "MIT",
+    "notices": [
+      "licenses/@types__geojson/LICENSE"
+    ]
+  },
+  {
+    "name": "@types/node",
+    "version": "20.19.43",
+    "license": "MIT",
+    "notices": [
+      "licenses/@types__node/LICENSE"
+    ]
+  },
+  {
+    "name": "@types/offscreencanvas",
+    "version": "2019.7.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/@types__offscreencanvas/LICENSE"
+    ]
+  },
+  {
+    "name": "@types/trusted-types",
+    "version": "2.0.7",
+    "license": "MIT",
+    "notices": [
+      "licenses/@types__trusted-types/LICENSE"
+    ]
+  },
+  {
+    "name": "@uwdata/flechette",
+    "version": "2.7.0",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "licenses/@uwdata__flechette/LICENSE"
+    ]
+  },
+  {
+    "name": "@uwdata/mosaic-core",
+    "version": "0.21.1",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "licenses/@uwdata__mosaic-core/LICENSE"
+    ]
+  },
+  {
+    "name": "@duckdb/duckdb-wasm",
+    "version": "1.30.0",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "@uwdata/mosaic-inputs",
+    "version": "0.21.1",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "licenses/@uwdata__mosaic-inputs/LICENSE"
+    ]
+  },
+  {
+    "name": "@uwdata/mosaic-plot",
+    "version": "0.21.1",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "licenses/@uwdata__mosaic-plot/LICENSE"
+    ]
+  },
+  {
+    "name": "@uwdata/mosaic-sql",
+    "version": "0.21.1",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "licenses/@uwdata__mosaic-sql/LICENSE"
+    ]
+  },
+  {
+    "name": "@uwdata/vgplot",
+    "version": "0.21.1",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "licenses/@uwdata__vgplot/LICENSE"
+    ]
+  },
+  {
+    "name": "@uwdata/wk-geojson",
+    "version": "0.0.1",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "licenses/@uwdata__wk-geojson/LICENSE"
+    ]
+  },
+  {
+    "name": "@xmldom/xmldom",
+    "version": "0.8.15",
+    "license": "MIT",
+    "notices": [
+      "licenses/@xmldom__xmldom/LICENSE"
+    ]
+  },
+  {
+    "name": "@yomguithereal/helpers",
+    "version": "1.1.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/@yomguithereal__helpers/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "accessor-fn",
+    "version": "1.5.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/accessor-fn/LICENSE"
+    ]
+  },
+  {
+    "name": "ansi-styles",
+    "version": "4.3.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/ansi-styles/license"
+    ]
+  },
+  {
+    "name": "apache-arrow",
+    "version": "17.0.0",
+    "license": "Apache-2.0",
+    "notices": [
+      "licenses/apache-arrow/LICENSE.txt",
+      "licenses/apache-arrow/NOTICE.txt"
+    ]
+  },
+  {
+    "name": "array-back",
+    "version": "3.1.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/array-back/LICENSE"
+    ]
+  },
+  {
+    "name": "binary-search-bounds",
+    "version": "2.0.5",
+    "license": "MIT",
+    "notices": [
+      "licenses/binary-search-bounds/LICENSE"
+    ]
+  },
+  {
+    "name": "chalk",
+    "version": "4.1.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/chalk/license"
+    ]
+  },
+  {
+    "name": "chalk-template",
+    "version": "0.4.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/chalk-template/license"
+    ]
+  },
+  {
+    "name": "color-convert",
+    "version": "2.0.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/color-convert/LICENSE"
+    ]
+  },
+  {
+    "name": "color-name",
+    "version": "1.1.4",
+    "license": "MIT",
+    "notices": [
+      "licenses/color-name/LICENSE"
+    ]
+  },
+  {
+    "name": "command-line-args",
+    "version": "5.2.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/command-line-args/LICENSE"
+    ]
+  },
+  {
+    "name": "command-line-usage",
+    "version": "7.0.4",
+    "license": "MIT",
+    "notices": [
+      "licenses/command-line-usage/LICENCE"
+    ]
+  },
+  {
+    "name": "array-back",
+    "version": "6.2.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/command-line-usage__array-back/LICENSE"
+    ]
+  },
+  {
+    "name": "typical",
+    "version": "7.3.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/command-line-usage__typical/LICENSE"
+    ]
+  },
+  {
+    "name": "commander",
+    "version": "7.2.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/commander/LICENSE"
+    ]
+  },
+  {
+    "name": "csstype",
+    "version": "3.2.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/csstype/LICENSE"
+    ]
+  },
+  {
+    "name": "d3",
+    "version": "7.9.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-array",
+    "version": "3.2.4",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-array/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-axis",
+    "version": "3.0.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-axis/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-brush",
+    "version": "3.0.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-brush/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-chord",
+    "version": "3.0.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-chord/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-color",
+    "version": "3.1.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-color/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-contour",
+    "version": "4.0.2",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-contour/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-delaunay",
+    "version": "6.0.4",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-delaunay/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-dispatch",
+    "version": "3.0.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-dispatch/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-drag",
+    "version": "3.0.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-drag/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-dsv",
+    "version": "3.0.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-dsv/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-ease",
+    "version": "3.0.1",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "licenses/d3-ease/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-fetch",
+    "version": "3.0.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-fetch/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-force",
+    "version": "3.0.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-force/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-format",
+    "version": "3.1.2",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-format/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-geo",
+    "version": "3.1.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-geo/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-geo-voronoi",
+    "version": "2.1.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-geo-voronoi/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-hierarchy",
+    "version": "3.1.2",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-hierarchy/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-interpolate",
+    "version": "3.0.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-interpolate/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-octree",
+    "version": "1.1.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/d3-octree/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-path",
+    "version": "3.1.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-path/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-polygon",
+    "version": "3.0.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-polygon/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-quadtree",
+    "version": "3.0.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-quadtree/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-random",
+    "version": "3.0.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-random/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-scale",
+    "version": "4.0.2",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-scale/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-scale-chromatic",
+    "version": "3.1.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-scale-chromatic/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-selection",
+    "version": "3.0.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-selection/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-shape",
+    "version": "3.2.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-shape/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-time",
+    "version": "3.1.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-time/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-time-format",
+    "version": "4.1.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-time-format/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-timer",
+    "version": "3.0.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-timer/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-transition",
+    "version": "3.0.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-transition/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-tricontour",
+    "version": "1.1.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-tricontour/LICENSE"
+    ]
+  },
+  {
+    "name": "d3-zoom",
+    "version": "3.0.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/d3-zoom/LICENSE"
+    ]
+  },
+  {
+    "name": "data-bind-mapper",
+    "version": "1.0.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/data-bind-mapper/LICENSE"
+    ]
+  },
+  {
+    "name": "delaunator",
+    "version": "5.1.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/delaunator/LICENSE"
+    ]
+  },
+  {
+    "name": "dompurify",
+    "version": "3.4.17",
+    "license": "(MPL-2.0 OR Apache-2.0)",
+    "notices": [
+      "licenses/dompurify/LICENSE"
+    ]
+  },
+  {
+    "name": "earcut",
+    "version": "3.2.4",
+    "license": "ISC",
+    "notices": [
+      "licenses/earcut/LICENSE"
+    ]
+  },
+  {
+    "name": "echarts",
+    "version": "6.1.0",
+    "license": "Apache-2.0",
+    "notices": [
+      "licenses/echarts/LICENSE",
+      "licenses/echarts/NOTICE"
+    ]
+  },
+  {
+    "name": "tslib",
+    "version": "2.3.0",
+    "license": "0BSD",
+    "notices": [
+      "licenses/echarts__tslib/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "esbuild",
+    "version": "0.28.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/esbuild/LICENSE.md"
+    ]
+  },
+  {
+    "name": "events",
+    "version": "3.3.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/events/LICENSE"
+    ]
+  },
+  {
+    "name": "fast-deep-equal",
+    "version": "3.1.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/fast-deep-equal/LICENSE"
+    ]
+  },
+  {
+    "name": "find-replace",
+    "version": "3.0.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/find-replace/LICENSE"
+    ]
+  },
+  {
+    "name": "flatbuffers",
+    "version": "24.12.23",
+    "license": "Apache-2.0",
+    "notices": [
+      "licenses/flatbuffers/LICENSE"
+    ]
+  },
+  {
+    "name": "float-tooltip",
+    "version": "1.7.5",
+    "license": "MIT",
+    "notices": [
+      "licenses/float-tooltip/LICENSE"
+    ]
+  },
+  {
+    "name": "frame-ticker",
+    "version": "1.0.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/frame-ticker/LICENSE.md"
+    ]
+  },
+  {
+    "name": "gifenc",
+    "version": "1.0.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/gifenc/LICENSE.md"
+    ]
+  },
+  {
+    "name": "gl-bench",
+    "version": "1.0.42",
+    "license": "MIT",
+    "notices": [
+      "licenses/gl-bench/LICENSE"
+    ]
+  },
+  {
+    "name": "gl-matrix",
+    "version": "3.4.4",
+    "license": "MIT",
+    "notices": [
+      "licenses/gl-matrix/LICENSE.md"
+    ]
+  },
+  {
+    "name": "globe.gl",
+    "version": "2.46.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/globe.gl/LICENSE"
+    ]
+  },
+  {
+    "name": "goober",
+    "version": "2.1.19",
+    "license": "MIT",
+    "notices": [
+      "licenses/goober/LICENSE"
+    ]
+  },
+  {
+    "name": "graphology",
+    "version": "0.25.4",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-assertions",
+    "version": "2.2.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-assertions/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-canvas",
+    "version": "0.4.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-canvas/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-layout",
+    "version": "0.6.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-canvas__graphology-layout/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "pandemonium",
+    "version": "1.5.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-canvas__pandemonium/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-communities-louvain",
+    "version": "2.0.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-communities-louvain/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-components",
+    "version": "1.5.4",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-components/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-generators",
+    "version": "0.11.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-generators/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-gexf",
+    "version": "0.10.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-gexf/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-graphml",
+    "version": "0.5.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-graphml/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-indices",
+    "version": "0.17.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-indices/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-layout",
+    "version": "0.6.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-layout/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-layout-force",
+    "version": "0.2.4",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "graphology-layout-forceatlas2",
+    "version": "0.10.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-layout-forceatlas2/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-layout-noverlap",
+    "version": "0.4.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-layout-noverlap/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-library",
+    "version": "0.8.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-library/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-metrics",
+    "version": "2.1.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-metrics/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-operators",
+    "version": "1.6.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-operators/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-shortest-path",
+    "version": "2.0.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-shortest-path/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-simple-path",
+    "version": "0.2.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-simple-path/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-utils",
+    "version": "1.8.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-simple-path__graphology-utils/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-svg",
+    "version": "0.1.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-svg/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-traversal",
+    "version": "0.3.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-traversal/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-types",
+    "version": "0.24.8",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-types/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "graphology-utils",
+    "version": "2.5.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/graphology-utils/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "h3-js",
+    "version": "4.5.0",
+    "license": "Apache-2.0",
+    "notices": [
+      "licenses/h3-js/LICENSE",
+      "licenses/h3-js/NOTICE"
+    ]
+  },
+  {
+    "name": "has-flag",
+    "version": "4.0.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/has-flag/license"
+    ]
+  },
+  {
+    "name": "iceberg-js",
+    "version": "0.8.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/iceberg-js/LICENSE"
+    ]
+  },
+  {
+    "name": "iconv-lite",
+    "version": "0.6.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/iconv-lite/LICENSE"
+    ]
+  },
+  {
+    "name": "index-array-by",
+    "version": "1.4.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/index-array-by/LICENSE"
+    ]
+  },
+  {
+    "name": "internmap",
+    "version": "2.0.3",
+    "license": "ISC",
+    "notices": [
+      "licenses/internmap/LICENSE"
+    ]
+  },
+  {
+    "name": "interval-tree-1d",
+    "version": "1.0.4",
+    "license": "MIT",
+    "notices": [
+      "licenses/interval-tree-1d/LICENSE"
+    ]
+  },
+  {
+    "name": "isoformat",
+    "version": "0.2.1",
+    "license": "ISC",
+    "notices": [
+      "licenses/isoformat/LICENSE"
+    ]
+  },
+  {
+    "name": "json-bignum",
+    "version": "0.0.3",
+    "notices": [
+      "licenses/json-bignum/LICENSE"
+    ]
+  },
+  {
+    "name": "kapsule",
+    "version": "1.16.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/kapsule/LICENSE"
+    ]
+  },
+  {
+    "name": "leaflet",
+    "version": "1.9.4",
+    "license": "BSD-2-Clause",
+    "notices": [
+      "licenses/leaflet/LICENSE"
+    ]
+  },
+  {
+    "name": "lodash-es",
+    "version": "4.18.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/lodash-es/LICENSE"
+    ]
+  },
+  {
+    "name": "lodash.camelcase",
+    "version": "4.3.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/lodash.camelcase/LICENSE"
+    ]
+  },
+  {
+    "name": "mnemonist",
+    "version": "0.39.8",
+    "license": "MIT",
+    "notices": [
+      "licenses/mnemonist/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "obliterator",
+    "version": "2.0.5",
+    "license": "MIT",
+    "notices": [
+      "licenses/obliterator/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "pandemonium",
+    "version": "2.4.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/pandemonium/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "point-in-polygon-hao",
+    "version": "1.2.4",
+    "license": "MIT",
+    "notices": [
+      "licenses/point-in-polygon-hao/LICENSE"
+    ]
+  },
+  {
+    "name": "polished",
+    "version": "4.3.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/polished/LICENSE.md"
+    ]
+  },
+  {
+    "name": "preact",
+    "version": "10.29.8",
+    "license": "MIT",
+    "notices": [
+      "licenses/preact/LICENSE"
+    ]
+  },
+  {
+    "name": "random",
+    "version": "4.1.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/random/license"
+    ]
+  },
+  {
+    "name": "robust-predicates",
+    "version": "3.0.3",
+    "license": "Unlicense",
+    "notices": [
+      "licenses/robust-predicates/LICENSE"
+    ]
+  },
+  {
+    "name": "rw",
+    "version": "1.3.3",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "licenses/rw/LICENSE"
+    ]
+  },
+  {
+    "name": "safer-buffer",
+    "version": "2.1.2",
+    "license": "MIT",
+    "notices": [
+      "licenses/safer-buffer/LICENSE"
+    ]
+  },
+  {
+    "name": "seedrandom",
+    "version": "3.0.5",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "sigma",
+    "version": "3.0.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/sigma/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "simplesignal",
+    "version": "2.1.7",
+    "license": "MIT",
+    "notices": [
+      "licenses/simplesignal/LICENSE.md"
+    ]
+  },
+  {
+    "name": "supports-color",
+    "version": "7.2.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/supports-color/license"
+    ]
+  },
+  {
+    "name": "table-layout",
+    "version": "4.1.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/table-layout/LICENSE"
+    ]
+  },
+  {
+    "name": "array-back",
+    "version": "6.2.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/table-layout__array-back/LICENSE"
+    ]
+  },
+  {
+    "name": "three",
+    "version": "0.180.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/three/LICENSE"
+    ]
+  },
+  {
+    "name": "three-conic-polygon-geometry",
+    "version": "2.1.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/three-conic-polygon-geometry/LICENSE"
+    ]
+  },
+  {
+    "name": "three-geojson-geometry",
+    "version": "2.1.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/three-geojson-geometry/LICENSE"
+    ]
+  },
+  {
+    "name": "three-globe",
+    "version": "2.45.6",
+    "license": "MIT",
+    "notices": [
+      "licenses/three-globe/LICENSE"
+    ]
+  },
+  {
+    "name": "three-render-objects",
+    "version": "1.43.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/three-render-objects/LICENSE"
+    ]
+  },
+  {
+    "name": "three-slippy-map-globe",
+    "version": "1.0.6",
+    "license": "MIT",
+    "notices": [
+      "licenses/three-slippy-map-globe/LICENSE"
+    ]
+  },
+  {
+    "name": "tinycolor2",
+    "version": "1.6.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/tinycolor2/LICENSE"
+    ]
+  },
+  {
+    "name": "topojson-client",
+    "version": "3.1.0",
+    "license": "ISC",
+    "notices": [
+      "licenses/topojson-client/LICENSE"
+    ]
+  },
+  {
+    "name": "commander",
+    "version": "2.20.3",
+    "license": "MIT",
+    "notices": [
+      "licenses/topojson-client__commander/LICENSE"
+    ]
+  },
+  {
+    "name": "tslib",
+    "version": "2.8.1",
+    "license": "0BSD",
+    "notices": [
+      "licenses/tslib/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "typical",
+    "version": "4.0.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/typical/LICENSE"
+    ]
+  },
+  {
+    "name": "undici-types",
+    "version": "6.21.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/undici-types/LICENSE"
+    ]
+  },
+  {
+    "name": "wordwrapjs",
+    "version": "5.1.1",
+    "license": "MIT",
+    "notices": [
+      "licenses/wordwrapjs/LICENSE"
+    ]
+  },
+  {
+    "name": "world-atlas",
+    "version": "2.0.2",
+    "license": "ISC",
+    "notices": [
+      "licenses/world-atlas/LICENSE"
+    ]
+  },
+  {
+    "name": "xml-writer",
+    "version": "1.7.0",
+    "license": "MIT",
+    "notices": [
+      "licenses/xml-writer/LICENSE"
+    ]
+  },
+  {
+    "name": "zrender",
+    "version": "6.1.0",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "licenses/zrender/LICENSE"
+    ]
+  },
+  {
+    "name": "tslib",
+    "version": "2.3.0",
+    "license": "0BSD",
+    "notices": [
+      "licenses/zrender__tslib/LICENSE.txt"
+    ]
+  }
+]

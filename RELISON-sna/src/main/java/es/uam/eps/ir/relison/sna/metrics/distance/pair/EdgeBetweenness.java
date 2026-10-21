@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.distance.pair;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.sna.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
@@ -153,7 +155,7 @@ public class EdgeBetweenness<U> implements PairMetric<U>
     @Override
     public Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph)
     {
-        Map<Pair<U>, Double> values = new HashMap<>();
+        Map<Pair<U>, Double> values = ComputationMonitor.current().track(new HashMap<>(), "Computing edge values", ComputationMonitor.current() == ComputationMonitor.NONE ? -1 : graph.getAllNodes().mapToLong(source -> graph.getAdjacentNodes(source).count()).sum(), "endpoint pairs");
         this.dc.computeDistances(graph);
         Map<U, Map<U, Double>> betwenness = this.dc.getEdgeBetweenness();
 

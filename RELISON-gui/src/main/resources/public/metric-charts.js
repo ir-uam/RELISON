@@ -201,7 +201,7 @@ function chartBase(colors, title) {
 }
 
 function showsMetricChartTitle(canvasId) {
-    return !["node-chart", "edge-chart", "comm-chart", "attrcomm-chart", "edgeattr-chart",
+    return !["node-chart", "edge-chart", "comm-chart", "attrcomm-chart", "edgeattr-chart", "ep-chart",
         "node-scatter", "edge-scatter", "comm-scatter"].includes(canvasId);
 }
 
@@ -374,7 +374,8 @@ function metricBarView(canvasId, items) {
 
 function setupMetricBarControls() {
     const charts = [["node-chart", drawNodeChart], ["edge-chart", drawEdgeChart],
-        ["comm-chart", drawCommChart], ["attrcomm-chart", drawAttributeCommChart], ["edgeattr-chart", drawEdgeAttributeChart]];
+        ["comm-chart", drawCommChart], ["attrcomm-chart", drawAttributeCommChart], ["edgeattr-chart", drawEdgeAttributeChart],
+        ["ep-chart", drawEdgePartitionChart]];
     charts.forEach(([id, redraw]) => {
         const orientation = $(id + "-orientation"), show = $(id + "-show"), k = $(id + "-k");
         const sync = () => {
@@ -440,7 +441,7 @@ function drawBarChart(canvasId, tipId, items, title, xLabel, yLabel, showAxisNam
     const barColor = colors.chartStyle === "glass-panel" || histogram
         ? new echarts.graphic.LinearGradient(0, 0, horizontal ? 1 : 0, horizontal ? 0 : 1, [{ offset: 0, color: colors.accent }, { offset: 1, color: colors.accent + "55" }])
         : colors.accent;
-    option.series = [{ type: "bar", data: items.map((d) => d.value), barMaxWidth: histogram ? 48 : colors.chartStyle === "editorial" ? 30 : 38,
+    option.series = [{ type: "bar", data: items.map(d => d.color ? { value: d.value, itemStyle: { color: d.color } } : d.value), barMaxWidth: histogram ? 48 : colors.chartStyle === "editorial" ? 30 : 38,
         barMinHeight: histogram ? 3 : 0, barCategoryGap: histogram ? "12%" : "20%",
         itemStyle: { color: barColor, borderRadius: horizontal
             ? [colors.barRadius[3], colors.barRadius[0], colors.barRadius[1], colors.barRadius[2]] : colors.barRadius,

@@ -1,4 +1,4 @@
-import { Cosmograph, prepareCosmographData } from "https://esm.sh/@cosmograph/cosmograph@2.5.1?bundle";
+import { Cosmograph, prepareCosmographData } from "./vendor/esm/cosmograph.js";
 
 let instance = null;
 let spaceDimensions = 2;

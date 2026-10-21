@@ -11,6 +11,7 @@ package es.uam.eps.ir.relison.sna.metrics.distance;
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.graph.DirectedGraph;
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.graph.generator.EmptyGraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.GraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.exception.GeneratorBadConfiguredException;
@@ -80,6 +81,10 @@ public class BetweennessDistanceCalculator<U> implements DistanceCalculator<U>
             return true;
         }
 
+        ComputationMonitor monitor = ComputationMonitor.current();
+        monitor.phase("Preparing betweenness");
+        this.graph = null;
+        long[] processed = {0};
         this.flag = true;
         this.nodeBetweenness = new ConcurrentHashMap<>();
         this.edgeBetweenness = new ConcurrentHashMap<>();
@@ -98,6 +103,7 @@ public class BetweennessDistanceCalculator<U> implements DistanceCalculator<U>
 
         graph.getAllNodes().forEach(u ->
         {
+            monitor.checkCancelled();
             DirectedGraph<U> tree;
             try
             {
@@ -125,6 +131,7 @@ public class BetweennessDistanceCalculator<U> implements DistanceCalculator<U>
                 queue.add(u);
                 while (!queue.isEmpty())
                 {
+                    monitor.checkCancelled();
                     U current = queue.poll();
 
                     graph.getAdjacentNodes(current).forEach(node ->
@@ -164,6 +171,7 @@ public class BetweennessDistanceCalculator<U> implements DistanceCalculator<U>
                 Map<U, Double> accumulated = new HashMap<>();
                 while (level >= 0.0)
                 {
+                    monitor.checkCancelled();
                     Set<U> ithLevel = levels.get(level);
                     ithLevel.forEach(node ->
                     {
@@ -226,6 +234,7 @@ public class BetweennessDistanceCalculator<U> implements DistanceCalculator<U>
             {
                 this.flag = false;
             }
+            monitor.progress("Computing betweenness", ++processed[0], graph.getVertexCount(), "source nodes");
         });
 
         if (!this.flag)
@@ -233,6 +242,7 @@ public class BetweennessDistanceCalculator<U> implements DistanceCalculator<U>
             return false;
         }
 
+        monitor.checkCancelled();
         this.graph = graph;
         return true;
     }

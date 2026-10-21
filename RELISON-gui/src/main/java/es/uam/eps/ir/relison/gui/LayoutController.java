@@ -3,6 +3,7 @@
 package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 
 import es.uam.eps.ir.relison.graph.Graph;
@@ -40,7 +41,16 @@ public final class LayoutController
                 ctx.status(404).json(Map.of("error", "Unknown graph id."));
                 return;
             }
-            ctx.json(compute(session.getGraph(), body));
+            ComputationMonitor monitor = ComputationMonitor.current();
+            monitor.phase("Preparing layout");
+            Prepared prepared = prepare(session.getGraph(), body, () -> {
+                monitor.checkCancelled();
+                return false;
+            });
+            monitor.phase("Computing layout");
+            LayoutResult<String> result = prepared.finish(prepared.layout.compute(session.getGraph(), prepared.request));
+            monitor.checkCancelled();
+            ctx.json(response(result));
         }
         catch (IllegalArgumentException error)
         {

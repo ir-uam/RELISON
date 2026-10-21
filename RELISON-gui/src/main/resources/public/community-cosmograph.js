@@ -1,4 +1,4 @@
-import { Cosmograph, prepareCosmographData } from "https://esm.sh/@cosmograph/cosmograph@2.5.1?bundle";
+import { Cosmograph, prepareCosmographData } from "./vendor/esm/cosmograph.js";
 
 // A separate instance: community exploration must not borrow the Network or Diffusion canvas/state.
 // This adapter exposes the small viewport/event interface used by the shared community inspector and exports.

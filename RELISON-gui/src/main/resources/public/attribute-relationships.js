@@ -9,7 +9,8 @@ function relationshipAxisTypes() {
 }
 
 function relationshipDefinitions(type) {
-    if (type === "community") return Object.keys(state.communityData).map(name => ({ name, numeric: false }));
+    if (type === "community") return Object.keys(state.communityData)
+        .filter(name => !isAttributeCommunityPartition(name)).map(name => ({ name, numeric: false }));
     return type === "edge" ? edgeAttrDefs() : nodeAttrDefs();
 }
 

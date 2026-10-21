@@ -5,10 +5,10 @@
     let loading;
     function load() {
         if (!loading) loading = Promise.all([
-            import("https://esm.sh/globe.gl@2.46.2?deps=three@0.180.0"),
-            import("https://esm.sh/three@0.180.0"),
-            import("https://esm.sh/topojson-client@3.1.0"),
-            fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json").then(response => {
+            import("./vendor/esm/globe.js"),
+            import("./vendor/esm/three.js"),
+            import("./vendor/esm/topojson.js"),
+            fetch("vendor/countries-110m.json").then(response => {
                 if (!response.ok) throw new Error("Could not load the globe's country boundaries.");
                 return response.json();
             }),

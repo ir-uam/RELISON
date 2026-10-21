@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.modularity;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.graph.Graph;
@@ -150,60 +152,36 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
     @Override
     public Communities<U> detectCommunities(Graph<U> graph)
     {
-        boolean modexec = false;
-
-
-
-        // First, we configure an auxiliar path for storing the Pajek graph.
-        String network = "tmpNet", path = temp;
-        new File(path).mkdir();
-
-        // If exec does not exist, then, we copy it from the resources file:
-        if(exec == null)
-        {
-            try
-            {
-                InputStream stream = getClass().getClassLoader().getResourceAsStream("Infomap");
-                assert stream != null;
-                stream = new BufferedInputStream(stream);
-
-                File outputfile = new File(temp + File.separator + "Infomap");
-                outputfile.setReadable(true, false);
-                outputfile.setWritable(true, false);
-                outputfile.setExecutable(true, false);
-
-                OutputStream out = new BufferedOutputStream(new FileOutputStream(outputfile));
-
-                byte[] buffer = new byte[1024];
-                int lengthRead;
-                while((lengthRead = stream.read(buffer)) > 0)
-                {
-                    out.write(buffer, 0, lengthRead);
-                    out.flush();
+        ComputationMonitor.current().phase("Preparing Infomap");
+        boolean bundled = exec == null;
+        java.nio.file.Path directory;
+        try {
+            java.nio.file.Files.createDirectories(java.nio.file.Path.of(temp));
+            directory = java.nio.file.Files.createTempDirectory(java.nio.file.Path.of(temp), "infomap-");
+        } catch (IOException error) { throw new UncheckedIOException(error); }
+        String path = directory.toString(), network = "tmpNet";
+        try {
+            if (bundled) {
+                try (InputStream input = getClass().getClassLoader().getResourceAsStream("Infomap")) {
+                    if (input == null) throw new IOException("Bundled Infomap executable is unavailable");
+                    java.nio.file.Path executable = directory.resolve("Infomap");
+                    java.nio.file.Files.copy(input, executable);
+                    executable.toFile().setExecutable(true);
+                    exec = executable.toString();
                 }
-                this.exec = temp + File.separator + "Infomap";
-                modexec = true;
-                out.close();
             }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
+            ComputationMonitor.current().checkCancelled();
+            GraphWriter<U> writer = new PajekGraphWriter<>();
+            if (!writer.write(graph, path + "/" + network + ".net"))
+                throw new IOException("Could not write Infomap input graph");
+            return detectCommunities(graph, network, path);
+        } catch (IOException error) { throw new UncheckedIOException(error); }
+        finally {
+            if (bundled) exec = null;
+            File[] generated = directory.toFile().listFiles();
+            if (generated != null) for (File file : generated) file.delete();
+            directory.toFile().delete();
         }
-
-        // Write the Pajek graph.
-        GraphWriter<U> graphWriter = new PajekGraphWriter<>();
-        graphWriter.write(graph, path + "/" + network + ".net");
-
-        System.out.println("File written");
-
-        Communities<U> communities = this.detectCommunities(graph, network, path);
-        // Detect communities
-        if(modexec)
-        {
-            exec = null;
-        }
-        return communities;
     }
 
     /**
@@ -221,6 +199,7 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
         Index<U> index = new FastIndex<>();
         graph.getAllNodes().forEach(index::addObject);
 
+        Process child = null;
         try
         {
             String command = exec;
@@ -230,23 +209,16 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
                 return null;
             }
 
-            // First, define the execution command
-            command += " " + path + "/" + network + ".net " + (path + "/");
-            command += " --input-format pajek";
-            command += " --seed " + this.seed;
-            command += graph.isDirected() ? " --directed" : " --undirected";
-            command += " --num-trials " + this.numTrials;
-            command += " --silent --clu --map";
-
-            System.out.println(command);
-            Process child = Runtime.getRuntime().exec(command);
-
-            Scanner sc = new Scanner(child.getInputStream());
-            while (sc.hasNext())
-            {
-                sc.nextLine();
-            }
-            child.waitFor();
+            ComputationMonitor monitor = ComputationMonitor.current();
+            monitor.phase("Running Infomap");
+            child = new ProcessBuilder(exec, path + "/" + network + ".net", path + "/",
+                    "--input-format", "pajek", "--seed", Integer.toString(seed),
+                    graph.isDirected() ? "--directed" : "--undirected", "--num-trials", Integer.toString(numTrials),
+                    "--silent", "--clu", "--map")
+                    .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+            while (!child.waitFor(200, java.util.concurrent.TimeUnit.MILLISECONDS)) monitor.checkCancelled();
+            monitor.checkCancelled();
+            if (child.exitValue() != 0) throw new IOException("Infomap exited with code " + child.exitValue());
 
             System.out.println("Communities detected");
 
@@ -260,6 +232,7 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
                 line = br.readLine(); // Remove the second line
                 while ((line = br.readLine()) != null)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     String[] split = line.split("\\s+");
                     int userId = Parsers.ip.parse(split[0]) - 1;
                     int commId = Parsers.ip.parse(split[1]);
@@ -275,20 +248,22 @@ public class Infomap<U extends Serializable> implements CommunityDetectionAlgori
 
             System.out.println("Communities found");
 
-            // Delete the auxiliar files generated by the algorithm.
-            File f = new File(path);
-            for (File file : Objects.requireNonNull(f.listFiles()))
-            {
-                file.delete();
-            }
-            f.delete();
-
             // Return the communities
             return comms;
         }
-        catch (IOException | InterruptedException ex)
-        {
-            return null;
+        catch (InterruptedException ex) {
+            Thread.currentThread().interrupt(); throw new java.util.concurrent.CancellationException("Infomap cancelled");
+        } catch (IOException ex) { throw new UncheckedIOException(ex); }
+        finally {
+            if (child != null && child.isAlive()) {
+                child.descendants().forEach(process -> process.destroyForcibly());
+                child.destroyForcibly();
+                boolean interrupted = Thread.interrupted();
+                while (child.isAlive()) {
+                    try { child.waitFor(); } catch (InterruptedException ex) { interrupted = true; }
+                }
+                if (interrupted) Thread.currentThread().interrupt();
+            }
         }
     }
 

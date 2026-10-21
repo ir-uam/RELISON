@@ -93,10 +93,10 @@ public class KatzCentrality<U> extends MatrixBasedVertexMetric<U>
         DoubleMatrix matrix = new DoubleMatrix(adj);
         DoubleMatrix eye = DoubleMatrix.eye(matrix.columns);
         eye = eye.add(matrix.mul(-alpha));
-        DoubleMatrix solved = Solve.solve(eye, DoubleMatrix.eye(matrix.columns));
-
-        solved.add(DoubleMatrix.eye(matrix.columns).mul(-1.0));
-        DoubleMatrix scores = solved.muli(DoubleMatrix.ones(matrix.columns, 1));
+        // ((I - alpha A)^-1 - I) * 1 = solve(I - alpha A, 1) - 1.
+        // Solve for the vector directly instead of constructing the full inverse.
+        DoubleMatrix scores = Solve.solve(eye, DoubleMatrix.ones(matrix.columns, 1));
+        scores.subi(1.0);
         return scores.data;
     }
 

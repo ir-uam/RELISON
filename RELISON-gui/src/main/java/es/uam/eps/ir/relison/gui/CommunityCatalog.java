@@ -57,6 +57,13 @@ public final class CommunityCatalog
         indiv(IndividualCommunityMetricIdentifiers.COMMSIZE, "Size");
         indiv(IndividualCommunityMetricIdentifiers.COMMDEGREE, "Degree", Param.orientation("orientation", "Orientation", "OUT"));
         indiv(IndividualCommunityMetricIdentifiers.VOLUME, "Volume", Param.orientation("orientation", "Orientation", "OUT"));
+        indiv(IndividualCommunityMetricIdentifiers.BOUNDARYNODES, "Boundary nodes", boundaryOrientation());
+        indiv(IndividualCommunityMetricIdentifiers.BOUNDARYNODERATIO, "Boundary-node ratio", boundaryOrientation());
+        indiv(IndividualCommunityMetricIdentifiers.NEIGHBORINGCOMMUNITIES, "Distinct neighboring communities", boundaryOrientation());
+        indiv(IndividualCommunityMetricIdentifiers.INTERNALVOLUMEFRACTION, "Internal volume fraction", boundaryOrientation(), Param.bool("weighted", "Use edge weights", false));
+        indiv(IndividualCommunityMetricIdentifiers.CONDUCTANCE, "Conductance", boundaryOrientation(), Param.bool("weighted", "Use edge weights", false));
+        indiv(IndividualCommunityMetricIdentifiers.EDGEEXPANSION, "Edge expansion", boundaryOrientation(), Param.bool("weighted", "Use edge weights", false));
+        indiv(IndividualCommunityMetricIdentifiers.MODULARITYCONTRIBUTION, "Modularity contribution (Newman)", Param.bool("weighted", "Use edge weights", false), Param.real("resolution", "Resolution (gamma)", 1.0));
 
         // Global community metrics (the degree/edge Gini variants take an orientation and/or a self-loop flag).
         global(GlobalCommunityMetricIdentifiers.NUMCOMMS, "Number of communities");
@@ -122,6 +129,12 @@ public final class CommunityCatalog
     private static Param orientation()
     {
         return Param.orientation("orientation", "Orientation", "OUT");
+    }
+
+    /** Boundary incidence supports incoming, outgoing or both, rather than mutual-neighbor semantics. */
+    private static Param boundaryOrientation()
+    {
+        return Param.choice("orientation", "Boundary direction", "UND", List.of("UND", "OUT", "IN"));
     }
 
     private static Param autoloops()

@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 
 import java.util.HashMap;
@@ -45,7 +47,7 @@ public interface VertexMetric<U>
      */
     default Map<U, Double> compute(Graph<U> graph)
     {
-        Map<U, Double> res = new HashMap<>();
+        Map<U, Double> res = ComputationMonitor.current().track(new HashMap<>(), "Computing node values", graph.getVertexCount(), "nodes");
         graph.getAllNodes().forEach(u -> res.put(u, this.compute(graph, u)));
         return res;
     }
