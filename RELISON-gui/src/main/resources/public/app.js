@@ -887,21 +887,29 @@ function requireGraph() {
 
 /* ------------------------------ loading ----------------------------- */
 
-// Reflects a .relison selection on the import pane: the network type options do not apply to a saved session, so
-// they are called out as ignored and the action reads "Open session".
+function selectedImportFormat() {
+    const explicit = $("opt-format").value;
+    if (explicit) return explicit;
+    const name = $("file-input").files?.[0]?.name || "";
+    if (/\.relison$/i.test(name)) return "relison";
+    if (/\.gexf$/i.test(name)) return "gexf";
+    if (/\.(net|paj)$/i.test(name)) return "pajek";
+    return "edges";
+}
+
+// Explicit choices take precedence over extension-based detection.
 function updateImportFormatHint() {
     const input = $("file-input");
     const file = input && input.files && input.files[0];
-    const isSession = $("opt-format").value === "relison" || (!!file && /\.relison$/i.test(file.name));
-    if (file && !isSession && $("opt-separator").dataset.manual !== "1")
+    const format = selectedImportFormat(), isSession = format === "relison", isEdgeList = format === "edges";
+    if (file && isEdgeList && $("opt-separator").dataset.manual !== "1")
         $("opt-separator").value = /\.csv$/i.test(file.name) ? "," : "tab";
-    const isEdgeList = !["pajek", "gexf", "relison"].includes($("opt-format").value)
-        && !(file && /\.(net|paj|gexf|relison)$/i.test(file.name));
     toggleHidden("edge-import-options", !isEdgeList);
     toggleHidden("edge-header-option", !isEdgeList);
     toggleHidden("import-session-hint", !isSession);
-    toggleHidden("gexf-label-option", isSession || !($("opt-format").value === "gexf"
-        || ($("opt-format").value === "" && file && /\.gexf$/i.test(file.name))));
+    toggleHidden("gexf-label-option", format !== "gexf");
+    toggleHidden("import-gexf-hint", format !== "gexf");
+    toggleHidden("import-type-options", isSession || format === "gexf");
     $("btn-load").textContent = isSession ? "Open session" : "Load network";
 }
 
@@ -914,28 +922,32 @@ async function loadGraph() {
     const file = fileInput.files[0];
 
     // A saved session carries its own network and type flags, so it bypasses the reader path entirely.
-    if ($("opt-format").value === "relison" || /\.relison$/i.test(file.name)) {
+    const format = selectedImportFormat();
+    if (format === "relison") {
         await openSession(file);
         return;
     }
 
     const form = new FormData();
     form.append("file", file);
-    form.append("format", $("opt-format").value);   // blank = let the server infer it from the extension
-    form.append("directed", $("opt-directed").checked);
-    form.append("weighted", $("opt-weighted").checked);
-    form.append("multigraph", $("opt-multigraph").checked);
-    form.append("selfloops", $("opt-selfloops").checked);
-    form.append("separator", selectedDelimiter("opt-separator"));
-    form.append("header", $("opt-header").checked);
-    form.append("labelsAsIds", $("opt-gexf-labels-as-ids").checked);
+    form.append("format", format);
+    const gexf = format === "gexf";
+    form.append("directed", gexf ? true : $("opt-directed").checked);
+    form.append("weighted", gexf ? true : $("opt-weighted").checked);
+    form.append("multigraph", gexf ? true : $("opt-multigraph").checked);
+    form.append("selfloops", gexf ? true : $("opt-selfloops").checked);
+    if (format === "edges") {
+        form.append("separator", selectedDelimiter("opt-separator"));
+        form.append("header", $("opt-header").checked);
+    }
+    if (gexf) form.append("labelsAsIds", $("opt-gexf-labels-as-ids").checked);
 
     setStatus("Loading network…", "busy");
     $("btn-load").disabled = true;
     try {
         const data = await api("/api/graph/load", { method: "POST", body: form });
         $("opt-directed").checked = data.stats.directed;
-        applyLoadedGraph(data, $("opt-multigraph").checked);
+        applyLoadedGraph(data, data.stats.multigraph ?? (gexf || $("opt-multigraph").checked));
         setStatus("Loaded " + data.stats.nodes + " nodes, " + data.stats.edges + " edges.");
     } catch (e) {
         setStatus(e.message, "error");
@@ -1118,6 +1130,11 @@ function renderGraph(serialized) {
     applyAppearance();
 
     $("empty-hint").style.display = "none";
+    initializeNetworkSigma(graph);
+    if ($("network-renderer").value === "cosmograph") setTimeout(() => setNetworkRenderer("cosmograph"), 0);
+}
+
+function initializeNetworkSigma(graph) {
     // Sigma v3 uses `defaultDrawNodeLabel` and `defaultDrawEdgeLabel` instead of the older
     // `labelRenderer` / `edgeLabelRenderer` options. Update the renderer configuration accordingly.
     state.renderer = new Sigma(graph, $("sigma-container"), {
@@ -1257,7 +1274,6 @@ function renderGraph(serialized) {
         event.preventSigmaDefault?.();
         original.preventDefault?.();
     });
-    if ($("network-renderer").value === "cosmograph") setTimeout(() => setNetworkRenderer("cosmograph"), 0);
 }
 
 function handleEditNodeClick(node, event) {
@@ -1901,6 +1917,177 @@ function drawDiffEdgeLabel(context, data, sourceData, targetData) {
 
 /* --------------------------- canvas tools --------------------------- */
 
+function positionNetworkMenu(menu) {
+    if (!menu.open) return;
+    const panel = menu.querySelector(".network-export-options"), summary = menu.querySelector("summary");
+    if (!panel || !summary) return;
+    const margin = 8, gap = 5, width = document.documentElement.clientWidth, height = document.documentElement.clientHeight;
+    const anchor = summary.getBoundingClientRect();
+    if (!anchor.width || !anchor.height) { menu.open = false; return; }
+    panel.style.maxHeight = Math.max(0, height - margin * 2) + "px";
+    const bounds = panel.getBoundingClientRect();
+    const left = Math.max(margin, Math.min(anchor.right - bounds.width, width - margin - bounds.width));
+    const below = Math.max(0, height - margin - anchor.bottom - gap), above = Math.max(0, anchor.top - margin - gap);
+    const openAbove = bounds.height > below && above > below;
+    const available = Math.min(height - margin * 2, openAbove ? above : below);
+    const panelHeight = Math.min(bounds.height, Math.max(0, available));
+    panel.style.maxHeight = Math.max(0, available) + "px";
+    panel.style.left = left + "px";
+    panel.style.top = Math.max(margin, Math.min(openAbove ? anchor.top - gap - panelHeight : anchor.bottom + gap, height - margin - panelHeight)) + "px";
+}
+
+function installNetworkMenus() {
+    const menus = Array.from(document.querySelectorAll(".network-export-menu"));
+    let frame = null;
+    const reposition = () => {
+        if (frame !== null) return;
+        frame = requestAnimationFrame(() => { frame = null; menus.forEach(positionNetworkMenu); });
+    };
+    for (const menu of menus) {
+        const panel = menu.querySelector(".network-export-options");
+        // The browser top layer escapes the content pane's clipping and all
+        // sidebar stacking contexts. Raising a descendant z-index cannot.
+        if (panel && typeof panel.showPopover === "function") panel.setAttribute("popover", "manual");
+        menu.addEventListener("toggle", () => {
+            if (menu.open) {
+                panel?.showPopover?.();
+                positionNetworkMenu(menu);
+            } else panel?.hidePopover?.();
+        });
+        if (typeof ResizeObserver !== "undefined") {
+            const observer = new ResizeObserver(reposition);
+            observer.observe(menu);
+            if (panel) observer.observe(panel);
+        }
+    }
+    window.addEventListener("resize", reposition);
+    document.addEventListener("pointerdown", (event) => {
+        for (const menu of menus) if (menu.open && !menu.contains(event.target)) menu.open = false;
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") for (const menu of menus) if (menu.open) {
+            menu.open = false; menu.querySelector("summary")?.focus();
+        }
+    });
+    document.addEventListener("scroll", (event) => {
+        if (!event.target.closest?.(".network-export-options")) reposition();
+    }, true);
+}
+
+let networkRotation = null;
+let networkTransformBusy = false;
+
+function network2DTransformsAvailable() {
+    return !usingGeographic() && !(usingCosmograph() && window.relisonCosmograph?.getDimensions?.() === 3);
+}
+
+function stopNetworkRotation() {
+    if (networkRotation) cancelAnimationFrame(networkRotation.frame);
+    networkRotation = null;
+    $("btn-network-rotate").setAttribute("aria-pressed", "false");
+}
+
+function networkTransformSnapshot() {
+    if (!state.graph?.order || !network2DTransformsAvailable()) return null;
+    if (usingCosmograph()) window.relisonCosmograph?.savePointPositions();
+    const graph = state.graph, points = [], center = { x: 0, y: 0 };
+    // Keep Sigma's normalization fixed while coordinates rotate or reflect.
+    if (!usingCosmograph() && state.renderer && !state.renderer.getCustomBBox()) {
+        state.renderer.refresh({ schedule: false });
+        state.renderer.setCustomBBox(state.renderer.getBBox());
+    }
+    graph.forEachNode((id, data) => {
+        if (!Number.isFinite(data.x) || !Number.isFinite(data.y)) return;
+        points.push({ id, x: data.x, y: data.y });
+    });
+    if (!points.length) return null;
+    for (const point of points) { center.x += point.x / points.length; center.y += point.y / points.length; }
+    return { graph, points, center };
+}
+
+async function applyNetworkTransform(snapshot, angle = 0, mirrorX = 1, mirrorY = 1) {
+    if (snapshot.graph !== state.graph || !network2DTransformsAvailable()) return;
+    const positions = Object.create(null), c = Math.cos(angle), s = Math.sin(angle);
+    for (const point of snapshot.points) {
+        const x = (point.x - snapshot.center.x) * mirrorX, y = (point.y - snapshot.center.y) * mirrorY;
+        positions[point.id] = { x: snapshot.center.x + c * x - s * y, y: snapshot.center.y + s * x + c * y };
+    }
+    snapshot.graph.updateEachNodeAttributes((id, attributes) => positions[id] ? { ...attributes, ...positions[id] } : attributes);
+    if (usingCosmograph()) {
+        const updated = await window.relisonCosmograph?.setNodePositions(positions);
+        if (!updated) throw new Error("Cosmograph positions could not be updated. Reload the renderer and try again.");
+    } else state.cosmographDirty = true;
+    drawRecOverlay();
+}
+
+function startNetworkRotation() {
+    if (networkRotation || networkTransformBusy) return;
+    stopLayout();
+    if (usingCosmograph()) window.relisonCosmograph?.stopForceLayout();
+    const snapshot = networkTransformSnapshot();
+    if (!snapshot) return;
+    const run = { frame: 0, start: null };
+    networkRotation = run;
+    $("btn-network-rotate").setAttribute("aria-pressed", "true");
+    const step = async (time) => {
+        if (networkRotation !== run) return;
+        if (snapshot.graph !== state.graph || state.activeTab !== "network" || !network2DTransformsAvailable()) { stopNetworkRotation(); return; }
+        if (run.start === null) run.start = time;
+        networkTransformBusy = true;
+        try { await applyNetworkTransform(snapshot, (time - run.start) * Math.PI / 6000); }
+        catch (error) { stopNetworkRotation(); setStatus(error.message, "error"); }
+        finally { networkTransformBusy = false; }
+        if (networkRotation === run) run.frame = requestAnimationFrame(step);
+    };
+    run.frame = requestAnimationFrame(step);
+}
+
+async function mirrorNetwork(horizontal) {
+    stopNetworkRotation();
+    if (networkTransformBusy) return;
+    stopLayout(); if (usingCosmograph()) window.relisonCosmograph?.stopForceLayout();
+    const snapshot = networkTransformSnapshot();
+    if (!snapshot) return;
+    networkTransformBusy = true;
+    try { await applyNetworkTransform(snapshot, 0, horizontal ? -1 : 1, horizontal ? 1 : -1); }
+    catch (error) { setStatus(error.message, "error"); }
+    finally { networkTransformBusy = false; }
+}
+
+async function reloadNetworkRenderer() {
+    stopNetworkRotation();
+    if (!state.graph || networkTransformBusy) return;
+    const button = $("btn-network-reload"); button.disabled = true;
+    stopLayout();
+    try {
+        if (usingGeographic()) { await applyGeographicLayout(); return; }
+        if (usingCosmograph()) {
+            const renderer = window.relisonCosmograph;
+            if (!renderer) throw new Error("Cosmograph is still loading.");
+            const view = renderer.getNetworkView();
+            clearTimeout(cosmographAppearanceRefreshTimer);
+            clearTimeout(cosmographTimelineRefreshTimer);
+            renderer.savePointPositions(); renderer.destroy(); state.cosmographDirty = true;
+            // Rebuild the shared visibility/style snapshot before constructing
+            // the replacement. Cached signatures belong to the old instance.
+            state.cosmographViewSignature = null;
+            applyReducers();
+            clearTimeout(cosmographAppearanceRefreshTimer);
+            clearTimeout(cosmographTimelineRefreshTimer);
+            await setNetworkRenderer("cosmograph");
+            if (view) renderer.setNetworkView(view);
+            syncCosmographSelection();
+        } else {
+            const view = sigmaNetworkView();
+            state.renderer?.kill(); state.renderer = null;
+            initializeNetworkSigma(state.graph); restoreSigmaNetworkView(view);
+            applyReducers(); drawRecOverlay();
+            setStatus("Sigma renderer reloaded.");
+        }
+    } catch (error) { setStatus("Renderer reload failed: " + error.message, "error"); }
+    finally { button.disabled = false; }
+}
+
 function zoomIn() {
     if (usingGeographic()) { window.relisonGeographic.zoomIn(); return; }
     if (usingCosmograph()) { window.relisonCosmograph?.zoomIn(); return; }
@@ -1958,7 +2145,11 @@ function queueCosmographAppearanceRefresh() {
         window.relisonCosmograph.render(state.graph, {
             ...cosmographInteractionCallbacks(),
         }).then(() => { state.cosmographDirty = false; })
-          .catch((e) => setStatus("Cosmograph could not update its visual mapping: " + e.message, "error"));
+          .catch((e) => {
+              state.cosmographDirty = true;
+              state.cosmographViewSignature = null;
+              setStatus("Cosmograph could not update its visual mapping: " + e.message, "error");
+          });
     }, 80);
 }
 
@@ -2027,6 +2218,7 @@ function restoreSigmaNetworkView(view) {
 }
 
 async function setNetworkRenderer(name) {
+    stopNetworkRotation();
     const pane = $("pane-network"), container = $("cosmograph-container"), select = $("network-renderer");
     toggleHidden("network-dimensions-field", name !== "cosmograph");
     toggleHidden("cosmograph-sphere-shading-field", name !== "cosmograph" || $("network-dimensions").value !== "3");
@@ -2211,6 +2403,7 @@ function populateEdgeSelector() {
 function updateSelectionTargetUI() {
     const edge = state.selection.type === "edge";
     const path = state.selection.type === "path";
+    $("btn-random-selection").textContent = path ? "Select random node pair" : edge ? "Select random edge" : "Select random node";
     $("select-type").value = path ? "path" : edge ? "edge" : "node";
     toggleHidden("select-node-field", edge || path);
     toggleHidden("select-edge-field", !edge);
@@ -2973,7 +3166,18 @@ function geographicRecommendationEdges(model = state.rec.active && state.rec.mod
     });
 }
 
+function syncNetworkDimensionControls() {
+    const active = usingCosmograph(), spatial = active && $("network-dimensions").value === "3";
+    toggleHidden("cosmograph-sphere-shading-field", !spatial);
+    toggleHidden("network-3d-help", !spatial);
+    toggleHidden("btn-project-network-2d", !spatial);
+    if (!usingGeographic()) toggleHidden("cosmograph-rotation-controls", !spatial);
+    window.relisonCosmograph?.refreshOrientationGizmo?.();
+    if (typeof syncRotationExportControls === "function") syncRotationExportControls();
+}
+
 function syncLayoutOptionsForRenderer() {
+    syncNetworkDimensionControls();
     ensureFlat3DLayoutOptions();
     const active = usingCosmograph();
     const spatial = active && $("network-dimensions").value === "3";
@@ -3107,8 +3311,27 @@ function startIterativeLayout(type) {
 }
 
 // Advance one server session sequentially; each response becomes a displayed frame.
+function gridMetricOrderActive(type) {
+    const base = isFlat3DLayout(type) ? flatLayoutBase(type) : layeredLayoutBase(type);
+    return ["grid", "grid-3d", "feature-grid", "feature-grid-3d", "ego-grid", "radial-pyramid-3d"].includes(base) && Boolean($("layout-grid-order").value);
+}
+
+function layoutNodeOrder(type, graph) {
+    const nodes = graph.nodes().sort();
+    if (!gridMetricOrderActive(type)) return nodes;
+    const spec = $("layout-grid-order").value, scores = new Map();
+    for (const node of nodes) {
+        const value = spec === "degree" ? graph.degree(node) : state.metricData[spec.slice(7)]?.[node];
+        if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value)))
+            throw new Error("Ordering metric is missing or non-finite for node " + node + ". Choose a metric available for every node.");
+        scores.set(node, Number(value));
+    }
+    const direction = $("layout-grid-order-descending").checked ? -1 : 1;
+    return nodes.sort((a, b) => scores.get(a) === scores.get(b) ? 0 : (scores.get(a) < scores.get(b) ? -direction : direction));
+}
+
 function relisonForceBody(type, g, graphId) {
-    const nodes = g.nodes().sort();
+    const nodes = layoutNodeOrder(type, g);
     const body = { graphId, algorithm: type, nodeOrder: nodes, params: staticLayoutParams(type) };
     const spatial = RELISON_3D_LAYOUTS.has(type);
     if ($("layout-warm-start").checked) {
@@ -3300,7 +3523,7 @@ async function applyStaticLayout(type) {
     let forceSummary = "";
     try {
         if (RELISON_LAYOUTS.has(type)) {
-            const nodes = g.nodes().sort();
+            const nodes = layoutNodeOrder(type, g);
             const body = { graphId, algorithm: type, nodeOrder: nodes, params: staticLayoutParams(type) };
             if (RELISON_FORCE_LAYOUTS.has(type)) {
                 if ($("layout-warm-start").checked) body.positions = Object.fromEntries(nodes.map(node => [node, {
@@ -3432,7 +3655,7 @@ function staticLayoutParams(type) {
         if (type === "grid-3d") return { spacing: read("layout-spacing"), columns: read("layout-columns",true,0), depth: read("layout-grid-depth",true,0) };
         if (type === "spherical-3d") return { radius: read("layout-radius") };
         if (type === "sphere-packing-3d") return { spacing: read("layout-spacing") };
-        if (type === "radial-pyramid-3d") return { root: $("layout-root").value || null, direction: $("layout-direction").value,
+        if (type === "radial-pyramid-3d") return { root: $("layout-root").value || (gridMetricOrderActive(type) ? state.graph.nodes().sort()[0] || null : null), direction: $("layout-direction").value,
             spacing: read("layout-spacing"), zScale: read("layout-z-scale") };
         if (type === "feature-grid-3d") return { spacing: read("layout-spacing"), levelSpacing: read("layout-level-spacing") };
         if (type === "community-3d") return { iterations: read("layout-community-iterations", true, 0),
@@ -3484,11 +3707,11 @@ function staticLayoutParams(type) {
     if (type === "grid") return { columns: read("layout-columns", true, 0), spacing: read("layout-spacing") };
     if (type === "shell" || type === "concentric") return { spacing: read("layout-spacing"), reverse: type === "concentric" && $("layout-score-reverse").checked };
     if (type === "radial") return { root: $("layout-root").value || null, direction: $("layout-direction").value, spacing: read("layout-spacing") };
-    if (type === "ego-grid") return { root: $("layout-root").value || null, direction: $("layout-direction").value, columnSpacing: read("layout-column-spacing"), spacing: read("layout-spacing") };
+    if (type === "ego-grid") return { root: $("layout-root").value || (gridMetricOrderActive(type) ? state.graph.nodes().sort()[0] || null : null), direction: $("layout-direction").value, columnSpacing: read("layout-column-spacing"), spacing: read("layout-spacing") };
     if (type === "tree") return { root: $("layout-root").value || null, spacing: read("layout-spacing"), levelSpacing: read("layout-level-spacing") };
     if (type === "sugiyama") return { spacing: read("layout-spacing"), levelSpacing: read("layout-level-spacing"), sweeps: read("layout-sweeps", true, 0) };
     if (type === "bipartite" || type === "multipartite" || type === "feature-grid") return {
-        columnSpacing: read("layout-column-spacing"), spacing: read("layout-spacing"), sweeps: read("layout-sweeps", true, 0),
+        columnSpacing: read("layout-column-spacing"), spacing: read("layout-spacing"), sweeps: type === "feature-grid" && gridMetricOrderActive(type) ? 0 : read("layout-sweeps", true, 0),
     };
     return {};
 }
@@ -3610,6 +3833,10 @@ function rebuildLayoutGroupOptions() {
     state.metricOrder.forEach(name => score.appendChild(option("metric:" + name, "metric: " + name)));
     nodeAttrDefs().filter(def => def.numeric).forEach(def => score.appendChild(option("attr:" + def.name, "attr: " + def.name)));
     score.value = Array.from(score.options).some(item => item.value === previousScore) ? previousScore : "degree";
+    const gridOrder = $("layout-grid-order"), previousGridOrder = gridOrder.value;
+    gridOrder.replaceChildren(option("", "Default order"), option("degree", "Degree"));
+    state.metricOrder.forEach(name => gridOrder.appendChild(option("metric:" + name, name)));
+    restoreSelect(gridOrder, previousGridOrder);
     for (const axis of ["x", "y"]) {
         const coordinate = $("layout-preset-" + axis);
         const previous = coordinate.value;
@@ -3695,6 +3922,11 @@ function updateLayoutTypeUI() {
     if (type === "h3-3d") { toggleHidden("layout-root-field", false); toggleHidden("layout-direction-field", false); }
     toggleHidden("layout-column-spacing-field", !["bipartite", "multipartite", "feature-grid", "ego-grid"].includes(type));
     toggleHidden("layout-sweeps-field", !["bipartite", "multipartite", "feature-grid", "sugiyama"].includes(type));
+    const gridOrdering = ["grid", "grid-3d", "feature-grid", "feature-grid-3d", "ego-grid", "radial-pyramid-3d"].includes(type);
+    toggleHidden("layout-grid-order-field", !gridOrdering);
+    toggleHidden("layout-grid-order-descending-field", !gridOrdering || !$("layout-grid-order").value);
+    toggleHidden("layout-grid-order-hint", !gridOrdering);
+    $("layout-sweeps").disabled = type === "feature-grid" && gridMetricOrderActive(selectedType);
     toggleHidden("layout-level-spacing-field", type !== "tree" && type !== "sugiyama" && type !== "feature-grid-3d");
     toggleHidden("layout-columns-field", type !== "grid" && type !== "grid-3d");
     toggleHidden("layout-grid-depth-field", type !== "grid-3d");
@@ -3795,6 +4027,7 @@ function builtinForceStep() {
 }
 
 function stopLayout() {
+    if (typeof stopNetworkRotation === "function") stopNetworkRotation();
     if (state.relisonLayout) {
         const run = state.relisonLayout;
         state.relisonLayout = null;
@@ -4485,6 +4718,26 @@ function showPathsBetween(source, target) {
     setSelectionType("path");
     $("select-path-source").value = source; $("select-path-target").value = target;
     return findPaths({ source, target });
+}
+
+async function selectRandomNetworkElement() {
+    if (!requireGraph()) return;
+    const type = state.selection.type, working = networkWorkingSet();
+    if (type === "path") {
+        const nodes = $("select-path-scope").value === "whole" ? state.graph.nodes() : Array.from(working.nodes);
+        if (nodes.length < 2) { setStatus("At least two nodes are needed in the selected search scope.", "error"); return; }
+        const sourceIndex = Math.floor(Math.random() * nodes.length);
+        let targetIndex = Math.floor(Math.random() * (nodes.length - 1));
+        if (targetIndex >= sourceIndex) targetIndex++;
+        $("select-path-source").value = nodes[sourceIndex];
+        $("select-path-target").value = nodes[targetIndex];
+        return findSelectedPaths();
+    }
+    const candidates = Array.from(type === "edge" ? working.edges : working.nodes);
+    if (!candidates.length) { setStatus("No " + (type === "edge" ? "edges" : "nodes") + " match the current filters.", "error"); return; }
+    const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+    if (type === "edge") selectEdge(chosen);
+    else selectNode(chosen);
 }
 
 function findSelectedPaths() {
@@ -6156,6 +6409,11 @@ function recColumnKeys(family) {
     return Array.from(set);
 }
 
+function formatAuthorityMode(text, model = text) {
+    if (!/^(?:(?:Personalized\s+)?(?:HITS|SALSA)|Money|Love)\b/i.test(String(model))) return String(text);
+    return String(text).replace(/\bmode=(true|false)\b/g, (_, value) => "mode=" + (value === "true" ? "Authorities" : "Hubs"));
+}
+
 function recLabel(key) {
     const model = state.rec.models[key], label = model?.label || key;
     const same = Object.keys(state.rec.models).filter(id => (state.rec.models[id].label || id) === label);
@@ -6346,6 +6604,9 @@ function activeRotationRenderer() {
 }
 
 function syncRotationExportControls() {
+    const transformAvailable = network2DTransformsAvailable();
+    for (const id of ["btn-network-rotate", "btn-network-mirror-x", "btn-network-mirror-y"]) toggleHidden(id, !transformAvailable);
+    if (!transformAvailable) stopNetworkRotation();
     const available = Boolean(activeRotationRenderer());
     toggleHidden("btn-export-rotation-gif", !available);
     toggleHidden("btn-export-rotation-webm", !available);
@@ -6639,7 +6900,7 @@ const SESSION_CONTROLS = [
     "size-by", "node-color-mode", "node-color-single", "color-by", "node-size-uniform", "node-size-min", "node-size-max", "node-size-scale", "node-size-reverse", "node-color-low", "node-color-high",
     "edge-size-by", "edge-size-uniform", "edge-size-min", "edge-size-max", "edge-size-scale", "edge-size-reverse", "edge-color-mode", "edge-color-single", "edge-color-by", "edge-color-partition", "edge-color-low", "edge-color-high",
     "node-border-on", "node-border-color", "node-border-width", "cosmograph-sphere-shading", "layout-type",
-    "layout-radius", "layout-spacing", "layout-columns", "layout-width", "layout-height", "layout-seed", "layout-score", "layout-score-reverse", "circlepack-group",
+    "layout-radius", "layout-spacing", "layout-columns", "layout-width", "layout-height", "layout-seed", "layout-score", "layout-score-reverse", "layout-grid-order", "layout-grid-order-descending", "circlepack-group",
     "layout-preset-x", "layout-preset-y",
     "layout-geographic-latitude", "layout-geographic-longitude", "layout-geographic-projection",
     "layout-iterations", "layout-theta", "layout-tolerance", "layout-fr-bounded", "layout-fr-width", "layout-fr-height", "layout-fr-temperature",
@@ -7577,10 +7838,10 @@ function renderComputedRecommendations() {
             if (!models.length) continue;
             const group = document.createElement("optgroup");
             group.label = label;
-            for (const [key] of models) {
+            for (const [key, model] of models) {
                 const option = document.createElement("option");
                 option.value = key;
-                option.textContent = key;   // includes parameters, cutoff and reciprocal setting
+                option.textContent = formatAuthorityMode(key, model.label || key);   // keep the raw key as the option value
                 group.appendChild(option);
             }
             select.appendChild(group);
@@ -7853,8 +8114,8 @@ function updateRecUI() {
         const m = state.rec.models[state.rec.active];
         // An exhausted model (every link committed to the graph) would otherwise read as a puzzling "0 links".
         status.textContent = m.edges.length === 0
-            ? "Active: " + m.label + " — all recommended links have been added to the network."
-            : "Active: " + m.label + " (" + (m.mode === "prediction" ? "prediction" : "recommendation")
+            ? "Active: " + formatAuthorityMode(m.label) + " — all recommended links have been added to the network."
+            : "Active: " + formatAuthorityMode(m.label) + " (" + (m.mode === "prediction" ? "prediction" : "recommendation")
                 + ", cutoff " + m.cutoff + ", " + m.edges.length + " links).";
     } else {
         status.textContent = "No recommendation applied.";
@@ -10433,6 +10694,7 @@ $("layout-fr-bounded").addEventListener("change", updateLayoutTypeUI);
 $("btn-noverlap").addEventListener("click", removeOverlaps);
 $("btn-reset-layout").addEventListener("click", resetLayout);
 $("layout-type").addEventListener("change", () => { stopLayout(); updateLayoutButton(); updateLayoutTypeUI(); });
+$("layout-grid-order").addEventListener("change", updateLayoutTypeUI);
 $("drag-nodes").addEventListener("change", (e) => {
     state.dragNodes = e.target.checked;
     $("network-drag-hint").hidden = !state.dragNodes;
@@ -10601,8 +10863,27 @@ $("node-border-width").addEventListener("input", () => {
 $("node-label-color-mode").addEventListener("change", syncLabelOpts);
 $("edge-label-color-mode").addEventListener("change", syncLabelOpts);
 $("btn-zoom-in").addEventListener("click", zoomIn);
+installNetworkMenus();
 $("btn-zoom-out").addEventListener("click", zoomOut);
 $("btn-zoom-fit").addEventListener("click", zoomFit);
+$("btn-network-rotate").addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    startNetworkRotation();
+});
+for (const name of ["pointerup", "pointercancel", "lostpointercapture", "blur"]) $("btn-network-rotate").addEventListener(name, stopNetworkRotation);
+$("btn-network-rotate").addEventListener("keydown", (event) => {
+    if ((event.key === " " || event.key === "Enter") && !event.repeat) { event.preventDefault(); startNetworkRotation(); }
+});
+$("btn-network-rotate").addEventListener("keyup", (event) => {
+    if (event.key === " " || event.key === "Enter") { event.preventDefault(); stopNetworkRotation(); }
+});
+window.addEventListener("blur", stopNetworkRotation);
+document.addEventListener("visibilitychange", () => { if (document.hidden) stopNetworkRotation(); });
+$("btn-network-mirror-x").addEventListener("click", () => mirrorNetwork(true));
+$("btn-network-mirror-y").addEventListener("click", () => mirrorNetwork(false));
+$("btn-network-reload").addEventListener("click", reloadNetworkRenderer);
 $("network-renderer").addEventListener("change", (e) => setNetworkRenderer(e.target.value));
 $("network-dimensions").addEventListener("change", async (event) => {
     const select = event.target, previous = window.relisonCosmograph?.getDimensions?.() || 2;
@@ -10745,6 +11026,7 @@ document.addEventListener("keydown", (e) => {
 
 $("select-node-input").addEventListener("change", selectFromInput);
 $("select-type").addEventListener("change", (e) => setSelectionType(e.target.value));
+$("btn-random-selection").addEventListener("click", selectRandomNetworkElement);
 $("select-edge-input").addEventListener("change", (e) => { if (e.target.value) selectEdge(e.target.value); else clearSelection(); });
 initNodeCombos();
 $("select-mode").addEventListener("change", (e) => setSelectionMode(e.target.value));

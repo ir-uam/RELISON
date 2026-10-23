@@ -49,6 +49,43 @@ function setup() {
     return { handlers, context, state, graph, data, $, requests, statuses };
 }
 
+test("grid metric ordering reaches layout requests and leaves default behaviour intact", async () => {
+    const h = setup(); h.state.metricData.score = { a: 8, b: 2 };
+    h.$("layout-grid-order").value = "metric:score";
+    await h.handlers.applyStaticLayout("grid");
+    assert.deepEqual(h.requests.at(-1).body.nodeOrder, ["b", "a"]);
+    h.$("layout-grid-order-descending").checked = true;
+    await h.handlers.applyStaticLayout("grid");
+    assert.deepEqual(h.requests.at(-1).body.nodeOrder, ["a", "b"]);
+    h.$("layout-grid-order").value = "";
+    await h.handlers.applyStaticLayout("grid");
+    assert.deepEqual(h.requests.at(-1).body.nodeOrder, ["a", "b"]);
+});
+
+test("grid metric feature ordering overrides sweeps only while selected", async () => {
+    const h = setup(); h.state.metricData.score = { a: 8, b: 2 };
+    h.data.get("a").attrs = { group: "same" }; h.data.get("b").attrs = { group: "same" };
+    h.$("circlepack-group").value = "attr:group"; h.$("layout-grid-order").value = "metric:score";
+    await h.handlers.applyStaticLayout("feature-grid");
+    assert.deepEqual(h.requests.at(-1).body.nodeOrder, ["b", "a"]);
+    assert.deepEqual(h.requests.at(-1).body.partitions, [["b", "a"]]);
+    assert.equal(h.requests.at(-1).body.params.sweeps, 0);
+    h.$("layout-grid-order").value = "";
+    assert.equal(h.handlers.staticLayoutParams("feature-grid").sweeps, 4);
+});
+
+test("grid metric ego order preserves the automatic root", () => {
+    const h = setup(); h.$("layout-grid-order").value = "metric:score";
+    assert.equal(h.handlers.staticLayoutParams("ego-grid").root, "a");
+    h.$("layout-root").value = "b";
+    assert.equal(h.handlers.staticLayoutParams("ego-grid").root, "b");
+    h.$("layout-root").value = "";
+    assert.equal(h.handlers.staticLayoutParams("radial-pyramid-3d").root, "a");
+    h.$("layout-type").value = "radial-pyramid-3d";
+    h.handlers.updateLayoutTypeUI();
+    assert.equal(h.$("layout-grid-order-field").hidden, false);
+});
+
 test("paper-defined 3D controls send distinct model settings", () => {
     const h = setup();
     h.$("layout-smds-rate").value = "0.1"; h.$("layout-smds-tolerance").value = "0.0000001";

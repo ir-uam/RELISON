@@ -20,7 +20,7 @@ public final class RadialPyramid3DLayout<U> implements Layout<U> {
         this.zScale=AbstractStaticLayout.positive(zScale,"zScale");
     }
 
-    @Override public LayoutDescriptor getDescriptor() { return new LayoutDescriptor("radial-pyramid-3d","Radial / ego 3D (pyramid)",3); }
+    @Override public LayoutDescriptor getDescriptor() { return new LayoutDescriptor("radial-pyramid-3d","Grid / ego (3D)",3); }
 
     @Override public LayoutResult<U> compute(Graph<U> graph, LayoutRequest<U> request) {
         IndexedGraphSnapshot<U> snapshot=IndexedGraphSnapshot.capture(graph,request);

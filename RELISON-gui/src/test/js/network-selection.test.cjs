@@ -123,6 +123,32 @@ test("linked working sets combine node and edge filters and retain isolates with
     assert.equal(h.handlers.tableRows("edges").ids.length, 0);
 });
 
+test("Cosmograph reload restores highlight and show-only snapshots and subsequent selection changes", async () => {
+    for (const [kind, mode] of [["node", "highlight"], ["node", "ego-only"], ["edge", "edge-highlight"], ["edge", "edge-attribute-only"], ["path", "path-only"]]) {
+        const h = setup();
+        if (kind === "node") h.handlers.selectNode("A");
+        else if (kind === "edge") { h.handlers.selectEdge("ab"); h.state.selection.edgeAttribute = "color"; }
+        else { h.state.selection.type = "path"; h.state.activePaths = [["A", "B", "C"]]; }
+        h.handlers.setSelectionMode(mode);
+        const before = JSON.stringify(h.project());
+        let rebuilt = false, synced = false;
+        h.context.stopNetworkRotation = () => {}; h.context.networkTransformBusy = false; h.context.stopLayout = () => {};
+        h.context.usingCosmograph = () => true;
+        h.context.cosmographAppearanceRefreshTimer = 1; h.context.cosmographTimelineRefreshTimer = 2;
+        h.context.clearTimeout = () => {};
+        h.window.relisonCosmograph = { getNetworkView: () => null, savePointPositions() {},
+            destroy() { h.window.relisonNetworkViewSnapshot = null; h.window.relisonCosmographFocus = null; h.window.relisonCosmographPath = null; } };
+        h.context.setNetworkRenderer = async () => { assert.equal(JSON.stringify(h.project()), before); rebuilt = true; };
+        h.context.syncCosmographSelection = () => { assert.ok(rebuilt); synced = true; };
+        vm.runInContext(extract(appSource, "reloadNetworkRenderer"), h.context);
+        await h.context.reloadNetworkRenderer();
+        assert.ok(rebuilt && synced, kind + " " + mode);
+        assert.equal(h.state.selection.mode, mode);
+        h.handlers.selectNode("D"); h.handlers.setSelectionMode("ego-only");
+        assert.notEqual(JSON.stringify(h.project()), before);
+    }
+});
+
 test("filter and selection order agree; None preserves filters and clear preserves type and mode", () => {
     const first = setup(), second = setup();
     first.handlers.setColFilter("edges", "ea:color", "eq", "blue"); first.handlers.selectNode("B");

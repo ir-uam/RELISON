@@ -292,8 +292,9 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
 .network-export-menu { position:relative; z-index:8; }
 .network-export-menu > summary { list-style:none; cursor:pointer; border:1px solid var(--border); border-radius:5px; padding:7px 12px; color:var(--text); background:var(--panel-2); font-size:12px; }
 .network-export-menu > summary::-webkit-details-marker { display:none; }
-.network-export-options { position:absolute; top:calc(100% + 5px); right:0; display:grid; gap:5px; min-width:180px; padding:8px; border:1px solid var(--border); border-radius:7px; background:var(--panel); box-shadow:0 8px 24px rgba(0,0,0,.22); }
-.network-export-options button { text-align:left; white-space:nowrap; }
+.network-export-options { position:fixed; inset:auto; margin:0; width:max-content; display:grid; gap:5px; min-width:min(180px, calc(100vw - 16px)); max-width:calc(100vw - 16px); max-height:calc(100vh - 16px); box-sizing:border-box; overflow:auto; padding:8px; border:1px solid var(--border); border-radius:7px; background:var(--panel); color:var(--text); box-shadow:0 8px 24px rgba(0,0,0,.22); }
+.network-export-options[popover]:not(:popover-open) { display:none; }
+.network-export-options button { text-align:left; white-space:normal; min-width:0; }
 .interaction-toggle { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 5px; cursor: pointer; white-space: nowrap; font-size: 12px; }
 .interaction-toggle:has(input:checked) { color: var(--accent); border-color: var(--accent); background: var(--panel-2); }
 .interaction-toggle input { margin: 0; accent-color: var(--accent); }
@@ -562,6 +563,9 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 .canvas-btn:hover { border-color: var(--accent); }
+.canvas-btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+#btn-network-rotate { touch-action: none; user-select: none; }
+#canvas-tools { flex-wrap: wrap; }
 #empty-hint {
     position: absolute;
     inset: 0;

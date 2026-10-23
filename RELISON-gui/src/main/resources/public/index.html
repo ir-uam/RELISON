@@ -155,18 +155,18 @@
                         <option value="concentric-sphere-3d" hidden>Concentric by score 3D (spheres)</option>
                         <option value="concentric-cone-3d" hidden>Concentric by score 3D (cone)</option>
                     </optgroup>
-                    <optgroup label="Radial and ego">
+                    <optgroup label="Ego group">
                         <option value="radial">Radial / ego</option>
                         <option value="radial-sphere-3d" hidden>Radial / ego 3D (spheres)</option>
                         <option value="radial-cone-3d" hidden>Radial / ego 3D (cone)</option>
-                        <option value="radial-pyramid-3d" hidden>Radial / ego 3D (pyramid grids)</option>
+                        <option value="ego-grid">Grid / ego (2D)</option>
+                        <option value="radial-pyramid-3d" hidden>Grid / ego (3D)</option>
                     </optgroup>
                     <optgroup label="Grid and partitions">
                         <option value="grid">Grid</option>
                         <option value="grid-3d" hidden>Grid 3D</option>
                         <option value="feature-grid">Grid by feature</option>
                         <option value="feature-grid-3d" hidden>Grid by feature 3D (levels)</option>
-                        <option value="ego-grid">Grid / ego</option>
                         <option value="bipartite">Bipartite</option>
                         <option value="multipartite">Multipartite</option>
                     </optgroup>
@@ -305,6 +305,11 @@
                 <select data-tooltip="ui-layout-score" id="layout-score"><option value="degree">Degree</option></select>
             </label>
             <label class="inline-check" id="layout-score-reverse-field" hidden data-tooltip="ui-layout-score-reverse"><input id="layout-score-reverse" type="checkbox"/> Reverse score order (smaller values nearer centre)</label>
+            <label class="field" id="layout-grid-order-field" hidden title="Order grid cells by a node metric. Default retains existing ordering, including crossing-reduction passes.">
+                <span>Grid node order</span><select id="layout-grid-order"><option value="">Default order</option><option value="degree">Degree</option></select>
+            </label>
+            <label class="inline-check" id="layout-grid-order-descending-field" hidden title="Reverse ascending metric order so larger values come first"><input id="layout-grid-order-descending" type="checkbox"/> Reverse order (largest values first)</label>
+            <p class="muted" id="layout-grid-order-hint" hidden>Metric ties retain ID order. Feature grids order nodes within each group; ego grids order nodes within each hop column or 3D layer. Choosing a metric overrides crossing-reduction passes.</p>
             <p class="muted" id="layout-shell-hint" hidden>Groups occupy rings from inside to outside, ordered by group label. Without grouping, all nodes share a ring.</p>
             <p class="muted" id="layout-feature-grid-hint" hidden>Each feature value occupies a column, ordered by group label. Edges within a column are allowed.</p>
             <p class="muted" id="layout-ego-grid-hint" hidden>Columns show hop distance from the root. Unreachable nodes share a final column.</p>
@@ -704,8 +709,9 @@
                 <label class="inline-check" id="edge-header-option"><input type="checkbox" id="opt-header"/> First row contains headers</label>
                 <label class="inline-check" id="gexf-label-option" hidden><input type="checkbox" id="opt-gexf-labels-as-ids"/> Use GEXF labels as node IDs (when present)</label>
                 <p class="muted" id="import-session-hint" hidden>A saved session carries its own network and type
-                    options, so the settings below are ignored.</p>
-                <div class="checks">
+                    options.</p>
+                <p class="muted" id="import-gexf-hint" hidden>Direction comes from the GEXF file. Weights, parallel edges and self-loops are preserved automatically.</p>
+                <div class="checks" id="import-type-options">
                     <label><input type="checkbox" id="opt-directed" checked/> Directed</label>
                     <label><input type="checkbox" id="opt-weighted"/> Weighted</label>
                     <label><input type="checkbox" id="opt-multigraph"/> Multigraph</label>
@@ -785,6 +791,10 @@
                 <button id="btn-zoom-in" class="canvas-btn" data-tooltip="ui-btn-zoom-in">+</button>
                 <button id="btn-zoom-out" class="canvas-btn" data-tooltip="ui-btn-zoom-out">−</button>
                 <button id="btn-zoom-fit" class="canvas-btn" data-tooltip="ui-btn-zoom-fit">⤢</button>
+                <button id="btn-network-rotate" class="canvas-btn network-2d-transform" title="Hold to rotate around the nodes’ centroid" aria-label="Hold to rotate network" aria-pressed="false">↻</button>
+                <button id="btn-network-mirror-x" class="canvas-btn network-2d-transform" title="Mirror horizontally around the nodes’ centroid" aria-label="Mirror network horizontally">↔</button>
+                <button id="btn-network-mirror-y" class="canvas-btn network-2d-transform" title="Mirror vertically around the nodes’ centroid" aria-label="Mirror network vertically">↕</button>
+                <button id="btn-network-reload" class="canvas-btn" title="Reload the active renderer, preserving graph positions" aria-label="Reload network renderer">⟳</button>
                 </div>
                 <details class="network-export-menu" id="network-legend-menu">
                     <summary>Legends</summary>
@@ -1844,6 +1854,7 @@
                 <span>Selection</span>
                 <select id="select-type"><option value="node">Node</option><option value="edge">Edge</option><option value="path">Path</option></select>
             </label>
+            <button id="btn-random-selection" type="button" title="Choose uniformly at random from the current filters; paths use the selected search scope">Select random node</button>
             <label class="field" id="select-edge-field" hidden>
                 <span>Edge</span>
                 <select id="select-edge-input"><option value="">— choose an edge —</option></select>

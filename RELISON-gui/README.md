@@ -25,12 +25,35 @@ interactive visualization.
   for precision limits, supported paper variants and viewer differences.
 - **Load** a tab-separated edge list (`source⇥target[⇥weight]`) as a directed/undirected, weighted, multigraph
   and/or self-looping network.
+  Import controls follow the explicit format or extension auto-detection: edge
+  lists expose delimiter/header and graph flags; Pajek exposes graph flags;
+  GEXF exposes label handling and automatically preserves weights, parallel
+  edges and loops; sessions use their saved settings. GEXF imports check actual
+  edge multiplicity and use a simple graph when no parallel edges exist, keeping
+  Recommendation available. Weights, attributes and loops are retained.
 - **Visualize** with sigma.js: pan/zoom, hover, ForceAtlas2 layout (start/stop), circular reset.
+- **2D view transforms**: hold ↻ beside zoom/fit to rotate node coordinates around
+  the centroid of all nodes; ↔ and ↕ mirror horizontally and vertically around
+  that centroid. These controls work in Sigma and Cosmograph 2D. Release the
+  rotation button (or Space/Enter) to stop. Transforms stop running layouts and
+  preserve node styling. The ⟳ button rebuilds the active renderer while retaining
+  the graph and positions, including a fresh Cosmograph instance.
 - **Layouts**: circular, seeded random, grid, shell, concentric, and saved positions
   computed by `RELISON-viz` through the layout selector. Shell groups use community
   partitions or node attributes; concentric scores use degree, a computed vertex
   metric, or a numeric node attribute. Animated layouts and circle packing remain
   available. Static layouts refresh both Sigma and Cosmograph.
+- **Grid ordering**: optionally choose Degree or a computed node metric and
+  reverse its order. Applies to Grid, Grid 3D, feature grids and ego grids,
+  including flat 3D variants. Feature/hop group membership stays unchanged;
+  ties retain ID order. Explicit metric order disables feature-grid ordering
+  passes. Default order preserves the previous behaviour.
+  The **Ego group** contains Grid / ego (2D) and Grid / ego (3D); the latter
+  arranges each hop on a grid layer and also supports metric order and reverse.
+- **Random selection**: the right Network selection panel can pick a random
+  node, edge, or distinct node pair. Nodes and edges use the current filters;
+  pairs use the path search scope and immediately run the usual shortest-path
+  search. Parallel edges are sampled individually.
 - **Structural layouts**: radial/ego with root and traversal direction, automatic
   or grouped bipartite, grouped multipartite, and tidy tree/forest. Optional
   disconnected-component packing preserves each component's internal shape.

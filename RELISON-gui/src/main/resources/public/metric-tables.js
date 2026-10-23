@@ -31,8 +31,8 @@ function metricTableDetails(label) {
         suffix = suffix.slice(end + 1).trim();
     }
     if (suffix) parameters.push(suffix);
-    if (grouping) parameters.push(grouping);
-    return { metric: metric + estimated, parameters: parameters.join("; ") };
+    const displayParameters = formatAuthorityMode(parameters.join("; "), metric);
+    return { metric: metric + estimated, parameters: [displayParameters, grouping].filter(Boolean).join("; ") };
 }
 
 function compareMetricTableValues(a, b, direction) {

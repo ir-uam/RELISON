@@ -32,7 +32,7 @@ public final class EgoGridLayout<U> extends AbstractStaticLayout<U>
      */
     public EgoGridLayout(U root, EdgeOrientation direction, double columnSpacing, double spacing)
     {
-        super("ego-grid", "Grid / ego");
+        super("ego-grid", "Grid / ego (2D)");
         this.root = root;
         this.direction = Objects.requireNonNull(direction);
         this.spacing = positive(spacing, "spacing");

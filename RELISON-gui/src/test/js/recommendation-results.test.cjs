@@ -36,7 +36,7 @@ function setup() {
         renderTable: key => refreshes.push(key), refreshAfterCompute: () => refreshes.push("views"),
         setStatus: message => messages.push(message), jobBusy: () => false,
         jsonBody: body => body, api: async (url, body) => { requests.push({ url, body }); return { key: body.key }; } });
-    vm.runInContext(["renderComputedRecommendations", "activateRecommendation", "selectComputedRecommendation", "updateRecUI", "setRecommendationDisplay"]
+    vm.runInContext(["formatAuthorityMode", "renderComputedRecommendations", "activateRecommendation", "selectComputedRecommendation", "updateRecUI", "setRecommendationDisplay"]
         .map(extract).join("\n"), context);
     return { context, state, elements, requests, refreshes, messages, recommendation, prediction, reciprocal };
 }
@@ -105,6 +105,25 @@ test("network display modes update visibility without changing the selected reco
         assert.equal(h.elements["rec-edge-model"].value, h.elements["rec-computed"].value);
     }
     assert.equal(reductions, 3); assert.equal(h.requests.length, 0);
+});
+
+test("recommendation selectors display named Hubs and Authorities modes while retaining raw result keys", () => {
+    const h = setup(); h.state.rec.models = {};
+    for (const name of ["HITS", "SALSA", "Personalized HITS", "Personalized SALSA", "Money", "Love"]) {
+        for (const mode of [true, false]) {
+            const key = name + " (mode=" + mode + ", alpha=0.5) · recommendation · n=10";
+            h.state.rec.models[key] = { label: name + " (mode=" + mode + ", alpha=0.5)", mode: "recommendation", edges: [], cutoff: 10 };
+        }
+    }
+    h.context.renderComputedRecommendations();
+    for (const id of ["rec-computed", "rec-edge-model"]) {
+        const options = h.elements[id].children.find(item => item.tagName === "optgroup").children;
+        assert.equal(options.length, 12);
+        for (const option of options) {
+            assert.match(option.value, /mode=(true|false)/);
+            assert.match(option.textContent, option.value.includes("mode=true") ? /mode=Authorities/ : /mode=Hubs/);
+        }
+    }
 });
 
 test("selecting a result preserves recommended-only mode and keeps both result selectors synchronized", async () => {

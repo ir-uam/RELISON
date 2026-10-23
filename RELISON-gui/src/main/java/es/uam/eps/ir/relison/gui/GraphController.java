@@ -9,6 +9,8 @@
 package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.graph.multigraph.MultiGraph;
+import es.uam.eps.ir.relison.graph.generator.EmptyGraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.CompleteGraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.GraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.NoLinksGraphGenerator;
@@ -90,6 +92,7 @@ public class GraphController
             try (InputStream in = file.content())
             {
                 graph = reader.read(in, weighted, false);
+                if (graph != null && "gexf".equals(format)) graph = inferGraphMultiplicity(graph);
             }
         }
         catch (Exception e)
@@ -105,6 +108,7 @@ public class GraphController
         }
 
         String id = store.newId();
+        multigraph = graph.isMultigraph();
         GraphSession session = new GraphSession(id, graph, graph.isDirected(), weighted, multigraph, selfloops);
         store.register(session);
 
@@ -114,6 +118,33 @@ public class GraphController
         response.put("graph", GraphSerializer.toGraphology(session));
         response.put("schema", GraphSerializer.schema(session));
         ctx.json(response);
+    }
+
+    // GEXF is initially read permissively to retain every edge. Use a simple
+    // FastGraph when no pair has multiple edges, preserving all imported data.
+    static Graph<String> inferGraphMultiplicity(Graph<String> graph) throws Exception
+    {
+        if (!(graph instanceof MultiGraph)) return graph;
+        MultiGraph<String> multi = (MultiGraph<String>) graph;
+        if (graph.getAllNodes().anyMatch(u -> graph.getAdjacentNodes(u).anyMatch(v -> multi.getNumEdges(u, v) > 1))) return graph;
+        EmptyGraphGenerator<String> generator = new EmptyGraphGenerator<>();
+        generator.configure(graph.isDirected(), graph.isWeighted());
+        Graph<String> simple = generator.generate();
+        graph.getAllNodes().forEach(simple::addNode);
+        graph.getNodeAttributeNames().forEach(name -> {
+            simple.defineNodeAttribute(name, graph.getNodeAttributeType(name));
+            graph.getNodeAttributes(name).forEach(value -> simple.setNodeAttribute(value.getIdx(), name, value.getValue()));
+        });
+        graph.getEdgeAttributeNames().forEach(name -> simple.defineEdgeAttribute(name, graph.getEdgeAttributeType(name)));
+        graph.getAllNodes().forEach(u -> graph.getAdjacentNodes(u).forEach(v -> {
+            if (simple.containsEdge(u, v)) return; // undirected reverse visit
+            simple.addEdge(u, v, multi.getEdgeWeights(u, v).get(0), multi.getEdgeTypes(u, v).get(0));
+            graph.getEdgeAttributeNames().forEach(name -> {
+                Object value = multi.getEdgeAttribute(u, v, 0, name);
+                if (value != null) simple.setEdgeAttribute(u, v, name, value);
+            });
+        }));
+        return simple;
     }
 
     /**
