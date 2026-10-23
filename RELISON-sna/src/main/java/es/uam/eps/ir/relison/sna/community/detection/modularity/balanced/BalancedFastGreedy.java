@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.modularity.balanced;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.community.detection.connectedness.WeaklyConnectedComponents;
@@ -138,6 +140,7 @@ public class BalancedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
             // Apply the clustering algorithm on the large connected components.
             for (Set<U> largec : auxList)
             {
+                ComputationMonitor.current().checkCancelled();
                 Communities<U> aux = this.cluster(auxGraph, largec);
                 if (aux != null)
                 {
@@ -179,6 +182,7 @@ public class BalancedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
             Communities<U> aux = new Communities<>();
             for (U u : users)
             {
+                ComputationMonitor.current().checkCancelled();
                 aux.addCommunity();
                 aux.add(u, aux.getNumCommunities() - 1);
             }
@@ -206,6 +210,7 @@ public class BalancedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
                 double averageAfter;
                 for (int c : comms)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     averageBefore += (aux.getCommunitySize(c) + 0.0) / (subgraph.getVertexCount() + 0.0);
                 }
                 averageAfter = averageBefore / (aux.getNumCommunities() - 1.0);
@@ -215,12 +220,14 @@ public class BalancedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
                 // \Delta Q = 2(e_ij - a_i a_j) - wd_ij
                 for (int i = 0; i < comms.size(); ++i)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     int sizeCommI = aux.getCommunitySize(i);
                     double edgesFromI = commGraph.getNeighbourEdgesCount(i) / (subgraph.getEdgeCount() + 0.0);
                     double weightI = (sizeCommI + 0.0) / (subgraph.getVertexCount() + 0.0);
 
                     for (int j = 0; j < i; ++j)
                     {
+                        ComputationMonitor.current().checkCancelled();
                         int sizeCommJ = aux.getCommunitySize(j);
                         double edgesFromJ = commGraph.getNeighbourEdgesCount(j) / (subgraph.getEdgeCount() + 0.0);
                         double edgesIJ = 0.0;
@@ -251,6 +258,7 @@ public class BalancedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
                     Communities<U> aux2 = new Communities<>();
                     for (int c : comms)
                     {
+                        ComputationMonitor.current().checkCancelled();
                         if (c != secondComm)
                         {
                             aux2.addCommunity();
@@ -276,6 +284,7 @@ public class BalancedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
 
             for (int c : comms)
             {
+                ComputationMonitor.current().checkCancelled();
                 if (aux.getCommunitySize(c) > commSize)
                 {
                     Stream<U> us = aux.getUsers(c);

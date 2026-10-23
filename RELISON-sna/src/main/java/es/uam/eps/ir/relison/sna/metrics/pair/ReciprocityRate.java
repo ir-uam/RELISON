@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.pair;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.sna.metrics.PairMetric;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
@@ -55,7 +57,7 @@ public class ReciprocityRate<U> implements PairMetric<U>
     @Override
     public Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph)
     {
-        Map<Pair<U>, Double> res = new HashMap<>();
+        Map<Pair<U>, Double> res = ComputationMonitor.current().track(new HashMap<>(), "Computing edge values", ComputationMonitor.current() == ComputationMonitor.NONE ? -1 : graph.getAllNodes().mapToLong(source -> graph.getAdjacentNodes(source).count()).sum(), "endpoint pairs");
         graph.getAllNodes().forEach(u -> graph.getAdjacentNodes(u).forEach(v -> res.put(new Pair<>(u, v), this.compute(graph, u, v))));
         return res;
     }

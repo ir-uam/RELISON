@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.modularity.balanced;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 
@@ -43,6 +45,7 @@ public class NormalizedCutSpectralClustering<U> extends SpectralClustering<U>
         DoubleMatrix2D aux = new SparseDoubleMatrix2D(degree.toArray());
         for (int i = 0; i < degree.rows(); ++i)
         {
+            ComputationMonitor.current().checkCancelled();
             laplacian.setQuick(i, i, 1.0);
             aux.setQuick(i, i, Math.sqrt(aux.getQuick(i, i)));
         }

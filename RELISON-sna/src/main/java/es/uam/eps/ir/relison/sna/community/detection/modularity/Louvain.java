@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.modularity;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.community.graph.SimpleCommunityGraphGenerator;
@@ -72,6 +74,7 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
     @Override
     public Communities<U> detectCommunities(Graph<U> graph)
     {
+        ComputationMonitor.current().phase("Detecting communities");
         Random rng = new Random(rngSeed);
         // Step 1: We transform the graph into an undirected graph (unless it is already undirected)
 
@@ -116,6 +119,9 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
         boolean changed = true;
         for (int sweep = 0; changed && sweep < maxSweeps; ++sweep)
         {
+            ComputationMonitor.current().progress("Optimizing communities", sweep, -1, "sweeps");
+
+            ComputationMonitor.current().checkCancelled();
             // Cooperative cancellation: when run on a worker thread that the GUI's Stop button interrupts, abandon the
             // (potentially long) local-moving loop instead of running it to convergence. Harmless outside that context:
             // an ordinary caller never interrupts the computing thread, so the flag is never set.
@@ -125,6 +131,7 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
             double variation = 0.0;
             for (U u : users)
             {
+                ComputationMonitor.current().checkCancelled();
                 int actualComm = userToComm.get(u);
                 double degU = degrees.get(u);
 
@@ -155,6 +162,7 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
                 double bestGain = baseGain;
                 for (int comm : comms)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     if (comm == actualComm) continue;
                     double gain = 2.0 * degreeToComm.get(comm) / m - 2.0 * degU * sumTot.get(comm) / m2;
                     if (gain > bestGain)
@@ -211,6 +219,7 @@ public class Louvain<U extends Serializable> implements CommunityDetectionAlgori
                 Communities<U> defComms = new Communities<>();
                 for(int i = 0; i < comms.getNumCommunities(); ++i)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     defComms.addCommunity();
                     int finalI = i;
                     comms.getUsers(i).forEach(auxComm -> initComms.getUsers(auxComm).forEach(u -> defComms.add(u, finalI)));

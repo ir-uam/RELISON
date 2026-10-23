@@ -9,6 +9,7 @@
 package es.uam.eps.ir.relison.diffusion.metrics;
 
 import es.uam.eps.ir.relison.diffusion.data.Data;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.diffusion.simulation.Iteration;
 import es.uam.eps.ir.relison.diffusion.simulation.SimulationConsumer;
 
@@ -63,6 +64,7 @@ public class MetricsSimulationConsumer<U extends Serializable, I extends Seriali
         List<String> failed = new ArrayList<>(this.metrics.size());
         this.metrics.forEach((id, metric) ->
         {
+            ComputationMonitor.current().checkCancelled();
             try
             {
                 metric.clear();
@@ -72,6 +74,7 @@ public class MetricsSimulationConsumer<U extends Serializable, I extends Seriali
             // Throwable (not just Exception): a memory-heavy metric can throw OutOfMemoryError while allocating its
             // per-user structures. Releasing that metric's partial data (clear) lets the heap recover so the remaining
             // metrics — and the simulation itself — still run, instead of the whole request dying.
+            catch (java.util.concurrent.CancellationException cancelled) { throw cancelled; }
             catch (Throwable e)
             {
                 try { metric.clear(); } catch (Throwable ignored) { /* best-effort release */ }
@@ -87,11 +90,13 @@ public class MetricsSimulationConsumer<U extends Serializable, I extends Seriali
         List<String> failed = new ArrayList<>(this.metrics.size());
         this.metrics.forEach((id, metric) ->
         {
+            ComputationMonitor.current().checkCancelled();
             try
             {
                 metric.update(iteration);
                 this.results.get(id).add(metric.calculate());
             }
+            catch (java.util.concurrent.CancellationException cancelled) { throw cancelled; }
             catch (Throwable e)
             {
                 try { metric.clear(); } catch (Throwable ignored) { /* best-effort release */ }

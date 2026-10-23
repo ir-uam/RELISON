@@ -28,5 +28,13 @@ public class IndividualCommunityMetricIdentifiers
      * Identifier for the volume metric.
      */
     public static final String VOLUME = "Volume";
+    /** Individual community boundary, retention and quality metric identifiers. */
+    public static final String BOUNDARYNODES = "Boundary nodes";
+    public static final String BOUNDARYNODERATIO = "Boundary-node ratio";
+    public static final String NEIGHBORINGCOMMUNITIES = "Distinct neighboring communities";
+    public static final String INTERNALVOLUMEFRACTION = "Internal volume fraction";
+    public static final String CONDUCTANCE = "Conductance";
+    public static final String EDGEEXPANSION = "Edge expansion";
+    public static final String MODULARITYCONTRIBUTION = "Modularity contribution (Newman)";
     
 }

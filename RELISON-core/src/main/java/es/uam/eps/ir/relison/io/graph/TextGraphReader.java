@@ -16,6 +16,7 @@ import es.uam.eps.ir.relison.graph.generator.GraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.exception.GeneratorBadConfiguredException;
 import es.uam.eps.ir.relison.graph.generator.exception.GeneratorNotConfiguredException;
 import es.uam.eps.ir.relison.index.Index;
+import es.uam.eps.ir.relison.io.DelimitedRow;
 import org.ranksys.formats.parsing.Parser;
 import org.ranksys.formats.parsing.Parsers;
 
@@ -46,7 +47,7 @@ import java.io.*;
 public class TextGraphReader<V> implements GraphReader<V>
 {
     /**
-     * Indicates if te graph to read is a multigraph (true) or not (false)
+     * Indicates if the graph to read is a multigraph (true) or not (false)
      */
     private final boolean multigraph;
     /**
@@ -69,6 +70,8 @@ public class TextGraphReader<V> implements GraphReader<V>
      * Field delimiter.
      */
     private final String delimiter;
+    /** Whether the first non-empty row contains column names. */
+    private final boolean header;
 
     /**
      * Constructor.
@@ -81,11 +84,18 @@ public class TextGraphReader<V> implements GraphReader<V>
      */
     public TextGraphReader(boolean directed, boolean weighted, boolean selfloops, String delimiter, Parser<V> uParser)
     {
+        this(directed, weighted, selfloops, delimiter, false, uParser);
+    }
+
+    /** Constructor with optional first-row header handling. */
+    public TextGraphReader(boolean directed, boolean weighted, boolean selfloops, String delimiter, boolean header, Parser<V> uParser)
+    {
         this.multigraph = false;
         this.directed = directed;
         this.weighted = weighted;
         this.selfloops = selfloops;
         this.delimiter = delimiter;
+        this.header = header;
         this.uParser = uParser;
     }
 
@@ -101,11 +111,18 @@ public class TextGraphReader<V> implements GraphReader<V>
      */
     protected TextGraphReader(boolean multigraph, boolean directed, boolean weighted, boolean selfloops, String delimiter, Parser<V> uParser)
     {
+        this(multigraph, directed, weighted, selfloops, delimiter, false, uParser);
+    }
+
+    /** Constructor with optional first-row header handling. */
+    protected TextGraphReader(boolean multigraph, boolean directed, boolean weighted, boolean selfloops, String delimiter, boolean header, Parser<V> uParser)
+    {
         this.multigraph = multigraph;
         this.directed = directed;
         this.weighted = weighted;
         this.selfloops = selfloops;
         this.delimiter = delimiter;
+        this.header = header;
         this.uParser = uParser;
     }
 
@@ -154,11 +171,16 @@ public class TextGraphReader<V> implements GraphReader<V>
             gg.configure(directed, weighted);
             Graph<V> graph = gg.generate();
 
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(stream)))
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, java.nio.charset.StandardCharsets.UTF_8)))
             {
-                br.lines().forEach(line ->
+                String line;
+                boolean firstRow = true;
+                while ((line = br.readLine()) != null)
                 {
-                    String[] splits = line.split(delimiter);
+                    if (line.isBlank()) continue;
+                    if (firstRow && header) { firstRow = false; continue; }
+                    firstRow = false;
+                    String[] splits = DelimitedRow.parse(line, delimiter);
                     V source = uParser.parse(splits[0]);
                     V dest = uParser.parse(splits[1]);
 
@@ -182,7 +204,7 @@ public class TextGraphReader<V> implements GraphReader<V>
 
                         graph.addEdge(source, dest, weight, type, true);
                    }
-               });
+               }
             }
 
             catch (IOException ioe)
@@ -228,11 +250,16 @@ public class TextGraphReader<V> implements GraphReader<V>
 
             nodes.getAllObjectsIds().sorted().forEach(i -> graph.addNode(nodes.idx2object(i)));
 
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(stream)))
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, java.nio.charset.StandardCharsets.UTF_8)))
             {
-                br.lines().forEach(line ->
+                String line;
+                boolean firstRow = true;
+                while ((line = br.readLine()) != null)
                 {
-                    String[] splits = line.split(delimiter);
+                    if (line.isBlank()) continue;
+                    if (firstRow && header) { firstRow = false; continue; }
+                    firstRow = false;
+                    String[] splits = DelimitedRow.parse(line, delimiter);
                     V source = uParser.parse(splits[0]);
                     V dest = uParser.parse(splits[1]);
 
@@ -256,7 +283,7 @@ public class TextGraphReader<V> implements GraphReader<V>
 
                         graph.addEdge(source, dest, weight, type, false);
                     }
-                });
+                }
             }
 
             catch (IOException ioe)
@@ -274,4 +301,5 @@ public class TextGraphReader<V> implements GraphReader<V>
             return null;
         }
     }
+
 }

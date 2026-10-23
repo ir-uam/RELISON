@@ -57,6 +57,13 @@ public final class CommunityCatalog
         indiv(IndividualCommunityMetricIdentifiers.COMMSIZE, "Size");
         indiv(IndividualCommunityMetricIdentifiers.COMMDEGREE, "Degree", Param.orientation("orientation", "Orientation", "OUT"));
         indiv(IndividualCommunityMetricIdentifiers.VOLUME, "Volume", Param.orientation("orientation", "Orientation", "OUT"));
+        indiv(IndividualCommunityMetricIdentifiers.BOUNDARYNODES, "Boundary nodes", boundaryOrientation());
+        indiv(IndividualCommunityMetricIdentifiers.BOUNDARYNODERATIO, "Boundary-node ratio", boundaryOrientation());
+        indiv(IndividualCommunityMetricIdentifiers.NEIGHBORINGCOMMUNITIES, "Distinct neighboring communities", boundaryOrientation());
+        indiv(IndividualCommunityMetricIdentifiers.INTERNALVOLUMEFRACTION, "Internal volume fraction", boundaryOrientation(), Param.bool("weighted", "Use edge weights", false));
+        indiv(IndividualCommunityMetricIdentifiers.CONDUCTANCE, "Conductance", boundaryOrientation(), Param.bool("weighted", "Use edge weights", false));
+        indiv(IndividualCommunityMetricIdentifiers.EDGEEXPANSION, "Edge expansion", boundaryOrientation(), Param.bool("weighted", "Use edge weights", false));
+        indiv(IndividualCommunityMetricIdentifiers.MODULARITYCONTRIBUTION, "Modularity contribution (Newman)", Param.bool("weighted", "Use edge weights", false), Param.real("resolution", "Resolution (gamma)", 1.0));
 
         // Global community metrics (the degree/edge Gini variants take an orientation and/or a self-loop flag).
         global(GlobalCommunityMetricIdentifiers.NUMCOMMS, "Number of communities");
@@ -124,6 +131,12 @@ public final class CommunityCatalog
         return Param.orientation("orientation", "Orientation", "OUT");
     }
 
+    /** Boundary incidence supports incoming, outgoing or both, rather than mutual-neighbor semantics. */
+    private static Param boundaryOrientation()
+    {
+        return Param.choice("orientation", "Boundary direction", "UND", List.of("UND", "OUT", "IN"));
+    }
+
     private static Param autoloops()
     {
         return Param.bool("autoloops", "Count self-loops", true);
@@ -156,6 +169,32 @@ public final class CommunityCatalog
     public static List<Map<String, Object>> individualJson()
     {
         return MetricCatalog.familyJson(INDIVIDUAL);
+    }
+
+    /** Graph metrics exposed as per-community induced-subgraph metrics. */
+    public static List<Map<String, Object>> intraCommunityIndividualJson()
+    {
+        return intraGraphMetricsJson("intra-community:", "Intra-community ");
+    }
+
+    /** Graph metrics exposed as per-node-attribute-value induced-subgraph metrics. */
+    public static List<Map<String, Object>> intraAttributeIndividualJson()
+    {
+        return intraGraphMetricsJson("intra-attribute:", "Intra-Attribute ");
+    }
+
+    private static List<Map<String, Object>> intraGraphMetricsJson(String idPrefix, String labelPrefix)
+    {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (MetricCatalog.MetricDef graphMetric : MetricCatalog.graphMetrics().values())
+        {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("id", idPrefix + graphMetric.id);
+            entry.put("label", labelPrefix + graphMetric.label);
+            entry.put("params", MetricCatalog.paramsJson(graphMetric.params));
+            list.add(entry);
+        }
+        return list;
     }
 
     /** Catalog payload for the global community metrics. */

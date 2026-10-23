@@ -9,14 +9,18 @@
 package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.grid.Grid;
 import es.uam.eps.ir.relison.grid.sna.graph.GraphMetricSelector;
-import es.uam.eps.ir.relison.grid.sna.pair.PairMetricIdentifiers;
 import es.uam.eps.ir.relison.grid.sna.pair.PairMetricSelector;
 import es.uam.eps.ir.relison.grid.sna.vertex.VertexMetricSelector;
 import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
 import es.uam.eps.ir.relison.sna.metrics.PairMetric;
 import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
+import es.uam.eps.ir.relison.sna.metrics.EdgeAttributeMetric;
+import es.uam.eps.ir.relison.sna.metrics.IndividualEdgeAttributeMetric;
+import es.uam.eps.ir.relison.sna.metrics.attributes.edges.graph.NumAttributes;
+import es.uam.eps.ir.relison.sna.metrics.attributes.edges.indiv.Count;
 import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
 import io.javalin.http.Context;
@@ -25,8 +29,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 
 /**
@@ -161,6 +164,62 @@ public class MetricController
         ctx.json(response);
     }
 
+    /** Computes one of the RELISON-SNA edge-attribute metrics for a declared edge attribute. */
+    public void edgeAttribute(Context ctx)
+    {
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        GraphSession session = requireSession(ctx, body);
+        if (session == null) return;
+
+        String attribute = body.get("attribute") == null ? "" : String.valueOf(body.get("attribute"));
+        if (attribute.isBlank() || session.getGraph().getEdgeAttributeType(attribute) == null)
+        {
+            ctx.status(400).json(Map.of("error", "Unknown edge attribute: " + attribute));
+            return;
+        }
+        String metricId = String.valueOf(body.get("metric"));
+        Graph<String> graph = useRecommendation(body, session) ? session.getAugmentedGraph() : session.getGraph();
+        try
+        {
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("attribute", attribute);
+            response.put("recommendation", useRecommendation(body, session) ? session.getActiveRecommendationKey() : null);
+            if ("num-attributes".equals(metricId))
+            {
+                EdgeAttributeMetric<String> metric = new NumAttributes<>();
+                double value = jobs.run(jobKey(body, "edgeAttributeGlobal"), () -> metric.compute(graph, attribute));
+                response.put("label", "Number of attribute values (" + attribute + ")");
+                response.put("value", value);
+            }
+            else if ("count".equals(metricId))
+            {
+                IndividualEdgeAttributeMetric<String> metric = new Count<>();
+                Map<Object, Double> values = jobs.run(jobKey(body, "edgeAttributeIndividual"), () -> metric.compute(graph, attribute));
+                Map<String, Double> out = new LinkedHashMap<>();
+                Map<String, String> valueLabels = new LinkedHashMap<>();
+                int index = 0;
+                for (Map.Entry<Object, Double> entry : values.entrySet())
+                {
+                    String id = Integer.toString(index++);
+                    out.put(id, entry.getValue());
+                    valueLabels.put(id, entry.getKey() == null ? "(missing)" : String.valueOf(entry.getKey()));
+                }
+                response.put("label", "Edge count by attribute value (" + attribute + ")");
+                response.put("values", out);
+                response.put("valueLabels", valueLabels);
+                response.put("average", out.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
+            }
+            else
+            {
+                ctx.status(400).json(Map.of("error", "Unknown edge attribute metric: " + metricId));
+                return;
+            }
+            response.put("metric", metricId);
+            ctx.json(response);
+        }
+        catch (JobCancelledException e) { ctx.json(Map.of("cancelled", true)); }
+        catch (Exception e) { ctx.status(500).json(Map.of("error", String.valueOf(e))); }
+    }
     /**
      * Handles {@code POST /api/metrics/pair}: computes a pair/edge metric. By default it is computed only over the
      * existing links ({@code computeOnlyLinks}); pass {@code onlyLinks:false} to summarise the metric over all node
@@ -239,27 +298,12 @@ public class MetricController
         return response;
     }
 
-    /** Number of node pairs above which non-distance metrics estimate the aggregate from a random sample. */
-    private static final long EXACT_LIMIT = 5_000_000L;
-    /** Number of pairs sampled when a (non-distance) network is too large to enumerate exactly. */
-    private static final int SAMPLE_SIZE = 2_000_000;
     /** Number of histogram buckets returned for the distribution. */
     private static final int HISTOGRAM_BINS = 40;
 
     /**
-     * Pair metrics derived from all-pairs shortest paths. RELISON's {@code CompleteDistanceCalculator} already
-     * stores every distance once computed, so enumerating all pairs is just cheap lookups — these are therefore
-     * always computed exactly (never sampled), even for very large networks.
-     */
-    private static final Set<String> DISTANCE_BASED = Set.of(
-            PairMetricIdentifiers.DISTANCE,
-            PairMetricIdentifiers.GEODESICS,
-            PairMetricIdentifiers.BETWEENNESS);
-
-    /**
-     * Summarises a pair metric over all node pairs without materialising them: streams values into an average,
-     * min/max and a histogram. Distance-based metrics are always enumerated exactly (their values are already
-     * cached); other metrics are enumerated exactly when small and sampled when large.
+     * Summarises a pair metric over all node pairs by streaming values into statistics and a distinct-value
+     * frequency table. Every directed or undirected node pair is evaluated exactly.
      */
     private Map<String, Object> pairAggregate(GraphSession session, Graph<String> graph, String recKey, String metricId, String label, PairMetric<String> metric)
     {
@@ -268,49 +312,37 @@ public class MetricController
         graph.getAllNodes().forEach(nodes::add);
         int n = nodes.size();
         long totalPairs = directed ? (long) n * (n - 1) : (long) n * (n - 1) / 2;
-        boolean distanceBased = DISTANCE_BASED.contains(metricId);
-        boolean estimated = !distanceBased && totalPairs > EXACT_LIMIT;
-
-        // First pass: average, min/max, finite/infinite counts.
+        // Single exact pass: statistics and distinct-value counts are collected together.
         double[] acc = new double[]{0.0, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}; // sum, min, max
         long[] tally = new long[]{0, 0}; // finite, infinite
+        Map<Double, Long> valueCounts = new TreeMap<>();
         java.util.function.DoubleConsumer collect = v ->
         {
-            if (Double.isFinite(v)) { acc[0] += v; if (v < acc[1]) acc[1] = v; if (v > acc[2]) acc[2] = v; tally[0]++; }
+            if (Double.isFinite(v)) { acc[0] += v; if (v < acc[1]) acc[1] = v; if (v > acc[2]) acc[2] = v; tally[0]++; valueCounts.merge(v, 1L, Long::sum); }
             else tally[1]++;
         };
 
-        long evaluated;
-        if (estimated)
-        {
-            evaluated = samplePairs(graph, nodes, metric, collect);
-        }
-        else
-        {
-            forEachPair(graph, nodes, directed, metric, collect);
-            evaluated = totalPairs;
-        }
+        forEachPair(graph, nodes, directed, metric, collect, "Computing pairs: statistics");
+        long evaluated = totalPairs;
 
         long finite = tally[0], infinite = tally[1];
         double sum = acc[0], min = acc[1], max = acc[2];
         double average = finite > 0 ? sum / finite : 0.0;
         double range = (finite > 0 && max > min) ? max - min : 1.0;
 
-        // Second pass: fill the histogram (O(1) memory; values were never stored).
+        // Rebuild the legacy 40-bin histogram from value counts. The frequency table also lets the UI
+        // make arbitrary-width histograms and exact cumulative/frequency plots without storing pair rows.
         long[] counts = new long[HISTOGRAM_BINS];
         if (finite > 0)
         {
             double lo = min, span = range;
-            java.util.function.DoubleConsumer bin = v ->
+            valueCounts.forEach((v, count) ->
             {
-                if (!Double.isFinite(v)) return;
                 int idx = (int) ((v - lo) / span * HISTOGRAM_BINS);
                 if (idx >= HISTOGRAM_BINS) idx = HISTOGRAM_BINS - 1;
                 if (idx < 0) idx = 0;
-                counts[idx]++;
-            };
-            if (estimated) samplePairs(graph, nodes, metric, bin);
-            else forEachPair(graph, nodes, directed, metric, bin);
+                counts[idx] += count;
+            });
         }
 
         List<Map<String, Object>> histogram = new ArrayList<>();
@@ -327,7 +359,7 @@ public class MetricController
         response.put("metric", metricId);
         response.put("label", label);
         response.put("onlyLinks", false);
-        response.put("estimated", estimated);
+        response.put("estimated", false);
         response.put("totalPairs", totalPairs);
         response.put("evaluated", evaluated);
         response.put("finite", finite);
@@ -336,14 +368,19 @@ public class MetricController
         response.put("min", finite > 0 ? min : 0.0);
         response.put("max", finite > 0 ? max : 0.0);
         response.put("histogram", histogram);
+        response.put("valueCounts", valueCounts.entrySet().stream().map(entry -> Map.of("value", entry.getKey(), "count", entry.getValue())).toList());
         response.put("recommendation", recKey);
         return response;
     }
 
     /** Applies the consumer to the metric value of every ordered (directed) / unordered (undirected) node pair. */
-    private void forEachPair(Graph<String> graph, List<String> nodes, boolean directed, PairMetric<String> metric, java.util.function.DoubleConsumer consumer)
+    private void forEachPair(Graph<String> graph, List<String> nodes, boolean directed, PairMetric<String> metric, java.util.function.DoubleConsumer consumer, String phase)
     {
         int n = nodes.size();
+        ComputationMonitor monitor = ComputationMonitor.current();
+        long total = directed ? (long) n * (n - 1) : (long) n * (n - 1) / 2;
+        long done = 0;
+        monitor.progress(phase, 0, total, "pairs");
         for (int i = 0; i < n; i++)
         {
             // Cooperative cancellation: the all-pairs sweep can be enormous, so bail out promptly when the Stop
@@ -353,27 +390,12 @@ public class MetricController
             for (int j = jStart; j < n; j++)
             {
                 if (directed && i == j) continue;
+                monitor.checkCancelled();
                 consumer.accept(metric.compute(graph, nodes.get(i), nodes.get(j)));
+                done++;
+                if (done == 1 || done == total || (done & 1023) == 0) monitor.progress(phase, done, total, "pairs");
             }
         }
-    }
-
-    /** Applies the consumer to a fixed-size random sample of distinct node pairs (same seed for both passes). */
-    private long samplePairs(Graph<String> graph, List<String> nodes, PairMetric<String> metric, java.util.function.DoubleConsumer consumer)
-    {
-        int n = nodes.size();
-        Random rnd = new Random(42);
-        long taken = 0;
-        for (int k = 0; k < SAMPLE_SIZE; k++)
-        {
-            if ((k & 0xFFF) == 0 && Thread.currentThread().isInterrupted())
-                throw new java.util.concurrent.CancellationException();
-            int i = rnd.nextInt(n), j = rnd.nextInt(n);
-            if (i == j) continue;
-            consumer.accept(metric.compute(graph, nodes.get(i), nodes.get(j)));
-            taken++;
-        }
-        return taken;
     }
 
     /**
@@ -414,7 +436,15 @@ public class MetricController
      */
     static boolean useRecommendation(Map<?, ?> body, GraphSession session)
     {
-        return Boolean.TRUE.equals(body.get("withRecommendation")) && session.getActiveRecommendation() != null;
+        return (Boolean.TRUE.equals(body.get("withRecommendation")) || body.get("recommendationKey") != null) && session.getActiveRecommendation() != null;
+    }
+
+    static GraphSession metricSession(Context ctx, Map<?, ?> body, GraphSession session)
+    {
+        if (session == null) { ctx.status(404).json(Map.of("error", "Unknown graph id.")); return null; }
+        if (body.get("recommendationKey") == null) return session;
+        try { return session.forMetricRecommendation(String.valueOf(body.get("recommendationKey"))); }
+        catch (IllegalArgumentException error) { ctx.status(400).json(Map.of("error", error.getMessage())); return null; }
     }
 
     private GraphSession requireSession(Context ctx, Map<?, ?> body)
@@ -426,6 +456,6 @@ public class MetricController
             ctx.status(404).json(Map.of("error", "Unknown graph id."));
             return null;
         }
-        return session;
+        return metricSession(ctx, body, session);
     }
 }

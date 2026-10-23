@@ -1,0 +1,1467 @@
+import { Cosmograph, prepareCosmographData } from "./vendor/esm/cosmograph.js";
+
+let instance = null;
+let spaceDimensions = 2;
+const positions3d = new WeakMap();
+let orientationFrame = 0;
+let rotationFrame = 0;
+let rotationLastTime = 0;
+let rotationEnabled = false;
+let rotationSpeed = 25;
+let rotationAxis = [0, 1, 0];
+let rotationReversed = false;
+
+function readRotationAxis() {
+    const values = ["x", "y", "z"].map((axis) => Number(document.getElementById(`cosmograph-rotation-axis-${axis}`)?.value));
+    const length = Math.hypot(...values);
+    if (!Number.isFinite(length) || length < 1e-8) return null;
+    return values.map((value) => value / length);
+}
+
+function rotateVectorAroundAxis(vector, axis, angle) {
+    const [x, y, z] = vector, [u, v, w] = axis;
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    const dot = u * x + v * y + w * z;
+    return [
+        x * cos + (v * z - w * y) * sin + u * dot * (1 - cos),
+        y * cos + (w * x - u * z) * sin + v * dot * (1 - cos),
+        z * cos + (u * y - v * x) * sin + w * dot * (1 - cos),
+    ];
+}
+
+function getRotationSnapshot() {
+    const camera = instance?.getCameraState?.();
+    return camera ? { ...camera, target: Array.isArray(camera.target) ? [...camera.target] : camera.target } : null;
+}
+
+function setRotationFrame(snapshot, axis, degrees) {
+    if (!instance || !snapshot || !Number.isFinite(snapshot.azimuth) || !Number.isFinite(snapshot.polar)) return false;
+    const sinPolar = Math.sin(snapshot.polar);
+    const eye = [sinPolar * Math.sin(snapshot.azimuth), Math.cos(snapshot.polar), sinPolar * Math.cos(snapshot.azimuth)];
+    const rotated = rotateVectorAroundAxis(eye, axis, Number(degrees) * Math.PI / 180);
+    instance.setCameraState?.({ azimuth: Math.atan2(rotated[0], rotated[2]), polar: Math.acos(Math.max(-1, Math.min(1, rotated[1]))), target: snapshot.target, distance: snapshot.distance }, 0);
+    return true;
+}
+
+async function captureRotationFrame(legend = null, { width = null } = {}) {
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const scene = await buildSvgScene();
+    if (!scene) return null;
+    const svg = legend ? window.relisonGeographicExport.withLegend(scene.svg, legend) : scene.svg;
+    // Rasterize vector geometry at the requested resolution, regardless of viewport size.
+    return window.relisonAnimationExport.svgFrame(svg, scene.width, scene.height, width || instance?.getCanvas?.()?.width);
+}
+
+function globeRotationViewActive() {
+    const pane = document.getElementById("pane-network");
+    return Boolean(pane?.classList.contains("active") && pane.classList.contains("geographic-globe-active"));
+}
+
+function applyGlobeRotationSettings(enabled) {
+    const axis = readRotationAxis() || rotationAxis;
+    rotationAxis = axis;
+    window.relisonGeographic?.setContinuousRotation?.({ enabled, axis, speed: rotationSpeed, reverse: rotationReversed });
+}
+
+function setContinuousRotation(enabled) {
+    if (globeRotationViewActive()) {
+        const control = document.getElementById("cosmograph-auto-rotate");
+        if (control) control.checked = Boolean(enabled);
+        applyGlobeRotationSettings(Boolean(enabled));
+        return;
+    }
+    const next = Boolean(enabled) && spaceDimensions === 3;
+    rotationEnabled = next;
+    const control = document.getElementById("cosmograph-auto-rotate");
+    if (control) control.checked = next;
+    if (rotationFrame) cancelAnimationFrame(rotationFrame);
+    rotationFrame = 0;
+    rotationLastTime = 0;
+    if (next) {
+        rotationAxis = readRotationAxis() || rotationAxis;
+        rotationFrame = requestAnimationFrame(rotateCameraFrame);
+    }
+}
+
+function rotateCameraFrame(timestamp) {
+    rotationFrame = 0;
+    if (!rotationEnabled || spaceDimensions !== 3 || !instance) return;
+    const pane = document.getElementById("pane-network");
+    if (!pane?.classList.contains("active") || !pane.classList.contains("cosmograph-active")) { setContinuousRotation(false); return; }
+    if (rotationLastTime) {
+        const elapsed = Math.min(100, Math.max(0, timestamp - rotationLastTime));
+        const camera = instance.getCameraState?.();
+        if (camera && Number.isFinite(camera.azimuth) && Number.isFinite(camera.polar)) {
+            const sinPolar = Math.sin(camera.polar);
+            const eyeOffset = [sinPolar * Math.sin(camera.azimuth), Math.cos(camera.polar), sinPolar * Math.cos(camera.azimuth)];
+            const direction = rotationReversed ? -1 : 1;
+            const rotated = rotateVectorAroundAxis(eyeOffset, rotationAxis, direction * elapsed * rotationSpeed * Math.PI / 180000);
+            const polar = Math.acos(Math.max(-1, Math.min(1, rotated[1])));
+            const azimuth = Math.atan2(rotated[0], rotated[2]);
+            instance.setCameraState?.({ azimuth, polar }, 0);
+            updateOrientationGizmo();
+        }
+    }
+    rotationLastTime = timestamp;
+    rotationFrame = requestAnimationFrame(rotateCameraFrame);
+}
+
+function updateOrientationGizmo() {
+    const host = document.getElementById("cosmograph-axis-gizmo");
+    const rotationControls = document.getElementById("cosmograph-rotation-controls");
+    const pane = document.getElementById("pane-network");
+    const svg = host?.querySelector("svg");
+    if (!host) return;
+    const visible = spaceDimensions === 3 && pane?.classList.contains("active") && pane.classList.contains("cosmograph-active");
+    const globeVisible = pane?.classList.contains("active") && pane.classList.contains("geographic-globe-active");
+    host.hidden = !visible;
+    if (rotationControls) rotationControls.hidden = !(visible || globeVisible);
+    if (!visible) {
+        if (rotationEnabled) setContinuousRotation(false);
+        if (!globeVisible && pane?.classList.contains("geographic-globe-active")) {
+            const control = document.getElementById("cosmograph-auto-rotate");
+            if (control) control.checked = false;
+            window.relisonGeographic?.setContinuousRotation?.({ enabled: false });
+        }
+        return;
+    }
+    if (!svg) return;
+    const camera = instance?.getCameraState?.();
+    if (!camera || !Number.isFinite(camera.azimuth) || !Number.isFinite(camera.polar)) return;
+
+    // Project world X/Y/Z into a compact camera-facing compass. Cosmograph's
+    // orbit camera uses spherical azimuth/polar angles around the Y-up axis.
+    const azimuth = camera.azimuth, polar = camera.polar;
+    const sinA = Math.sin(azimuth), cosA = Math.cos(azimuth);
+    const sinP = Math.sin(polar), cosP = Math.cos(polar);
+    const axes = [
+        { name: "X", color: "axis-x", vector: [1, 0, 0], azimuth: Math.PI / 2, polar: Math.PI / 2 },
+        { name: "Y", color: "axis-y", vector: [0, 1, 0], azimuth: azimuth, polar: 0.035 },
+        { name: "Z", color: "axis-z", vector: [0, 0, 1], azimuth: 0, polar: Math.PI / 2 },
+    ];
+    const endpoints = [];
+    for (const axis of axes) for (const sign of [1, -1]) {
+        const [x, y, z] = axis.vector.map((value) => value * sign);
+        const sx = x * cosA - z * sinA;
+        const sy = -(x * cosP * sinA + y * sinP + z * cosP * cosA);
+        const depth = x * sinP * sinA + y * cosP + z * sinP * cosA;
+        endpoints.push({ axis, sign, x: 56 + sx * 37, y: 56 + sy * 37, depth });
+    }
+    endpoints.sort((a, b) => a.depth - b.depth);
+    const markup = endpoints.map(({ axis, sign, x, y }) => {
+        const label = axis.name + (sign > 0 ? "+" : "−");
+        const az = axis.name === "X" ? sign * Math.PI / 2 : axis.name === "Y" ? azimuth : (sign > 0 ? 0 : Math.PI);
+        const po = axis.name === "Y" ? (sign > 0 ? 0.035 : Math.PI - 0.035) : Math.PI / 2;
+        return `<g class="axis-control" data-azimuth="${az}" data-polar="${po}" role="button" tabindex="0" aria-label="View along ${label} axis"><line class="axis-line ${axis.color}" x1="56" y1="56" x2="${x.toFixed(2)}" y2="${y.toFixed(2)}"/><line class="axis-hit" x1="56" y1="56" x2="${x.toFixed(2)}" y2="${y.toFixed(2)}" stroke="transparent" stroke-width="12"/><circle class="axis-end ${axis.color}" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="6"/><text class="axis-label" x="${x.toFixed(2)}" y="${y.toFixed(2)}">${label}</text></g>`;
+    }).join("");
+    svg.innerHTML = `<title>Camera orientation. Click an axis endpoint to view along that direction.</title><circle cx="56" cy="56" r="2.5" fill="var(--text)" opacity=".75"/>${markup}`;
+}
+
+function scheduleOrientationGizmo(keepAnimating = false) {
+    if (orientationFrame) cancelAnimationFrame(orientationFrame);
+    const deadline = keepAnimating ? performance.now() + 450 : 0;
+    const draw = () => {
+        updateOrientationGizmo();
+        if (performance.now() < deadline) orientationFrame = requestAnimationFrame(draw);
+        else orientationFrame = 0;
+    };
+    orientationFrame = requestAnimationFrame(draw);
+}
+
+function bindOrientationGizmo() {
+    const host = document.getElementById("cosmograph-axis-gizmo");
+    const svg = host?.querySelector("svg");
+    const rotationControls = document.getElementById("cosmograph-rotation-controls");
+    const rotationToggle = document.getElementById("cosmograph-auto-rotate");
+    const speedSelect = document.getElementById("cosmograph-rotation-speed");
+    const reverseToggle = document.getElementById("cosmograph-reverse-rotation");
+    const axisInputs = ["x", "y", "z"].map((axis) => document.getElementById(`cosmograph-rotation-axis-${axis}`));
+    rotationControls?.addEventListener("pointerdown", (event) => event.stopPropagation());
+    rotationControls?.addEventListener("click", (event) => event.stopPropagation());
+    if (rotationToggle && !rotationToggle.dataset.bound) {
+        rotationToggle.dataset.bound = "true";
+        rotationToggle.addEventListener("change", () => setContinuousRotation(rotationToggle.checked));
+    }
+    if (speedSelect && !speedSelect.dataset.bound) {
+        speedSelect.dataset.bound = "true";
+        speedSelect.addEventListener("change", () => { rotationSpeed = Math.max(1, Number(speedSelect.value) || 25); if (globeRotationViewActive()) applyGlobeRotationSettings(rotationToggle?.checked); });
+    }
+    if (reverseToggle && !reverseToggle.dataset.bound) {
+        reverseToggle.dataset.bound = "true";
+        reverseToggle.addEventListener("change", () => { rotationReversed = reverseToggle.checked; if (globeRotationViewActive()) applyGlobeRotationSettings(rotationToggle?.checked); });
+    }
+    axisInputs.forEach((input) => {
+        if (!input || input.dataset.bound) return;
+        input.dataset.bound = "true";
+        input.addEventListener("change", () => {
+            const axis = readRotationAxis();
+            if (!axis) {
+                ["x", "y", "z"].forEach((name, index) => {
+                    const field = document.getElementById(`cosmograph-rotation-axis-${name}`);
+                    if (field) field.value = String(rotationAxis[index]);
+                });
+                return;
+            }
+            rotationAxis = axis;
+            if (rotationEnabled) rotationLastTime = 0;
+            if (globeRotationViewActive()) applyGlobeRotationSettings(rotationToggle?.checked);
+        });
+    });
+    if (!svg || svg.dataset.bound) return;
+    svg.dataset.bound = "true";
+    const snap = (event) => {
+        const control = event.target.closest(".axis-control");
+        if (!control) return;
+        event.preventDefault(); event.stopPropagation();
+        instance?.setCameraState?.({ azimuth: Number(control.dataset.azimuth), polar: Number(control.dataset.polar) }, 320);
+        scheduleOrientationGizmo(true);
+    };
+    svg.addEventListener("pointerdown", (event) => { if (event.target.closest(".axis-control")) event.stopPropagation(); });
+    svg.addEventListener("click", snap);
+    svg.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") snap(event); });
+    window.addEventListener("pointermove", () => {
+        if (!host.hidden && spaceDimensions === 3) scheduleOrientationGizmo();
+    }, { passive: true });
+}
+
+function spatialPositions(graph) {
+    if (!positions3d.has(graph)) positions3d.set(graph, new Map());
+    return positions3d.get(graph);
+}
+
+async function setDimensions(value) {
+    const next = Number(value) === 3 ? 3 : 2;
+    if (next === spaceDimensions) return;
+    const previous = spaceDimensions;
+    stopForceLayout();
+    spaceDimensions = next;
+    try {
+        if (sourceGraph) { await render(sourceGraph, { preserveSpatialPositions: false }); fitView(); }
+        updateOrientationGizmo();
+    } catch (error) {
+        spaceDimensions = previous;
+        if (sourceGraph) await render(sourceGraph);
+        throw error;
+    }
+}
+
+// Flatten the current perspective view, using the native 2D inverse transform
+// so both renderers receive graph coordinates rather than screen pixels.
+async function projectTo2D() {
+    if (!instance || !sourceGraph || spaceDimensions !== 3) throw new Error("Open a Cosmograph 3D view first.");
+    stopForceLayout();
+    const graph = sourceGraph, spatial = spatialPositions(graph);
+    const previous = new Map();
+    const projected = new Map();
+    graph.forEachNode((id, attrs) => {
+        previous.set(id, { x: attrs.x, y: attrs.y });
+        const point = spatial.get(String(id)) || { x: attrs.x, y: attrs.y, z: 0 };
+        const pixel = instance.spaceToScreenPosition([point.x, point.y, point.z], { dimensions: 3 });
+        if (!pixel || !pixel.every(Number.isFinite)) throw new Error("Some nodes cannot be projected from this camera. Fit the graph and try again.");
+        projected.set(id, pixel);
+    });
+    if (!projected.size) throw new Error("There are no nodes to project.");
+    let written = false;
+    try {
+        await setDimensions(2);
+        const coordinates = new Map();
+        for (const [id, pixel] of projected) {
+            const point = instance.screenToSpacePosition(pixel, { dimensions: 2 });
+            if (!point || !point.every(Number.isFinite)) throw new Error("Could not convert the projection to 2D coordinates.");
+            coordinates.set(id, { x: point[0], y: point[1] });
+        }
+        written = true;
+        for (const [id, point] of coordinates) graph.mergeNodeAttributes(id, point);
+        await render(graph);
+        return coordinates.size;
+    } catch (error) {
+        try { await setDimensions(3); }
+        finally { if (written) for (const [id, point] of previous) graph.mergeNodeAttributes(id, point); }
+        throw error;
+    }
+}
+let pointLabelSizes = [];
+let graphHasDirectedLinks = false;
+let forceLayoutRunning = false;
+let forceFitTimer = null;
+let nodeDragActive = false;
+let sourceGraph = null;
+let pointIds = [];
+let renderedPoints = new Map();
+let renderedLinks = new Map();
+let timelineSync = Promise.resolve();
+let linkStyleColumnRevision = 0;
+let interactionCallbacks = {};
+let multiSelectedIds = new Set();
+let additiveRectSelection = false;
+let rectSelectionEnabled = false;
+let hoveredPointIndex = null;
+let groupDragState = null;
+let rectSelectionOverlayState = null;
+
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Shift" || event.key === "Control" || event.key === "Meta") additiveRectSelection = true;
+});
+document.addEventListener("keyup", (event) => {
+    if (event.key === "Shift" || event.key === "Control" || event.key === "Meta") additiveRectSelection = false;
+});
+let focusedNodeId = null;
+let focusedEdgeId = null;
+let pathForegroundTimer = null;
+let pathForegroundInFlight = false;
+
+function isForegroundPathLink(link, path = window.relisonCosmographPath) {
+    return Boolean(path && (path.edgeIds ? path.edgeIds.has(link.id) : path.edges.has(JSON.stringify([String(link.source), String(link.target)]))));
+}
+
+function stopPathForeground() {
+    if (pathForegroundTimer) clearInterval(pathForegroundTimer);
+    pathForegroundTimer = null;
+    document.getElementById("cosmograph-path-foreground")?.remove();
+}
+
+async function refreshPathForeground() {
+    if (!window.relisonCosmographPath && !multiSelectedIds.size) { stopPathForeground(); return; }
+    if (pathForegroundInFlight || !instance) return;
+    const container = document.getElementById("cosmograph-container");
+    const pane = document.getElementById("pane-network");
+    if (!container || container.hidden || (pane && !pane.classList.contains("active"))) return;
+    pathForegroundInFlight = true;
+    const activeInstance = instance, activePath = window.relisonCosmographPath;
+    const activeSelection = [...multiSelectedIds].sort().join("\u0000");
+    try {
+        const scene = await buildSvgScene({ foregroundOnly: Boolean(activePath) });
+        if (!scene || instance !== activeInstance || window.relisonCosmographPath !== activePath ||
+            [...multiSelectedIds].sort().join("\u0000") !== activeSelection) return;
+        let layer = document.getElementById("cosmograph-path-foreground");
+        if (!layer) {
+            layer = document.createElement("div");
+            layer.id = "cosmograph-path-foreground";
+            layer.setAttribute("aria-hidden", "true");
+            layer.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden";
+            container.appendChild(layer);
+        }
+        layer.innerHTML = scene.svg;
+    } catch (error) {
+        console.warn("Cosmograph path foreground could not update.", error);
+    } finally {
+        pathForegroundInFlight = false;
+    }
+}
+
+function syncPathForeground() {
+    if (!window.relisonCosmographPath && !multiSelectedIds.size) { stopPathForeground(); return; }
+    refreshPathForeground();
+    // Also follow force layouts and external position updates while selected.
+    if (!pathForegroundTimer) pathForegroundTimer = setInterval(refreshPathForeground, 50);
+}
+
+function installRectSelectionOverlay(container) {
+    if (!container || container.dataset.rectSelectionOverlayInstalled === "true") return;
+    container.dataset.rectSelectionOverlayInstalled = "true";
+    container.addEventListener("pointerdown", (event) => {
+        if (!rectSelectionEnabled || (event.pointerType === "mouse" && event.button !== 0)) return;
+        document.getElementById("cosmograph-area-selection")?.remove();
+        const bounds = container.getBoundingClientRect();
+        const startX = Math.max(bounds.left, Math.min(bounds.right, event.clientX));
+        const startY = Math.max(bounds.top, Math.min(bounds.bottom, event.clientY));
+        const overlay = document.createElement("div");
+        overlay.id = "cosmograph-area-selection";
+        overlay.className = "graph-area-selection";
+        overlay.style.cssText = "position:fixed;z-index:99999;left:" + startX + "px;top:" + startY + "px;width:0;height:0;border:2px solid var(--accent);background:rgba(79,157,255,.18)";
+        document.body.appendChild(overlay);
+        rectSelectionOverlayState = { pointerId: event.pointerId, container, overlay, bounds, startX, startY };
+
+        const update = (moveEvent) => {
+            const state = rectSelectionOverlayState;
+            if (!state || (state.pointerId != null && moveEvent.pointerId !== state.pointerId)) return;
+            const x = Math.max(state.bounds.left, Math.min(state.bounds.right, moveEvent.clientX));
+            const y = Math.max(state.bounds.top, Math.min(state.bounds.bottom, moveEvent.clientY));
+            state.overlay.style.left = Math.min(state.startX, x) + "px";
+            state.overlay.style.top = Math.min(state.startY, y) + "px";
+            state.overlay.style.width = Math.abs(x - state.startX) + "px";
+            state.overlay.style.height = Math.abs(y - state.startY) + "px";
+        };
+        const finish = (finishEvent) => {
+            const state = rectSelectionOverlayState;
+            if (!state || (state.pointerId != null && finishEvent.pointerId !== state.pointerId)) return;
+            update(finishEvent);
+            state.overlay.remove();
+            rectSelectionOverlayState = null;
+            document.removeEventListener("pointermove", update, true);
+            document.removeEventListener("pointerup", finish, true);
+            document.removeEventListener("pointercancel", finish, true);
+        };
+        document.addEventListener("pointermove", update, true);
+        document.addEventListener("pointerup", finish, true);
+        document.addEventListener("pointercancel", finish, true);
+    }, true);
+}
+
+function projectGraph(graph) {
+    // RELISON supplies timeline visibility as sets of shared graph ids. Keeping
+    // this filter at projection time updates only Cosmograph's active snapshot;
+    // it never changes the underlying Graphology graph.
+    const temporal = window.relisonCosmographTemporal || {};
+    const sharedView = window.relisonNetworkViewSnapshot;
+    const tableFocus = window.relisonCosmographTableFocus;
+    const path = window.relisonCosmographPath;
+    const pathSelection = path ? null : window.relisonCosmographPathSelection;
+    const focus = path || pathSelection ? null : window.relisonCosmographFocus;
+    // Cosmograph only reprocesses link styles when the configured column name
+    // changes. A fresh internal name ensures a data update (such as showing a
+    // recommendation) rebuilds the native style buffer as well.
+    const styleColumn = "__relison_link_style_" + (++linkStyleColumnRevision);
+    const colorColumn = "__relison_link_color_" + linkStyleColumnRevision;
+    const isFocused = (id) => !focus || !focus.nodes || focus.nodes.has(String(id));
+    const isPathNode = (id) => Boolean(path?.nodes?.has(String(id)));
+    const isPathEndpoint = (id) => Boolean(pathSelection?.nodes?.has(String(id)));
+    const isVisibleNode = (id) => (!sharedView || sharedView.nodeVerdicts.get(String(id)) !== "hidden") && (!temporal.nodes || temporal.nodes.has(String(id))) &&
+        (!focus?.only || isFocused(id)) && (!path?.only || isPathNode(id));
+    const pathEdgeKey = (source, target) => JSON.stringify([String(source), String(target)]);
+    const isPathEdge = (source, target, id) => Boolean(path && (path.edgeIds ? path.edgeIds.has(String(id)) : path.edges?.has(pathEdgeKey(source, target))));
+    const pathEdgeColor = (source, target) => path?.edgeColors?.get(pathEdgeKey(source, target)) || path?.edgeColor;
+    const isVisibleEdge = (id) => (!sharedView || sharedView.edgeVerdicts.get(String(id)) !== "hidden") && (!temporal.edges || temporal.edges.has(String(id)))
+        && (spaceDimensions !== 3 || !window.relisonH3 || window.relisonH3.edgeVisible(graph, graph.source(id), graph.target(id), id));
+    const points = graph.nodes().filter(isVisibleNode).map((id) => {
+        const attrs = graph.getNodeAttributes(id);
+        const dimmed = sharedView ? sharedView.nodeVerdicts.get(String(id)) === "dim" : Boolean(tableFocus && !tableFocus.nodes.has(String(id))) || (path
+            ? Boolean(!path.only && !isPathNode(id))
+            : pathSelection
+                ? !isPathEndpoint(id)
+                : Boolean(focus && !focus.only && !isFocused(id)));
+        const baseSize = Number.isFinite(attrs.size) ? attrs.size : 4;
+        const spatial = spaceDimensions === 3 ? spatialPositions(graph).get(String(id)) : null;
+        return {
+            id: String(id),
+            label: attrs.label == null ? String(id) : String(attrs.label),
+            color: dimmed ? ((tableFocus?.dimColor || path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : (attrs.color || "#4f9dff"),
+            size: baseSize * (isPathNode(id) ? (path.nodeSizeScale ?? 1) : 1),
+            x: spatial?.x ?? (Number.isFinite(attrs.x) ? attrs.x : 0),
+            y: spatial?.y ?? (Number.isFinite(attrs.y) ? attrs.y : 0),
+            z: spatial?.z ?? 0,
+        };
+    });
+    // Match Sigma's proportional-label sizing, which is based on radius.
+    pointLabelSizes = points.map((point) => point.size / 2);
+    pointIds = points.map((point) => point.id);
+
+    const links = graph.edges().filter((edge) => {
+        const source = graph.source(edge), target = graph.target(edge);
+        return isVisibleEdge(edge) && isVisibleNode(source) && isVisibleNode(target) &&
+            (!focus?.only || !focus?.matchingEdges || focus.matchingEdges.has(String(edge))) &&
+            (!path?.only || isPathEdge(source, target, edge));
+    }).map((edge) => {
+        const directed = graph.type === "directed" || (graph.type === "mixed" && !graph.isUndirected(edge));
+        const attrs = graph.getEdgeAttributes(edge);
+        const source = graph.source(edge), target = graph.target(edge);
+        const pathLink = isPathEdge(source, target, edge);
+        const pathEndpointsLink = isPathEndpoint(source) && isPathEndpoint(target);
+        const dimmed = sharedView ? sharedView.edgeVerdicts.get(String(edge)) === "dim" : Boolean(tableFocus && !tableFocus.edges.has(String(edge))) || (path
+            ? Boolean(!path.only && !pathLink)
+            : pathSelection
+                ? !pathEndpointsLink
+                : Boolean(focus && !focus.only && (focus.matchingEdges ? !focus.matchingEdges.has(String(edge)) : (focus.edgeOnly ? String(edge) !== focus.edge : (!isFocused(source) || !isFocused(target))))));
+        return {
+            id: String(edge),
+            source: String(source),
+            target: String(target),
+            color: dimmed ? ((tableFocus?.dimColor || path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : (pathLink ? pathEdgeColor(source, target) || attrs.color || "#888888" : attrs.color || "#888888"),
+            arrow: directed,
+            width: (Number.isFinite(attrs.size) ? attrs.size : 1) * (pathLink ? (path.edgeWidthScale ?? 1) : 1),
+            // Base Graphology links are always continuous. Only the separate
+            // transient recommendation projection may opt into dashes.
+            style: 0,
+            [styleColumn]: 0,
+            // applyLabels() keeps this in sync with RELISON's edge-label attribute.
+            label: attrs.label == null ? "" : String(attrs.label),
+        };
+    });
+    // Recommendation results are intentionally not written into Graphology:
+    // they remain a transient RELISON result until the user accepts them. Add
+    // them to Cosmograph's projection instead, with stable synthetic ids, so
+    // they can use the same native link pipeline as regular graph links.
+    const recommendation = window.relisonCosmographRecommendation;
+    if (recommendation?.show) {
+        const directed = Boolean(recommendation.directed);
+        // A recommended link has no source-edge metric from which to derive a
+        // per-edge width. Use the current base-link width: this is exact for
+        // uniform sizing, and the mean is the least surprising counterpart
+        // when base links are scaled by a metric or attribute.
+        const baseWidth = links.length
+            ? links.reduce((sum, link) => {
+                const size = graph.getEdgeAttributes(link.id).size;
+                return sum + (Number.isFinite(size) ? size : 1);
+            }, 0) / links.length
+            : 1;
+        recommendation.edges.forEach((edge, index) => {
+            const source = String(edge.source), target = String(edge.target);
+            if (spaceDimensions === 3 && window.relisonH3 && !window.relisonH3.edgeVisible(graph, source, target, "__recommendation__" + index)) return;
+            if (!graph.hasNode(edge.source) || !graph.hasNode(edge.target) || !isVisibleNode(edge.source) || !isVisibleNode(edge.target)) return;
+            const recommendationVerdict = sharedView?.recommendationVerdict?.(source, target);
+            if (recommendationVerdict === "hidden") return;
+            const pathLink = false;
+            if (path?.only && !pathLink) return;
+            const pathEndpointsLink = isPathEndpoint(source) && isPathEndpoint(target);
+            const dimmed = recommendationVerdict ? recommendationVerdict === "dim" : Boolean(tableFocus && (tableFocus.edgeFiltered || !tableFocus.nodes.has(source) || !tableFocus.nodes.has(target))) || (path
+                ? Boolean(!path.only && !pathLink)
+                : pathSelection
+                    ? !pathEndpointsLink
+                    : Boolean(focus && !focus.only && (!isFocused(edge.source) || !isFocused(edge.target))));
+            links.push({
+                id: "__relison_recommendation__" + index,
+                source,
+                target,
+                color: dimmed ? ((tableFocus?.dimColor || path?.dimColor || pathSelection?.dimColor || focus?.dimColor) || "#3a3c41") : (pathLink ? pathEdgeColor(source, target) || recommendation.color : recommendation.color),
+                width: baseWidth * (pathLink ? (path.edgeWidthScale ?? 1) : 1),
+                style: recommendation.diff ? 1 : 0,
+                [styleColumn]: recommendation.diff ? 1 : 0,
+                arrow: directed,
+                label: "",
+                recommendation: true,
+            });
+        });
+    }
+    // Colour uploads need the same explicit invalidation as style uploads.
+    // Keep the readable color field for labels/exports, and give the native
+    // mapping a fresh column when switching modes or recolouring endpoints.
+    links.forEach(link => { link[colorColumn] = link.color; });
+    graphHasDirectedLinks = links.some((link) => link.arrow);
+    return { points, links, styleColumn, colorColumn };
+}
+
+const EDGE_LABEL_LIMIT = 100;
+let edgeLabelTimer = null;
+let edgeLabelRefreshInFlight = null;
+
+// Cosmograph has native point labels but no native link labels. Its annotation
+// layer is graph-positioned, so it follows normal pan/zoom without a separate
+// screen-space overlay. Limit persistent labels to keep dense graphs readable.
+function edgeLabelAnnotations(snapshot, livePositions) {
+    const labels = window.relisonCosmographLabelOpts || {};
+    if (!labels.edgeShow) return [];
+    const points = new Map(snapshot.points.map((point, index) => {
+        const x = livePositions && Number.isFinite(livePositions[index * spaceDimensions]) ? livePositions[index * spaceDimensions] : point.x;
+        const y = livePositions && Number.isFinite(livePositions[index * spaceDimensions + 1]) ? livePositions[index * spaceDimensions + 1] : point.y;
+        const z = spaceDimensions === 3 && livePositions ? livePositions[index * 3 + 2] : point.z || 0;
+        return [point.id, { x, y, z }];
+    }));
+    const rawFont = String(labels.edgeFont || "sans-serif");
+    const font = /^[a-zA-Z0-9 _,-]+$/.test(rawFont) ? rawFont : "sans-serif";
+    return [...snapshot.links]
+        .filter((link) => link.label)
+        .sort((a, b) => (b.width || 0) - (a.width || 0))
+        .slice(0, EDGE_LABEL_LIMIT)
+        .map((link) => {
+            const source = points.get(link.source), target = points.get(link.target);
+            if (!source || !target || !Number.isFinite(source.x) || !Number.isFinite(source.y) ||
+                !Number.isFinite(target.x) || !Number.isFinite(target.y)) return null;
+            const dx = target.x - source.x, dy = target.y - source.y;
+            const distance = Math.hypot(dx, dy);
+            // A modest perpendicular offset keeps text from covering the link
+            // while remaining stable in graph coordinate space.
+            const offset = distance ? Math.min(4, distance * 0.08) : 0;
+            const fontSize = labels.edgeProp ? Math.max(5, (link.width || 1) * ((Number(labels.edgeSize) || 9) / 2)) : (Number(labels.edgeSize) || 9);
+            const color = labels.edgeColorMode === "single" ? (labels.edgeColor || "#ffffff")
+                : labels.edgeColorMode === "edge" ? (link.color || "#ffffff") : "#ffffff";
+            return {
+                text: link.label,
+                position: [
+                    (source.x + target.x) / 2 - (dy / (distance || 1)) * offset,
+                    (source.y + target.y) / 2 + (dx / (distance || 1)) * offset,
+                    ...(spaceDimensions === 3 ? [(source.z + target.z) / 2] : []),
+                ],
+                color,
+                fontSize,
+                className: "font-family: " + font + "; pointer-events: none; white-space: nowrap;",
+                padding: { left: 1, top: 1, right: 1, bottom: 1 },
+                weight: 1,
+            };
+        })
+        .filter(Boolean);
+}
+
+function currentSnapshot() {
+    return { points: [...renderedPoints.values()], links: [...renderedLinks.values()] };
+}
+
+async function refreshEdgeLabels() {
+    if (!instance) return;
+    if (edgeLabelRefreshInFlight) return edgeLabelRefreshInFlight;
+    edgeLabelRefreshInFlight = (async () => {
+        const snapshot = currentSnapshot();
+        let positions = null;
+        if (typeof instance.getPointPositions === "function") {
+            const candidate = instance.getPointPositions({ dimensions: spaceDimensions });
+            if (candidate && candidate.length >= snapshot.points.length * spaceDimensions) positions = candidate;
+        }
+        const annotations = edgeLabelAnnotations(snapshot, positions);
+        if (typeof instance.setConfigPartial === "function") {
+            await instance.setConfigPartial({ annotations });
+        } else if (typeof instance.getConfig === "function" && typeof instance.setConfig === "function") {
+            // Older builds lack setConfigPartial; retain the full active config
+            // before adding annotations so other Cosmograph settings are not reset.
+            const config = await instance.getConfig();
+            await instance.setConfig({ ...config, annotations });
+        }
+    })();
+    try { await edgeLabelRefreshInFlight; }
+    finally { edgeLabelRefreshInFlight = null; }
+}
+
+function startEdgeLabelTracking() {
+    if (edgeLabelTimer || !(window.relisonCosmographLabelOpts || {}).edgeShow) return;
+    edgeLabelTimer = setInterval(() => { refreshEdgeLabels().catch((error) => console.warn("Cosmograph edge-label refresh failed.", error)); }, 125);
+}
+
+function stopEdgeLabelTracking() {
+    if (edgeLabelTimer) clearInterval(edgeLabelTimer);
+    edgeLabelTimer = null;
+}
+function rememberSnapshot(snapshot) {
+    renderedPoints = new Map(snapshot.points.map((point) => [point.id, point]));
+    renderedLinks = new Map(snapshot.links.map((link) => [link.id, link]));
+    pointIds = snapshot.points.map((point) => point.id);
+    pointLabelSizes = snapshot.points.map((point) => point.size / 2);
+    syncPathForeground();
+}
+
+// The data-preparation layer accepts linkStyleBy, but Cosmograph 2.5.1 can
+// drop that optional column during a config update. Set the renderer's native
+// style buffer explicitly after each upload: 0 = solid, 1 = dashed, 2 = dotted.
+function findGraphApi() {
+    const candidates = [instance?.graph, instance?._graph, instance?.cosmos, instance?._cosmos, ...Object.values(instance || {})];
+    return candidates.find((candidate) => candidate && typeof candidate.setPointSizes === "function") || null;
+}
+
+function applyPointSizes(snapshot) {
+    const graphApi = findGraphApi();
+    if (!graphApi) return;
+    // Shared RELISON node sizes are diameters; Cosmograph consumes diameters directly.
+    graphApi.setPointSizes(Float32Array.from(snapshot.points, (point) => Number.isFinite(point.size) ? point.size : 4));
+    graphApi.render?.();
+}
+
+function applyLinkStyles(snapshot) {
+    if (!instance || typeof instance.setLinkStyles !== "function") return;
+    instance.setLinkStyles(Float32Array.from(snapshot.links, (link) => Number.isInteger(link.style) && link.style >= 0 && link.style <= 2 ? link.style : 0));
+    // The public setter queues a GPU update. Render immediately so a style
+    // change is visible even while the force simulation is paused.
+    if (typeof instance.render === "function") instance.render();
+}
+
+async function prepareGraph(graph) {
+    sourceGraph = graph;
+    const snapshot = projectGraph(graph);
+    const prepared = await prepareCosmographData(
+        {
+            points: { pointIdBy: "id", pointColorBy: "color", pointSizeBy: "size", pointLabelBy: "label", pointXBy: "x", pointYBy: "y", ...(spaceDimensions === 3 ? { pointZBy: "z" } : {}) },
+            links: { linkSourceBy: "source", linkTargetsBy: ["target"], linkColorBy: snapshot.colorColumn, linkWidthBy: "width", linkStyleBy: snapshot.styleColumn, linkArrowBy: "arrow" },
+        },
+        snapshot.points,
+        snapshot.links,
+    );
+    return prepared ? { prepared, snapshot } : null;
+}
+function cosmographConfig(prepared, snapshot, onPointClick, onLinkClick, onStageClick) {
+    const labels = window.relisonCosmographLabelOpts || {};
+    // Cosmograph exposes point outlines as a ring for selected point indices,
+    // rather than Sigma's general node stroke. Apply that ring to every active
+    // point when RELISON's shared Node borders option is enabled.
+    const borderOn = Boolean(document.getElementById("node-border-on")?.checked);
+    const borderColor = document.getElementById("node-border-color")?.value || "#1b1c1f";
+    const selectionRingColor = borderOn ? borderColor : (getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#ffcc66");
+    const outlineIds = new Set([...multiSelectedIds, ...(window.relisonMultiSelectedNodes || []).map(String)]);
+    const outlinedPointIndices = pointIds.flatMap((id, index) => borderOn || outlineIds.has(id) ? [index] : []);
+    const rawFont = String(labels.nodeFont || "sans-serif");
+    const font = /^[a-zA-Z0-9 _,-]+$/.test(rawFont) ? rawFont : "sans-serif";
+    const baseSize = Number(labels.nodeSize) || 13;
+    const labelColor = labels.nodeColorMode === "single" ? (labels.nodeColor || "#ffffff") : "#ffffff";
+    const labelStyle = (_text, index) => {
+        const size = labels.nodeProp ? Math.max(6, (pointLabelSizes[index] || 4) * (baseSize / 8)) : baseSize;
+        const pointColor = snapshot.points[index]?.color || "#ffffff";
+        const labelColor = labels.nodeColorMode === "single" ? (labels.nodeColor || "#ffffff")
+            : labels.nodeColorMode === "node" ? pointColor : "#ffffff";
+        // Inline colour wins over Cosmograph's theme CSS, keeping the shared control reliable.
+        return "font-family: " + font + "; font-size: " + size + "px; color: " + labelColor + ";";
+    };
+    const annotations = edgeLabelAnnotations(snapshot);
+    const focusedPointIndex = snapshot.points.findIndex((point) => point.id === focusedNodeId);
+    const focusedLinkIndex = snapshot.links.findIndex((link) => link.id === focusedEdgeId);
+    return {
+        points: prepared.points,
+        links: prepared.links,
+        ...prepared.cosmographConfig,
+        spaceDimensions,
+        pointSphereShading: spaceDimensions === 3 && Boolean(document.getElementById("cosmograph-sphere-shading")?.checked),
+        pointDepthFade: spaceDimensions === 3 ? 0.1 : 0,
+        pointColorStrategy: "direct",
+        outlinedPointIndices,
+        outlinedPointRingColor: selectionRingColor,
+        // RELISON already maps its Size by / min / max controls to pixel sizes.
+        pointSizeStrategy: "direct",
+        linkColorStrategy: "direct",
+        linkWidthStrategy: "direct",
+        linkDefaultStyle: "solid",
+        linkDashLength: 6,
+        linkDashGap: 4,
+        // RELISON supplies pixel widths. The accessor prevents Cosmograph's
+        // automatic width-range remapping from changing those values.
+        linkWidthByFn: (width) => Number(width),
+        linkDefaultWidth: 1,
+        linkWidthScale: 1,
+        linkDefaultArrows: graphHasDirectedLinks,
+        curvedLinks: document.getElementById("edge-shape")?.value === "curved" && !(spaceDimensions === 3 && window.relisonPaper3d?.graph === sourceGraph),
+        curvedLinkSegments: 19,
+        curvedLinkWeight: 0.8,
+        curvedLinkControlPointDistance: 0.25,
+        // Never let data edits or renderer refreshes wake the force layout.
+        // The explicit Cosmograph force-layout control enables it on demand.
+        enableSimulation: forceLayoutRunning,
+        // The UI checkbox controls native Cosmograph point dragging.
+        enableDrag: Boolean(document.getElementById("drag-nodes")?.checked) && !(spaceDimensions === 3 && window.relisonPaper3d?.graph === sourceGraph),
+        rescalePositions: false,
+        // The shared Sigma camera supplies initial framing when switching in.
+        // A deferred native fit would overwrite that transferred camera.
+        fitViewOnInit: false,
+        fitViewDelay: 0,
+        fitViewDuration: 0,
+        transitionDuration: 0,
+        linkArrowsSizeScale: 1.5,
+        showLabels: Boolean(labels.nodeShow),
+        // Hover labels remain available even when persistent labels are hidden.
+        showHoveredPointLabel: true,
+        // Keep labels tied to the visible viewport so zooming into a smaller
+        // area reveals more of its nodes instead of stopping at Cosmograph's
+        // default 30 dynamic labels. Top-label mode uses a separate fixed cap
+        // and would make that zoom-dependent behavior less useful here.
+        showTopLabels: false,
+        showDynamicLabels: true,
+        showDynamicLabelsLimit: 200,
+        // White is Cosmograph's neutral default; the shared label-colour control overrides it.
+        pointLabelColor: labelColor,
+        pointLabelFontSize: baseSize,
+        pointLabelClassName: labelStyle,
+        annotations,
+        // RELISON owns selection and dimming; native selection would retain a
+        // second, independent highlight after filters or panel selection change.
+        selectPointOnClick: false,
+        selectPointOnLabelClick: false,
+        selectLinkOnClick: false,
+        focusPointOnClick: false,
+        focusPointOnLabelClick: false,
+        onZoom: refreshPathForeground,
+        onResize: refreshPathForeground,
+        onDrag: refreshPathForeground,
+        focusedPointIndex: focusedPointIndex >= 0 ? focusedPointIndex : undefined,
+        focusedLinkIndex: focusedLinkIndex >= 0 ? focusedLinkIndex : undefined,
+        onPointClick: (index, _position, event) => {
+            const point = snapshot.points[index];
+            if (point && onPointClick) onPointClick(point.id, event);
+        },
+        onPointMouseOver: (index) => { hoveredPointIndex = Number.isInteger(index) ? index : null; },
+        onRectSelected: (selection, indices) => {
+            if (!selection || !window.relisonMultiSelectEnabled) return;
+            const selectedIndices = Array.isArray(indices) ? indices : (instance?.getSelectedPointIndices?.() || []);
+            if (interactionCallbacks.onRectSelected) interactionCallbacks.onRectSelected(selectedIndices, additiveRectSelection);
+            setTimeout(() => instance?.deactivateRectSelection?.(), 0);
+        },
+        onDragStart: (event) => {
+            nodeDragActive = true;
+            if (forceFitTimer) { clearTimeout(forceFitTimer); forceFitTimer = null; }
+            const subjectIndex = Number.isInteger(event?.subject) ? event.subject
+                : Number.isInteger(event?.subject?.index) ? event.subject.index : hoveredPointIndex;
+            if (!window.relisonMultiSelectEnabled || !instance || subjectIndex == null) return;
+            const anchorId = pointIds[subjectIndex];
+            if (anchorId == null) return;
+            // Only intercept the drag when the point is already part of a
+            // multi-selection. Updating app selection here can reconfigure
+            // Cosmograph in the middle of its native pointer gesture.
+            if (!multiSelectedIds.has(anchorId)) return;
+            const positions = instance.getPointPositions?.({ dimensions: spaceDimensions });
+            if (!positions || positions.length < pointIds.length * spaceDimensions) return;
+            const ids = new Set(multiSelectedIds);
+            ids.add(anchorId);
+            const indices = [...ids].map((id) => pointIds.indexOf(id)).filter((index) => index >= 0);
+            if (indices.length < 2) return;
+            groupDragState = { anchorIndex: subjectIndex, positions: new Float32Array(positions), indices };
+        },
+        onDrag: () => {
+            if (!groupDragState || !instance) return;
+            const { anchorIndex, positions: startPositions, indices } = groupDragState;
+            const anchor = instance.getPointPositionByIndex?.(anchorIndex, { dimensions: spaceDimensions });
+            if (!anchor || !Number.isFinite(anchor[0]) || !Number.isFinite(anchor[1])) return;
+            const positions = new Float32Array(startPositions);
+            indices.forEach((index) => {
+                for (let axis = 0; axis < spaceDimensions; axis++) {
+                    positions[index * spaceDimensions + axis] += anchor[axis] - startPositions[anchorIndex * spaceDimensions + axis];
+                }
+            });
+            const graphApi = findGraphApi();
+            const target = graphApi && typeof graphApi.setPointPositions === "function" ? graphApi : instance;
+            if (typeof target.setPointPositions !== "function") return;
+            target.setPointPositions(positions, { dimensions: spaceDimensions, dontRescale: true });
+            target.render?.();
+            refreshPathForeground();
+        },
+        // Keep RELISON's shared Graphology positions (and exports) in sync with
+        // the point positions chosen by the user in Cosmograph.
+        onDragEnd: () => {
+            groupDragState = null;
+            nodeDragActive = false;
+            // Cosmograph may wake its simulation after a native drag. Only an
+            // explicit force-layout action is allowed to leave it running.
+            if (!forceLayoutRunning) instance?.stop?.();
+            savePointPositions();
+            centerOrbitOnNodes();
+            if (forceLayoutRunning) forceFitTimer = setTimeout(followForceLayoutCamera, 400);
+        },
+        onLinkClick: (index, event) => {
+            const link = snapshot.links[index];
+            if (link && onLinkClick) onLinkClick(link.id, event);
+        },
+        onClick: (index, _position, event) => {
+            if ((index == null || index < 0) && onStageClick) onStageClick(event);
+        },
+    };
+}
+
+
+async function render(graph, { onPointClick, onLinkClick, onStageClick, onRectSelected, onDragStartNode, preserveSpatialPositions = true } = {}) {
+    const container = document.getElementById("cosmograph-container");
+    if (!container || !graph) return;
+    const previousView = sourceGraph === graph && preserveSpatialPositions ? getNetworkView() : null;
+    const previousCamera = sourceGraph === graph && spaceDimensions === 3 && preserveSpatialPositions ? instance?.getCameraState?.() : null;
+    if (sourceGraph === graph && spaceDimensions === 3 && preserveSpatialPositions) savePointPositions();
+    installRectSelectionOverlay(container);
+    bindOrientationGizmo();
+    if (onPointClick !== undefined || onLinkClick !== undefined || onStageClick !== undefined || onRectSelected !== undefined || onDragStartNode !== undefined) {
+        interactionCallbacks = { onPointClick, onLinkClick, onStageClick, onRectSelected, onDragStartNode };
+    }
+    const preparedResult = await prepareGraph(graph);
+    if (!preparedResult) throw new Error("Cosmograph could not prepare this graph.");
+    const { prepared, snapshot } = preparedResult;
+    const config = cosmographConfig(prepared, snapshot, interactionCallbacks.onPointClick, interactionCallbacks.onLinkClick, interactionCallbacks.onStageClick);
+
+    if (instance && typeof instance.setConfig === "function") {
+        await instance.setConfig(config);
+        // Stop before waiting for upload so no simulation frame is presented
+        // during a normal renderer change.
+        if (!forceLayoutRunning) instance.stop();
+        await instance.dataUploaded();
+        applyPointSizes(snapshot);
+        applyLinkStyles(snapshot);
+        rememberSnapshot(snapshot);
+        if (previousView) setNetworkView(previousView);
+        if (previousCamera) instance.setCameraState?.(previousCamera, 0);
+        centerOrbitOnNodes();
+        updateOrientationGizmo();
+        if (forceLayoutRunning) startEdgeLabelTracking(); else stopEdgeLabelTracking();
+        return;
+    }
+    container.replaceChildren();
+    instance = new Cosmograph(container, config);
+    // Do this synchronously: dataUploaded() can resolve after the first
+    // render frame, which is too late to prevent the visible layout jump.
+    if (!forceLayoutRunning) instance.stop();
+    await instance.dataUploaded();
+    applyPointSizes(snapshot);
+    applyLinkStyles(snapshot);
+    rememberSnapshot(snapshot);
+    centerOrbitOnNodes();
+    updateOrientationGizmo();
+    if (forceLayoutRunning) startEdgeLabelTracking(); else stopEdgeLabelTracking();
+}
+function hasParallelLinks(links) {
+    const pairs = new Set();
+    for (const link of links) {
+        const key = link.source + "\u0000" + link.target;
+        if (pairs.has(key)) return true;
+        pairs.add(key);
+    }
+    return false;
+}
+
+async function applyTimelineDelta(graph) {
+    if (sourceGraph === graph && spaceDimensions === 3) savePointPositions();
+    sourceGraph = graph;
+    if (!instance || graph.multi) return render(graph);
+    const snapshot = projectGraph(graph);
+    const desiredPoints = new Map(snapshot.points.map((point) => [point.id, point]));
+    const desiredLinks = new Map(snapshot.links.map((link) => [link.id, link]));
+    const currentLinks = [...renderedLinks.values()];
+    // Cosmograph removes links by endpoint pair. Fall back to setConfig for
+    // multigraph/parallel-link cases, where an endpoint pair is ambiguous.
+    if (hasParallelLinks(snapshot.links) || hasParallelLinks(currentLinks) ||
+        typeof instance.addPoints !== "function" || typeof instance.addLinks !== "function" ||
+        typeof instance.removePointsByIds !== "function" || typeof instance.removeLinksByPointIdPairs !== "function") {
+        return render(graph);
+    }
+
+    const pointsToRemove = [...renderedPoints.keys()].filter((id) => !desiredPoints.has(id));
+    // Remove every link that is no longer in the temporal snapshot before
+    // removing points. This avoids dangling / half-rendered links when an
+    // endpoint becomes inactive.
+    const linksToRemove = currentLinks.filter((link) => !desiredLinks.has(link.id));
+    const pointsToAdd = snapshot.points.filter((point) => !renderedPoints.has(point.id));
+    const linksToAdd = snapshot.links.filter((link) => !renderedLinks.has(link.id));
+
+    if (linksToRemove.length) await instance.removeLinksByPointIdPairs(linksToRemove.map((link) => [link.source, link.target]));
+    if (pointsToRemove.length) await instance.removePointsByIds(pointsToRemove);
+    if (pointsToAdd.length) await instance.addPoints(pointsToAdd);
+    if (linksToAdd.length) await instance.addLinks(linksToAdd);
+    if (!forceLayoutRunning && typeof instance.stop === "function") instance.stop();
+    if (typeof instance.dataUploaded === "function") await instance.dataUploaded();
+    applyPointSizes(snapshot);
+    applyLinkStyles(snapshot);
+    rememberSnapshot(snapshot);
+    centerOrbitOnNodes();
+    await refreshEdgeLabels();
+}
+
+function syncTimeline(graph) {
+    // Timeline events may arrive faster than the data API completes. Serialize
+    // them so an older snapshot cannot overwrite the newest selected time.
+    // If a browser/runtime does not support a delta operation, rebuild just
+    // that snapshot instead of leaving a partially-updated graph on screen.
+    timelineSync = timelineSync.catch(() => {}).then(() => applyTimelineDelta(graph))
+        .catch((error) => {
+            console.warn("Cosmograph timeline delta update failed; rebuilding snapshot.", error);
+            return render(graph);
+        });
+    return timelineSync;
+}
+function destroy() {
+    if (forceFitTimer) { clearTimeout(forceFitTimer); forceFitTimer = null; }
+    nodeDragActive = false;
+    setContinuousRotation(false);
+    stopEdgeLabelTracking();
+    if (instance && typeof instance.stop === "function") instance.stop();
+    if (instance && typeof instance.destroy === "function") instance.destroy();
+    instance = null;
+    forceLayoutRunning = false;
+    if (orientationFrame) { cancelAnimationFrame(orientationFrame); orientationFrame = 0; }
+    const gizmo = document.getElementById("cosmograph-axis-gizmo");
+    if (gizmo) gizmo.hidden = true;
+    interactionCallbacks = {};
+    const container = document.getElementById("cosmograph-container");
+    if (container) container.replaceChildren();
+}
+
+async function startForceLayout() {
+    if (!instance || !sourceGraph || typeof instance.start !== "function") return false;
+    // Cosmograph 2.5.1 caches simulation eligibility when graph data is built.
+    // Updating enableSimulation alone does not rebuild that state. Preserve the
+    // visible positions, then rebuild with simulation enabled for this explicit
+    // Start action; ordinary edits still rebuild with simulation disabled.
+    savePointPositions();
+    if (spaceDimensions === 3) {
+        const spatial = spatialPositions(sourceGraph);
+        // Break a flat initial plane so the force simulation can develop depth.
+        if ([...spatial.values()].every((point) => Math.abs(point.z) < 1e-6)) {
+            const points = [...spatial.values()];
+            const span = points.reduce((maximum, point) => Math.max(maximum, Math.abs(point.x), Math.abs(point.y)), 1);
+            points.forEach((point, index) => { point.z = Math.sin((index + 1) * 2.399963) * span * 0.1; });
+        }
+    }
+    const startingInstance = instance;
+    forceLayoutRunning = true;
+    try {
+        await render(sourceGraph, { preserveSpatialPositions: false });
+        if (!forceLayoutRunning || instance !== startingInstance) return false;
+        instance.start(1);
+    } catch (error) {
+        forceLayoutRunning = false;
+        instance?.stop?.();
+        throw error;
+    }
+    startEdgeLabelTracking();
+    // Let the simulation establish its initial structure before fitting. Fitting
+    // on the first frame makes a moving, unconverged graph look abruptly tiny.
+    if (forceFitTimer) clearTimeout(forceFitTimer);
+    forceFitTimer = setTimeout(() => {
+        forceFitTimer = null;
+        if (forceLayoutRunning && instance) fitView(250);
+        if (forceLayoutRunning && instance) forceFitTimer = setTimeout(followForceLayoutCamera, 400);
+    }, 1200);
+    return true;
+}
+
+// Follow the moving layout's centre while retaining the current zoom level.
+// Reading positions at a modest rate avoids a GPU read-back on every frame.
+function followForceLayoutCamera() {
+    forceFitTimer = null;
+    if (!forceLayoutRunning || !instance || instance.isSimulationRunning === false || nodeDragActive) return;
+    const pane = document.getElementById("pane-network");
+    if (!pane || pane.classList.contains("active")) {
+        if (spaceDimensions === 3) {
+            centerOrbitOnNodes();
+            forceFitTimer = setTimeout(followForceLayoutCamera, 400);
+            return;
+        }
+        const positions = instance.getPointPositions?.({ dimensions: 2 });
+        const zoom = instance.getZoomLevel?.();
+        if (positions && Number.isFinite(zoom) && typeof instance.setZoomTransformByPointPositions === "function") {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (let i = 0; i + 1 < positions.length; i += 2) {
+                const x = positions[i], y = positions[i + 1];
+                if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+                minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+            }
+            if (Number.isFinite(minX)) {
+                instance.setZoomTransformByPointPositions(Float32Array.of(minX, minY, maxX, maxY), 250, zoom, 0.1);
+            }
+        }
+    }
+    forceFitTimer = setTimeout(followForceLayoutCamera, 400);
+}
+
+function zoomBy(factor) {
+    if (spaceDimensions === 3) {
+        const camera = instance?.getCameraState?.();
+        if (!camera || !Number.isFinite(camera.distance) || typeof instance?.setCameraState !== "function") return false;
+        const distance = Math.max(0.01, Math.min(1e9, camera.distance / factor));
+        instance.setCameraState({ distance }, 150);
+        return true;
+    }
+    if (!instance || typeof instance.getZoomLevel !== "function" || typeof instance.setZoomLevel !== "function") return false;
+    const current = instance.getZoomLevel();
+    if (!Number.isFinite(current)) return false;
+    instance.setZoomLevel(Math.max(0.05, Math.min(100, current * factor)), 150);
+    return true;
+}
+
+function getNetworkView() {
+    if (spaceDimensions === 3) return null;
+    if (!instance?.screenToSpacePosition) return null;
+    const canvas = instance.getCanvas();
+    const width = canvas?.clientWidth, height = canvas?.clientHeight;
+    if (!width || !height) return null;
+    const center = instance.screenToSpacePosition([width / 2, height / 2]);
+    const offset = instance.screenToSpacePosition([width / 2 + 100, height / 2]);
+    if (!center || !offset) return null;
+    const pixelsPerUnit = 100 / Math.hypot(offset[0] - center[0], offset[1] - center[1]);
+    return [center[0], center[1], pixelsPerUnit].every(Number.isFinite) && pixelsPerUnit > 0
+        ? { x: center[0], y: center[1], pixelsPerUnit } : null;
+}
+
+function setNetworkView(view) {
+    if (spaceDimensions === 3) return false;
+    const current = getNetworkView(), zoom = instance?.getZoomLevel();
+    if (!view || !current || !Number.isFinite(zoom) || !instance.setZoomTransformByPointPositions) return false;
+    const scale = zoom * view.pixelsPerUnit / current.pixelsPerUnit;
+    if (!Number.isFinite(scale) || scale <= 0) return false;
+    instance.setZoomTransformByPointPositions(Float32Array.of(view.x, view.y), 0, scale, 0);
+    instance.render?.();
+    instance._labels?.updatePositions?.();
+    instance._annotations?.updatePositions?.();
+    return true;
+}
+
+// Update only the orbit target: keep the user's distance and rotation angles.
+// Use each rendered node once, including dimmed nodes, excluding filtered nodes.
+function centerOrbitOnNodes() {
+    if (spaceDimensions !== 3 || nodeDragActive || !instance?.setCameraState || !instance.getCameraState?.()) return false;
+    const positions = instance.getPointPositions?.({ dimensions: 3 });
+    if (!positions?.length) return false;
+    const target = [0, 0, 0];
+    let count = 0;
+    for (let offset = 0; offset + 2 < positions.length; offset += 3) {
+        const x = positions[offset], y = positions[offset + 1], z = positions[offset + 2];
+        if (![x, y, z].every(Number.isFinite)) continue;
+        count++;
+        // Incremental mean avoids overflowing a sum of finite coordinates.
+        target[0] += (x - target[0]) / count;
+        target[1] += (y - target[1]) / count;
+        target[2] += (z - target[2]) / count;
+    }
+    if (!count || !target.every(Number.isFinite)) return false;
+    instance.setCameraState({ target }, 0);
+    return true;
+}
+
+function fitView(duration = 150) {
+    if (!instance || typeof instance.fitView !== "function") return false;
+    // Complete the 3D fit before replacing its bounding-box centre with the
+    // node centroid; an overlapping fit animation would overwrite the pivot.
+    instance.fitView(spaceDimensions === 3 ? 0 : duration, 0.1);
+    centerOrbitOnNodes();
+    scheduleOrientationGizmo(true);
+    return true;
+}
+function stopForceLayout() {
+    if (forceFitTimer) { clearTimeout(forceFitTimer); forceFitTimer = null; }
+    if (instance && typeof instance.stop === "function") instance.stop();
+    forceLayoutRunning = false;
+    stopEdgeLabelTracking();
+    stopPathForeground();
+    centerOrbitOnNodes();
+    refreshEdgeLabels().catch((error) => console.warn("Cosmograph edge-label refresh failed.", error));
+    return savePointPositions();
+}
+
+// Update positions and their label overlays, retaining topology, styling and camera.
+// The pinned Cosmograph 2.5.1 build keeps DOM label coordinates in a separate cache.
+async function setNodePositions(positionsByNode) {
+    if (spaceDimensions === 3) return setSpatialNodePositions(positionsByNode);
+    if (!instance || !sourceGraph || typeof positionsByNode !== "object" || !positionsByNode) return false;
+    const graphApi = findGraphApi();
+    const target = graphApi && typeof graphApi.setPointPositions === "function"
+        ? graphApi
+        : instance && typeof instance.setPointPositions === "function" ? instance : null;
+    if (!target) return false;
+    const renderer = instance;
+    const labels = renderer._labels;
+    // Fall back to the caller's render path if a future library build changes
+    // this position-only label API, rather than silently leaving stale labels.
+    if (typeof labels?.updatePositions !== "function") return false;
+    const coordinates = new Float32Array(pointIds.length * 2);
+    for (let index = 0; index < pointIds.length; index++) {
+        const id = pointIds[index], point = positionsByNode[id];
+        if (!sourceGraph.hasNode(id) || !point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return false;
+        coordinates[index * 2] = point.x;
+        coordinates[index * 2 + 1] = point.y;
+    }
+    // Cosmos accepts an options object. A boolean ignores dontRescale in the
+    // current bundled dependency and can put the nodes and labels in different spaces.
+    target.setPointPositions(coordinates, { dimensions: 2, dontRescale: true });
+    for (const [id, point] of renderedPoints) {
+        const position = positionsByNode[id];
+        if (position) { point.x = position.x; point.y = position.y; }
+    }
+    // Draw through the same graph object that received the GPU position update.
+    if (typeof target.render === "function") target.render();
+    else if (typeof instance.render === "function") instance.render();
+    labels.updatePositions();
+    // Hover labels have their own cache in Cosmograph's event manager.
+    renderer._eventManager?._renderCurrentHoveredLabel?.();
+    if ((window.relisonCosmographLabelOpts || {}).edgeShow) {
+        const annotations = renderer._annotations;
+        if (typeof annotations?.setAnnotations === "function" && typeof annotations.updatePositions === "function") {
+            // Edge labels are positioned annotations, so update their midpoints
+            // from this frame without changing configuration or uploading graph data.
+            await annotations.setAnnotations(edgeLabelAnnotations(currentSnapshot(), coordinates));
+            if (instance === renderer) annotations.updatePositions();
+        } else await refreshEdgeLabels();
+    }
+    return true;
+}
+
+function getSpatialNodePositions(graph = sourceGraph) {
+    if (!graph) return {};
+    if (graph === sourceGraph && spaceDimensions === 3) savePointPositions();
+    const saved = spatialPositions(graph);
+    return Object.fromEntries(graph.nodes().map((id) => {
+        const point = saved.get(String(id));
+        return [id, point ? { ...point } : { x: graph.getNodeAttribute(id,"x"), y: graph.getNodeAttribute(id,"y"), z: 0 }];
+    }));
+}
+
+async function setSpatialNodePositions(positions) {
+    if (!instance || !sourceGraph || spaceDimensions !== 3) return false;
+    const nodes = sourceGraph.nodes();
+    if (nodes.some((id) => !positions[id] || ![positions[id].x,positions[id].y,positions[id].z].every(Number.isFinite)))
+        throw new Error("The 3D layout returned incomplete coordinates.");
+    // Validate the complete frame before changing either the spatial store or GPU.
+    const coordinates = new Float32Array(pointIds.length*3);
+    pointIds.forEach((id,index) => { const p=positions[id]; coordinates.set([p.x,p.y,p.z],index*3); });
+    if (!coordinates.every(Number.isFinite)) throw new Error("3D coordinates exceed the renderer's range.");
+    const saved = spatialPositions(sourceGraph);
+    for (const id of nodes) saved.set(String(id), { ...positions[id] });
+    const graphApi = findGraphApi();
+    const target = graphApi?.setPointPositions ? graphApi : instance;
+    if (typeof target.setPointPositions !== "function") {
+        await render(sourceGraph, { preserveSpatialPositions: false });
+        return true;
+    }
+    target.setPointPositions(coordinates, { dimensions: 3, dontRescale: true });
+    for (const [id, point] of renderedPoints) Object.assign(point, positions[id]);
+    if (!forceLayoutRunning) instance.stop?.();
+    target.render?.();
+    instance._labels?.updatePositions?.();
+    instance._eventManager?._renderCurrentHoveredLabel?.();
+    await refreshEdgeLabels();
+    if (!forceLayoutRunning) instance.stop?.();
+    centerOrbitOnNodes();
+    refreshPathForeground();
+    return true;
+}
+
+// Copies the current Cosmograph layout into the shared Graphology graph without
+// changing whether Cosmograph's force simulation is running. This keeps data
+// exports (notably GEXF viz:position values) aligned with the visible view.
+function savePointPositions() {
+    if (!instance || !sourceGraph || typeof instance.getPointPositions !== "function") return 0;
+    const positions = instance.getPointPositions({ dimensions: spaceDimensions });
+    if (!positions || positions.length < pointIds.length * spaceDimensions) return 0;
+    let saved = 0;
+    pointIds.forEach((id, index) => {
+        const x = positions[index * spaceDimensions], y = positions[index * spaceDimensions + 1];
+        if (sourceGraph.hasNode(id) && Number.isFinite(x) && Number.isFinite(y)) {
+            if (spaceDimensions === 3) {
+                const z = positions[index * 3 + 2];
+                if (!Number.isFinite(z)) return;
+                spatialPositions(sourceGraph).set(id, { x, y, z });
+            } else {
+                sourceGraph.setNodeAttribute(id, "x", x);
+                sourceGraph.setNodeAttribute(id, "y", y);
+            }
+            saved += 1;
+        }
+    });
+    return saved;
+}
+
+async function exportPng(filename = "network.png", { legend = null } = {}) {
+    const scene = await buildSvgScene();
+    if (!scene) return false;
+    scene.svg = window.relisonGeographicExport.withLegend(scene.svg, legend);
+    const url = URL.createObjectURL(new Blob([scene.svg], { type: "image/svg+xml" }));
+    try {
+        const image = new Image();
+        await new Promise((resolve, reject) => {
+            image.onload = resolve;
+            image.onerror = () => reject(new Error("Could not rasterize the Cosmograph export."));
+            image.src = url;
+        });
+        const output = document.createElement("canvas");
+        // Rasterize vector primitives at export resolution, including text and
+        // label boxes, rather than enlarging pixels from the displayed canvas.
+        output.width = Math.ceil(scene.width * 4);
+        output.height = Math.ceil(scene.height * 4);
+        output.getContext("2d").drawImage(image, 0, 0, output.width, output.height);
+        const blob = await new Promise((resolve) => output.toBlob(resolve, "image/png"));
+        if (!blob) throw new Error("Could not encode the Cosmograph PNG export.");
+        const downloadUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = downloadUrl;
+        anchor.download = filename;
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+    } finally {
+        URL.revokeObjectURL(url);
+    }
+    return true;
+}
+
+function xmlEscape(value) {
+    return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
+}
+
+function downloadSvg(filename, svg) {
+    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function renderedRgba(colorBuffer, index, fallback) {
+    const offset = index * 4;
+    if (!colorBuffer || colorBuffer.length < offset + 4 || !Number.isFinite(colorBuffer[offset])) return fallback;
+    const r = Math.round(Math.max(0, Math.min(1, colorBuffer[offset])) * 255);
+    const g = Math.round(Math.max(0, Math.min(1, colorBuffer[offset + 1])) * 255);
+    const b = Math.round(Math.max(0, Math.min(1, colorBuffer[offset + 2])) * 255);
+    const a = Math.max(0, Math.min(1, colorBuffer[offset + 3]));
+    return "rgba(" + r + ", " + g + ", " + b + ", " + a + ")";
+}
+
+// Reconstruct the active Cosmograph scene as vector primitives. This is a
+// genuine SVG export (not a conversion of the WebGL canvas), so it stays crisp
+// when enlarged and includes the current camera position, projected links and
+// visible node/edge labels.
+async function buildSvgScene({ foregroundOnly = false, fullNetwork = false } = {}) {
+    if (!instance || typeof instance.getCanvas !== "function" || typeof instance.spaceToScreenPosition !== "function") return false;
+    const canvas = instance.getCanvas();
+    const config = typeof instance.getConfig === "function" ? await instance.getConfig() : {};
+    const snapshot = currentSnapshot();
+    const positions = typeof instance.getPointPositions === "function" ? instance.getPointPositions({ dimensions: spaceDimensions }) : null;
+    if (!canvas || !positions || positions.length < snapshot.points.length * spaceDimensions) return false;
+    // Cosmograph's spaceToScreenPosition() returns CSS-pixel coordinates.
+    // Its canvas width/height are device pixels, so use the displayed size for
+    // the SVG viewport to keep vector positions and labels aligned.
+    const width = canvas.clientWidth || canvas.width, height = canvas.clientHeight || canvas.height;
+    if (!width || !height) return false;
+    // Read resolved buffers from Cosmograph itself. The app projection remains
+    // useful for ids and labels, but these are the exact visual values that
+    // Cosmograph sent to its renderer after any internal mapping.
+    const pointColors = typeof instance.getPointColors === "function" ? instance.getPointColors() : null;
+    const linkColors = typeof instance.getLinkColors === "function" ? instance.getLinkColors() : null;
+    const linkWidths = typeof instance.getLinkWidths === "function" ? instance.getLinkWidths() : null;
+
+    const pointScreen = new Map();
+    const labelSettings = window.relisonNetworkSvg.labelSettings(window.relisonCosmographLabelOpts);
+    snapshot.points.forEach((point, index) => {
+        if (foregroundOnly && !window.relisonCosmographPath?.nodes.has(point.id)) return;
+        const position = instance.spaceToScreenPosition(Array.from(positions.slice(index * spaceDimensions, (index + 1) * spaceDimensions)), { dimensions: spaceDimensions });
+        if (!position || !Number.isFinite(position[0]) || !Number.isFinite(position[1])) return;
+        const rawRadius = typeof instance.getPointRadiusByIndex === "function" ? instance.getPointRadiusByIndex(index) : point.size;
+        const scaledRadius = rawRadius * (config.pointSizeScale ?? 1);
+        // Despite the API name, Cosmograph 2.5.1 returns the full point sprite
+        // size (diameter), as used by its node shader and label positioning.
+        // Honour its zoom/clamping first, then halve it for an SVG circle's r.
+        const screenRadius = instance.getPointScreenRadiusByIndex?.(index);
+        const diameter = Number.isFinite(screenRadius) ? screenRadius
+            : config.scalePointsOnZoom && typeof instance.spaceToScreenRadius === "function"
+                ? instance.spaceToScreenRadius(scaledRadius) : scaledRadius;
+        const radius = (Number.isFinite(diameter) ? diameter : point.size) / 2;
+        const exportPoint = fullNetwork && sourceGraph?.hasNode(point.id)
+            ? { ...point, label: window.relisonNetworkSvg.nodeLabel(sourceGraph, point.id, labelSettings) } : point;
+        pointScreen.set(point.id, { x: position[0], y: position[1], radius,
+            color: renderedRgba(pointColors, index, point.color || "#4f9dff"), point: exportPoint, index });
+    });
+
+    const defs = '<filter id="label-shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.5"/></filter>';
+    const background = getComputedStyle(document.body).getPropertyValue("--canvas-bg").trim() || "#18191c";
+    const linkMarkup = snapshot.links.map((link, index) => {
+        if (foregroundOnly && !isForegroundPathLink(link)) return "";
+        const source = pointScreen.get(link.source), target = pointScreen.get(link.target);
+        if (!source || !target) return "";
+        const color = renderedRgba(linkColors, index, link.color || "#888888");
+        const linkWidth = (Number.isFinite(linkWidths?.[index]) ? linkWidths[index] : (link.width || 1)) * (config.linkWidthScale ?? 1);
+        const dx = target.x - source.x, dy = target.y - source.y, distance = Math.hypot(dx, dy) || 1;
+        // Cosmograph's shader places the triangular arrow around t=0.5.
+        const arrowWidth = linkWidth * 2 * (config.linkArrowsSizeScale ?? 1);
+        const arrowLength = Math.min(distance * 0.3, 0.866 * arrowWidth * 2);
+        const midX = (source.x + target.x) / 2, midY = (source.y + target.y) / 2;
+        const ux = dx / distance, uy = dy / distance;
+        const curved = Boolean(config.curvedLinks);
+        const controlX = midX - uy * distance * (config.curvedLinkControlPointDistance ?? 0.25) * (config.curvedLinkWeight ?? 0.8);
+        const controlY = midY + ux * distance * (config.curvedLinkControlPointDistance ?? 0.25) * (config.curvedLinkWeight ?? 0.8);
+        // On a quadratic Bézier, the rendered midpoint is not the chord
+        // midpoint when curved. Place the arrow on the actual curve so it
+        // cannot appear to float away from the exported link.
+        const arrowCenterX = curved ? midX + (controlX - midX) / 2 : midX;
+        const arrowCenterY = curved ? midY + (controlY - midY) / 2 : midY;
+        const tipX = arrowCenterX + ux * arrowLength / 2, tipY = arrowCenterY + uy * arrowLength / 2;
+        const baseX = arrowCenterX - ux * arrowLength / 2, baseY = arrowCenterY - uy * arrowLength / 2;
+        const arrow = link.arrow ? '<polygon points="' + tipX + ',' + tipY + ' '
+            + (baseX - uy * arrowWidth / 2) + ',' + (baseY + ux * arrowWidth / 2) + ' '
+            + (baseX + uy * arrowWidth / 2) + ',' + (baseY - ux * arrowWidth / 2)
+            + '" fill="' + xmlEscape(color) + '"/>' : '';
+        const dash = link.style === 1 || link.style === "dashed" ? ' stroke-dasharray="6 4"' : (link.style === 2 || link.style === "dotted" ? ' stroke-dasharray="1 4" stroke-linecap="round"' : "");
+        const edgeShape = curved
+            ? '<path d="M ' + source.x + ' ' + source.y + ' Q ' + controlX + ' ' + controlY + ' ' + target.x + ' ' + target.y
+                + '" fill="none" stroke="' + xmlEscape(color) + '" stroke-width="' + linkWidth + '"' + dash + '/>'
+            : '<line x1="' + source.x + '" y1="' + source.y + '" x2="' + target.x + '" y2="' + target.y
+                + '" stroke="' + xmlEscape(color) + '" stroke-width="' + linkWidth + '"' + dash + '/>';
+        return edgeShape + arrow;
+    });
+    const nodeMarkup = new Map([...pointScreen.values()].map(({ x, y, radius, color, point }) => {
+        const border = document.getElementById("node-border-on")?.checked
+            ? ' stroke="' + xmlEscape(document.getElementById("node-border-color")?.value || "#1b1c1f") + '" stroke-width="1"' : '';
+        return [point.id, '<circle cx="' + x + '" cy="' + y + '" r="' + Math.max(0, radius) + '" fill="' + xmlEscape(color) + '"' + border + '/>'];
+    }));
+    const path = window.relisonCosmographPath;
+    const backgroundLinks = linkMarkup.filter((_, index) => !isForegroundPathLink(snapshot.links[index], path)).join("");
+    const foregroundLinks = linkMarkup.filter((_, index) => isForegroundPathLink(snapshot.links[index], path)).join("");
+    const backgroundNodes = [...nodeMarkup].filter(([id]) => !path?.nodes.has(id)).map(([, markup]) => markup).join("");
+    const foregroundNodes = [...nodeMarkup].filter(([id]) => path?.nodes.has(id)).map(([, markup]) => markup).join("");
+    // The native outline configuration does not reliably repaint when only
+    // its indices change. Draw selection rings in a lightweight foreground
+    // SVG layer so click-selection is immediately visible and tracks motion.
+    const selectionRings = [...multiSelectedIds].map((id) => pointScreen.get(id)).filter(Boolean)
+        .map(({ x, y, radius }) => '<circle cx="' + x + '" cy="' + y + '" r="' + (Math.max(0, radius) + 3)
+            + '" fill="none" stroke="' + xmlEscape(getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#ffcc66")
+            + '" stroke-width="2" vector-effect="non-scaling-stroke"/>').join("");
+    // Current-view exports preserve the live DOM label boxes. Full exports
+    // generate labels from the complete snapshot, including offscreen points
+    // and links that the renderer omits from its live label layer.
+    const canvasRect = canvas.getBoundingClientRect();
+    const labelMarkup = foregroundOnly ? "" : fullNetwork ? window.relisonNetworkSvg.labels(pointScreen, snapshot.links, config, labelSettings) : [...document.querySelectorAll('#cosmograph-container .css-label--label')].map((element) => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0 ||
+            element.closest('.css-label--labels-container-hidden') || !rect.width || !rect.height) return '';
+        const x = rect.left - canvasRect.left, y = rect.top - canvasRect.top;
+        const fontSize = parseFloat(style.fontSize) || 13;
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        const textRect = range.getBoundingClientRect();
+        const textX = textRect.width ? textRect.left - canvasRect.left : x + (parseFloat(style.paddingLeft) || 0);
+        const textY = textRect.height ? textRect.top - canvasRect.top + (textRect.height - fontSize) / 2 : y + (parseFloat(style.paddingTop) || 0);
+        const shadow = style.boxShadow !== 'none' ? ' filter="url(#label-shadow)"' : '';
+        return '<g opacity="' + style.opacity + '" style="filter:' + xmlEscape(style.filter) + '">'
+            + '<rect x="' + x + '" y="' + y + '" width="' + rect.width + '" height="' + rect.height
+            + '" rx="' + (parseFloat(style.borderRadius) || 0) + '" fill="' + xmlEscape(style.backgroundColor) + '"' + shadow + '/>'
+            + '<text x="' + textX + '" y="' + textY + '" dominant-baseline="text-before-edge" fill="' + xmlEscape(style.color)
+            + '" font-family="' + xmlEscape(style.fontFamily) + '" font-size="' + fontSize + '" font-weight="' + xmlEscape(style.fontWeight)
+            + '">' + xmlEscape(element.textContent || '') + '</text></g>';
+    }).join('');
+    const svg = (foregroundOnly ? "" : '<?xml version="1.0" encoding="UTF-8"?>\n') + '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height
+        + '" viewBox="0 0 ' + width + ' ' + height + '">' + (foregroundOnly ? "" : '<defs>' + defs + '</defs><rect width="100%" height="100%" fill="' + xmlEscape(background) + '"/>')
+        + (foregroundOnly ? "" : backgroundLinks + backgroundNodes) + foregroundLinks + foregroundNodes + selectionRings + labelMarkup + '</svg>';
+    return { svg, width, height };
+}
+
+async function exportSvg(filename = "network.svg", { legend = null, fullNetwork = false } = {}) {
+    const scene = await buildSvgScene({ fullNetwork });
+    if (!scene) return false;
+    if (fullNetwork) scene.svg = await window.relisonNetworkSvg.fit(scene.svg, legend);
+    downloadSvg(filename, window.relisonGeographicExport.withLegend(scene.svg, legend));
+    return true;
+}
+async function setFocusedSelection(nodeId, edgeId) {
+    focusedNodeId = nodeId == null ? null : String(nodeId);
+    focusedEdgeId = edgeId == null ? null : String(edgeId);
+    if (!instance || typeof instance.setConfigPartial !== "function") return;
+    // Clear native selections made before RELISON took control of interaction.
+    if (typeof instance.unselectAll === "function") instance.unselectAll();
+    const pointIndex = focusedNodeId == null ? undefined : pointIds.indexOf(focusedNodeId);
+    const linkIndex = focusedEdgeId == null ? undefined : [...renderedLinks.keys()].indexOf(focusedEdgeId);
+    await instance.setConfigPartial({
+        focusedPointIndex: pointIndex >= 0 ? pointIndex : undefined,
+        focusedLinkIndex: linkIndex >= 0 ? linkIndex : undefined,
+    });
+}
+async function setMultiSelectedNodes(ids) {
+    multiSelectedIds = new Set((ids || []).map(String));
+    syncPathForeground();
+    if (!instance?.setConfigPartial) return;
+    const borderOn = Boolean(document.getElementById("node-border-on")?.checked);
+    const ringColor = borderOn ? (document.getElementById("node-border-color")?.value || "#1b1c1f")
+        : (getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#ffcc66");
+    await instance.setConfigPartial({
+        outlinedPointIndices: pointIds.flatMap((id, index) => borderOn || multiSelectedIds.has(id) ? [index] : []),
+        outlinedPointRingColor: ringColor,
+    });
+    instance.render?.();
+}
+function setRectSelectionEnabled(enabled) {
+    rectSelectionEnabled = Boolean(enabled && window.relisonMultiSelectEnabled && document.getElementById("drag-nodes")?.checked);
+    additiveRectSelection = false;
+    if (!rectSelectionEnabled) {
+        document.getElementById("cosmograph-area-selection")?.remove();
+        rectSelectionOverlayState = null;
+    }
+    if (!instance) return;
+    if (rectSelectionEnabled) instance.activateRectSelection?.();
+    else instance.deactivateRectSelection?.();
+}
+async function setDragEnabled(enabled) {
+    if (!instance) return;
+    const value = Boolean(enabled) && !(spaceDimensions === 3 && window.relisonPaper3d?.graph === sourceGraph);
+    if (typeof instance.setConfigPartial === "function") {
+        await instance.setConfigPartial({ enableDrag: value });
+    } else if (typeof instance.getConfig === "function" && typeof instance.setConfig === "function") {
+        const config = await instance.getConfig();
+        await instance.setConfig({ ...config, enableDrag: value });
+        if (!forceLayoutRunning) instance.stop?.();
+        await instance.dataUploaded?.();
+    }
+}
+bindOrientationGizmo();
+window.relisonCosmograph = {
+    render, syncTimeline, destroy, setDimensions, projectTo2D, getDimensions: () => spaceDimensions,
+    setNodePositions, getSpatialNodePositions, isRendered: (graph) => instance !== null && (!graph || sourceGraph === graph),
+    startForceLayout, stopForceLayout, savePointPositions, getNetworkView, setNetworkView, exportPng, exportSvg,
+    zoomIn: () => zoomBy(1.25), zoomOut: () => zoomBy(0.8), fitView, setFocusedSelection, setDragEnabled,
+    setMultiSelectedNodes, setRectSelectionEnabled, getPointId: (index) => pointIds[index],
+    refreshOrientationGizmo: updateOrientationGizmo,
+    setContinuousRotation,
+    getRotationSnapshot, setRotationFrame, captureRotationFrame,
+    screenToSpacePosition: (position) => instance?.screenToSpacePosition?.(position)
+};
+window.dispatchEvent(new CustomEvent("relison-cosmograph-ready"));

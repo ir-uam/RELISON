@@ -3,25 +3,28 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' blob: data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'"/>
     <title>RELISON Spectrum</title>
     <link rel="icon" type="image/svg+xml" href="img/relison-favicon.svg"/>
     <link rel="icon" type="image/png" sizes="any" href="img/relison-logo.png"/>
+    <link rel="stylesheet" href="vendor/fonts/material-symbols.css"/>
     <link rel="stylesheet" href="style.css"/>
     <!-- graphology (graph model) + graphology-library (layouts/metrics helpers) + sigma (rendering). -->
-    <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/graphology-library@0.7.0/dist/graphology-library.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sigma@3.0.3/dist/sigma.min.js"></script>
-    <!-- gif.js: client-side GIF encoding for the timeline animation export (worker loaded as a same-origin blob). -->
-    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+    <script src="vendor/graphology.min.js"></script>
+    <script src="vendor/graphology-library.min.js"></script>
+    <script src="vendor/sigma.min.js"></script>
+    <!-- Apache ECharts for interactive metric and diffusion charts. -->
+    <script src="vendor/echarts.min.js"></script>
 </head>
 <body>
 <header id="topbar">
     <img id="logo" src="img/RELISON-full-logo.png" alt="RELISON Spectrum"/>
     <span id="status" class="status"></span>
-    <button id="btn-undo" class="icon-btn" title="Nothing to undo" disabled>↶</button>
-    <button id="btn-redo" class="icon-btn" title="Nothing to redo" disabled>↷</button>
+    <button id="processes-button" class="icon-btn" type="button" aria-label="Processes, 0 active" aria-expanded="false" aria-controls="processes-panel" data-tooltip="Open process monitor"><span class="material-symbols-outlined" aria-hidden="true">pending_actions</span><span id="processes-count">0</span></button>
+    <button id="btn-undo" class="icon-btn" data-tooltip="ui-btn-undo" disabled>↶</button>
+    <button id="btn-redo" class="icon-btn" data-tooltip="ui-btn-redo" disabled>↷</button>
     <span class="menu-wrap">
-        <button id="btn-session" class="icon-btn" title="Save or open a RELISON session (.relison)">💾</button>
+        <button id="btn-session" class="icon-btn" data-tooltip="ui-btn-session" aria-label="Save session"><span class="material-symbols-outlined" aria-hidden="true">save</span></button>
         <ul class="menu menu-right" id="session-menu" hidden>
             <li><button type="button" data-act="save">Save session…</button></li>
             <li><button type="button" data-act="open">Open session…</button></li>
@@ -29,31 +32,70 @@
     </span>
     <input type="file" id="session-file" accept=".relison,application/json" hidden/>
     <span class="menu-wrap">
-        <button id="btn-report" class="icon-btn" title="Export a report (HTML or PDF)">📄</button>
+        <button id="btn-report" class="icon-btn" data-tooltip="ui-btn-report" aria-label="Export report"><span class="material-symbols-outlined" aria-hidden="true">lab_profile</span></button>
         <ul class="menu menu-right" id="report-menu" hidden>
             <li><button type="button" data-act="html">Export as HTML…</button></li>
             <li><button type="button" data-act="pdf">Export as PDF…</button></li>
         </ul>
     </span>
-    <a id="docs-link" class="icon-btn" href="https://relison.readthedocs.io" target="_blank" rel="noopener" title="Documentation">❓</a>
-    <button id="debug-terminal" class="icon-btn" title="Debug console (standard output / error)" hidden>&gt;_</button>
-    <button id="theme-toggle" class="icon-btn" title="Toggle light/dark">🌙</button>
-    <!-- <button id="inspector-toggle" class="icon-btn" title="Show or hide the selection inspector" aria-pressed="false" hidden>Inspector</button> -->
-    <!-- <button id="focus-toggle" class="icon-btn" title="Reduce visual clutter while keeping every control available" aria-pressed="false">Focus</button> -->
-    <select id="style-selector" aria-label="Interface style">
-        <option value="modern-slate">Modern Slate</option>
-        <option value="classic">Classic</option>
-        <option value="quiet-light">Quiet Light</option>
-        <option value="graph-first-dark">Graph-first Dark</option>
-    </select>
+    <a id="docs-link" class="icon-btn" href="https://relison.readthedocs.io" target="_blank" rel="noopener" data-tooltip="ui-docs-link" aria-label="Help"><span class="material-symbols-outlined" aria-hidden="true">help</span></a>
+    <button id="debug-terminal" class="icon-btn" data-tooltip="ui-debug-terminal" hidden>&gt;_</button>
+    <button id="theme-toggle" class="icon-btn" data-tooltip="ui-theme-toggle" aria-label="Toggle light and dark mode"><span class="material-symbols-outlined" aria-hidden="true">dark_mode</span></button>
+    <span class="menu-wrap">
+        <button id="settings-button" class="icon-btn settings-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu" data-tooltip="ui-settings-button"><span class="material-symbols-outlined" aria-hidden="true">settings</span><span>Settings</span></button>
+<div id="settings-menu" class="menu menu-right settings-menu" role="dialog" aria-label="Application settings" hidden>
+            <label><input id="online-street-maps" type="checkbox"> Use online street maps</label>
+            <p class="muted">Off: use the bundled Earth map. On: download street tiles when available.</p>
+            <label for="style-selector">Interface appearance</label>
+            <select id="style-selector">
+                <option value="modern-slate">Modern Slate</option>
+                <option value="classic">Classic</option>
+                <option value="quiet-light">Quiet Light</option>
+                <option value="graph-first-dark">Graph-first Dark</option>
+            </select>
+            <label for="chart-style-selector">Chart appearance</label>
+            <select id="chart-style-selector">
+                <option value="quiet-scientific">Quiet scientific</option>
+                <option value="vibrant-dashboard">Bold dashboard</option>
+                <option value="editorial">Editorial</option>
+                <option value="glass-panel">Glass panel</option>
+                <option value="monochrome-accent">Minimal</option>
+            </select>
+            <label for="chart-palette-selector">Chart colors</label>
+            <select id="chart-palette-selector">
+                <option value="balanced">Balanced</option>
+                <option value="vibrant">Vibrant</option>
+                <option value="editorial">Editorial</option>
+                <option value="glass">Glass</option>
+                <option value="monochrome">Monochrome with accents</option>
+            </select>
+            <label for="chart-labels-selector">Categorical axis labels</label>
+            <select id="chart-labels-selector">
+                <option value="automatic">Automatic</option>
+                <option value="all">Show all labels (use chart zoom)</option>
+            </select>
+        </div>
+    </span>
+    <!-- <button id="inspector-toggle" class="icon-btn" data-tooltip="ui-inspector-toggle" aria-pressed="false" hidden>Inspector</button> -->
+    <!-- <button id="focus-toggle" class="icon-btn" data-tooltip="ui-focus-toggle" aria-pressed="false">Focus</button> -->
 </header>
+
+<aside id="processes-panel" hidden aria-labelledby="processes-title">
+    <div class="process-panel-heading"><h2 id="processes-title">Processes</h2><div class="process-panel-actions"><label class="process-graph-filter" title="Include processes from all graphs"><input id="processes-all-graphs" type="checkbox"> Other graphs</label><button id="processes-compact" class="icon-btn" type="button" aria-label="Use compact view" aria-pressed="false" title="Use compact view"><span class="material-symbols-outlined" aria-hidden="true">density_small</span></button><button id="processes-close" class="icon-btn" type="button" aria-label="Close processes" title="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div></div>
+    <div class="process-filters">
+        <label>Type <select id="process-filter-type"><option value="">All types</option></select></label>
+        <label>Status <select id="process-filter-status"><option value="">All statuses</option></select></label>
+    </div>
+    <p id="processes-status" role="status"></p>
+    <div id="processes-list"></div>
+</aside>
 
 <!-- Debug console: replaces the tabs + content (everything below the top bar) when toggled on; only available with --debug. -->
 <div id="debug-view">
     <div class="terminal-toolbar">
         <span class="terminal-title">Standard output / error</span>
         <label class="inline-check"><input type="checkbox" id="debug-autoscroll" checked/> Auto-scroll</label>
-        <button id="debug-clear" class="icon-btn" title="Clear the console view">Clear</button>
+        <button id="debug-clear" class="icon-btn" data-tooltip="ui-debug-clear">Clear</button>
     </div>
     <pre id="debug-output" class="terminal" tabindex="0"></pre>
 </div>
@@ -62,8 +104,9 @@
     <button class="tab active" data-tab="import">Import</button>
     <button class="tab" data-tab="network">Network</button>
     <button class="tab" data-tab="tables">Nodes &amp; Edges</button>
+    <button class="tab" data-tab="communities">Communities</button>
+    <button class="tab" data-tab="edge-partitions">Edge partitions</button>
     <button class="tab" data-tab="metrics">Metrics</button>
-    <button class="tab" data-tab="paths">Paths</button>
     <button class="tab" data-tab="recommend" id="tab-recommend">Recommendation</button>
     <button class="tab" data-tab="diffusion" id="tab-diffusion">Diffusion</button>
 </nav>
@@ -79,45 +122,253 @@
             <label class="field">
                 <span>Algorithm</span>
                 <select id="layout-type">
-                    <option value="forceatlas2">ForceAtlas2 (animated)</option>
-                    <option value="force">Force-directed (animated)</option>
-                    <option value="circular">Circular</option>
-                    <option value="circlepack">Circle packing</option>
-                    <option value="random">Random</option>
+                    <optgroup label="Force-directed (animated)">
+                        <option value="force">Force-directed (animated)</option>
+                        <option value="cosmograph-force" hidden>Cosmograph force (animated)</option>
+                        <option value="fruchterman-reingold">Fruchterman–Reingold (RELISON animated)</option>
+                        <option value="fruchterman-reingold-3d" hidden>Fruchterman–Reingold 3D (animated)</option>
+                        <option value="relison-forceatlas2">ForceAtlas2 (RELISON animated)</option>
+                        <option value="multilevel-force">Multilevel force (Hu, EC animated)</option>
+                    </optgroup>
+                    <optgroup label="Distance-preserving (animated)">
+                        <option value="stress-majorization">Stress majorization</option>
+                        <option value="stress-majorization-3d" hidden>Stress majorization 3D (animated)</option>
+                        <option value="spherical-mds-3d" hidden>Spherical MDS (Miller et al., animated)</option>
+                        <option value="kamada-kawai">Kamada–Kawai</option>
+                    </optgroup>
+                    <optgroup label="Spectral">
+                        <option value="spectral">Spectral 2D</option>
+                        <option value="spectral-3d" hidden>Spectral 3D</option>
+                    </optgroup>
+                    <optgroup label="Circular and spherical">
+                        <option value="circular">Circular</option>
+                        <option value="spherical-3d" hidden>Spherical 3D</option>
+                        <option value="sphere-packing-3d" hidden>Sphere packing 3D</option>
+                    </optgroup>
+                    <optgroup label="Shells (group-based)">
+                        <option value="shell">Shell (groups on rings)</option>
+                        <option value="shell-sphere-3d" hidden>Shell 3D (spheres)</option>
+                        <option value="shell-cone-3d" hidden>Shell 3D (cone)</option>
+                    </optgroup>
+                    <optgroup label="Concentric (score-based)">
+                        <option value="concentric">Concentric by score</option>
+                        <option value="concentric-sphere-3d" hidden>Concentric by score 3D (spheres)</option>
+                        <option value="concentric-cone-3d" hidden>Concentric by score 3D (cone)</option>
+                    </optgroup>
+                    <optgroup label="Radial and ego">
+                        <option value="radial">Radial / ego</option>
+                        <option value="radial-sphere-3d" hidden>Radial / ego 3D (spheres)</option>
+                        <option value="radial-cone-3d" hidden>Radial / ego 3D (cone)</option>
+                        <option value="radial-pyramid-3d" hidden>Radial / ego 3D (pyramid grids)</option>
+                    </optgroup>
+                    <optgroup label="Grid and partitions">
+                        <option value="grid">Grid</option>
+                        <option value="grid-3d" hidden>Grid 3D</option>
+                        <option value="feature-grid">Grid by feature</option>
+                        <option value="feature-grid-3d" hidden>Grid by feature 3D (levels)</option>
+                        <option value="ego-grid">Grid / ego</option>
+                        <option value="bipartite">Bipartite</option>
+                        <option value="multipartite">Multipartite</option>
+                    </optgroup>
+                    <optgroup label="Trees and clusters">
+                        <option value="tree">Tidy tree / forest</option>
+                        <option value="sugiyama">Sugiyama (directed layers)</option>
+                        <option value="upward-grid-3d" hidden>Upward grid 3D (Dujmovic–Wood)</option>
+                        <option value="h3-3d" hidden>H3 hyperbolic hierarchy</option>
+                        <option value="circlepack">Circle packing</option>
+                        <option value="community">Community composition</option>
+                        <option value="community-3d" hidden>Community composition 3D</option>
+                    </optgroup>
+                    <optgroup label="Geographic">
+                        <option value="geographic">Geographic (background map)</option>
+                    </optgroup>
+                    <optgroup label="Saved and initial positions">
+                        <option value="preset">Saved positions</option>
+                        <option value="preset-3d" hidden>Saved 3D positions</option>
+                        <option value="random">Random</option>
+                        <option value="random-3d" hidden>Random 3D</option>
+                    </optgroup>
                 </select>
             </label>
-            <label class="field" id="circlepack-group-field" hidden>
+            <details class="layout-advanced" id="layout-advanced">
+                <summary>Advanced layout settings</summary>
+            <label data-tooltip="ui-circlepack-group-field" class="field" id="circlepack-group-field" hidden>
                 <span>Group by</span>
-                <select id="circlepack-group"><option value="">— none —</option></select>
+                <select data-tooltip="ui-circlepack-group" id="circlepack-group"><option value="">— none —</option></select>
             </label>
-            <button id="btn-layout">Start layout</button>
+            <div class="params" id="static-layout-params" hidden>
+                <label data-tooltip="ui-layout-radius-field" id="layout-radius-field"><span>Radius</span><input data-tooltip="ui-layout-radius" type="number" id="layout-radius" min="1" step="1" value="100"/></label>
+                <label data-tooltip="ui-layout-spacing-field" id="layout-spacing-field"><span>Spacing</span><input data-tooltip="ui-layout-spacing" type="number" id="layout-spacing" min="1" step="1" value="50"/></label>
+                <label id="layout-z-scale-field" hidden><span>Z-axis multiplier</span><input type="number" id="layout-z-scale" min="0.001" step="any" value="50"/></label>
+                <label data-tooltip="ui-layout-root-field" id="layout-root-field"><span>Root node</span><input data-tooltip="ui-layout-root" type="text" id="layout-root" value="" placeholder="Search node (or automatic)"/></label>
+                <label data-tooltip="ui-layout-direction-field" id="layout-direction-field"><span>Traversal</span><select data-tooltip="ui-layout-direction" id="layout-direction"><option value="UND">Ignore direction</option><option value="OUT">Outgoing</option><option value="IN">Incoming</option><option value="MUTUAL">Mutual</option></select></label>
+                <label data-tooltip="ui-layout-column-spacing-field" id="layout-column-spacing-field"><span>Column spacing</span><input data-tooltip="ui-layout-column-spacing" type="number" id="layout-column-spacing" min="1" step="1" value="150"/></label>
+                <label data-tooltip="ui-layout-level-spacing-field" id="layout-level-spacing-field"><span>Level spacing</span><input data-tooltip="ui-layout-level-spacing" type="number" id="layout-level-spacing" min="1" step="1" value="75"/></label>
+                <label data-tooltip="ui-layout-sweeps-field" id="layout-sweeps-field"><span>Ordering passes</span><input data-tooltip="ui-layout-sweeps" type="number" id="layout-sweeps" min="0" max="100" step="1" value="4"/></label>
+                <label data-tooltip="ui-layout-columns-field" id="layout-columns-field"><span>Columns (0 = auto)</span><input data-tooltip="ui-layout-columns" type="number" id="layout-columns" min="0" step="1" value="0"/></label>
+                <label id="layout-grid-depth-field" data-tooltip="ui-layout-grid-depth" hidden><span>Depth layers (0 = auto)</span><input id="layout-grid-depth" data-tooltip="ui-layout-grid-depth" type="number" min="0" step="1" value="0"/></label>
+                <label data-tooltip="ui-layout-width-field" id="layout-width-field"><span>Width</span><input data-tooltip="ui-layout-width" type="number" id="layout-width" min="1" step="1" value="600"/></label>
+                <label data-tooltip="ui-layout-height-field" id="layout-height-field"><span>Height</span><input data-tooltip="ui-layout-height" type="number" id="layout-height" min="1" step="1" value="600"/></label>
+                <label id="layout-depth-field" hidden><span>Depth</span><input type="number" id="layout-depth" min="0.001" value="600"/></label>
+                <label data-tooltip="ui-layout-seed-field" id="layout-seed-field"><span>Random seed</span><input data-tooltip="ui-layout-seed" type="number" id="layout-seed" step="1" value="42"/></label>
+            </div>
+            <div class="params" id="layout-geographic-controls" hidden>
+                <label data-tooltip="ui-geographic-projection"><span>Projection</span><select id="layout-geographic-projection"><option value="mercator">Web Mercator (street / offline Earth)</option><option value="equal-earth">Equal Earth (world map)</option><option value="globe">Globe (Globe.gl)</option></select></label>
+                <label data-tooltip="ui-geographic-latitude"><span>Latitude attribute</span><select id="layout-geographic-latitude" data-tooltip="ui-geographic-latitude"><option value="">Choose latitude</option></select></label>
+                <label data-tooltip="ui-geographic-longitude"><span>Longitude attribute</span><select id="layout-geographic-longitude" data-tooltip="ui-geographic-longitude"><option value="">Choose longitude</option></select></label>
+            </div>
+            <p class="muted" id="layout-geographic-hint" hidden>Coordinates use decimal degrees. The street-map choice supports ±85.05112878° latitude; Equal Earth and Globe support ±90°. Globe anchors nodes to the surface without altitude attributes. Forces, node dragging and packing are disabled. Earth maps work offline; enable online street maps in Settings for street detail.</p>
+            <div class="params" id="layout-force-controls" hidden>
+                <label data-tooltip="markup-0001"><span>Iterations</span><input data-tooltip="ui-layout-iterations" id="layout-iterations" type="number" min="0" max="5000" value="500"/></label>
+                <label data-tooltip="markup-0002"><span>Barnes–Hut theta (0 = exact)</span><input data-tooltip="ui-layout-theta" id="layout-theta" type="number" min="0" max="2" step="0.1" value="0.8"/></label>
+                <label data-tooltip="markup-0003"><span>Convergence tolerance</span><input data-tooltip="ui-layout-tolerance" id="layout-tolerance" type="number" min="0" step="0.001" value="0.001"/></label>
+                <label data-tooltip="markup-0004"><span>Use current positions</span><input data-tooltip="ui-layout-warm-start" id="layout-warm-start" type="checkbox"/></label>
+                <label data-tooltip="markup-0005"><span>Remove overlap</span><input data-tooltip="ui-layout-remove-overlap" id="layout-remove-overlap" type="checkbox"/></label>
+                <label data-tooltip="markup-0006"><span>Node radius (layout units)</span><input data-tooltip="ui-layout-node-radius" id="layout-node-radius" type="number" min="0" value="5"/></label>
+                <label data-tooltip="markup-0007"><span>Overlap gap</span><input data-tooltip="ui-layout-overlap-gap" id="layout-overlap-gap" type="number" min="0" value="5"/></label>
+            </div>
+            <div class="params" id="layout-fr-controls" hidden>
+                <label data-tooltip="markup-0008"><span>Bounded reference mode</span><input id="layout-fr-bounded" data-tooltip="ui-layout-fr-bounded" type="checkbox" checked/></label>
+                <label data-tooltip="markup-0009"><span>Frame width</span><input id="layout-fr-width" data-tooltip="ui-layout-fr-width" type="number" min="0.001" value="600"/></label>
+                <label data-tooltip="markup-0010"><span>Frame height</span><input id="layout-fr-height" data-tooltip="ui-layout-fr-height" type="number" min="0.001" value="600"/></label>
+                <label id="layout-fr-depth-field" hidden><span>Frame depth</span><input id="layout-fr-depth" type="number" min="0.001" value="600"/></label>
+                <label data-tooltip="markup-0011"><span>Initial temperature</span><input id="layout-fr-temperature" data-tooltip="ui-layout-fr-temperature" type="number" min="0.001" value="60"/></label>
+                <label data-tooltip="markup-0012"><span>Unbounded mode edge length</span><input data-tooltip="ui-layout-ideal-length" id="layout-ideal-length" type="number" min="1" value="50"/></label>
+                <label data-tooltip="markup-0013"><span>Unbounded mode cooling</span><input data-tooltip="ui-layout-cooling" id="layout-cooling" type="number" min="0.01" max="0.99" step="0.01" value="0.95"/></label>
+                <label data-tooltip="markup-0014"><span>Use edge weights</span><input data-tooltip="ui-layout-weighted" id="layout-weighted" type="checkbox"/></label>
+            </div>
+            <div class="params" id="layout-fa-controls" hidden>
+                <label data-tooltip="markup-0015"><span>Repulsion scaling</span><input data-tooltip="ui-layout-fa-scaling" id="layout-fa-scaling" type="number" min="1" value="100"/></label>
+                <label data-tooltip="markup-0016"><span>Gravity</span><input data-tooltip="ui-layout-fa-gravity" id="layout-fa-gravity" type="number" min="0" step="0.1" value="1"/></label>
+                <label data-tooltip="markup-0017"><span>Jitter tolerance</span><input data-tooltip="ui-layout-jitter" id="layout-jitter" type="number" min="0.01" step="0.1" value="1"/></label>
+                <label data-tooltip="markup-0018"><span>Weight influence (0 = ignore)</span><input data-tooltip="ui-layout-weight-influence" id="layout-weight-influence" type="number" min="0" step="0.1" value="0"/></label>
+                <label data-tooltip="markup-0019"><span>LinLog attraction</span><input data-tooltip="ui-layout-linlog" id="layout-linlog" type="checkbox"/></label>
+                <label data-tooltip="markup-0020"><span>Strong gravity</span><input data-tooltip="ui-layout-strong-gravity" id="layout-strong-gravity" type="checkbox"/></label>
+                <label data-tooltip="markup-0021"><span>Dissuade hubs</span><input id="layout-outbound" type="checkbox" data-tooltip="ui-layout-outbound"/></label>
+                <label data-tooltip="markup-0022"><span>Prevent overlap during layout</span><input id="layout-adjust-sizes" type="checkbox" data-tooltip="ui-layout-adjust-sizes"/></label>
+                <label data-tooltip="markup-0023"><span>Normalize edge weights</span><input id="layout-normalize-weights" type="checkbox" data-tooltip="ui-layout-normalize-weights"/></label>
+                <label data-tooltip="markup-0024"><span>Invert edge weights</span><input id="layout-invert-weights" type="checkbox" data-tooltip="ui-layout-invert-weights"/></label>
+            </div>
+            <div class="params" id="layout-distance-controls" hidden>
+                <label data-tooltip="ui-layout-distance-length"><span>Length per graph-distance unit</span><input id="layout-distance-length" data-tooltip="ui-layout-distance-length" type="number" min="0.001" value="50"/></label>
+                <label data-tooltip="ui-layout-kk-size"><span>Drawing size</span><input id="layout-kk-size" data-tooltip="ui-layout-kk-size" type="number" min="0.001" value="600"/></label>
+                <label data-tooltip="ui-layout-spring-constant"><span>Spring constant</span><input id="layout-spring-constant" data-tooltip="ui-layout-spring-constant" type="number" min="0.001" value="1"/></label>
+                <label data-tooltip="ui-layout-distance-weighted"><span>Weights are edge lengths</span><input id="layout-distance-weighted" data-tooltip="ui-layout-distance-weighted" type="checkbox"/></label>
+            </div>
+            <div class="params" id="layout-hu-controls" hidden>
+                <label data-tooltip="ui-layout-hu-scale"><span>Initialization scale</span><input id="layout-hu-scale" data-tooltip="ui-layout-hu-scale" type="number" min="0.001" value="50"/></label>
+                <label data-tooltip="ui-layout-hu-repulsion"><span>Repulsion C</span><input id="layout-hu-repulsion" data-tooltip="ui-layout-hu-repulsion" type="number" min="0.001" step="0.1" value="0.2"/></label>
+                <label data-tooltip="ui-layout-hu-cooling"><span>Cooling multiplier</span><input id="layout-hu-cooling" data-tooltip="ui-layout-hu-cooling" type="number" min="0.01" max="0.99" step="0.01" value="0.9"/></label>
+                <label data-tooltip="ui-layout-hu-level-iterations"><span>Iterations per level</span><input id="layout-hu-level-iterations" data-tooltip="ui-layout-hu-level-iterations" type="number" min="1" max="5000" value="100"/></label>
+                <label data-tooltip="ui-layout-hu-weighted"><span>Weights are attraction strengths</span><input id="layout-hu-weighted" data-tooltip="ui-layout-hu-weighted" type="checkbox"/></label>
+            </div>
+            <div class="params" id="layout-community-controls" hidden>
+                <label data-tooltip="ui-layout-community-inner"><span>Within communities</span><select id="layout-community-inner" data-tooltip="ui-layout-community-inner"><option value="fruchterman-reingold">Fruchterman–Reingold</option><option value="stress-majorization">Stress majorization</option><option value="kamada-kawai">Kamada–Kawai</option><option value="multilevel-force">Multilevel force (Hu)</option></select></label>
+                <label data-tooltip="ui-layout-community-outer"><span>Between communities</span><select id="layout-community-outer" data-tooltip="ui-layout-community-outer"><option value="multilevel-force">Multilevel force (Hu)</option><option value="fruchterman-reingold">Fruchterman–Reingold</option><option value="stress-majorization">Stress majorization</option><option value="kamada-kawai">Kamada–Kawai</option></select></label>
+                <label data-tooltip="ui-layout-community-gap"><span>Community gap</span><input id="layout-community-gap" data-tooltip="ui-layout-community-gap" type="number" min="0" value="50"/></label>
+                <label data-tooltip="ui-layout-community-iterations"><span>Iterations per child layout</span><input id="layout-community-iterations" data-tooltip="ui-layout-community-iterations" type="number" min="0" max="5000" value="500"/></label>
+            </div>
+            <p class="muted" id="layout-force-hint" hidden>Animates a RELISON session. Stop keeps displayed positions. Overlap removal and component packing run at the end. For force models, theta enables approximate repulsion; zero uses exact pairs. Overlap radius is in layout units.</p>
+            <p class="muted" id="layout-3d-hint" hidden>RELISON computes x/y/z positions. Fruchterman–Reingold 3D uses exact pairwise repulsion; stress majorization uses quadratic memory. Overlap removal separates spheres in layout units; nodes may still cover one another from some camera angles.</p>
+            <div class="params" id="layout-smds-controls" hidden>
+                <label data-tooltip="ui-layout-smds-rate"><span>Learning-rate cap</span><input id="layout-smds-rate" type="number" min="0.000001" max="0.1" step="0.01" value="0.1"/></label>
+                <label data-tooltip="ui-layout-smds-tolerance"><span>Stress-change tolerance</span><input id="layout-smds-tolerance" type="number" min="0" step="any" value="0.0000001"/></label>
+            </div>
+            <div class="params" id="layout-spectral-controls" hidden>
+                <label data-tooltip="ui-layout-spectral-model"><span>Formulation</span><select id="layout-spectral-model"><option value="normalized">Degree-normalized (Koren)</option><option value="classical">Classical Laplacian</option></select></label>
+                <label data-tooltip="ui-layout-spectral-scale"><span>Coordinate scale</span><input id="layout-spectral-scale" type="number" min="0.0001" step="any" value="100"/></label>
+                <label data-tooltip="ui-layout-spectral-weighted"><span>Use edge strengths</span><input id="layout-spectral-weighted" type="checkbox"/></label>
+                <label data-tooltip="ui-layout-spectral-iterations"><span>Eigensolver sweeps</span><input id="layout-spectral-iterations" type="number" min="0" max="5000" step="1" value="1000"/></label>
+                <label data-tooltip="ui-layout-spectral-tolerance"><span>Eigen-residual tolerance</span><input id="layout-spectral-tolerance" type="number" min="0.000000000001" step="any" value="0.00000001"/></label>
+            </div>
+            <p class="muted" id="layout-spectral-hint" hidden>Lowest nonconstant Laplacian eigenvectors give the axes. Degree-normalized mode solves Lx = λDx. Directions are ignored; parallel and reciprocal strengths accumulate, and loops are ignored. Components are solved separately and translated side by side. Arbitrary pins are unsupported. Repeated eigenvalues allow equivalent rotated layouts. The solver reports limit reached if residuals remain above tolerance.</p>
+            <p class="muted" id="layout-sphere-packing-hint" hidden>Like circle packing in 3D: without grouping, fills one compact ball. With a community or attribute, fills one ball per group and distributes the clusters around a sphere. Spacing is the minimum surface gap. Cluster sizes determine separation; groups are not placed in a line.</p>
+            <p class="muted" id="layout-smds-hint" hidden>Miller et al. (2022): spherical angular SGD, unit pair weights, diameter-scaled distances and piecewise learning rate. Requires a connected graph; directions are ignored. Radius affects display scale. Quadratic distance storage. Warm starts must be nonzero; pinned positions must lie on the sphere.</p>
+            <div class="params" id="layout-h3-controls" hidden>
+                <label data-tooltip="ui-layout-h3-leaf"><span>Leaf hyperbolic radius</span><input id="layout-h3-leaf" type="number" min="0.0001" step="0.01" value="0.1"/></label>
+                <label data-tooltip="ui-layout-h3-area"><span>Hemisphere area inflation</span><input id="layout-h3-area" type="number" min="2.01" step="0.1" value="7.2"/></label>
+                <label data-tooltip="ui-layout-h3-nontree"><span>Show non-tree links</span><input id="layout-h3-nontree" type="checkbox"/></label>
+                <button id="btn-h3-focus">Focus selected node</button><button id="btn-h3-origin">Restore H3 origin</button>
+            </div>
+            <p class="muted" id="layout-h3-hint" hidden>Munzner (1997): a BFS spanning forest, hyperbolic hemisphere bands and Klein-ball projection. Non-tree links do not influence placement. Select a node and use Focus for a hyperbolic change of focus; ordinary orbit controls still rotate the view. Radius is the displayed ball radius. Pins, overlap removal and dragging would invalidate this geometry. Very deep hierarchies can exceed double precision.</p>
+            <p class="muted" id="layout-upward-hint" hidden>Dujmovic–Wood (2005), Theorem 3.1: upward prime-modulus grid. Requires a directed acyclic graph; cycles and self-loops are rejected. Every arc increases z. Nonincident straight edges do not intersect in exact arithmetic; parallel edges coincide. This is not a Sugiyama layering heuristic.</p>
+            <p class="muted" id="layout-flat-3d-hint" hidden>This runs the original 2D layout unchanged and places every node on the z = 0 plane. Orbit the camera to inspect the layout in 3D.</p>
+            <p class="muted" id="layout-layered-3d-hint" hidden></p>
+            <p class="muted" id="layout-pyramid-3d-hint" hidden>Each hop level is arranged on a centred grid. Z increases by the Z-axis multiplier per hop; unreachable nodes share a grid one layer below the root.</p>
+            <p class="muted" id="layout-feature-grid-3d-hint" hidden>Each feature value occupies a depth level. Nodes with that value form a centred x/y grid.</p>
+            <p class="muted" id="layout-community-3d-hint" hidden>Uses the community composition layout in x/y and separates each community onto its own depth layer.</p>
+            <p class="muted" id="layout-distance-hint" hidden>Shortest-path distances ignore edge direction. Optional edge weights are positive path lengths. Each disconnected component is optimized independently. These full-distance models require quadratic memory; stress majorization also factors a dense matrix.</p>
+            <p class="muted" id="layout-hu-hint" hidden>Hu's edge-collapsing model: coarsen, draw, then refine. Each frame is one sequential force sweep. The total iteration budget spans all levels; increase it if refinement stops early. No gravity or movement cap is added.</p>
+            <p class="muted" id="layout-community-hint" hidden>Choose a community assignment or node attribute under Group by. Draws each group, lays out the community graph, then separates community envelopes. Published child models retain their default settings. Returns the final composition.</p>
+            <label data-tooltip="ui-layout-score-field" class="field" id="layout-score-field" hidden>
+                <span>Score by</span>
+                <select data-tooltip="ui-layout-score" id="layout-score"><option value="degree">Degree</option></select>
+            </label>
+            <label class="inline-check" id="layout-score-reverse-field" hidden data-tooltip="ui-layout-score-reverse"><input id="layout-score-reverse" type="checkbox"/> Reverse score order (smaller values nearer centre)</label>
+            <p class="muted" id="layout-shell-hint" hidden>Groups occupy rings from inside to outside, ordered by group label. Without grouping, all nodes share a ring.</p>
+            <p class="muted" id="layout-feature-grid-hint" hidden>Each feature value occupies a column, ordered by group label. Edges within a column are allowed.</p>
+            <p class="muted" id="layout-ego-grid-hint" hidden>Columns show hop distance from the root. Unreachable nodes share a final column.</p>
+            <p class="muted" id="layout-radial-hint" hidden>Rings show hop distance from the root. Unreachable nodes share an extra outer ring.</p>
+            <p class="muted" id="layout-partition-hint" hidden>Bipartite can detect two sides automatically. Multipartite requires grouping. Groups must not contain an edge between their own nodes.</p>
+            <p class="muted" id="layout-tree-hint" hidden>Requires a tree or forest. Directed edges must point from parent to child, with one parent per node. Cycles are rejected.</p>
+            <p class="muted" id="layout-sugiyama-hint" hidden>Directed graphs only. Cycles are handled internally; original edge directions are retained. Ordering passes reduce crossings. The API also returns edge polylines; the viewers currently draw their usual edges.</p>
+            <label data-tooltip="ui-layout-preset-x-field" class="field" id="layout-preset-x-field" hidden>
+                <span>X coordinate</span>
+                <select data-tooltip="ui-layout-preset-x" id="layout-preset-x"><option value="">Saved X coordinate</option></select>
+            </label>
+            <label data-tooltip="ui-layout-preset-y-field" class="field" id="layout-preset-y-field" hidden>
+                <span>Y coordinate</span>
+                <select data-tooltip="ui-layout-preset-y" id="layout-preset-y"><option value="">Saved Y coordinate</option></select>
+            </label>
+            <p class="muted" id="layout-preset-hint" hidden>Restore saved coordinates or choose a numeric node attribute for each axis. Attribute values are used directly and must be finite for every node. Save positions first when using a saved axis.</p>
+            <div id="layout-packing-controls" hidden>
+                <label data-tooltip="markup-0025" class="inline-check"><input data-tooltip="ui-layout-pack-components" type="checkbox" id="layout-pack-components"/> Pack disconnected components</label>
+                <div class="params" id="layout-packing-gap-field" hidden><label data-tooltip="markup-0026"><span>Component gap</span><input data-tooltip="ui-layout-packing-gap" type="number" id="layout-packing-gap" min="1" step="1" value="50"/></label></div>
+                <p class="muted">Moves each component as a unit, preserving its internal shape. Separate components may no longer share the same columns or coordinate axes.</p>
+            </div>
+            </details>
+            <button id="btn-layout" class="primary">Start layout</button>
+            <button id="btn-save-layout">Save positions</button>
             <button id="btn-noverlap">Remove overlaps</button>
             <button id="btn-reset-layout">Reset (circular)</button>
-            <div class="params" id="layout-params">
-                <label><span>Scaling</span><input type="number" id="layout-scaling" step="0.1" value="1"/></label>
-                <label><span>Gravity</span><input type="number" id="layout-gravity" step="0.1" value="1"/></label>
-                <label><span>Speed</span><input type="number" id="layout-speed" step="0.1" value="1"/></label>
-            </div>
-            <p class="muted" id="layout-params-hint">Scaling / gravity / speed tune the ForceAtlas2 layout.</p>
-            <label class="inline-check"><input type="checkbox" id="drag-nodes"/> Drag nodes (move positions)</label>
-            <p class="muted">When on, click and drag a node to reposition it; the canvas no longer pans.</p>
         </section>
 
-        <section class="block">
-            <h2>Nodes</h2>
+        <section class="block" id="appearance-block">
+            <h2>Appearance</h2>
+            <details class="appearance-section" id="appearance-nodes" open>
+                <summary>Nodes</summary>
             <label class="field">
                 <span>Size by</span>
-                <select id="size-by"><option value="">— degree (default) —</option></select>
+                <select id="size-by"><option value="">— uniform (default) —</option></select>
             </label>
-            <div class="params">
+            <div class="params" id="node-size-uniform-params">
+                <label><span>Size</span><input type="number" id="node-size-uniform" step="0.5" min="0" value="14"/></label>
+            </div>
+            <div class="params" id="node-size-range-params" hidden>
                 <label><span>Min size</span><input type="number" id="node-size-min" step="0.5" min="0" value="2"/></label>
                 <label><span>Max size</span><input type="number" id="node-size-max" step="0.5" min="0" value="14"/></label>
+                <label><span>Scale values</span><select id="node-size-scale"><option value="proportional">Proportional to value</option><option value="percentile">Percentile rank</option></select></label>
+                <label data-tooltip="ui-size-reverse"><span>Reverse (smaller values bigger)</span><input id="node-size-reverse" type="checkbox"/></label>
             </div>
             <label class="field">
-                <span>Colour by</span>
-                <select id="color-by"><option value="">— none —</option></select>
+                <span>Colour</span>
+                <select id="node-color-mode">
+                    <option value="default">Default colour</option>
+                    <option value="imported">Imported colour</option>
+                    <option value="single">Single colour</option>
+                    <option value="attribute">By attribute</option>
+                    <option value="edges">Average of edges</option>
+                </select>
             </label>
-            <label class="field">
+            <label class="field" id="node-color-single-field" hidden>
+                <span>Colour for all nodes</span>
+                <input type="color" id="node-color-single" value="#4f9dff"/>
+            </label>
+            <label class="field" id="node-color-attribute-field" hidden>
+                <span>Attribute</span>
+                <select id="color-by"><option value="">Choose an attribute</option></select>
+            </label>
+            <label class="field" id="node-color-range-field" hidden>
                 <span>Colour range</span>
                 <span class="colorrange">
                     <input type="color" id="node-color-low" value="#4f9dff"/>
@@ -128,90 +379,84 @@
             <p class="muted">Categorical colourings (communities, text attributes) show an editable legend on the canvas.</p>
             <hr class="sep"/>
             <label class="inline-check"><input type="checkbox" id="node-border-on"/> Node borders</label>
+            <label class="inline-check" id="cosmograph-sphere-shading-field" hidden><input type="checkbox" id="cosmograph-sphere-shading" checked/> Cosmograph sphere shading (3D)</label>
             <div class="params" id="node-border-params" hidden>
                 <label><span>Colour</span><input type="color" id="node-border-color" value="#1b1c1f"/></label>
                 <label><span>Width</span><input type="number" id="node-border-width" step="0.5" min="0.5" value="1.5"/></label>
             </div>
-        </section>
-
-        <section class="block">
-            <h2>Edges</h2>
+            </details>
+            <details class="appearance-section" id="appearance-edges">
+                <summary>Edges</summary>
+            <label class="field">
+                <span>Edge style</span>
+                <select id="edge-shape"><option value="straight" selected>Straight</option><option value="curved">Curved</option></select>
+            </label>
             <label class="field">
                 <span>Thickness by</span>
                 <select id="edge-size-by"><option value="">— uniform —</option></select>
             </label>
-            <div class="params">
+            <div class="params" id="edge-size-uniform-params">
+                <label><span>Thickness</span><input type="number" id="edge-size-uniform" step="0.5" min="0" value="0.5"/></label>
+            </div>
+            <div class="params" id="edge-size-range-params" hidden>
                 <label><span>Min thickness</span><input type="number" id="edge-size-min" step="0.5" min="0" value="0.5"/></label>
                 <label><span>Max thickness</span><input type="number" id="edge-size-max" step="0.5" min="0" value="6"/></label>
+                <label><span>Scale values</span><select id="edge-size-scale"><option value="proportional">Proportional to value</option><option value="percentile">Percentile rank</option></select></label>
+                <label data-tooltip="ui-size-reverse"><span>Reverse (smaller values thicker)</span><input id="edge-size-reverse" type="checkbox"/></label>
             </div>
             <label class="field">
                 <span>Colour</span>
                 <select id="edge-color-mode">
                     <option value="default">Default</option>
+                    <option value="imported">Imported colour</option>
                     <option value="single">Single colour</option>
                     <option value="endpoints">Average of endpoints</option>
+                    <option value="attribute">By edge attribute</option>
+                    <option value="partition">By edge partition</option>
                 </select>
             </label>
             <label class="field" id="edge-color-single-field" hidden>
                 <span>Colour value</span>
                 <input type="color" id="edge-color-single" value="#888888"/>
             </label>
-            <div id="rec-edge-block" hidden>
+            <label class="field" id="edge-color-attribute-field" hidden>
+                <span>Edge attribute</span>
+                <select id="edge-color-by"><option value="">Choose an attribute</option></select>
+            </label>
+            <label class="field" id="edge-color-range-field" hidden>
+                <span>Colour range</span>
+                <span class="colorrange">
+                    <input type="color" id="edge-color-low" value="#4f9dff"/>
+                    <span>→</span>
+                    <input type="color" id="edge-color-high" value="#ff5b5b"/>
+                </span>
+            </label>
+            <label class="field" id="edge-color-partition-field" hidden>
+                <span>Edge partition</span>
+                <select id="edge-color-partition" aria-label="Edge colouring partition"></select>
+            </label>
+            <div id="rec-edge-block">
                 <hr class="sep"/>
                 <span class="sublabel">Recommended edges</span>
-                <label class="inline-check"><input type="checkbox" id="rec-edge-show" checked/> Show recommended links</label>
+                <label class="field"><span>Display</span><select id="rec-edge-mode"><option value="none">No recommendation</option><option value="only">Show only recommended links</option><option value="highlight">Highlight recommended links</option></select></label>
+                <label class="field"><span>Recommendation</span><select id="rec-edge-model" disabled><option value="">No computed results</option></select></label>
+                <input type="checkbox" id="rec-edge-show" checked hidden/>
                 <label class="inline-check"><input type="checkbox" id="rec-edge-diff" checked/> Differentiate (dashed)</label>
                 <label class="field">
                     <span>Colour</span>
                     <input type="color" id="rec-edge-color" value="#28c76f"/>
                 </label>
             </div>
-        </section>
-
-        <section class="block">
-            <h2>Timeline</h2>
-            <label class="field">
-                <span>Node time attribute</span>
-                <select id="tl-node-attr"><option value="">— none —</option></select>
-            </label>
-            <label class="field">
-                <span>Edge time attribute</span>
-                <select id="tl-edge-attr"><option value="">— none —</option></select>
-            </label>
-            <div id="tl-controls" hidden>
-                <div class="tl-bar">
-                    <button id="tl-step-back" title="Step to previous change">◀</button>
-                    <button id="tl-play" title="Play / pause">▶</button>
-                    <button id="tl-step-fwd" title="Step to next change">▶▶</button>
-                    <input type="range" id="tl-slider" min="0" max="0" value="0"/>
-                </div>
-                <label class="field">
-                    <span>Timestamp</span>
-                    <input type="number" id="tl-time" step="1"/>
-                </label>
-                <p class="muted" id="tl-range"></p>
-                <div class="tl-export">
-                    <button id="btn-tl-gif">⬇ GIF</button>
-                    <button id="btn-tl-webm">⬇ WebM</button>
-                </div>
-                <label class="field">
-                    <span>WebM resolution</span>
-                    <select id="tl-webm-res">
-                        <option value="1920">1920px (smaller file)</option>
-                        <option value="native">Full native resolution</option>
-                    </select>
-                </label>
-            </div>
-            <p class="muted" id="tl-hint">Pick a time attribute to scrub the graph through time. A node/edge shows only at timestamps its value covers; an empty value never shows.</p>
-        </section>
-
-        <section class="block">
-            <h2>Labels</h2>
+            </details>
+            <details class="appearance-section" id="appearance-labels">
+                <summary>Labels</summary>
             <span class="sublabel">Node labels</span>
             <label class="inline-check"><input type="checkbox" id="node-label-show" checked/> Show node labels</label>
+            <label class="field" data-tooltip="node-label-attribute"><span>Label attribute</span><select id="node-label-attribute"><option value="">Default (label or node ID)</option><option value="id">Node ID</option></select></label>
             <div class="params">
                 <label><span>Size</span><input type="number" id="node-label-size" step="1" min="1" value="12"/></label>
-                <label><span>Colour</span><input type="color" id="node-label-color" value="#e6e6e6"/></label>
+                <label><span>Colour</span><select id="node-label-color-mode"><option value="default">Default colour</option><option value="single">Single selected colour</option><option value="node">Same colour as node</option></select></label>
+                <label class="field" id="node-label-single-color-field" hidden><span>Selected colour</span><input type="color" id="node-label-color" value="#e6e6e6"/></label>
                 <label><span>Font</span>
                     <select id="node-label-font">
                         <option value="sans-serif">Sans-serif</option>
@@ -226,9 +471,11 @@
             <hr class="sep"/>
             <span class="sublabel">Edge labels</span>
             <label class="inline-check"><input type="checkbox" id="edge-label-show"/> Show edge labels</label>
+            <label class="field" data-tooltip="edge-label-attribute"><span>Label attribute</span><select id="edge-label-attribute"><option value="">Default (label attribute)</option><option value="id">Edge ID</option></select></label>
             <div class="params">
                 <label><span>Size</span><input type="number" id="edge-label-size" step="1" min="1" value="9"/></label>
-                <label><span>Colour</span><input type="color" id="edge-label-color" value="#e6e6e6"/></label>
+                <label><span>Colour</span><select id="edge-label-color-mode"><option value="default">Default colour</option><option value="single">Single selected colour</option><option value="edge">Same colour as edge</option></select></label>
+                <label class="field" id="edge-label-single-color-field" hidden><span>Selected colour</span><input type="color" id="edge-label-color" value="#e6e6e6"/></label>
                 <label><span>Font</span>
                     <select id="edge-label-font">
                         <option value="sans-serif">Sans-serif</option>
@@ -241,60 +488,122 @@
             </div>
             <label class="inline-check"><input type="checkbox" id="edge-label-prop"/> Proportional to thickness</label>
             <p class="muted">Labels come from a <code>label</code> attribute when present (node ids are used otherwise).</p>
+            </details>
         </section>
 
-        <section class="block">
-            <h2>Export</h2>
-            <button id="btn-export-png">Export network (PNG)</button>
-            <button id="btn-export-gexf">Export graph (GEXF)</button>
-        </section>
 
         <section class="block">
-            <h2>Edit mode</h2>
-            <label><input type="checkbox" id="edit-mode"/> Enable editing</label>
-            <p class="muted" id="edit-help" hidden>
-                Click empty space to add a node. Click a node then another to add an edge.
-                Select a node and press Delete to remove it.
-            </p>
+            <h2>Timeline settings</h2>
+            <label class="field">
+                <span>Node time attribute</span>
+                <select id="tl-node-attr"><option value="">— none —</option></select>
+            </label>
+            <label class="field">
+                <span>Edge time attribute</span>
+                <select id="tl-edge-attr"><option value="">— none —</option></select>
+            </label>
+            <div id="tl-controls" hidden>
+                <label class="field">
+                    <span>Timeline mode</span>
+                    <select id="tl-mode">
+                        <option value="instant">Instant playback</option>
+                        <option value="range">Range exploration</option>
+                    </select>
+                </label>
+                <label class="field" id="tl-range-start-field" hidden>
+                    <span>Range start</span>
+                    <input type="number" id="tl-range-start" step="1"/>
+                </label>
+            </div>
+            <p class="muted" id="tl-hint">Pick a time attribute to scrub the graph through time. A node/edge shows only at timestamps its value covers; an empty value never shows.</p>
+        </section>
+
+
+        </div>
+
+        <div id="left-communities" hidden>
+        <section class="block">
+            <h2>Community detection</h2>
+            <select id="community-algo" aria-label="Community detection algorithm"></select>
+            <div class="params" id="community-params"></div>
+            <button id="btn-community" class="primary">Detect</button>
+            <p class="muted" id="community-result"></p>
+            <p class="muted">Detection and exploration use the whole loaded network. Compute community metrics in the Metrics tab.</p>
+        </section>
+        <section class="block">
+            <h2>Numeric attribute bins</h2>
+            <label class="field"><span>Numeric node attribute</span><select id="community-bin-attribute"></select></label>
+            <label class="field"><span>Bin width</span><input id="community-bin-width" type="number" min="0.000000001" step="any" value="10"/></label>
+            <button id="btn-community-bins" class="primary">Detect attribute bins</button>
+            <p class="muted">Creates one community per fixed-width bin. Each interval includes its lower bound and excludes its upper bound; missing values share an Unknown community.</p>
+        </section>
+        <section class="block community-partition-controls">
+            <h2>Partition</h2>
+            <select id="explorer-partition" aria-label="Community partition"></select>
+            <p id="explorer-summary" class="muted" aria-live="polite"></p>
+            <p id="explorer-partition-metrics" class="muted community-partition-metrics" hidden></p>
+            <button id="explorer-metrics">View in Metrics</button>
         </section>
         </div>
 
-        <!-- Metric / community controls: Metrics tab only (moved here from the old right column). -->
-        <div id="left-metrics" hidden>
+        <div id="left-edge-partitions" hidden>
         <section class="block">
-            <h2>Vertex metrics</h2>
+            <h2>Partition edges by</h2>
+            <label class="field"><span>Grouping</span><select id="edge-partition-kind">
+                <option value="edge-attribute">Numeric edge attribute bins</option>
+                <option value="node-attribute-relation">Endpoint node-attribute pair</option>
+                <option value="community-internal-external">Within / between communities</option>
+                <option value="community-relations">Community pair</option>
+            </select></label>
+            <label class="field" id="edge-partition-edge-attribute-field"><span>Numeric edge attribute</span><select id="edge-partition-edge-attribute"></select></label>
+            <label class="field" id="edge-partition-node-attribute-field" hidden><span>Node attribute</span><select id="edge-partition-node-attribute"></select></label>
+            <label class="field" id="edge-partition-bin-width-field" hidden><span>Numeric bin width</span><input id="edge-partition-bin-width" type="number" min="0.000000001" step="any" value="10"/></label>
+            <label class="field" id="edge-partition-community-field" hidden><span>Community partition</span><select id="edge-partition-community"></select></label>
+            <button id="btn-edge-partition" class="primary">Detect edge groups</button>
+            <p id="edge-partition-status" class="muted" role="status"></p>
+            <p class="muted">Detection and exploration use the whole loaded network. Compute edge partition metrics in the Metrics tab.</p>
+            <p class="muted">Select categorical, string or boolean edge attributes directly under Partition. Numeric bins have the specified width, start at multiples of that width, and include the lower bound only.</p>
+        </section>
+        <section class="block community-partition-controls">
+            <h2>Partition</h2>
+            <select id="edge-partition-select" aria-label="Edge partition"></select>
+            <p id="edge-partition-summary" class="muted" aria-live="polite"></p>
+            <p id="edge-partition-globals" class="muted community-partition-metrics" hidden></p>
+            <button id="edge-partition-view-metrics">View in Metrics</button>
+        </section>
+        </div>
+
+        <!-- All metric computation stays on the Metrics tab. -->
+        <div id="left-metrics" hidden>
+        <section class="block" data-metric-family="nodes">
+            <h2>Node metrics</h2>
             <select id="vertex-metric"></select>
             <div class="params" id="vertex-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="vertex-rec"/> Include active recommendation</label>
-            <button id="btn-vertex">Run</button>
+            <button id="btn-vertex" class="primary">Run</button>
             <p class="muted" id="vertex-result"></p>
         </section>
 
-        <section class="block">
+        <section class="block" data-metric-family="global">
             <h2>Graph metrics</h2>
             <select id="graph-metric"></select>
             <div class="params" id="graph-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="graph-rec"/> Include active recommendation</label>
-            <button id="btn-graph">Run</button>
+            <button id="btn-graph" class="primary">Run</button>
         </section>
 
-        <section class="block">
-            <h2>Pair metrics</h2>
+        <section class="block" data-metric-family="edges pairs">
+            <h2 id="pair-metric-heading">Edge metrics</h2>
             <select id="pair-metric"></select>
             <div class="params" id="pair-params"></div>
-            <label class="inline-check"><input type="checkbox" id="pair-allpairs"/> All node pairs (not just edges)</label>
+            <label class="inline-check" hidden><input type="checkbox" id="pair-allpairs" disabled/> All node pairs (not just edges)</label>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="pair-rec"/> Include active recommendation</label>
-            <button id="btn-pair">Run</button>
+            <button id="btn-pair" class="primary">Run</button>
             <p class="muted" id="pair-result"></p>
         </section>
 
-        <section class="block">
-            <h2>Communities</h2>
-            <select id="community-algo"></select>
-            <div class="params" id="community-params"></div>
-            <button id="btn-community">Detect</button>
-            <p class="muted" id="community-result"></p>
-            <hr class="sep"/>
+        <section class="block" data-metric-family="comm">
+            <h2>Community metrics</h2>
             <span class="sublabel">Global community metric</span>
             <label class="field">
                 <span>Partition</span>
@@ -303,7 +612,7 @@
             <select id="global-comm-metric"></select>
             <div class="params" id="global-comm-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="global-comm-rec"/> Include active recommendation</label>
-            <button id="btn-global-comm" disabled>Run global community metric</button>
+            <button id="btn-global-comm" disabled class="primary">Run global community metric</button>
             <hr class="sep"/>
             <span class="sublabel">Per-community metric</span>
             <label class="field">
@@ -313,7 +622,52 @@
             <select id="indiv-comm-metric"></select>
             <div class="params" id="indiv-comm-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="comm-rec"/> Include active recommendation</label>
-            <button id="btn-indiv-comm" disabled>Run per-community metric</button>
+            <button id="btn-indiv-comm" disabled class="primary">Run per-community metric</button>
+            <p class="muted">Boundary metrics also work for attribute partitions. UND combines incoming and outgoing connections. Weighted variants require nonnegative weights. Newman contributions use standard modularity, rather than the existing global Modularity normalization. Undefined ratios appear as — and are excluded from averages.</p>
+        </section>
+        <section class="block" data-metric-family="edgepartitions">
+            <h2>Edge partition metrics</h2>
+            <label class="field"><span>Global partition</span><select id="ep-global-partition"></select></label>
+            <select id="ep-global-metric"></select>
+            <div class="params" id="ep-global-params"></div>
+            <button id="btn-ep-global" disabled class="primary">Run global partition metric</button>
+            <hr class="sep"/>
+            <label class="field"><span>Individual partition</span><select id="ep-individual-partition"></select></label>
+            <select id="ep-individual-metric"></select>
+            <div class="params" id="ep-individual-params"></div>
+            <button id="btn-ep-individual" disabled class="primary">Run per-group metric</button>
+            <p class="muted">Detect a partition in Edge partitions first. Connectivity uses weak components. Weight Gini requires nonnegative weights. Entropy is measured in bits.</p>
+        </section>
+        <section class="block" data-metric-family="attrcomm">
+            <h2>Attribute-based metrics</h2>
+            <p class="muted">Treat each distinct node-attribute value as a community.</p>
+            <label class="field">
+                <span>Node attribute</span>
+                <select id="attribute-comm-attribute"></select>
+            </label>
+            <span class="sublabel">Global attribute-based metric</span>
+            <select id="attribute-global-comm-metric"></select>
+            <div class="params" id="attribute-global-comm-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="attribute-global-comm-rec"/> Include active recommendation</label>
+            <button id="btn-attribute-global-comm" disabled class="primary">Run global metric</button>
+            <hr class="sep"/>
+            <span class="sublabel">Per-attribute-value metric</span>
+            <select id="attribute-indiv-comm-metric"></select>
+            <div class="params" id="attribute-indiv-comm-params"></div>
+            <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="attribute-comm-rec"/> Include active recommendation</label>
+            <button id="btn-attribute-indiv-comm" disabled class="primary">Run per-value metric</button>
+        </section>
+        <section class="block" data-metric-family="edgeattr">
+            <h2>Edge attribute metrics</h2>
+            <p class="muted">Compute metrics over values assigned to edges.</p>
+            <label class="field"><span>Edge attribute</span><select id="edge-attribute-metric-attribute"></select></label>
+            <span class="sublabel">Global metric</span>
+            <select id="edge-attribute-global-metric"><option value="num-attributes">Number of attribute values</option></select>
+            <button id="btn-edge-attribute-global" disabled class="primary">Run global metric</button>
+            <hr class="sep"/>
+            <span class="sublabel">Per-value metric</span>
+            <select id="edge-attribute-indiv-metric"><option value="count">Edge count</option></select>
+            <button id="btn-edge-attribute-indiv" disabled class="primary">Run per-value metric</button>
         </section>
         </div>
     </aside>
@@ -333,12 +687,22 @@
                     <span>Format</span>
                     <select id="opt-format">
                         <option value="">Auto-detect (by extension)</option>
-                        <option value="edges">Edge list (tab-separated)</option>
+                        <option value="edges">Edge list</option>
                         <option value="pajek">Pajek (.net / .paj)</option>
                         <option value="gexf">GEXF (.gexf)</option>
                         <option value="relison">RELISON session (.relison)</option>
                     </select>
                 </label>
+                <label class="field" id="edge-import-options">
+                    <span>Field separator</span>
+                    <select id="opt-separator">
+                        <option value="tab">Tab</option>
+                        <option value=",">Comma</option>
+                        <option value=";">Semicolon</option>
+                    </select>
+                </label>
+                <label class="inline-check" id="edge-header-option"><input type="checkbox" id="opt-header"/> First row contains headers</label>
+                <label class="inline-check" id="gexf-label-option" hidden><input type="checkbox" id="opt-gexf-labels-as-ids"/> Use GEXF labels as node IDs (when present)</label>
                 <p class="muted" id="import-session-hint" hidden>A saved session carries its own network and type
                     options, so the settings below are ignored.</p>
                 <div class="checks">
@@ -394,14 +758,125 @@
 
         <!-- TAB 1: network plot -->
         <div class="tabpane" id="pane-network">
+            <div id="network-toolbar" role="toolbar" aria-label="Network controls">
+                <label class="renderer-picker" data-tooltip="markup-0027">
+                    <span>Renderer</span>
+                    <select id="network-renderer"><option value="cosmograph" selected>Cosmograph</option><option value="sigma">Sigma</option><option value="geographic">Geographic map / globe</option></select>
+                </label>
+                <label class="renderer-picker" id="network-dimensions-field">
+                    <span>Dimensions</span>
+                    <select id="network-dimensions"><option value="2">2D</option><option value="3">3D</option></select>
+                </label>
+                <button id="btn-project-network-2d" hidden>Project to 2D</button>
+                <div class="network-interactions">
+                    <label class="interaction-toggle"><input type="checkbox" id="drag-nodes"/> Drag nodes</label>
+                    <label class="interaction-toggle" data-tooltip="ui-multi-node-select"><input type="checkbox" id="multi-node-select" disabled/> Select multiple</label>
+                    <button id="btn-area-select-nodes" class="area-select-button" data-tooltip="ui-area-select-nodes" disabled>
+                        <span class="material-symbols-outlined" aria-hidden="true">lasso_select</span>
+                        <span>Select area</span>
+                    </button>
+                    <label class="interaction-toggle"><input type="checkbox" id="edit-mode"/> Edit graph</label>
+                </div>
+                <div class="network-history">
+                    <button id="btn-network-undo" data-tooltip="ui-btn-network-undo" disabled>↶ Undo</button>
+                    <button id="btn-network-redo" data-tooltip="ui-btn-network-redo" disabled>↷ Redo</button>
+                </div>
+                <div id="canvas-tools" aria-label="Graph camera">
+                <button id="btn-zoom-in" class="canvas-btn" data-tooltip="ui-btn-zoom-in">+</button>
+                <button id="btn-zoom-out" class="canvas-btn" data-tooltip="ui-btn-zoom-out">−</button>
+                <button id="btn-zoom-fit" class="canvas-btn" data-tooltip="ui-btn-zoom-fit">⤢</button>
+                </div>
+                <details class="network-export-menu" id="network-legend-menu">
+                    <summary>Legends</summary>
+                    <div class="network-export-options">
+                        <label class="inline-check"><input id="network-node-legend" type="checkbox" checked/> Show node legend</label>
+                        <label class="inline-check"><input id="network-edge-legend" type="checkbox" checked/> Show edge legend</label>
+                    </div>
+                </details>
+                <details class="network-export-menu">
+                    <summary>Export</summary>
+                    <div class="network-export-options">
+                        <button id="btn-export-png">Export network (PNG)</button>
+                        <button id="btn-export-svg">Export network (SVG)</button>
+                        <label id="rotation-export-resolution-field" class="field" hidden><span>Rotation resolution</span>
+                            <select id="rotation-export-resolution">
+                                <option value="1280">HD (1280 px wide)</option>
+                                <option value="1920" selected>Full HD (1920 px wide)</option>
+                                <option value="2560">QHD (2560 px wide)</option>
+                                <option value="3840">4K (3840 px wide)</option>
+                                <option value="native">Native resolution</option>
+                            </select>
+                            <small>Aspect ratio is preserved. WebM gives better colour and smaller files than GIF.</small>
+                        </label>
+                        <button id="btn-export-rotation-gif" hidden>Export rotation cycle (GIF)</button>
+                        <button id="btn-export-rotation-webm" hidden>Export rotation cycle (WebM)</button>
+                        <label class="inline-check"><input id="export-include-legend" type="checkbox" checked/> Include visible legends</label>
+                        <button id="btn-export-gexf">Export graph (GEXF)</button>
+                        <label class="inline-check"><input type="checkbox" id="export-gexf-numeric-ids"/> Use numeric node IDs in GEXF</label>
+                    </div>
+                </details>
+            </div>
+            <div class="network-interaction-help">
+                <p id="network-globe-help" class="muted" hidden>Drag to rotate the globe; scroll to zoom. Click a node or link to select it. Nodes use latitude/longitude, not layout coordinates.</p>
+                <p id="network-3d-help" hidden>Drag to rotate · Scroll to zoom · Shift + drag to pan</p>
+                <p id="edit-help" hidden>Click empty space to add a node · Ctrl-click two nodes to add an edge · Select a node and press Delete to remove it.</p>
+                <p id="network-drag-hint" hidden>Drag a node to move it. Switch off Drag nodes to pan the graph.</p>
+            </div>
+            <div id="network-graph-stage">
             <div id="sigma-container"></div>
             <canvas id="rec-overlay"></canvas>
-            <div id="node-legend" class="node-legend" hidden></div>
+            <!-- Both renderers share this graph viewport. -->
+            <div id="cosmograph-container" hidden></div>
+            <div id="cosmograph-axis-gizmo" class="cosmograph-axis-gizmo" hidden aria-label="3D camera orientation">
+                <svg viewBox="0 0 112 112" role="group" aria-label="Camera axes; click an axis end to view along it"></svg>
+            </div>
+            <div id="cosmograph-rotation-controls" hidden aria-label="Continuous 3D rotation">
+                <label class="inline-check"><input type="checkbox" id="cosmograph-auto-rotate"/> Rotate</label>
+                <label>Axis</label>
+                <input type="number" id="cosmograph-rotation-axis-x" aria-label="Rotation axis X component" step="0.1" value="0" />
+                <input type="number" id="cosmograph-rotation-axis-y" aria-label="Rotation axis Y component" step="0.1" value="1" />
+                <input type="number" id="cosmograph-rotation-axis-z" aria-label="Rotation axis Z component" step="0.1" value="0" />
+                <label for="cosmograph-rotation-speed">Speed</label>
+                <select id="cosmograph-rotation-speed" aria-label="Rotation speed">
+                    <option value="10">10°/s</option><option value="25" selected>25°/s</option><option value="45">45°/s</option>
+                </select>
+                <label class="inline-check"><input type="checkbox" id="cosmograph-reverse-rotation"/> Reverse</label>
+            </div>
+            <div id="geographic-container" hidden aria-label="Geographic network map"></div>
+            <div class="network-legends" aria-label="Network legends">
+                <div id="node-legend" class="node-legend" hidden aria-label="Node colour legend"></div>
+                <div id="edge-legend" class="node-legend edge-legend" hidden aria-label="Edge colour legend"></div>
+            </div>
             <div id="empty-hint">Load an edge list to begin.</div>
-            <div id="canvas-tools">
-                <button id="btn-zoom-in" class="canvas-btn" title="Zoom in">+</button>
-                <button id="btn-zoom-out" class="canvas-btn" title="Zoom out">−</button>
-                <button id="btn-zoom-fit" class="canvas-btn" title="Fit graph to view">⤢</button>
+            </div>
+            <div id="network-timeline" hidden aria-label="Network timeline">
+                <div class="tl-bar">
+                    <button id="tl-step-back" data-tooltip="ui-tl-step-back">◀</button>
+                    <button id="tl-play" data-tooltip="ui-tl-play">▶</button>
+                    <button id="tl-step-fwd" data-tooltip="ui-tl-step-fwd">▶▶</button>
+                    <input type="range" id="tl-slider" min="0" max="0" value="0"/>
+                </div>
+                <label class="field">
+                    <span>Timestamp</span>
+                    <input type="number" id="tl-time" step="1"/>
+                </label>
+                <p class="muted" id="tl-range"></p>
+                <details class="timeline-export-options"><summary>Export animation</summary>
+                <div class="tl-export">
+                    <button id="btn-tl-gif">⬇ GIF</button>
+                    <button id="btn-tl-webm">⬇ WebM</button>
+                </div>
+                <label class="field">
+                    <span>Animation resolution (GIF / WebM)</span>
+                    <select id="tl-webm-res">
+                        <option value="1280">HD (1280 px wide)</option>
+                        <option value="1920" selected>Full HD (1920 px wide)</option>
+                        <option value="2560">QHD (2560 px wide)</option>
+                        <option value="3840">4K (3840 px wide)</option>
+                        <option value="native">Full native resolution</option>
+                    </select>
+                </label>
+                </details>
             </div>
         </div>
 
@@ -416,18 +891,29 @@
                 <!-- Grouped by concern (create · file · table view), mirroring the diffusion toolbars. -->
                 <div class="toolbar">
                     <span class="tb-group">
-                        <button id="btn-node-add-toggle" title="Add a node">➕ Add node…</button>
-                        <button id="btn-node-col-toggle" title="Add an attribute column">🏷 Add column…</button>
+                        <button id="btn-node-add-toggle" data-tooltip="ui-btn-node-add-toggle">➕ Add node…</button>
+                        <button id="btn-node-col-toggle" data-tooltip="ui-btn-node-col-toggle">🏷 Add column…</button>
                     </span>
                     <span class="tb-sep"></span>
                     <span class="tb-group">
-                        <button id="btn-import-nodes-csv" title="Import nodes / attributes from a CSV file">⬆ Import CSV</button>
-                        <button id="btn-export-nodes" title="Export the nodes table as CSV">⬇ Export CSV</button>
+                        <button id="btn-import-nodes-csv" data-tooltip="ui-btn-import-nodes-csv">⬆ Import CSV</button>
+                        <button id="btn-export-nodes" data-tooltip="ui-btn-export-nodes">⬇ Export CSV</button>
                     </span>
                     <span class="tb-spacer"></span>
                     <span class="tb-group">
-                        <button id="btn-clear-nodes-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                        <button id="btn-filter-builder-nodes" aria-expanded="false" aria-controls="filter-builder-nodes" data-tooltip="ui-filter-builder">Build filters…</button>
+                        <label class="inline-check network-filter-mode" data-tooltip="ui-node-filter-mode"><span>Column filters</span><select id="filter-mode-nodes" aria-label="Node filter combination"><option value="and">Match all (AND)</option><option value="or">Match any (OR)</option></select></label>
+                        <button id="btn-clear-nodes-filters" data-tooltip="ui-btn-clear-nodes-filters">🔎 Clear filters</button>
+                        <span class="menu-wrap column-menu-wrap">
+                            <button id="btn-node-columns" aria-expanded="false">☷ Columns</button>
+                            <div class="menu column-menu" id="node-column-menu" hidden></div>
+                        </span>
                     </span>
+                </div>
+
+                <div class="attribute-import-options">
+                    <label class="field"><span>Attribute file separator</span><select id="node-attr-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
+                    <label class="inline-check"><input type="checkbox" id="node-attr-header" checked/> File includes header</label>
                 </div>
                 <div class="toolbar subrow" id="nodes-addrow" hidden>
                     <span class="addgroup" id="nodes-add-main" hidden>
@@ -449,6 +935,7 @@
                     </span>
                 </div>
                 <input type="file" id="node-csv-file" hidden/>
+                <div id="filters-nodes" class="network-filter-summary" aria-live="polite"></div>
                 <div class="scroll-table tall"><table id="nodes-table" class="data"></table></div>
                 <div class="pagination" id="pager-nodes"></div>
             </div>
@@ -457,18 +944,29 @@
                 <!-- Grouped by concern (create · file · table view), mirroring the diffusion toolbars. -->
                 <div class="toolbar">
                     <span class="tb-group">
-                        <button id="btn-edge-add-toggle" title="Add an edge">➕ Add edge…</button>
-                        <button id="btn-edge-col-toggle" title="Add an attribute column">🏷 Add column…</button>
+                        <button id="btn-edge-add-toggle" data-tooltip="ui-btn-edge-add-toggle">➕ Add edge…</button>
+                        <button id="btn-edge-col-toggle" data-tooltip="ui-btn-edge-col-toggle">🏷 Add column…</button>
                     </span>
                     <span class="tb-sep"></span>
                     <span class="tb-group">
-                        <button id="btn-import-edges-csv" title="Import edges / attributes from a CSV file">⬆ Import CSV</button>
-                        <button id="btn-export-edges" title="Export the edges table as CSV">⬇ Export CSV</button>
+                        <button id="btn-import-edges-csv" data-tooltip="ui-btn-import-edges-csv">⬆ Import CSV</button>
+                        <button id="btn-export-edges" data-tooltip="ui-btn-export-edges">⬇ Export CSV</button>
                     </span>
                     <span class="tb-spacer"></span>
                     <span class="tb-group">
-                        <button id="btn-clear-edges-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                        <button id="btn-filter-builder-edges" aria-expanded="false" aria-controls="filter-builder-edges" data-tooltip="ui-filter-builder">Build filters…</button>
+                        <label class="inline-check network-filter-mode" data-tooltip="ui-edge-filter-mode"><span>Column filters</span><select id="filter-mode-edges" aria-label="Edge filter combination"><option value="and">Match all (AND)</option><option value="or">Match any (OR)</option></select></label>
+                        <button id="btn-clear-edges-filters" data-tooltip="ui-btn-clear-edges-filters">🔎 Clear filters</button>
+                        <span class="menu-wrap column-menu-wrap">
+                            <button id="btn-edge-columns" aria-expanded="false">☷ Columns</button>
+                            <div class="menu column-menu" id="edge-column-menu" hidden></div>
+                        </span>
                     </span>
+                </div>
+
+                <div class="attribute-import-options">
+                    <label class="field"><span>Attribute file separator</span><select id="edge-attr-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
+                    <label class="inline-check"><input type="checkbox" id="edge-attr-header" checked/> File includes header</label>
                 </div>
                 <div class="toolbar subrow" id="edges-addrow" hidden>
                     <span class="addgroup" id="edges-add-main" hidden>
@@ -492,13 +990,156 @@
                     </span>
                 </div>
                 <input type="file" id="edge-csv-file" hidden/>
+                <div id="filters-edges" class="network-filter-summary" aria-live="polite"></div>
                 <div class="scroll-table tall"><table id="edges-table" class="data"></table></div>
                 <div class="pagination" id="pager-edges"></div>
             </div>
 
         </div>
 
-        <!-- TAB 3: computed metrics -->
+        <div class="tabpane" id="pane-communities">
+            <p id="explorer-empty" class="community-empty">Detect communities using the controls on the left to explore their graph, members and metrics.</p>
+            <div id="explorer-content" hidden>
+                <nav class="community-view-tabs" aria-label="Community views">
+                    <button id="explorer-view-graph" class="active" aria-pressed="true">Graph</button>
+                    <button id="explorer-view-table" aria-pressed="false">Table</button>
+                </nav>
+                <div class="community-workspace" id="community-workspace">
+                    <div class="community-main">
+                        <div id="explorer-graph-view">
+                            <div id="community-graph-toolbar" class="toolbar" role="toolbar" aria-label="Community graph controls">
+                                <label class="renderer-picker"><span>Renderer</span><select id="explorer-renderer"><option value="cosmograph">Cosmograph</option><option value="sigma">Sigma</option></select></label>
+                                <label class="renderer-picker" id="explorer-dimensions-field"><span>Dimensions</span><select id="explorer-dimensions"><option value="2">2D</option><option value="3">3D</option></select></label>
+                                <label class="renderer-picker"><span>Graph</span><select id="explorer-mode"><option value="weighted">Aggregated weights</option><option value="complete">Complete community multigraph</option><option value="inter">Inter-community multigraph</option></select></label>
+                                <label class="renderer-picker"><span>Layout</span><select id="explorer-layout"></select></label>
+                                <button id="explorer-apply-layout">Apply layout</button>
+                                <label class="interaction-toggle"><input type="checkbox" id="explorer-loops"/> Show internal connections</label>
+                                <div class="graph-camera-tools" aria-label="Community graph camera">
+                                    <button id="explorer-zoom-in" class="canvas-btn" title="Zoom in" aria-label="Zoom in">+</button>
+                                    <button id="explorer-zoom-out" class="canvas-btn" title="Zoom out" aria-label="Zoom out">−</button>
+                                    <button id="explorer-fit" class="canvas-btn" title="Fit graph" aria-label="Fit graph">⤢</button>
+                                </div>
+                                <details class="network-export-menu">
+                                    <summary>Export</summary>
+                                    <div class="network-export-options">
+                                        <button id="explorer-export-png">Export community graph (PNG)</button>
+                                        <button id="explorer-export-svg">Export community graph (SVG)</button>
+                                    </div>
+                                </details>
+                            </div>
+                            <details class="community-appearance">
+                                <summary>Appearance</summary>
+                                <div class="community-appearance-grid">
+                                    <fieldset><legend>Nodes</legend>
+                                        <label>Minimum size <input id="community-node-min" type="number" min="0.1" max="200" step="0.1" value="4"/></label>
+                                        <label>Maximum size <input id="community-node-max" type="number" min="0.1" max="200" step="0.1" value="25"/></label>
+                                        <label>Scale values <select id="community-node-scale"><option value="proportional">Proportional to value</option><option value="percentile">Percentile rank</option></select></label>
+                                        <label><span>Node borders</span><input id="community-node-border-on" type="checkbox"/></label>
+                                        <label id="community-node-border-color-field" hidden>Border colour <input id="community-node-border-color" type="color" value="#1b1c1f"/></label>
+                                        <label id="community-node-border-width-field" hidden>Border width <input id="community-node-border-width" type="number" min="0" max="20" step="0.5" value="1"/></label>
+                                        <p class="muted">Sizes are radii in pixels, scaled by member count. Equal bounds give a uniform size.</p>
+                                    </fieldset>
+                                    <fieldset><legend>Labels</legend>
+                                        <label><span>Show node labels</span><input id="community-label-show" type="checkbox" checked/></label>
+                                        <label>Size <input id="community-label-size" type="number" min="1" max="100" step="1" value="12"/></label>
+                                        <label>Font <select id="community-label-font"></select></label>
+                                        <label><span>Proportional to node size</span><input id="community-label-prop" type="checkbox"/></label>
+                                        <label>Colour <select id="community-label-mode"><option value="default">Default</option><option value="single">Single colour</option><option value="node">Node colour</option></select></label>
+                                        <label id="community-label-color-field" hidden>Single colour <input id="community-label-color" type="color" value="#ffffff"/></label>
+                                        <hr class="sep"/>
+                                        <label><span>Show edge labels</span><input id="community-edge-label-show" type="checkbox"/></label>
+                                        <label>Size <input id="community-edge-label-size" type="number" min="1" max="100" step="1" value="9"/></label>
+                                        <label>Font <select id="community-edge-label-font"></select></label>
+                                        <label><span>Proportional to thickness</span><input id="community-edge-label-prop" type="checkbox"/></label>
+                                        <label>Colour <select id="community-edge-label-mode"><option value="default">Default</option><option value="single">Single colour</option><option value="edge">Edge colour</option></select></label>
+                                        <label id="community-edge-label-color-field" hidden>Single colour <input id="community-edge-label-color" type="color" value="#ffffff"/></label>
+                                    </fieldset>
+                                    <fieldset><legend>Edges</legend>
+                                        <label>Shape <select id="community-edge-shape"><option value="curved">Curved</option><option value="straight">Straight</option></select></label>
+                                        <label>Thickness <select id="community-edge-size-mode"><option value="weight">Scale by connection value</option><option value="uniform">Uniform</option></select></label>
+                                        <label id="community-edge-width-field" hidden>Width <input id="community-edge-width" type="number" min="0" max="50" step="0.1" value="2"/></label>
+                                        <label id="community-edge-min-field">Minimum width <input id="community-edge-min" type="number" min="0" max="50" step="0.1" value="0.5"/></label>
+                                        <label id="community-edge-max-field">Maximum width <input id="community-edge-max" type="number" min="0" max="50" step="0.1" value="5.5"/></label>
+                                        <label>Colour <select id="community-edge-color-mode"><option value="default">Default</option><option value="single">Single colour</option><option value="average">Average between communities</option><option value="source">Source community colour</option><option value="target">Target community colour</option></select></label>
+                                        <label id="community-edge-color-field" hidden>Single colour <input id="community-edge-color" type="color" value="#8c96a5"/></label>
+                                        <p class="muted">For undirected links, source and target follow the displayed endpoint order. Internal connections share these settings and remain loops in both shape modes.</p>
+                                    </fieldset>
+                                </div>
+                                <p id="community-appearance-status" class="muted" role="status"></p>
+                            </details>
+                            <p class="muted community-legend" id="explorer-legend"></p>
+                            <p class="muted" id="explorer-graph-status" role="status"></p>
+                            <div id="community-graph-stage"><div id="community-sigma"></div><svg id="community-loops" aria-hidden="true"></svg><svg id="community-foreground" aria-hidden="true"></svg></div>
+                            <p id="explorer-edge-info" class="muted" aria-live="polite">Select a community or connection to inspect it.</p>
+                        </div>
+                        <div id="explorer-table-view" hidden>
+                            <div class="toolbar">
+                                <label>Search communities <input id="explorer-search" type="search" placeholder="ID or label"/></label>
+                                <button id="explorer-export-table">Export CSV</button>
+                            </div>
+                            <div class="scroll-table"><table id="community-table" class="data" aria-label="Communities"></table></div>
+                            <div id="community-table-pager" class="pagination"></div>
+                            <p class="muted">Select a row to inspect its members. Run metrics in Metrics → Community metrics to add columns.</p>
+                        </div>
+                    </div>
+                    <aside id="community-inspector" hidden aria-label="Community inspector">
+                        <div class="toolbar"><h2 id="community-inspector-title">Community</h2><button id="explorer-close-inspector" aria-label="Close community inspector">×</button></div>
+                        <p id="community-inspector-identity" class="muted"></p>
+                        <label class="field"><span>Label</span><input id="community-label" maxlength="120"/></label>
+                        <button id="community-save-label">Save label</button>
+                        <div id="community-details-scroll" class="scroll-table">
+                            <table id="community-details" class="data" aria-label="Selected community metrics"></table>
+                        </div>
+                        <div class="toolbar community-actions"><button id="community-highlight">Highlight members in Network</button><button id="community-isolate">Show only members in Network</button></div>
+                        <h3>Members</h3>
+                        <label class="field"><span>Search members</span><input id="community-members-search" type="search" placeholder="Node ID or attribute value"/></label>
+                        <label class="field"><span>Additional member column</span><select id="community-member-column"></select></label>
+                        <button id="community-export-members">Export members CSV</button>
+                        <div class="scroll-table"><table id="community-members" class="data" aria-label="Community members"></table></div>
+                        <div id="community-members-pager" class="pagination"></div>
+                        <h3>Connections</h3>
+                        <p id="community-connections-note" class="muted"></p>
+                        <div class="scroll-table"><table id="community-connections" class="data" aria-label="Community connections"></table></div>
+                    </aside>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabpane" id="pane-edge-partitions">
+            <p id="edge-partition-empty" class="community-empty">Choose a grouping method on the left and detect edge groups.</p>
+            <div id="edge-partition-content" hidden>
+            <div id="edge-partition-workspace" class="community-workspace">
+                <div class="community-main">
+                    <div class="toolbar">
+                        <label>Search groups <input id="edge-partition-search" type="search" placeholder="ID or label"/></label>
+                        <button id="edge-partition-export-table">Export CSV</button>
+                    </div>
+                    <div class="scroll-table"><table id="edge-partition-groups" class="data" aria-label="Edge partition groups"></table></div>
+                    <div id="edge-partition-table-pager" class="pagination"></div>
+                    <p class="muted">Select a row to inspect its edges. Run metrics in Metrics → Edge partition metrics to add columns.</p>
+                </div>
+                <aside id="edge-partition-inspector" hidden aria-label="Edge group inspector">
+                    <div class="toolbar"><h2 id="edge-partition-inspector-title">Edge group</h2><button id="edge-partition-close-inspector" aria-label="Close edge group inspector">×</button></div>
+                    <p id="edge-partition-inspector-summary" class="muted"></p>
+                    <label class="field"><span>Label</span><input id="edge-partition-label" maxlength="120"/></label>
+                    <button id="edge-partition-save-label">Save label</button>
+                    <div id="edge-partition-details-scroll" class="scroll-table"><table id="edge-partition-details" class="data" aria-label="Selected edge group metrics"></table></div>
+                    <div class="toolbar community-actions"><button id="edge-partition-highlight">Highlight edges in Network</button><button id="edge-partition-isolate">Show only edges in Network</button></div>
+                    <h3>Edges</h3>
+                    <label class="field"><span>Search edges</span><input id="edge-partition-members-search" type="search" placeholder="Endpoint, edge ID or attribute value"/></label>
+                    <label class="field"><span>Additional edge column</span><select id="edge-partition-member-column"></select></label>
+                    <button id="edge-partition-export" disabled>Export edges CSV</button>
+                    <div class="scroll-table"><table id="edge-partition-members" class="data" aria-label="Edges in selected group"></table></div>
+                    <div id="edge-partition-members-pager" class="pagination"></div>
+                    <h3>Connections</h3>
+                    <p class="muted">Groups are connected when their edges share endpoints.</p>
+                    <div class="scroll-table"><table id="edge-partition-connections" class="data" aria-label="Groups sharing endpoints"></table></div>
+                </aside>
+            </div>
+            </div>
+        </div>
+
+        <!-- Computed metrics -->
         <div class="tabpane" id="pane-metrics">
             <nav id="subtabbar">
                 <button class="subtab active" data-subtab="global">Global</button>
@@ -506,120 +1147,199 @@
                 <button class="subtab" data-subtab="edges">Edge metrics</button>
                 <button class="subtab" data-subtab="pairs">Node-pair metrics</button>
                 <button class="subtab" data-subtab="comm">Community metrics</button>
+                <button class="subtab" data-subtab="attrcomm">Attribute metrics</button>
+                <button class="subtab" data-subtab="edgeattr">Edge attribute metrics</button>
+                <button class="subtab" data-subtab="edgepartitions">Edge partition metrics</button>
+                <button class="subtab" data-subtab="relationships">Attribute relationships</button>
             </nav>
+
+            <div class="subpane" id="subpane-edgepartitions">
+                <h2>Global edge partition metrics</h2>
+                <div class="toolbar"><button id="ep-export-metrics">Export partition metrics CSV</button></div>
+                <div class="scroll-table"><table id="ep-global-results" class="data metric-summary-table" aria-label="Global edge partition metrics"></table></div>
+                <h2>Per-group metric averages</h2>
+                <div class="toolbar"><button id="ep-export-averages">Export CSV</button></div>
+                <div class="scroll-table"><table id="ep-average-results" class="data metric-summary-table" aria-label="Per-group metric averages"></table></div>
+                <p class="muted">Detect edge groups, then compute metrics from the controls on the left.</p>
+                <h2>Per-group metric distribution</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="ep-chart-metric"></select></label>
+                    <label>Sort by <select id="ep-chart-sort"></select></label>
+                    <label>Orientation <select class="chart-view-select" id="ep-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="ep-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="ep-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="ep-chart-k" min="1" step="1" value="10"/></label>
+                    <button class="chart-dl" data-canvas="ep-chart" data-file="edge-partition-metric-distribution.png">⬇ Download PNG / SVG</button>
+                </div>
+                <p class="muted chart-view-note" id="ep-chart-view-note" aria-live="polite"></p>
+                <div class="chart-area"><div id="ep-chart" class="echarts-chart"></div></div>
+                <p class="muted">A dash means the metric is undefined for that group. Averages include only finite values. Intra-partition metrics use each group's edges and endpoints, preserving direction, loops, weights and parallel edges.</p>
+            </div>
 
             <div class="subpane active" id="subpane-global">
                 <h2>Global metrics</h2>
                 <div class="toolbar"><button id="btn-export-global">Export CSV</button></div>
-                <table class="kv wide" id="global-metrics-table"></table>
+                <div class="scroll-table"><table class="data metric-summary-table" id="global-metrics-table" aria-label="Global metrics"></table></div>
                 <p class="muted">Run graph metrics or community metrics from the left panel to populate this table.</p>
             </div>
 
             <div class="subpane" id="subpane-nodes">
                 <h2>Node metric averages</h2>
                 <div class="toolbar"><button id="btn-export-node-averages">Export CSV</button></div>
-                <table class="kv wide" id="node-averages-table"></table>
+                <div class="scroll-table"><table class="data metric-summary-table" id="node-averages-table" aria-label="Node metric averages"></table></div>
                 <h2>Node metric distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="node-chart-metric"></select></label>
                     <label>Sort by <select id="node-chart-sort"></select></label>
-                    <button class="chart-dl" data-canvas="node-chart" data-file="node-metric-distribution.png">⬇ Download PNG</button>
+                    <label>Orientation <select class="chart-view-select" id="node-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="node-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="node-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="node-chart-k" min="1" step="1" value="10"/></label>
+                    <button class="chart-dl" data-canvas="node-chart" data-file="node-metric-distribution.png">⬇ Download PNG / SVG</button>
                 </div>
-                <div class="chart-area"><canvas id="node-chart"></canvas><div class="chart-tip" id="node-chart-tip" hidden></div></div>
+                <p class="muted chart-view-note" id="node-chart-view-note" aria-live="polite"></p>
+                <div class="chart-area"><div id="node-chart" class="echarts-chart"></div></div>
+                <h2>Top-k nodes</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="node-topk-metric"></select></label>
+                    <label>k <input type="number" id="node-topk-k" min="1" step="1" value="10"/></label>
+                </div>
+                <p class="muted" id="node-topk-note" aria-live="polite"></p>
+                <div class="scroll-table"><table class="data" id="node-topk-table" aria-label="Top-k nodes by metric"></table></div>
                 <div class="rec-scatter-block" id="node-scatter-block" hidden>
                     <h2>Original vs recommendation</h2>
                     <div class="chart-controls">
                         <label>Metric <select id="node-scatter-metric"></select></label>
                         <label>Recommendation <select id="node-scatter-rec"></select></label>
-                        <button class="chart-dl" data-canvas="node-scatter" data-file="node-original-vs-recommendation.png">⬇ Download PNG</button>
+                        <button class="chart-dl" data-canvas="node-scatter" data-file="node-original-vs-recommendation.png">⬇ Download PNG / SVG</button>
                     </div>
-                    <div class="chart-area"><canvas id="node-scatter"></canvas><div class="chart-tip" id="node-scatter-tip" hidden></div></div>
+                    <div class="chart-area"><div id="node-scatter" class="echarts-chart"></div></div>
                 </div>
             </div>
 
             <div class="subpane" id="subpane-edges">
                 <h2>Edge metric averages</h2>
                 <div class="toolbar"><button id="btn-export-edge-averages">Export CSV</button></div>
-                <table class="kv wide" id="edge-averages-table"></table>
+                <div class="scroll-table"><table class="data metric-summary-table" id="edge-averages-table" aria-label="Edge metric averages"></table></div>
                 <h2>Edge metric distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="edge-chart-metric"></select></label>
                     <label>Sort by <select id="edge-chart-sort"></select></label>
-                    <button class="chart-dl" data-canvas="edge-chart" data-file="edge-metric-distribution.png">⬇ Download PNG</button>
+                    <label>Orientation <select class="chart-view-select" id="edge-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="edge-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="edge-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="edge-chart-k" min="1" step="1" value="10"/></label>
+                    <button class="chart-dl" data-canvas="edge-chart" data-file="edge-metric-distribution.png">⬇ Download PNG / SVG</button>
                 </div>
-                <div class="chart-area"><canvas id="edge-chart"></canvas><div class="chart-tip" id="edge-chart-tip" hidden></div></div>
+                <p class="muted chart-view-note" id="edge-chart-view-note" aria-live="polite"></p>
+                <div class="chart-area"><div id="edge-chart" class="echarts-chart"></div></div>
                 <div class="rec-scatter-block" id="edge-scatter-block" hidden>
                     <h2>Original vs recommendation</h2>
                     <div class="chart-controls">
                         <label>Metric <select id="edge-scatter-metric"></select></label>
                         <label>Recommendation <select id="edge-scatter-rec"></select></label>
-                        <button class="chart-dl" data-canvas="edge-scatter" data-file="edge-original-vs-recommendation.png">⬇ Download PNG</button>
+                        <button class="chart-dl" data-canvas="edge-scatter" data-file="edge-original-vs-recommendation.png">⬇ Download PNG / SVG</button>
                     </div>
-                    <div class="chart-area"><canvas id="edge-scatter"></canvas><div class="chart-tip" id="edge-scatter-tip" hidden></div></div>
+                    <div class="chart-area"><div id="edge-scatter" class="echarts-chart"></div></div>
                 </div>
             </div>
 
             <div class="subpane" id="subpane-pairs">
                 <h2>Node-pair metric averages</h2>
                 <div class="toolbar"><button id="btn-export-pair-averages">Export CSV</button></div>
-                <table class="kv wide" id="pair-averages-table"></table>
+                <div class="scroll-table"><table class="data metric-summary-table" id="pair-averages-table" aria-label="Node-pair metric averages"></table></div>
                 <p class="muted">Computed over all node pairs. Enable “All node pairs” in the Pair metrics panel and run a metric.</p>
                 <h2>Node-pair metric distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="pair-chart-metric"></select></label>
-                    <button class="chart-dl" data-canvas="pair-chart" data-file="node-pair-metric-distribution.png">⬇ Download PNG</button>
+                    <button class="chart-dl" data-canvas="pair-chart" data-file="node-pair-metric-distribution.png">⬇ Download PNG / SVG</button>
                 </div>
-                <div class="chart-area"><canvas id="pair-chart"></canvas><div class="chart-tip" id="pair-chart-tip" hidden></div></div>
+                <div class="chart-area histogram-chart"><div id="pair-chart" class="echarts-chart"></div></div>
                 <p class="muted" id="pair-chart-note"></p>
             </div>
 
             <div class="subpane" id="subpane-comm">
                 <h2>Per-community metric averages</h2>
                 <div class="toolbar"><button id="btn-export-comm-averages">Export CSV</button></div>
-                <table class="kv wide" id="comm-averages-table"></table>
-                <p class="muted">Detect a partition, then run a per-community metric from the Communities panel.</p>
+                <div class="scroll-table"><table class="data metric-summary-table" id="comm-averages-table" aria-label="Community metric averages"></table></div>
+                <p class="muted">Detect a partition in Communities, then run a per-community metric using the controls on this tab.</p>
                 <h2>Per-community metric distribution</h2>
                 <div class="chart-controls">
                     <label>Metric <select id="comm-chart-metric"></select></label>
                     <label>Sort by <select id="comm-chart-sort"></select></label>
-                    <button class="chart-dl" data-canvas="comm-chart" data-file="community-metric-distribution.png">⬇ Download PNG</button>
+                    <label>Orientation <select class="chart-view-select" id="comm-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="comm-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="comm-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="comm-chart-k" min="1" step="1" value="10"/></label>
+                    <button class="chart-dl" data-canvas="comm-chart" data-file="community-metric-distribution.png">⬇ Download PNG / SVG</button>
                 </div>
-                <div class="chart-area"><canvas id="comm-chart"></canvas><div class="chart-tip" id="comm-chart-tip" hidden></div></div>
+                <p class="muted chart-view-note" id="comm-chart-view-note" aria-live="polite"></p>
+                <div class="chart-area"><div id="comm-chart" class="echarts-chart"></div></div>
                 <div class="rec-scatter-block" id="comm-scatter-block" hidden>
                     <h2>Original vs recommendation</h2>
                     <div class="chart-controls">
                         <label>Metric <select id="comm-scatter-metric"></select></label>
                         <label>Recommendation <select id="comm-scatter-rec"></select></label>
-                        <button class="chart-dl" data-canvas="comm-scatter" data-file="community-original-vs-recommendation.png">⬇ Download PNG</button>
+                        <button class="chart-dl" data-canvas="comm-scatter" data-file="community-original-vs-recommendation.png">⬇ Download PNG / SVG</button>
                     </div>
-                    <div class="chart-area"><canvas id="comm-scatter"></canvas><div class="chart-tip" id="comm-scatter-tip" hidden></div></div>
+                    <div class="chart-area"><div id="comm-scatter" class="echarts-chart"></div></div>
                 </div>
             </div>
-        </div>
-
-        <!-- TAB 4: shortest paths -->
-        <div class="tabpane" id="pane-paths">
-            <div class="paths-controls">
-                <label>Source <input type="text" id="path-source" placeholder="type to search node"/></label>
-                <label>Target <input type="text" id="path-target" placeholder="type to search node"/></label>
-                <label>Display
-                    <select id="path-display">
-                        <option value="highlight">Highlight (dim rest)</option>
-                        <option value="only">Show only</option>
-                    </select>
-                </label>
-                <label class="rec-include-field" id="path-graph-field" hidden>Graph
-                    <select id="path-graph">
-                        <option value="original">Original</option>
-                        <option value="rec">With recommendation</option>
-                    </select>
-                </label>
-                <button id="btn-find-paths">Find shortest paths</button>
-                <button id="btn-highlight-all-paths">Show all</button>
-                <button id="btn-clear-path-hl">Clear</button>
+            <div class="subpane" id="subpane-attrcomm">
+                <h2>Per-attribute-value metric averages</h2>
+                <div class="toolbar"><button id="btn-export-attrcomm-averages">Export CSV</button></div>
+                <div class="scroll-table"><table class="data metric-summary-table" id="attrcomm-averages-table" aria-label="Attribute metric averages"></table></div>
+                <p class="muted">Run a per-attribute-value metric from the Attribute-based metrics panel.</p>
+                <h2>Per-attribute-value metric distribution</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="attrcomm-chart-metric"></select></label>
+                    <label>Sort by <select id="attrcomm-chart-sort"></select></label>
+                    <label>Orientation <select class="chart-view-select" id="attrcomm-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="attrcomm-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="attrcomm-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="attrcomm-chart-k" min="1" step="1" value="10"/></label>
+                    <button class="chart-dl" data-canvas="attrcomm-chart" data-file="attribute-metric-distribution.png">⬇ Download PNG / SVG</button>
+                </div>
+                <p class="muted chart-view-note" id="attrcomm-chart-view-note" aria-live="polite"></p>
+                <div class="chart-area"><div id="attrcomm-chart" class="echarts-chart"></div></div>
             </div>
-            <p class="muted" id="path-summary">Pick a source and a target, then find their shortest paths.</p>
-            <div class="scroll-table tall"><table id="paths-table" class="data"></table></div>
+            <div class="subpane" id="subpane-relationships">
+                <h2>Attribute relationships</h2>
+                <p class="muted">Compare attribute values across all loaded nodes or edges. Community comparisons use node membership in detected partitions.</p>
+                <div class="chart-controls">
+                    <label>Compare <select id="relationship-mode"><option value="node-node">Node ↔ Node</option><option value="community-community">Community ↔ Community</option><option value="node-community">Node ↔ Community</option><option value="edge-edge">Edge ↔ Edge</option></select></label>
+                    <label><span id="relationship-x-label">X: Node attribute</span><select id="relationship-x"></select></label>
+                    <label><span id="relationship-y-label">Y: Node attribute</span><select id="relationship-y"></select></label>
+                    <button id="relationship-swap" class="chart-dl">Swap axes</button>
+                    <label>Display <select id="relationship-display"><option value="count">Counts</option><option value="row">Row percentages</option><option value="column">Column percentages</option></select></label>
+                    <label>Missing values <select id="relationship-missing"><option value="exclude">Exclude</option><option value="include">Include</option></select></label>
+                    <label id="relationship-x-binning-field" hidden>X numeric values <select id="relationship-x-binning"><option value="bins">Equal-width bins</option><option value="exact">Exact values</option></select></label>
+                    <label id="relationship-y-binning-field" hidden>Y numeric values <select id="relationship-y-binning"><option value="bins">Equal-width bins</option><option value="exact">Exact values</option></select></label>
+                    <label id="relationship-bins-field" hidden>Number of bins <input class="chart-k-input" id="relationship-bins" type="number" min="2" max="100" step="1" value="10" required/></label>
+                    <button id="relationship-png" class="chart-dl" data-canvas="relationship-chart" data-file="attribute-relationships.png" disabled>⬇ Download PNG / SVG</button>
+                    <button id="relationship-csv" class="chart-dl" disabled>Export CSV</button>
+                </div>
+                <p class="muted" id="relationship-note" aria-live="polite"></p>
+                <div class="chart-area" id="relationship-area" hidden><div id="relationship-chart" class="echarts-chart"></div></div>
+            </div>
+            <div class="subpane" id="subpane-edgeattr">
+                <h2>Per-edge-attribute-value metric averages</h2>
+                <div class="toolbar"><button id="btn-export-edgeattr-averages">Export CSV</button></div>
+                <div class="scroll-table"><table class="data metric-summary-table" id="edgeattr-averages-table" aria-label="Edge attribute metric averages"></table></div>
+                <p class="muted">Run a per-value edge attribute metric from the left panel.</p>
+                <h2>Per-edge-attribute-value distribution</h2>
+                <div class="chart-controls">
+                    <label>Metric <select id="edgeattr-chart-metric"></select></label>
+                    <label>Sort by <select id="edgeattr-chart-sort"></select></label>
+                    <label>Orientation <select class="chart-view-select" id="edgeattr-chart-orientation"><option value="vertical">Vertical</option><option value="horizontal">Horizontal</option></select></label>
+                    <label>Show <select class="chart-view-select" id="edgeattr-chart-show"><option value="all">All</option><option value="top">Top k</option><option value="bottom">Bottom k</option></select></label>
+                    <label>Display order <select class="chart-view-select" id="edgeattr-chart-order"><option value="normal">Normal</option><option value="reverse">Reverse</option></select></label>
+                    <label hidden>k <input class="chart-k-input" type="number" id="edgeattr-chart-k" min="1" step="1" value="10"/></label>
+                    <button class="chart-dl" data-canvas="edgeattr-chart" data-file="edge-attribute-metric-distribution.png">⬇ Download PNG / SVG</button>
+                </div>
+                <p class="muted chart-view-note" id="edgeattr-chart-view-note" aria-live="polite"></p>
+                <div class="chart-area"><div id="edgeattr-chart" class="echarts-chart"></div></div>
+            </div>
         </div>
 
         <!-- TAB 5: link recommendation / prediction -->
@@ -627,6 +1347,14 @@
             <div class="rec-layout">
                 <!-- Left: the model configuration, plus the evaluation setup when that subtab is showing. -->
                 <aside class="rec-config">
+                    <section class="block">
+                        <label class="field">
+                            <span>Computed results</span>
+                            <select id="rec-computed" disabled>
+                                <option value="" disabled selected>No computed results</option>
+                            </select>
+                        </label>
+                    </section>
                     <section class="block">
                         <h2>Link recommendation / prediction</h2>
                         <label class="field">
@@ -655,9 +1383,14 @@
                     <section class="block" id="rec-eval-config" hidden>
                         <h2>Evaluation</h2>
                         <label class="field">
-                            <span>Test set (tab-separated edge list)</span>
+                            <span>Test set (edge list)</span>
                             <input type="file" id="rec-test-file" accept=".txt,.tsv,.csv,.edges"/>
                         </label>
+                        <label class="field">
+                            <span>Field separator</span>
+                            <select id="rec-test-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select>
+                        </label>
+                        <label class="inline-check"><input type="checkbox" id="rec-test-header"/> First row contains headers</label>
                         <button id="btn-rec-test-upload">⬆ Upload test set</button>
                         <p class="muted" id="rec-test-status">No test set loaded.</p>
                         <label class="field">
@@ -696,11 +1429,11 @@
                         <div class="rec-view active" id="rec-view-links">
                             <div class="toolbar">
                                 <span class="tb-group">
-                                    <button id="btn-rec-add-all" title="Add every recommended link listed below (honouring the column filters) to the graph" disabled>➕ Add all</button>
+                                    <button id="btn-rec-add-all" data-tooltip="ui-btn-rec-add-all" disabled>➕ Add all</button>
                                 </span>
                                 <span class="tb-spacer"></span>
                                 <span class="tb-group">
-                                    <button id="btn-clear-rec-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                                    <button id="btn-clear-rec-filters" data-tooltip="ui-btn-clear-rec-filters">🔎 Clear filters</button>
                                 </span>
                             </div>
                             <div class="scroll-table tall"><table id="rec-edges-table" class="data"></table></div>
@@ -712,7 +1445,7 @@
                             <div class="toolbar">
                                 <span class="tb-spacer"></span>
                                 <span class="tb-group">
-                                    <button id="btn-rec-eval-export" title="Export the evaluation table as CSV">⬇ Export CSV</button>
+                                    <button id="btn-rec-eval-export" data-tooltip="ui-btn-rec-eval-export">⬇ Export CSV</button>
                                 </span>
                             </div>
                             <p class="muted" id="rec-eval-empty">Upload a test set and press Evaluate to score the algorithms you have run.</p>
@@ -764,12 +1497,12 @@
                     <section class="block">
                         <h2>Metrics</h2>
                         <select id="diff-metrics" multiple size="6"></select>
-                        <p class="muted">Selected metrics are plotted in the "Metrics" subtab of the canvas.</p>
+                        <p class="muted">Selected metrics appear under Analysis → Metrics.</p>
                     </section>
                     <section class="block">
                         <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="diff-rec"/> Run on selected recommendation</label>
                         <label class="field"><span>Run label</span>
-                            <input type="text" id="diff-run-label" placeholder="auto (protocol / Custom X)" title="Optional name for this run in the metric plots; leave blank for an automatic label"/></label>
+                            <input type="text" id="diff-run-label" placeholder="auto (protocol / Custom X)" data-tooltip="ui-diff-run-label"/></label>
                         <button id="btn-diff-run" class="primary">Run simulation</button>
                         <button id="btn-diff-clear">Clear</button>
                         <p class="muted" id="diff-status">No simulation run yet.</p>
@@ -785,20 +1518,27 @@
                     </nav>
                     <div class="diff-views">
                         <div class="diff-view" id="diff-view-graph">
+                            <label class="diff-run-picker"><span>Run</span><select id="diff-playback-run" aria-label="Simulation run for graph playback" disabled><option value="">No simulation run yet</option></select></label>
+                            <label class="diff-renderer-picker"><span>Renderer</span><select id="diff-renderer"><option value="network" selected>Follow network renderer</option><option value="sigma">Sigma</option><option value="cosmograph">Cosmograph</option><option value="mercator">Geographic: Mercator</option><option value="equal-earth">Geographic: Equal Earth</option><option value="globe">Geographic: Globe</option></select></label>
                             <div id="diff-sigma-container"></div>
+                            <div id="diff-cosmograph-container" hidden></div>
+                            <div id="diff-geographic-container" hidden aria-label="Geographic diffusion map"></div>
                             <canvas id="diff-overlay"></canvas>
                             <div id="diff-legend" class="diff-legend" hidden></div>
                             <div id="diff-empty-hint">Configure and run a simulation to begin.</div>
                             <div class="diff-timebar" id="diff-timebar" hidden>
-                                <button id="diff-step-back" class="canvas-btn" title="Step back">◀</button>
-                                <button id="diff-play" class="canvas-btn" title="Play / pause">▶</button>
-                                <button id="diff-step-fwd" class="canvas-btn" title="Step forward">▶▶</button>
+                                <button id="diff-step-back" class="canvas-btn" data-tooltip="ui-diff-step-back">◀</button>
+                                <button id="diff-play" class="canvas-btn" data-tooltip="ui-diff-play">▶</button>
+                                <button id="diff-step-fwd" class="canvas-btn" data-tooltip="ui-diff-step-fwd">▶▶</button>
                                 <input type="range" id="diff-slider" min="0" max="0" value="0"/>
                                 <span id="diff-iter-label" class="pageinfo">iteration 0</span>
-                                <button id="btn-diff-gif" class="diff-dl-btn" title="Download the animation as a GIF">⬇ GIF</button>
-                                <button id="btn-diff-webm" class="diff-dl-btn" title="Download the animation as a WebM video">⬇ WebM</button>
-                                <select id="diff-webm-res" class="diff-res-sel" title="WebM resolution">
-                                    <option value="1920">1920px</option>
+                                <button id="btn-diff-gif" class="diff-dl-btn" data-tooltip="ui-btn-diff-gif">⬇ GIF</button>
+                                <button id="btn-diff-webm" class="diff-dl-btn" data-tooltip="ui-btn-diff-webm">⬇ WebM</button>
+                                <select id="diff-webm-res" class="diff-res-sel" data-tooltip="ui-diff-webm-res" aria-label="Animation resolution (GIF / WebM)">
+                                    <option value="1280">HD (1280px)</option>
+                                    <option value="1920" selected>Full HD (1920px)</option>
+                                    <option value="2560">QHD (2560px)</option>
+                                    <option value="3840">4K (3840px)</option>
                                     <option value="native">native</option>
                                 </select>
                             </div>
@@ -807,7 +1547,7 @@
                             <div class="diffmetrics-pane">
                                 <div class="chart-controls">
                                     <label>Metric <select id="diffmetric-select"></select></label>
-                                    <button id="btn-diffmetric-png" class="chart-dl">⬇ Download PNG</button>
+                                    <button id="btn-diffmetric-png" class="chart-dl">⬇ Download PNG / SVG</button>
                                     <button id="btn-diffmetric-csv" class="chart-dl">⬇ Download CSV</button>
                                 </div>
                                 <p class="muted" id="diffmetrics-hint">Run a simulation (with metrics selected) to see plots over iterations.</p>
@@ -847,11 +1587,10 @@
                                         <option value="stacked">Stacked area</option>
                                         <option value="lines">Lines</option>
                                     </select></label>
-                                    <button id="btn-diff-traj-png" class="chart-dl">⬇ Download PNG</button>
+                                    <button id="btn-diff-traj-png" class="chart-dl">⬇ Download PNG / SVG</button>
                                 </div>
                                 <p class="muted" id="diff-traj-hint">Run a simulation and select a node to see how its information exposure evolves.</p>
-                                <div class="chart-area" id="diff-traj-area"><canvas id="diff-traj-canvas"></canvas></div>
-                                <div class="chart-tip" id="diff-traj-tip" hidden></div>
+                                <div class="chart-area" id="diff-traj-area"><div id="diff-traj-canvas" class="echarts-chart"></div></div>
                             </div>
                         </div>
                         <div class="diff-stats-view" id="diff-stats-view-piece" hidden>
@@ -874,10 +1613,10 @@
                                         <option value="stacked">Stacked area</option>
                                         <option value="lines">Lines</option>
                                     </select></label>
-                                    <button id="btn-diff-ptraj-png" class="chart-dl">⬇ Download PNG</button>
+                                    <button id="btn-diff-ptraj-png" class="chart-dl">⬇ Download PNG / SVG</button>
                                 </div>
                                 <p class="muted" id="diff-ptraj-hint">Run a simulation and choose an information piece to see how many users receive / read / propagate / discard it over the iterations.</p>
-                                <div class="chart-area" id="diff-ptraj-area"><canvas id="diff-ptraj-canvas"></canvas></div>
+                                <div class="chart-area" id="diff-ptraj-area"><div id="diff-ptraj-canvas" class="echarts-chart"></div></div>
                             </div>
                         </div>
                         <div class="diff-stats-view" id="diff-stats-view-feat" hidden>
@@ -903,10 +1642,10 @@
                                         <option value="stacked">Stacked area</option>
                                         <option value="lines">Lines</option>
                                     </select></label>
-                                    <button id="btn-diff-ftraj-png" class="chart-dl">⬇ Download PNG</button>
+                                    <button id="btn-diff-ftraj-png" class="chart-dl">⬇ Download PNG / SVG</button>
                                 </div>
                                 <p class="muted" id="diff-ftraj-hint">Run a simulation and choose a feature to see how its values spread across the network over the iterations.</p>
-                                <div class="chart-area" id="diff-ftraj-area"><canvas id="diff-ftraj-canvas"></canvas></div>
+                                <div class="chart-area" id="diff-ftraj-area"><div id="diff-ftraj-canvas" class="echarts-chart"></div></div>
                             </div>
                             </div>
                             <div class="diff-stats-view" id="diff-stats-view-dist" hidden>
@@ -915,15 +1654,14 @@
                                     <label>Distribution <select id="diff-dist-type">
                                         <option value="info">Information feature</option>
                                         <option value="user">User feature</option>
-                                        <option value="mixed">Mixed (info × user)</option>
                                     </select></label>
                                     <label id="diff-dist-feat-field">Feature <select id="diff-dist-feature"></select></label>
                                     <label id="diff-dist-info-field" hidden>Info feature <select id="diff-dist-info"></select></label>
                                     <label id="diff-dist-user-field" hidden>User feature <select id="diff-dist-user"></select></label>
-                                    <button id="btn-diff-dist-png" class="chart-dl">⬇ Download PNG</button>
+                                    <button id="btn-diff-dist-png" class="chart-dl">⬇ Download PNG / SVG</button>
                                 </div>
                                 <p class="muted" id="diff-dist-hint">Run a simulation to see how received information distributes across feature values (over the whole simulation).</p>
-                                <div class="chart-area" id="diff-dist-area"><canvas id="diff-dist-canvas"></canvas><div class="chart-tip" id="diff-dist-tip" hidden></div></div>
+                                <div class="chart-area" id="diff-dist-area"><div id="diff-dist-canvas" class="echarts-chart"></div></div>
                             </div>
                             </div>
                           </div>
@@ -941,37 +1679,47 @@
                                     <!-- One row, grouped by concern: create · file · columns · destructive, then table-view controls. -->
                                     <div class="toolbar">
                                         <span class="tb-group">
-                                            <button id="btn-diff-piece-add" title="Add an empty information piece">➕ Add</button>
-                                            <button id="btn-diff-gen-toggle" title="Generate pieces with the seeders">✨ Generate…</button>
+                                            <button id="btn-diff-piece-add" data-tooltip="ui-btn-diff-piece-add">➕ Add</button>
+                                            <button id="btn-diff-gen-toggle" data-tooltip="ui-btn-diff-gen-toggle">✨ Generate…</button>
                                         </span>
                                         <span class="tb-sep"></span>
                                         <span class="tb-group">
                                             <span class="menu-wrap">
-                                                <button id="btn-diff-upload-menu" title="Upload information pieces or their features">⬆ Upload ▾</button>
+                                                <button id="btn-diff-upload-menu" data-tooltip="ui-btn-diff-upload-menu">⬆ Upload ▾</button>
                                                 <ul class="menu" id="diff-upload-menu" hidden>
                                                     <li><button type="button" data-act="pieces">Information pieces…</button></li>
                                                     <li><button type="button" data-act="features">Piece features…</button></li>
                                                 </ul>
                                             </span>
-                                            <button id="btn-diff-piece-download" title="Download the information pieces as TSV">⬇ Download</button>
+                                            <button id="btn-diff-piece-download" data-tooltip="ui-btn-diff-piece-download">⬇ Download</button>
                                         </span>
                                         <span class="tb-sep"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-feature-add" title="Add a feature column to the table">🏷 Add feature column</button>
+                                            <button id="btn-diff-feature-add" data-tooltip="ui-btn-diff-feature-add">🏷 Add feature column</button>
                                         </span>
                                         <span class="tb-sep"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-piece-clear" title="Remove every information piece">🗑 Clear all</button>
+                                            <button id="btn-diff-piece-clear" data-tooltip="ui-btn-diff-piece-clear">🗑 Clear all</button>
                                         </span>
                                         <span class="tb-spacer"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-piece-clear-filters" title="Clear the table's column filters">🔎 Clear filters</button>
-                                            <label class="inline-check" title="When on, only the pieces passing the table filters are used in the simulation">
+                                            <button id="btn-diff-piece-clear-filters" data-tooltip="ui-btn-diff-piece-clear-filters">🔎 Clear filters</button>
+                                            <label class="inline-check" data-tooltip="markup-0028">
                                                 <input type="checkbox" id="diff-apply-filters"/> Apply filters</label>
                                         </span>
                                         <input type="file" id="diff-piece-file" accept=".csv,.tsv,.txt" hidden/>
                                         <input type="file" id="diff-feature-file" accept=".tsv,.txt,.csv" hidden/>
                                     </div>
+
+                                    <details class="diff-import-options">
+                                        <summary>Import format options</summary>
+                                        <div class="diff-import-option-row">
+                                            <label class="field"><span>Pieces separator</span><select id="diff-piece-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
+                                            <label class="inline-check"><input type="checkbox" id="diff-piece-header" checked/> File includes header</label>
+                                            <label class="field"><span>Piece features separator</span><select id="diff-feature-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
+                                            <label class="inline-check"><input type="checkbox" id="diff-feature-header" checked/> File includes header</label>
+                                        </div>
+                                    </details>
 
                                     <!-- Seeder-driven generation: how many pieces (count) × which users (selection) × when (timestamp). -->
                                     <div class="diff-gen" id="diff-gen" hidden>
@@ -1023,7 +1771,7 @@
                                     <p class="muted">Each piece is created by a node of the graph at a given timestamp. When at least one piece is
                                         defined here, it replaces the automatic seeding for the simulation. Each <b>feature</b> parameter is its own column
                                         (add one with <b>Add feature column</b>); a cell holds that parameter's <code>value:weight; …</code> (weight optional).
-                                        Upload/download of pieces is tab-separated. <b>Download</b> writes <code>id ⇥ creator ⇥ timestamp ⇥ features</code>, packing every feature into the last column as
+                                        <b>Upload</b> accepts tab, comma, or semicolon separators and an optional header (set in Import format options). <b>Download</b> writes tab-separated <code>id ⇥ creator ⇥ timestamp ⇥ features</code>, packing every feature into the last column as
                                         <code>param=value:weight; …</code>. <b>Upload</b> accepts that, and also one column per feature: give it a header such as
                                         <code>id ⇥ creator ⇥ timestamp ⇥ feat:topic ⇥ feat:lang</code> (the <code>feat:</code> prefix is optional) and each column holds that parameter's <code>value:weight; …</code>, just like the table's cells.
                                         <b>Upload ▾ → Piece features</b> loads a separate file of <code>infoId ⇥ featureId</code> lines (optional third column = weight); an <code>infoId ⇥ name</code> header names the
@@ -1035,29 +1783,36 @@
                                     <!-- Mirrors the pieces toolbar's grouping so the two modes stay consistent. -->
                                     <div class="toolbar">
                                         <span class="tb-group">
-                                            <button id="btn-diff-realprop-add" title="Add an empty real-propagation record">➕ Add record</button>
+                                            <button id="btn-diff-realprop-add" data-tooltip="ui-btn-diff-realprop-add">➕ Add record</button>
                                         </span>
                                         <span class="tb-sep"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-realprop-upload" title="Upload real-propagation records">⬆ Upload</button>
-                                            <button id="btn-diff-realprop-download" title="Download the records as TSV">⬇ Download</button>
+                                            <button id="btn-diff-realprop-upload" data-tooltip="ui-btn-diff-realprop-upload">⬆ Upload</button>
+                                            <button id="btn-diff-realprop-download" data-tooltip="ui-btn-diff-realprop-download">⬇ Download</button>
                                         </span>
                                         <span class="tb-sep"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-realprop-clear" title="Remove every real-propagation record">🗑 Clear all</button>
+                                            <button id="btn-diff-realprop-clear" data-tooltip="ui-btn-diff-realprop-clear">🗑 Clear all</button>
                                         </span>
                                         <span class="tb-spacer"></span>
                                         <span class="tb-group">
-                                            <button id="btn-diff-realprop-clear-filters" title="Clear the table's column filters">🔎 Clear filters</button>
+                                            <button id="btn-diff-realprop-clear-filters" data-tooltip="ui-btn-diff-realprop-clear-filters">🔎 Clear filters</button>
                                         </span>
                                         <input type="file" id="diff-realprop-file" accept=".tsv,.txt,.csv" hidden/>
                                     </div>
+                                    <details class="diff-import-options">
+                                        <summary>Import format options</summary>
+                                        <div class="diff-import-option-row">
+                                            <label class="field"><span>Separator</span><select id="diff-realprop-separator"><option value="tab">Tab</option><option value=",">Comma</option><option value=";">Semicolon</option></select></label>
+                                            <label class="inline-check"><input type="checkbox" id="diff-realprop-header" checked/> File includes header</label>
+                                        </div>
+                                    </details>
                                     <p class="muted" id="diff-realprop-summary"></p>
                                     <div class="scroll-table tall"><table id="diff-realprop-table" class="data"></table></div>
                                     <div class="pagination" id="diff-realprop-pager"></div>
                                     <p class="muted">Each record states that a <b>user</b> (a node of the graph) actually repropagated a <b>piece</b> at a
-                                        given <b>timestamp</b> in the real scenario — not necessarily a piece they own. Upload/download is tab-separated
-                                        (<code>user ⇥ piece ⇥ timestamp</code>; a <code>user …</code> header row is skipped). This is optional and only needed for
+                                        given <b>timestamp</b> in the real scenario — not necessarily a piece they own. Upload accepts tab, comma, or semicolon separators and an optional header (set in Import format options); download is tab-separated
+                                        (<code>user ⇥ piece ⇥ timestamp</code>). This is optional and only needed for
                                         real-propagation metrics (recall / precision / F1 vs. the ground truth). Records whose user isn't a node or whose piece isn't a defined piece are ignored at run time.</p>
                                 </div>
                             </div>
@@ -1072,7 +1827,7 @@
                             <input type="text" id="diff-node-input" placeholder="type or click a node"/></label>
                         <p class="muted" id="diff-state-hint">Click a node on the canvas.</p>
                         <label class="field" id="diff-feature-view-field" hidden><span>Feature</span>
-                            <select id="diff-feature-view" title="Feature shown on the piece chips and distribution bars"></select></label>
+                            <select id="diff-feature-view" data-tooltip="ui-diff-feature-view"></select></label>
                         <div id="diff-cats"></div>
                     </section>
                 </aside>
@@ -1084,33 +1839,153 @@
     <aside id="right" class="panel">
         <section class="block" id="selection-block">
             <h2>Selection</h2>
+            <div class="selection-context" aria-live="polite"><span class="selection-kind" id="selection-kind">Node</span><span class="selection-summary" id="selection-summary">Select a node to inspect it.</span></div>
             <label class="field">
+                <span>Selection</span>
+                <select id="select-type"><option value="node">Node</option><option value="edge">Edge</option><option value="path">Path</option></select>
+            </label>
+            <label class="field" id="select-edge-field" hidden>
+                <span>Edge</span>
+                <select id="select-edge-input"><option value="">— choose an edge —</option></select>
+            </label>
+            <label class="field" id="select-node-field">
                 <span>Node</span>
                 <input type="text" id="select-node-input" placeholder="type or click a node"/>
             </label>
-            <label class="field">
+            <div id="select-path-fields" hidden>
+                <label class="field"><span>Source</span><input type="text" id="select-path-source" placeholder="type to search node"/></label>
+                <label class="field"><span>Target</span><input type="text" id="select-path-target" placeholder="type to search node"/></label>
+                <label class="field"><span>Search scope</span><select id="select-path-scope"><option value="filtered">Filtered graph</option><option value="whole">Whole graph</option></select></label>
+                <button id="btn-select-paths">Find all shortest paths</button>
+            </div>
+            <label class="field" id="select-view-mode-field">
                 <span>View mode</span>
                 <select id="select-mode">
                     <option value="highlight">Highlight node</option>
+                    <option value="path-highlight" hidden>Highlight selected paths</option>
+                    <option value="path-only" hidden>Show only selected paths</option>
+                    <option value="edge-highlight" hidden>Highlight only edge</option>
+                    <option value="edge-group-highlight" hidden>Highlight edge group</option>
+                    <option value="edge-group-only" hidden>Show only edge group</option>
+                    <option value="edge-attribute-highlight" hidden>Highlight matching edge attributes</option>
+                    <option value="edge-attribute-only" hidden>Show only matching edge attributes</option>
                     <option value="ego-highlight">Highlight ego-network</option>
                     <option value="ego-only">Show only ego-network</option>
                     <option value="community-highlight">Highlight community</option>
                     <option value="community-only">Show only community</option>
-                    <option value="none">None (no emphasis)</option>
+                    <option value="none">None (no selection emphasis)</option>
                 </select>
             </label>
+            <div id="select-path-color-controls" hidden>
+                <label class="inline-check" data-tooltip="path-enlarge-nodes"><input type="checkbox" id="path-enlarge-nodes"/> Enlarge path nodes</label>
+                <label class="field" id="path-node-scale-field" hidden><span>Node size multiplier</span><input type="number" id="path-node-scale" min="0.1" step="0.1" value="1.5"/></label>
+                <label class="field" data-tooltip="path-edge-scale"><span>Path edge thickness multiplier</span><input type="number" id="path-edge-scale" min="0.1" step="0.1" value="1"/></label>
+                <label class="field" data-tooltip="path-edge-highlight"><span>Path edge color</span><select id="path-edge-color-mode"><option value="default">Default</option><option value="single">Single color</option><option value="per-path">Color for each path</option></select></label>
+                <label class="field" id="path-edge-highlight-color-field" hidden><span>Highlight color</span><input type="color" id="path-edge-highlight-color" value="#ff9f43"/></label>
+            </div>
+            <button id="btn-clear-selection">Clear selection</button>
+            <p id="selection-notice" class="muted" aria-live="polite" hidden></p>
+            <label class="field" id="select-edge-attribute-field" hidden><span>Edge attribute</span><select id="select-edge-attribute"></select></label>
             <label class="field" id="select-partition-field" hidden>
-                <span>Community partition</span>
+                <span>Community / node attribute</span>
                 <select id="select-partition"></select>
             </label>
+            <div id="select-path-results" hidden>
+                <p class="muted" id="select-path-summary">Choose a source and target to find all shortest paths.</p>
+                <div class="scroll-table"><table id="select-paths-table" class="data"></table></div>
+            </div>
             <table class="kv" id="node-info-table"><tr><td class="muted" colspan="2">No node selected.</td></tr></table>
-            <button id="btn-clear-selection">Clear selection</button>
+            <div id="edge-selection-details" hidden>
+                <span class="sublabel">Selected edge</span>
+                <div class="edge-preview" id="edge-preview"><span class="edge-endpoint" id="edge-source-preview">—</span><span class="edge-direction">→</span><span class="edge-endpoint" id="edge-target-preview">—</span></div>                <table class="kv" id="edge-info-table"><tr><td class="muted" colspan="2">No edge selected.</td></tr></table>
+            </div>
         </section>
 
     </aside>
 </main>
 
+<dialog id="chart-png-dialog" class="chart-export-dialog" aria-labelledby="chart-png-title" aria-describedby="chart-png-description">
+    <h2 id="chart-png-title">Download chart PNG</h2>
+    <label class="field"><span>Format</span><select id="chart-export-format"><option value="png">PNG</option><option value="svg">SVG (vector)</option></select></label>
+    <p id="chart-png-description">Choose the visible view or include the offscreen parts at the same zoom scale. Zoom controls and their histogram are excluded.</p>
+    <button id="chart-png-current" type="button">Current zoomed view <span id="chart-png-current-size"></span></button>
+    <button id="chart-png-full" type="button">Complete chart at current zoom <span id="chart-png-full-size"></span></button>
+    <p class="muted" id="chart-png-limit" hidden>The complete chart is too large for PNG at this zoom. Zoom out to reduce its dimensions.</p>
+    <button id="chart-png-cancel" type="button">Cancel</button>
+</dialog>
+
+<dialog id="network-svg-dialog" class="chart-export-dialog" aria-labelledby="network-svg-title" aria-describedby="network-svg-description">
+    <h2 id="network-svg-title">Download network SVG</h2>
+    <p id="network-svg-description">Export the current panel or the complete network at the current zoom. The complete version includes offscreen node and edge labels when labels are enabled, and keeps the active visibility filters.</p>
+    <button id="network-svg-current" type="button">Current view</button>
+    <button id="network-svg-full" type="button">Complete network at current zoom</button>
+    <button id="network-svg-cancel" type="button">Cancel</button>
+</dialog>
+
+<dialog id="filter-builder-nodes" class="filter-builder" aria-labelledby="filter-builder-title-nodes" aria-describedby="filter-builder-help-nodes">
+    <header class="filter-builder-header">
+        <h3 id="filter-builder-title-nodes">Build node filters</h3>
+        <button id="filter-builder-dismiss-nodes" type="button" class="filter-builder-dismiss" aria-label="Close node filter builder">×</button>
+    </header>
+    <div class="filter-builder-body">
+        <p id="filter-builder-help-nodes" class="muted">Choose AND or OR between conditions. AND is evaluated before OR; add groups for parentheses. You can use the same field more than once.</p>
+        <div id="filter-builder-editor-nodes"></div>
+        <p id="filter-builder-expression-nodes" class="filter-builder-expression" aria-live="polite"></p>
+        <p id="filter-builder-errors-nodes" class="filter-builder-errors" role="alert"></p>
+        <p id="filter-builder-preview-nodes" class="muted" aria-live="polite"></p>
+    </div>
+    <footer class="filter-builder-footer">
+        <p class="muted">Apply replaces this table's current filters. Column filters added afterward combine with the expression using AND.</p>
+        <div class="filter-builder-actions"><button id="filter-builder-apply-nodes" class="primary">Apply filters</button><button id="filter-builder-cancel-nodes" aria-label="Close without applying pending edits">Close</button></div>
+    </footer>
+</dialog>
+
+<dialog id="filter-builder-edges" class="filter-builder" aria-labelledby="filter-builder-title-edges" aria-describedby="filter-builder-help-edges">
+    <header class="filter-builder-header">
+        <h3 id="filter-builder-title-edges">Build edge filters</h3>
+        <button id="filter-builder-dismiss-edges" type="button" class="filter-builder-dismiss" aria-label="Close edge filter builder">×</button>
+    </header>
+    <div class="filter-builder-body">
+        <p id="filter-builder-help-edges" class="muted">Choose AND or OR between conditions. AND is evaluated before OR; add groups for parentheses. You can use the same field more than once.</p>
+        <div id="filter-builder-editor-edges"></div>
+        <p id="filter-builder-expression-edges" class="filter-builder-expression" aria-live="polite"></p>
+        <p id="filter-builder-errors-edges" class="filter-builder-errors" role="alert"></p>
+        <p id="filter-builder-preview-edges" class="muted" aria-live="polite"></p>
+    </div>
+    <footer class="filter-builder-footer">
+        <p class="muted">Apply replaces this table's current filters. Column filters added afterward combine with the expression using AND.</p>
+        <div class="filter-builder-actions"><button id="filter-builder-apply-edges" class="primary">Apply filters</button><button id="filter-builder-cancel-edges" aria-label="Close without applying pending edits">Close</button></div>
+    </footer>
+</dialog>
+
 <script src="pdf.js"></script>
+<script src="network-svg-export.js"></script>
+<script src="animation-export.js"></script>
+<script src="metric-charts.js"></script>
+<script src="metric-series.js"></script>
+<script src="metric-workspace.js"></script>
+<script src="metric-recommendations.js"></script>
+<script src="chart-labels.js"></script>
+<script src="chart-export.js"></script>
+<script src="metric-tables.js"></script>
+<script src="diffusion-charts.js"></script>
+<script src="diffusion-workspace.js"></script>
+<script src="attribute-relationships.js"></script>
+<script src="chart-settings.js"></script>
+<script src="offline-maps.js"></script>
+<script src="geographic-map.js"></script>
+<script src="h3-navigation.js"></script>
+<script src="geographic-export.js"></script>
+<script src="globe-map.js"></script>
+<script src="equal-earth-map.js"></script>
+<script src="network-view.js"></script>
+<script src="filter-builder.js"></script>
+<script src="community-explorer.js"></script>
+<script src="edge-partition-explorer.js"></script>
+<script src="process-panel.js"></script>
 <script src="app.js"></script>
+<script type="module" src="cosmograph-spike.js"></script>
+<script type="module" src="sigma-edge-curve.js"></script>
+<script type="module" src="diffusion-cosmograph.js"></script>
 </body>
 </html>

@@ -10,6 +10,7 @@ package es.uam.eps.ir.relison.sna.metrics.communities.indiv;
 
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.sna.metrics.IndividualCommunityMetric;
 import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 
@@ -36,7 +37,7 @@ public class Size<U> implements IndividualCommunityMetric<U>
     @Override
     public Map<Integer, Double> compute(Graph<U> graph, Communities<U> comm)
     {
-        Map<Integer, Double> map = new Int2DoubleOpenHashMap();
+        Map<Integer, Double> map = ComputationMonitor.current().track(new Int2DoubleOpenHashMap(), "Computing community values", comm.getNumCommunities(), "communities");
         comm.getCommunities().forEach(c -> map.put(c, this.compute(graph, comm, c)));
         return map;
     }

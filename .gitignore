@@ -96,3 +96,6 @@ fabric.properties
 # Build output: ignore every module's target/ directory at any depth.
 target/
 
+### GUI asset tooling (generated browser bundles are committed) ###
+node_modules/
+

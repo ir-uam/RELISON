@@ -9,9 +9,9 @@
 package es.uam.eps.ir.relison.gui;
 
 /**
- * Thrown by {@link JobManager#run(String, java.util.concurrent.Callable)} when the computation was stopped by a
- * concurrent {@link JobManager#cancel(String)} (the user pressing a Stop button). Request handlers catch it to reply
- * with a {@code {cancelled:true}} payload rather than treating the interruption as a failure.
+ * Thrown after a worker has stopped following an accepted cancellation request.
+ * Handlers return {@code {cancelled:true}} after worker cleanup, while the Processes
+ * panel retains the terminal record. Cancellation never implies immediate thread termination.
  *
  * @author Javier Sanz-Cruzado (javier.sanz-cruzado@uam.es)
  */

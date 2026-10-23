@@ -37,4 +37,10 @@ public class TextMultiGraphReader<V> extends TextGraphReader<V>
     {
         super(true, directed, weighted, selfloops, delimiter, uParser);
     }
+
+    /** Constructor with optional first-row header handling. */
+    public TextMultiGraphReader(boolean directed, boolean weighted, boolean selfloops, String delimiter, boolean header, Parser<V> uParser)
+    {
+        super(true, directed, weighted, selfloops, delimiter, header, uParser);
+    }
 }

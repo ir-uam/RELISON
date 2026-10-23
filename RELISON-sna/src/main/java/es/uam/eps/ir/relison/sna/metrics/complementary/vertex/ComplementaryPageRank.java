@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.complementary.vertex;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
 
@@ -119,6 +121,8 @@ public class ComplementaryPageRank<U> implements VertexMetric<U>
         boolean hasConverged = false;
         for (int i = 0; i < MAXITER && !hasConverged; i++)
         {
+            ComputationMonitor.current().checkCancelled();
+            ComputationMonitor.current().progress("Computing centrality", i, -1, "iterations");
             double aux = 0.0;
 
             // Compute the full sum
@@ -186,7 +190,7 @@ public class ComplementaryPageRank<U> implements VertexMetric<U>
             }
         }
 
-        Map<U, Double> pagerank = new HashMap<>();
+        Map<U, Double> pagerank = ComputationMonitor.current().track(new HashMap<>(), "Computing node values", graph.getVertexCount(), "nodes");
         for (U us : users)
         {
             pagerank.put(us, pr[ids.get(us)]);

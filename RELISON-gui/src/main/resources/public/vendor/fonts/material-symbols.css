@@ -1,0 +1,8 @@
+/* Material Symbols Outlined; see ../licenses for the font license. */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-display: block;
+  font-weight: 100 700;
+  src: url('./material-symbols-outlined.woff2') format('woff2');
+}

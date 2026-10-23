@@ -12,6 +12,7 @@ import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.generator.GraphGenerator;
 import es.uam.eps.ir.relison.graph.generator.GraphCloneGenerator;
 import es.uam.eps.ir.relison.sna.community.Communities;
+import es.uam.eps.ir.relison.sna.edge.EdgePartition;
 import es.uam.eps.ir.relison.sna.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Holds a single loaded network together with the auxiliary structures the GUI computes over it
@@ -49,6 +51,13 @@ public class GraphSession
     private DistanceCalculator<String> distanceCalculator;
     /** Community partitions detected during the session, keyed by a user-facing name. */
     private final Map<String, Communities<String>> communities = new HashMap<>();
+    /** Edge partitions retained for metric computation during the loaded-graph session. */
+    private final Map<String, EdgePartition<String>> edgePartitions = new ConcurrentHashMap<>();
+
+    public Map<String, EdgePartition<String>> getEdgePartitions()
+    {
+        return edgePartitions;
+    }
 
     /** Recommendations/predictions computed during the session, keyed by their model signature. */
     private final Map<String, RecommendationResult> recommendations = new LinkedHashMap<>();
@@ -58,6 +67,26 @@ public class GraphSession
     private Graph<String> augmentedGraph;
     /** Lazily-built distance calculator for {@link #augmentedGraph}. */
     private DistanceCalculator<String> augmentedDistanceCalculator;
+    /** One alternate computation view, reused without switching the visible overlay. */
+    private GraphSession recommendationMetricView;
+
+    synchronized GraphSession forMetricRecommendation(String key)
+    {
+        RecommendationResult result = recommendations.get(key);
+        if (result == null) throw new IllegalArgumentException("Unknown recommendation: " + key);
+        if (key.equals(activeRecommendation)) return this;
+        if (recommendationMetricView == null || !key.equals(recommendationMetricView.getActiveRecommendationKey()) || recommendationMetricView.getActiveRecommendation() != result)
+        {
+            recommendationMetricView = new GraphSession(id, graph, directed, weighted, multigraph, selfloops);
+            recommendationMetricView.getRecommendations().put(key, result);
+            recommendationMetricView.setActiveRecommendation(key);
+        }
+        recommendationMetricView.getCommunities().clear();
+        recommendationMetricView.getCommunities().putAll(communities);
+        recommendationMetricView.getEdgePartitions().clear();
+        recommendationMetricView.getEdgePartitions().putAll(edgePartitions);
+        return recommendationMetricView;
+    }
 
     /**
      * The held-out test network uploaded for recommendation evaluation, or {@code null}. It is user-supplied data
@@ -68,6 +97,7 @@ public class GraphSession
 
     /** The most recent information-diffusion simulation result, or {@code null}. */
     private DiffusionResult diffusion;
+    private final Map<String, DiffusionResult> diffusionRuns = new LinkedHashMap<>();
     /** The information pieces defined for diffusion (each a map with {@code id}, {@code creator}, {@code timestamp}). */
     private List<?> diffusionPieces = List.of();
     private List<?> realPropagated = List.of();
@@ -139,19 +169,38 @@ public class GraphSession
     }
 
     /** @return the most recent diffusion result, or {@code null}. */
-    public DiffusionResult getDiffusion()
+    public synchronized DiffusionResult getDiffusion()
     {
         return diffusion;
     }
 
-    /** Stores (or clears, with {@code null}) the most recent diffusion result, deleting the previous one's backing file. */
-    public void setDiffusion(DiffusionResult diffusion)
+    /** Looks up a retained run; absent IDs select the latest run for legacy callers. */
+    public synchronized DiffusionResult getDiffusion(String runId)
     {
-        if (this.diffusion != null && this.diffusion != diffusion)
+        return runId == null ? diffusion : diffusionRuns.get(runId);
+    }
+
+    /** Retains new results on disk. Clearing invalidates every retained run and its file. */
+    public synchronized void setDiffusion(DiffusionResult diffusion)
+    {
+        if (diffusion == null)
         {
-            this.diffusion.deleteBackingFile();
+            diffusionRuns.values().forEach(DiffusionResult::deleteBackingFile);
+            diffusionRuns.clear();
         }
+        else diffusionRuns.put(diffusion.id, diffusion);
         this.diffusion = diffusion;
+    }
+
+    /** Deletes one retained run and uses the most recent remaining run for graph playback. */
+    public synchronized boolean removeDiffusion(String runId)
+    {
+        DiffusionResult result = diffusionRuns.get(runId);
+        if (result == null) return true;
+        diffusionRuns.remove(runId);
+        if (result == diffusion) diffusion = diffusionRuns.values().stream().reduce((previous, latest) -> latest).orElse(null);
+        result.deleteBackingFile();
+        return true;
     }
 
     /** @return the persisted diffusion information pieces (never {@code null}). */
@@ -163,6 +212,7 @@ public class GraphSession
     /** Persists the diffusion information pieces on the session. */
     public void setDiffusionPieces(List<?> pieces)
     {
+        if (!java.util.Objects.equals(this.diffusionPieces, pieces == null ? List.of() : pieces)) setDiffusion(null);
         this.diffusionPieces = pieces == null ? List.of() : pieces;
     }
 
@@ -175,6 +225,7 @@ public class GraphSession
     /** Persists the "real propagated" records (which pieces each user repropagated in the real scenario) on the session. */
     public void setRealPropagated(List<?> realPropagated)
     {
+        if (!java.util.Objects.equals(this.realPropagated, realPropagated == null ? List.of() : realPropagated)) setDiffusion(null);
         this.realPropagated = realPropagated == null ? List.of() : realPropagated;
     }
 
@@ -282,7 +333,9 @@ public class GraphSession
     {
         this.distanceCalculator = null;
         this.communities.clear();
+        this.edgePartitions.clear();
         this.recommendations.clear();
+        this.recommendationMetricView = null;
         this.activeRecommendation = null;
         this.augmentedGraph = null;
         this.augmentedDistanceCalculator = null;

@@ -11,6 +11,7 @@ package es.uam.eps.ir.relison.links.linkprediction;
 import es.uam.eps.ir.ranksys.core.Recommendation;
 import es.uam.eps.ir.ranksys.rec.Recommender;
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
 import org.ranksys.core.util.tuples.Tuple2od;
 
@@ -59,23 +60,54 @@ public class RecommendationLinkPredictor<U> extends AbstractLinkPredictor<U>
     @Override
     public Prediction<U> getPrediction(int maxLength, Predicate<Pair<U>> filter)
     {  
-        SortedSet<Tuple2od<Pair<U>>> auxSet = new TreeSet<>(this.getComparator());
+        if (maxLength < 0) throw new IllegalArgumentException("maxLength must be non-negative");
+        ComputationMonitor monitor = ComputationMonitor.current();
+        monitor.phase("Predicting links by source node");
+        if (maxLength == 0) return new Prediction<>(new ArrayList<>());
+        Comparator<Tuple2od<Pair<U>>> comparator = this.getComparator();
+        // The worst retained link is at the head, so better candidates can replace it.
+        PriorityQueue<Tuple2od<Pair<U>>> best = new PriorityQueue<>(11, comparator.reversed());
+        // Preserve TreeSet's comparator-based uniqueness, including for custom comparators.
+        SortedSet<Tuple2od<Pair<U>>> retained = new TreeSet<>(comparator);
+        List<U> nodes = this.getGraph().getAllNodes().collect(Collectors.toList());
+        long completed = 0;
         
         // Add the scores for each pair of users which pass the filter.
-        this.getGraph().getAllNodes().forEach(u -> 
+        for (U u : nodes)
         {
+            monitor.checkCancelled();
             Set<U> vFilter = this.getGraph().getAllNodes().filter(v -> filter.test(new Pair<>(u,v))).collect(Collectors.toCollection(HashSet::new));
-            int size = vFilter.size();
             Recommendation<U,U> rec = this.recommender.getRecommendation(u, vFilter.stream());
-            rec.getItems().forEach(score ->
+            for (Tuple2od<U> score : rec.getItems())
             {
-                auxSet.add(new Tuple2od<>(new Pair<>(u, score.v1), score.v2));
+                monitor.checkCancelled();
+                retain(best, retained, new Tuple2od<>(new Pair<>(u, score.v1), score.v2), maxLength);
                 vFilter.remove(score.v1);
-            });
-            if(!vFilter.isEmpty())
-                vFilter.forEach(v -> auxSet.add(new Tuple2od<>(new Pair<>(u, v), Double.NEGATIVE_INFINITY))); // If some link does not appear in the recommendation.
-        });
+            }
+            // Missing recommendation scores still participate with negative infinity.
+            for (U v : vFilter)
+            {
+                monitor.checkCancelled();
+                retain(best, retained, new Tuple2od<>(new Pair<>(u, v), Double.NEGATIVE_INFINITY), maxLength);
+            }
+            monitor.checkCancelled();
+            monitor.progress("Predicting links by source node", ++completed, nodes.size(), "source nodes");
+        }
 
-        return new Prediction<>(auxSet.stream().limit(maxLength).collect(Collectors.toCollection(ArrayList::new)));
-    }    
+        monitor.checkCancelled();
+        List<Tuple2od<Pair<U>>> ranking = new ArrayList<>(best);
+        ranking.sort(comparator);
+        monitor.checkCancelled();
+        return new Prediction<>(ranking);
+    }
+
+    /** Retains at most maxLength distinct candidates in the global ranking. */
+    private void retain(PriorityQueue<Tuple2od<Pair<U>>> best, SortedSet<Tuple2od<Pair<U>>> retained,
+                        Tuple2od<Pair<U>> candidate, int maxLength)
+    {
+        if (best.size() == maxLength && this.getComparator().compare(candidate, best.peek()) >= 0) return;
+        if (!retained.add(candidate)) return;
+        if (best.size() == maxLength) retained.remove(best.poll());
+        best.add(candidate);
+    }
 }

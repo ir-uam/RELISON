@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.vertex;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
@@ -128,6 +130,8 @@ public class HITS<U> implements VertexMetric<U>
          */
         for (int i = 0; i < MAXITER; ++i)
         {
+            ComputationMonitor.current().checkCancelled();
+            ComputationMonitor.current().progress("Computing centrality", i, -1, "iterations");
             // Compute the hubs scores
             double hubsSum = graph.getAllNodes().mapToDouble(hub ->
             {

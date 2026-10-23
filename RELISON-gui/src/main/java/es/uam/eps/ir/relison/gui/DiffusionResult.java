@@ -28,6 +28,8 @@ import java.util.Map;
  */
 public class DiffusionResult
 {
+    /** Stable identity shared by the result and its retained backing file. */
+    public final String id = java.util.UUID.randomUUID().toString();
     /** Per-iteration node summary: who propagated and who was newly informed this iteration. */
     public static final class IterationSummary
     {
@@ -80,15 +82,17 @@ public class DiffusionResult
     public void eachIteration(int maxExclusive, IterationConsumer consumer)
     {
         BinarySimulationReader<String, String, String> reader = new BinarySimulationReader<>();
-        if (!reader.initialize(simFile)) return;
+        if (!reader.initialize(simFile)) throw new IllegalStateException("The simulation backing file is unavailable.");
         try
         {
             int limit = (maxExclusive < 0 || maxExclusive > numIterations) ? numIterations : maxExclusive;
             for (int i = 0; i < limit; ++i)
             {
+                es.uam.eps.ir.relison.utils.ComputationMonitor.current().checkCancelled();
                 Iteration<String, String, String> it = reader.readIteration(data);
                 if (it == null) break;
                 consumer.accept(i, it);
+                es.uam.eps.ir.relison.utils.ComputationMonitor.current().progress("Reading diffusion iterations", i + 1, limit, "iterations");
             }
         }
         finally
@@ -97,7 +101,7 @@ public class DiffusionResult
         }
     }
 
-    /** Deletes the backing file; called when this result is discarded (replaced, cleared or the graph edited). */
+    /** Deletes the backing file when a retained run is deleted, cleared or invalidated. */
     public void deleteBackingFile()
     {
         if (simFile != null)
@@ -130,6 +134,7 @@ public class DiffusionResult
         }
 
         Map<String, Object> out = new LinkedHashMap<>();
+        out.put("runId", id);
         out.put("numIterations", numIterations);
         out.put("iterations", iters);
         out.put("metrics", metrics);

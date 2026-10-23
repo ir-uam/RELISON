@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.modularity.balanced;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.community.detection.DendogramCommunityDetectionAlgorithm;
@@ -85,6 +87,7 @@ public class GiniWeightedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
         List<U> users = graph.getAllNodes().collect(Collectors.toCollection(ArrayList::new));
         for (U u : users)
         {
+            ComputationMonitor.current().checkCancelled();
             aux.addCommunity();
             aux.add(u, aux.getNumCommunities() - 1);
             currentClusters.put(aux.getNumCommunities() - 1, aux.getNumCommunities() - 1);
@@ -107,6 +110,8 @@ public class GiniWeightedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
         long a = System.currentTimeMillis();
         while (aux.getNumCommunities() > 1)
         {
+            ComputationMonitor.current().progress("Merging communities", users.size() - aux.getNumCommunities(), Math.max(0, users.size() - 1), "merges");
+            ComputationMonitor.current().checkCancelled();
             comms = aux.getCommunities().boxed().collect(Collectors.toCollection(ArrayList::new));
             commGraph = commGraphGen.generate(graph, aux);
             double maxDeltaQ = Double.NEGATIVE_INFINITY;
@@ -121,12 +126,14 @@ public class GiniWeightedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
             {
                 for (int i = 0; i < comms.size(); ++i)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     Double2DoubleMap auxFreqs = new Double2DoubleOpenHashMap(freqs);
                     double sizeI = sizes.get(i);
                     auxFreqs.put(sizeI, auxFreqs.getOrDefault(sizeI, 0.0) - 1.0);
 
                     for (int j = 0; j < comms.size(); ++j)
                     {
+                        ComputationMonitor.current().checkCancelled();
                         double sizeJ = sizes.get(j);
                         double sizeIJ = sizeI + sizeJ;
                         auxFreqs.put(sizeJ, auxFreqs.getOrDefault(sizeI, 0.0) - 1.0);
@@ -141,6 +148,7 @@ public class GiniWeightedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
                         double sum = 0.0;
                         for (Entry<Double, Double> value : entries)
                         {
+                            ComputationMonitor.current().checkCancelled();
                             double key = value.getKey();
                             double v = value.getValue();
                             min = max + 1;
@@ -184,6 +192,7 @@ public class GiniWeightedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
                  */
                 for (int i = 0; i < comms.size(); ++i)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     Double2DoubleMap auxFreqs = new Double2DoubleOpenHashMap(freqs);
                     double sizeI = sizes.get(i);
                     auxFreqs.put(sizeI, auxFreqs.getOrDefault(sizeI, 0.0) - 1.0);
@@ -193,6 +202,7 @@ public class GiniWeightedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
                     edgesToComm.put(i, edgesToI);
                     for (int j = 0; j < i; ++j)
                     {
+                        ComputationMonitor.current().checkCancelled();
                         double edgesFromJ = edgesFromComm.get(j);
                         double edgesToJ = edgesToComm.get(j);
                         double edgesIJ = 0.0;
@@ -220,6 +230,7 @@ public class GiniWeightedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
                         double sum = 0.0;
                         for (Entry<Double, Double> value : entries)
                         {
+                            ComputationMonitor.current().checkCancelled();
                             double key = value.getKey();
                             double v = value.getValue();
                             min = max + 1;
@@ -258,6 +269,7 @@ public class GiniWeightedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
                  */
                 for (int i = 0; i < comms.size(); ++i)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     Double2DoubleMap auxFreqs = new Double2DoubleOpenHashMap(freqs);
                     double sizeI = sizes.get(i);
                     auxFreqs.put(sizeI, auxFreqs.getOrDefault(sizeI, 0.0) - 1.0);
@@ -265,6 +277,7 @@ public class GiniWeightedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
                     edgesFromComm.put(i, edgesI);
                     for (int j = 0; j < i; ++j)
                     {
+                        ComputationMonitor.current().checkCancelled();
                         double edgesJ = edgesFromComm.get(j);
                         double edgesIJ = 0.0;
                         if (commGraph.containsEdge(i, j))
@@ -286,6 +299,7 @@ public class GiniWeightedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
                         double sum = 0.0;
                         for (Entry<Double, Double> value : entries)
                         {
+                            ComputationMonitor.current().checkCancelled();
                             double key = value.getKey();
                             double v = value.getValue();
                             min = max + 1;
@@ -360,6 +374,7 @@ public class GiniWeightedFastGreedy<U> implements CommunityDetectionAlgorithm<U>
                 // Update the clusters
                 for (int i = 0; i < aux.getNumCommunities(); ++i)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     int j = (i > maxComm) ? i - 1 : i;
                     if (i == minComm)
                     {

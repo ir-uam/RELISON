@@ -9,6 +9,7 @@
 package es.uam.eps.ir.relison.sna.metrics.distance.vertex;
 
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.sna.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
@@ -76,10 +77,10 @@ public class NodeBetweenness<U> implements VertexMetric<U>
     public Map<U, Double> compute(Graph<U> graph)
     {
         this.dc.computeDistances(graph);
-        Map<U, Double> values = this.dc.getNodeBetweenness();
+        Map<U, Double> values = ComputationMonitor.current().track(new java.util.HashMap<>(), "Computing node values", graph.getVertexCount(), "nodes");
         double norm = (graph.isDirected() ? 1.0 : 2.0)/((graph.getVertexCount()-2.0)*(graph.getVertexCount()-1.0));
 
-        if(normalize) values.forEach((key, value) -> values.put(key, value*norm));
+        this.dc.getNodeBetweenness().forEach((key, value) -> values.put(key, normalize ? value * norm : value));
         return values;
     }
 

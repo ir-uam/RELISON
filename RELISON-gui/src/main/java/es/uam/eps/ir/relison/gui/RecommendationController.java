@@ -36,6 +36,7 @@ import es.uam.eps.ir.relison.links.recommendation.SocialFastFilters;
 import es.uam.eps.ir.relison.links.recommendation.algorithms.RecommendationAlgorithmFunction;
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.utils.datatypes.Pair;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import io.javalin.http.Context;
 import io.javalin.http.UploadedFile;
 import org.jooq.lambda.tuple.Tuple3;
@@ -143,13 +144,15 @@ public class RecommendationController
                 // after it completes, so a cancelled run leaves no trace.
                 result = jobs.run(MetricController.jobKey(body, "recommendation"), () ->
                 {
+                    ComputationMonitor monitor = ComputationMonitor.current();
+                    monitor.phase("Training recommender");
                     Recommender<String, String> rec = fn.apply(graph, prefData);
+                    monitor.checkCancelled();
                     List<RecommendationResult.RecEdge> edges = mode.equals("prediction")
                             ? predict(graph, rec, cutoffF, reciprocal)
                             : recommend(graph, rec, cutoffF, reciprocal);
                     return new RecommendationResult(label, mode, cutoffF, edges);
                 });
-                session.getRecommendations().put(key, result);
             }
             catch (JobCancelledException e)
             {
@@ -168,8 +171,28 @@ public class RecommendationController
             }
         }
 
-        session.setActiveRecommendation(key);
+        RecommendationResult completedResult = result;
         ctx.json(response(key, result));
+        JobManager.publish(() -> {
+            session.getRecommendations().put(key, completedResult);
+            session.setActiveRecommendation(key);
+        });
+    }
+
+    /** Activates an already computed run without training or transferring its link list again. */
+    public void select(Context ctx)
+    {
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        GraphSession session = requireSession(ctx, body);
+        if (session == null) return;
+        String key = String.valueOf(body.get("key"));
+        if (!session.getRecommendations().containsKey(key))
+        {
+            ctx.status(404).json(Map.of("error", "Unknown computed recommendation or prediction."));
+            return;
+        }
+        session.setActiveRecommendation(key);
+        ctx.json(Map.of("key", key));
     }
 
     /* ------------------------------ evaluation ------------------------------ */
@@ -201,8 +224,8 @@ public class RecommendationController
         try (InputStream in = file.content())
         {
             GraphReader<String> reader = session.isMultigraph()
-                    ? new TextMultiGraphReader<>(session.isDirected(), false, false, "\t", Parsers.sp)
-                    : new TextGraphReader<>(session.isDirected(), false, false, "\t", Parsers.sp);
+                    ? new TextMultiGraphReader<>(session.isDirected(), false, false, GraphController.delimiterParam(ctx), GraphController.boolParam(ctx, "header", false), Parsers.sp)
+                    : new TextGraphReader<>(session.isDirected(), false, false, GraphController.delimiterParam(ctx), GraphController.boolParam(ctx, "header", false), Parsers.sp);
             test = reader.read(in, false, false);
         }
         catch (Exception e)
@@ -212,7 +235,7 @@ public class RecommendationController
         }
         if (test == null)
         {
-            ctx.status(400).json(Map.of("error", "Could not read the test network (expected a tab-separated edge list)."));
+            ctx.status(400).json(Map.of("error", "Could not read the test network. Check the selected separator, header option, and edge-list format."));
             return;
         }
 
@@ -502,19 +525,24 @@ public class RecommendationController
      */
     private List<RecommendationResult.RecEdge> recommend(FastGraph<String> graph, Recommender<String, String> rec, int cutoff, boolean reciprocal)
     {
+        ComputationMonitor monitor = ComputationMonitor.current();
         List<String> nodes = new ArrayList<>();
         graph.getAllNodes().forEach(nodes::add);
+        monitor.phase("Generating recommendations by source node");
         List<RecommendationResult.RecEdge> edges = new ArrayList<>();
+        long completed = 0;
         for (String u : nodes)
         {
             // Cooperative cancellation: stop scoring when the Stop button interrupted this worker thread.
-            if (Thread.currentThread().isInterrupted()) throw new java.util.concurrent.CancellationException();
+            monitor.checkCancelled();
             Recommendation<String, String> r = rec.getRecommendation(u,
                     nodes.stream().filter(v -> !v.equals(u)
                             && !graph.containsEdge(u, v)
                             && (reciprocal || !graph.containsEdge(v, u))));
+            monitor.checkCancelled();
             r.getItems().stream().limit(cutoff).forEach(item ->
                     edges.add(new RecommendationResult.RecEdge(u, item.v1, item.v2)));
+            monitor.progress("Generating recommendations by source node", ++completed, nodes.size(), "source nodes");
         }
         return edges;
     }
@@ -525,6 +553,7 @@ public class RecommendationController
      */
     private List<RecommendationResult.RecEdge> predict(FastGraph<String> graph, Recommender<String, String> rec, int cutoff, boolean reciprocal)
     {
+        ComputationMonitor.current().phase("Predicting links");
         Predicate<Pair<String>> filter = LinkPredFastFilters.and(
                 LinkPredFastFilters.onlyNewLinks(graph), LinkPredFastFilters.notSelf());
         if (!reciprocal)

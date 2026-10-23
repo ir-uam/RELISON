@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.distance.vertex;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
 import es.uam.eps.ir.relison.sna.metrics.distance.FastDistanceCalculator;
@@ -73,7 +75,7 @@ public class Eccentricity<U> implements VertexMetric<U>
     @Override
     public Map<U, Double> compute(Graph<U> graph)
     {
-        Map<U, Double> map = new HashMap<>();
+        Map<U, Double> map = ComputationMonitor.current().track(new HashMap<>(), "Computing node values", graph.getVertexCount(), "nodes");
         graph.getAllNodes().forEach(u -> map.put(u, this.compute(graph, u)));
         return map;
     }

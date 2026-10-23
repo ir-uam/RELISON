@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.diffusion.simulation;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.diffusion.data.Data;
 import es.uam.eps.ir.relison.diffusion.data.Information;
 import es.uam.eps.ir.relison.diffusion.data.PropagatedInformation;
@@ -109,6 +111,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
         Long timestamp = data.getTimestamps().first();
         for(int i = 0; i < simulation.getInitialNumber() + simulation.getNumIterations() && timestamp != null; ++i)
         {
+                ComputationMonitor.current().checkCancelled();
             timestamp = data.getTimestamps().higher(timestamp);
         }
         this.currentTimestamp = timestamp;
@@ -143,6 +146,11 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
      */
     public void simulate(SimulationConsumer<U,I,P> consumer)
     {
+        ComputationMonitor monitor = ComputationMonitor.current();
+        monitor.phase("Simulating diffusion");
+        int initialIteration = this.numIter;
+        long totalTurns = this.stop instanceof es.uam.eps.ir.relison.diffusion.stop.NumIterStopCondition
+                ? Math.max(1L, ((es.uam.eps.ir.relison.diffusion.stop.NumIterStopCondition<?, ?, ?>) this.stop).getLimit() - (long) initialIteration + 1L) : -1;
         consumer.start(this.numIter);
 
         long alarmTime = 0L;
@@ -151,6 +159,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
         Map<U, Long> receivedCount = new HashMap<>();
         this.state.getAllUsers().forEach(u ->
         {
+            monitor.checkCancelled();
             long count = u.getReceivedInformation().count();
             if(count > 0)
                 receivedCount.put(u.getUserId(), count);
@@ -159,6 +168,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
         // Start propagation
         do
         {
+            monitor.checkCancelled();
             /*
                 Each iteration, we store the state of the simulation in an Iteration object. For instance, we store the
                 newly received pieces of information by the different users.
@@ -184,6 +194,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
             // We first select the set of users in the system that will propagate information:
             this.protocol.getSelection().getSelectableUsers(data, state, numIter, this.currentTimestamp).forEach(u ->
             {
+                monitor.checkCancelled();
                 // We get the current state of the user.
                 UserState<U> user = state.getUser(u);
                 // Select which information pieces that the user will propagat.
@@ -221,6 +232,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
             // We run over the set of users who have information in the received list.
             receivedCount.keySet().forEach(u ->
             {
+                monitor.checkCancelled();
                 // We get the actual state of the user.
                 UserState<U> user = state.getUser(u);
 
@@ -259,6 +271,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
             // First, we identify the propagated information that reaches each user.
             allPropInfo.keySet().forEach(u ->
             {
+                monitor.checkCancelled();
                 Selection sel = allPropInfo.get(u);
                 List<I> propInfo = new ArrayList<>();
 
@@ -268,6 +281,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
                     PropagatedInformation auxpp = new PropagatedInformation(-1,0,0);
                     this.protocol.getProp().getUsersToPropagate(auxpp, state.getUser(u), data).forEach(v ->
                     {
+                        monitor.checkCancelled();
                         if(!receivedInfo.containsKey(v)) receivedInfo.put(v, new ArrayList<>());
                         sel.getAll().forEach(piece -> receivedInfo.get(v).add(piece));
                     });
@@ -276,8 +290,10 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
                 {
                     sel.getAll().forEach(info ->
                     {
+                        monitor.checkCancelled();
                         this.protocol.getProp().getUsersToPropagate(info, state.getUser(u), data).forEach(v ->
                         {
+                            monitor.checkCancelled();
                             if(!receivedInfo.containsKey(v)) receivedInfo.put(v, new ArrayList<>());
                             receivedInfo.get(v).add(info);
                         });
@@ -294,6 +310,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
             // As a second step, for each receiving user, we determine which information is seen and which is not
             receivedInfo.keySet().forEach(u ->
             {
+                monitor.checkCancelled();
                 UserState<U> uState = this.state.getUser(u);
                 List<PropagatedInformation> prop = this.protocol.getSight().seesInformation(uState, data, receivedInfo.get(u));
                 if(!prop.isEmpty())
@@ -365,6 +382,7 @@ public class Simulator<U extends Serializable,I extends Serializable,P> implemen
 
             totalpropagated += this.currentPropagated;
             consumer.accept(iteration);
+            monitor.progress("Simulating diffusion", this.numIter - initialIteration + 1L, totalTurns, "turns");
 
             // Move all the newly observed pieces to the received set.
 

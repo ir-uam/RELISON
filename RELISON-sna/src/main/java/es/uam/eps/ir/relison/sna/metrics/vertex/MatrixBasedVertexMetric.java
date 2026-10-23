@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.vertex;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.index.Index;
 import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
@@ -60,9 +62,11 @@ public abstract class MatrixBasedVertexMetric<U> implements VertexMetric<U>
     public Map<U, Double> compute(Graph<U> graph)
     {
         Index<U> index = graph.getAdjacencyMatrixMap();
+        ComputationMonitor.current().phase("Solving centrality matrix");
         double[] scores = this.getScores(graph);
+        ComputationMonitor.current().checkCancelled();
 
-        Map<U, Double> res = new HashMap<>();
+        Map<U, Double> res = ComputationMonitor.current().track(new HashMap<>(), "Computing node values", graph.getVertexCount(), "nodes");
         for(int i = 0; i < scores.length; ++i)
         {
             res.put(index.idx2object(i), scores[i]);

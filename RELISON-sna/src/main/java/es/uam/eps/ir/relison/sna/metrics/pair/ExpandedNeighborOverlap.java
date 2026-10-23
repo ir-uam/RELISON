@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.pair;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.sna.metrics.PairMetric;
@@ -134,7 +136,7 @@ public class ExpandedNeighborOverlap<U> implements PairMetric<U>
     @Override
     public Map<Pair<U>, Double> computeOnlyLinks(Graph<U> graph)
     {
-        Map<Pair<U>, Double> values = new HashMap<>();
+        Map<Pair<U>, Double> values = ComputationMonitor.current().track(new HashMap<>(), "Computing edge values", ComputationMonitor.current() == ComputationMonitor.NONE ? -1 : graph.getAllNodes().mapToLong(source -> graph.getAdjacentNodes(source).count()).sum(), "endpoint pairs");
         Map<U, Set<U>> neighs = new HashMap<>();
 
         graph.getAllNodes().forEach(u ->

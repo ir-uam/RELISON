@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.metrics.vertex;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.graph.Graph;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.multigraph.MultiGraph;
@@ -71,7 +73,7 @@ public class Coreness<U> implements VertexMetric<U>
     @Override
     public Map<U, Double> compute(Graph<U> graph)
     {
-        Map<U, Double> coreness = new HashMap<>();
+        Map<U, Double> coreness = ComputationMonitor.current().track(new HashMap<>(), "Computing node values", graph.getVertexCount(), "nodes");
 
         // We first identify the graph degree values:
         Object2IntMap<U> degreeTable = new Object2IntOpenHashMap<>();

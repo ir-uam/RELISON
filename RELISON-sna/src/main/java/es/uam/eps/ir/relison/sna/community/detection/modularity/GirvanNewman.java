@@ -1,5 +1,7 @@
 package es.uam.eps.ir.relison.sna.community.detection.modularity;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.community.detection.DendogramCommunityDetectionAlgorithm;
@@ -41,6 +43,7 @@ public class GirvanNewman<U> implements CommunityDetectionAlgorithm<U>, Dendogra
     @Override
     public Communities<U> detectCommunities(Graph<U> graph)
     {
+        ComputationMonitor.current().phase("Detecting communities");
         Dendogram<U> dendogram = this.detectCommunityDendogram(graph);
         return dendogram.getCommunitiesByNumber(this.optimalNumComms);
     }
@@ -90,6 +93,7 @@ public class GirvanNewman<U> implements CommunityDetectionAlgorithm<U>, Dendogra
         {
             for(int i = 0; i < aux.getNumCommunities() - 2; ++i)
             {
+                ComputationMonitor.current().checkCancelled();
                 int parent = minCluster;
                 int leftChild;
                 if(aux.getCommunitySize(0) == 1)
@@ -150,6 +154,7 @@ public class GirvanNewman<U> implements CommunityDetectionAlgorithm<U>, Dendogra
 
         while(aux.getNumCommunities() < graph.getVertexCount())
         {
+            ComputationMonitor.current().checkCancelled();
             // Cooperative cancellation: recomputing edge betweenness after every removal makes this loop very
             // expensive on large graphs, so bail out when the computing thread is interrupted (the GUI's Stop button).
             // An ordinary caller never interrupts the thread, so this is a no-op outside that context.
@@ -164,6 +169,7 @@ public class GirvanNewman<U> implements CommunityDetectionAlgorithm<U>, Dendogra
                 double maxBetw = Double.NEGATIVE_INFINITY;
                 for (Map.Entry<Pair<U>, Double> entry : betweenness.entrySet())
                 {
+                    ComputationMonitor.current().checkCancelled();
                     if (entry.getValue() > maxBetw)
                     {
                         maxBetw = entry.getValue();
@@ -198,6 +204,7 @@ public class GirvanNewman<U> implements CommunityDetectionAlgorithm<U>, Dendogra
                     Communities<U> aux2 = new Communities<>();
                     for (int i = 0; i < aux.getNumCommunities(); ++i)
                     {
+                        ComputationMonitor.current().checkCancelled();
                         int j = i;
                         aux2.addCommunity();
                         if (i == comm)

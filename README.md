@@ -55,6 +55,7 @@ Please, find below the BibTex for the publication
 ## Packages
 Up to date, the following packages have been published:
 - **RELISON-core:** Basic graph definitions and generators.
+- **RELISON-viz:** Headless 2D graph layouts and coordinate processing (see [module documentation](RELISON-viz/README.md)).
 - **RELISON-sna:** Social network analysis metrics and community detection.
 - **RELISON-content:** Classes and definitions for user-generated contents in social networks.
 - **RELISON-linkpred:** Link prediction and contact recommendation functionalities.

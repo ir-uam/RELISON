@@ -15,9 +15,11 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * REST handler that enumerates all shortest (minimum-hop) paths between two nodes.
@@ -41,7 +43,7 @@ public class PathController
 
     /**
      * Handles {@code POST /api/paths}: returns all shortest paths between two nodes.
-     * @param ctx the request context, with body {@code {graphId, source, target}}.
+     * @param ctx the request context, with body {@code {graphId, source, target, allowedNodes?, allowedLinks?}}.
      */
     public void shortestPaths(Context ctx)
     {
@@ -67,7 +69,50 @@ public class PathController
             return;
         }
 
-        // BFS from the source, recording the shortest-path predecessors of each node.
+        try
+        {
+            Map<String, Object> response = computePaths(graph, source, target, body);
+            response.put("recommendation", withRec ? session.getActiveRecommendationKey() : null);
+            ctx.json(response);
+        }
+        catch (IllegalArgumentException exception)
+        {
+            ctx.status(400).json(Map.of("error", exception.getMessage()));
+        }
+    }
+
+    /** Search the supplied working subgraph, without modifying the session graph. */
+    static Map<String, Object> computePaths(Graph<String> graph, String source, String target, Map<?, ?> body)
+    {
+        if (!graph.containsVertex(source) || !graph.containsVertex(target)) throw new IllegalArgumentException("Both nodes must exist in the graph.");
+        Set<String> allowedNodes = null;
+        if (body.containsKey("allowedNodes"))
+        {
+            if (!(body.get("allowedNodes") instanceof List)) throw new IllegalArgumentException("allowedNodes must be a list of node IDs.");
+            allowedNodes = new HashSet<>();
+            for (Object node : (List<?>) body.get("allowedNodes"))
+            {
+                if (!(node instanceof String) || !graph.containsVertex((String) node)) throw new IllegalArgumentException("Every allowed node must exist in the graph.");
+                allowedNodes.add((String) node);
+            }
+            if (!allowedNodes.contains(source) || !allowedNodes.contains(target)) throw new IllegalArgumentException("Both endpoints must belong to the filtered graph.");
+        }
+        Set<List<String>> allowedLinks = null;
+        if (body.containsKey("allowedLinks"))
+        {
+            if (!(body.get("allowedLinks") instanceof List)) throw new IllegalArgumentException("allowedLinks must be a list of endpoint pairs.");
+            allowedLinks = new HashSet<>();
+            for (Object item : (List<?>) body.get("allowedLinks"))
+            {
+                if (!(item instanceof List)) throw new IllegalArgumentException("Every allowed link must be an endpoint pair.");
+                List<?> link = (List<?>) item;
+                if (link.size() != 2 || !(link.get(0) instanceof String) || !(link.get(1) instanceof String)) throw new IllegalArgumentException("Every allowed link must contain two node IDs.");
+                String a = (String) link.get(0), b = (String) link.get(1);
+                if (!graph.containsEdge(a, b)) throw new IllegalArgumentException("Every allowed link must exist in the graph.");
+                allowedLinks.add(List.of(a, b));
+                if (!graph.isDirected()) allowedLinks.add(List.of(b, a));
+            }
+        }
         Map<String, Integer> dist = new HashMap<>();
         Map<String, List<String>> preds = new HashMap<>();
         dist.put(source, 0);
@@ -77,60 +122,36 @@ public class PathController
         {
             String u = queue.poll();
             int du = dist.get(u);
-            List<String> succ = new ArrayList<>();
-            graph.getAdjacentNodes(u).forEach(succ::add);
-            for (String w : succ)
+            List<String> successors = new ArrayList<>();
+            graph.getAdjacentNodes(u).forEach(successors::add);
+            for (String w : successors)
             {
+                if (allowedNodes != null && !allowedNodes.contains(w) || allowedLinks != null && !allowedLinks.contains(List.of(u, w))) continue;
                 Integer dw = dist.get(w);
                 if (dw == null)
                 {
                     dist.put(w, du + 1);
-                    List<String> p = new ArrayList<>();
-                    p.add(u);
-                    preds.put(w, p);
-                    queue.add(w);
+                    List<String> predecessors = new ArrayList<>();
+                    predecessors.add(u); preds.put(w, predecessors); queue.add(w);
                 }
-                else if (dw == du + 1)
-                {
-                    preds.get(w).add(u);
-                }
+                else if (dw == du + 1 && !preds.get(w).contains(u)) preds.get(w).add(u);
             }
         }
-
         Map<String, Object> response = new LinkedHashMap<>();
-        response.put("source", source);
-        response.put("target", target);
-        response.put("recommendation", withRec ? session.getActiveRecommendationKey() : null);
-
-        // Note: keep both branches as Integer. A `? 0 : dist.get(target)` would type the expression as int and
-        // unbox dist.get(target), throwing an NPE when the target is unreachable instead of reporting "no path".
-        Integer length = source.equals(target) ? Integer.valueOf(0) : dist.get(target);
-        if (length == null)
-        {
-            response.put("length", -1);
-            response.put("count", 0);
-            response.put("truncated", false);
-            response.put("paths", List.of());
-            ctx.json(response);
-            return;
-        }
-
-        // Backtrack the predecessor DAG to build every shortest path (capped at MAX_PATHS).
+        response.put("source", source); response.put("target", target);
+        Integer length = dist.get(target);
         List<List<String>> paths = new ArrayList<>();
-        boolean truncated = backtrack(target, source, preds, new ArrayDeque<>(), paths);
-
-        response.put("length", length);
-        response.put("count", paths.size());
-        response.put("truncated", truncated);
-        response.put("paths", paths);
-        ctx.json(response);
+        boolean truncated = length != null && backtrack(target, source, preds, new ArrayDeque<>(), paths);
+        response.put("length", length == null ? -1 : length);
+        response.put("count", paths.size()); response.put("truncated", truncated); response.put("paths", paths);
+        return response;
     }
 
     /**
      * Recursively builds shortest paths by following predecessors from {@code node} back to {@code source}.
      * @return true if enumeration was stopped early because the path cap was reached.
      */
-    private boolean backtrack(String node, String source, Map<String, List<String>> preds, Deque<String> suffix, List<List<String>> out)
+    private static boolean backtrack(String node, String source, Map<String, List<String>> preds, Deque<String> suffix, List<List<String>> out)
     {
         if (out.size() >= MAX_PATHS) return true;
         suffix.addFirst(node);

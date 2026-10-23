@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.modularity.balanced;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.impl.SparseDoubleMatrix2D;
 import es.uam.eps.ir.ranksys.core.util.Stats;
@@ -88,6 +90,7 @@ public class AlternativeGiniFastGreedy<U> implements CommunityDetectionAlgorithm
         List<U> users = graph.getAllNodes().collect(Collectors.toCollection(ArrayList::new));
         for (U u : users)
         {
+            ComputationMonitor.current().checkCancelled();
             aux.addCommunity();
             aux.add(u, aux.getNumCommunities() - 1);
             currentClusters.put(aux.getNumCommunities() - 1, aux.getNumCommunities() - 1);
@@ -103,6 +106,8 @@ public class AlternativeGiniFastGreedy<U> implements CommunityDetectionAlgorithm
         // While the dendogram is not finished
         while (aux.getNumCommunities() > 1)
         {
+            ComputationMonitor.current().progress("Merging communities", users.size() - aux.getNumCommunities(), Math.max(0, users.size() - 1), "merges");
+            ComputationMonitor.current().checkCancelled();
             // Find the optimal pair of communities to join.
             Tuple4<Integer, Integer, Double, Double> maxTuple = this.findOptimalJoint(graph, aux, freqs, sizes, lastGini);
 
@@ -164,6 +169,7 @@ public class AlternativeGiniFastGreedy<U> implements CommunityDetectionAlgorithm
 
                 for (int i = 0; i < aux.getNumCommunities(); ++i)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     int j = (i > maxComm) ? i - 1 : i;
                     if (i == minComm)
                     {
@@ -221,6 +227,7 @@ public class AlternativeGiniFastGreedy<U> implements CommunityDetectionAlgorithm
 
         for (int i = 0; i < comm.getNumCommunities(); ++i)
         {
+            ComputationMonitor.current().checkCancelled();
             Double2DoubleMap auxFreqs = new Double2DoubleOpenHashMap(freqs);
 
             double sizeI = sizes.get(i);
@@ -233,6 +240,7 @@ public class AlternativeGiniFastGreedy<U> implements CommunityDetectionAlgorithm
 
             for (int j = 0; j < i; ++j)
             {
+                ComputationMonitor.current().checkCancelled();
                 double sizeJ = sizes.get(j);
                 double sizeIJ = sizeI + sizeJ;
                 auxFreqs.put(sizeJ, auxFreqs.getOrDefault(sizeJ, 0.0) - 1.0);
@@ -270,6 +278,7 @@ public class AlternativeGiniFastGreedy<U> implements CommunityDetectionAlgorithm
 
                 for (Entry<Double, Double> value : entries)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     double key = value.getKey();
                     double v = value.getValue();
                     min = max + 1;
@@ -300,14 +309,17 @@ public class AlternativeGiniFastGreedy<U> implements CommunityDetectionAlgorithm
         int second = first;
         while (second == first)
         {
+            ComputationMonitor.current().checkCancelled();
             second = rng.nextInt(numComm);
         }
 
         Tuple4<Integer, Integer, Double, Double> maxTuple = new Tuple4<>(first, second, modIncr.getQuick(first, second), giniIncr.getQuick(first, second));
         for (int i = 0; i < numComm; ++i)
         {
+            ComputationMonitor.current().checkCancelled();
             for (int j = 0; j < i; ++j)
             {
+                ComputationMonitor.current().checkCancelled();
                 double normMod = this.norm(modIncr.getQuick(i, j), modStats);
                 double normGini = this.norm(giniIncr.getQuick(i, j), giniStats);
                 double score = lambda * normGini + (1 - lambda) * normMod;

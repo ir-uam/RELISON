@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.modularity;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.community.detection.DendogramCommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.community.Communities;
@@ -68,6 +70,7 @@ public abstract class AbstractFastGreedy<U> implements CommunityDetectionAlgorit
     @Override
     public Communities<U> detectCommunities(Graph<U> graph)
     {
+        ComputationMonitor.current().phase("Detecting communities");
         this.rng = new Random(rngSeed);
         Dendogram<U> dendogram = this.detectCommunityDendogram(graph);
         return dendogram.getCommunitiesByNumber(this.optimalNumComms);
@@ -94,6 +97,7 @@ public abstract class AbstractFastGreedy<U> implements CommunityDetectionAlgorit
         List<U> users = graph.getAllNodes().collect(Collectors.toCollection(ArrayList::new));
         for (U u : users)
         {
+            ComputationMonitor.current().checkCancelled();
             aux.addCommunity();
             aux.add(u, aux.getNumCommunities() - 1);
             currentClusters.put(aux.getNumCommunities() - 1, aux.getNumCommunities() - 1);
@@ -107,6 +111,9 @@ public abstract class AbstractFastGreedy<U> implements CommunityDetectionAlgorit
         // Execute the community detection algorithm
         while (aux.getNumCommunities() > 1)
         {
+            ComputationMonitor.current().progress("Merging communities", users.size() - aux.getNumCommunities(), Math.max(0, users.size() - 1), "merges");
+
+            ComputationMonitor.current().checkCancelled();
             // Find the two optimal communities to merge.
             Tuple3<Integer, Integer, Double> triple = this.findOptimalJoint(graph, aux);
 
@@ -137,6 +144,7 @@ public abstract class AbstractFastGreedy<U> implements CommunityDetectionAlgorit
                 // Update the clusters
                 for (int i = 0; i < aux.getNumCommunities(); ++i)
                 {
+                    ComputationMonitor.current().checkCancelled();
                     int j = (i > maxComm) ? i - 1 : i;
                     if (i == minComm)
                     {

@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.modularity.balanced;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.community.detection.modularity.AbstractFastGreedy;
 import es.uam.eps.ir.relison.sna.community.graph.CompleteCommunityGraphGenerator;
@@ -49,6 +51,7 @@ public class SizeWeightedFastGreedy<U> extends AbstractFastGreedy<U>
         double sum = 0.0;
         for (int i = 0; i < numComm; ++i)
         {
+            ComputationMonitor.current().checkCancelled();
             double size = comm.getCommunitySize(i);
             commSizes.put(i, size);
             sum += size;
@@ -56,6 +59,7 @@ public class SizeWeightedFastGreedy<U> extends AbstractFastGreedy<U>
 
         for (int i = 0; i < numComm && graph.getEdgeCount() > 0; ++i)
         {
+            ComputationMonitor.current().checkCancelled();
             double sizeI = commSizes.get(i) + 0.0;
             commSizes.put(i, sizeI);
             double edgesFromI = commGraph.getAdjacentEdgesCount(i) / (graph.getEdgeCount() + 0.0);
@@ -65,6 +69,7 @@ public class SizeWeightedFastGreedy<U> extends AbstractFastGreedy<U>
 
             for (int j = 0; j < i; ++j)
             {
+                ComputationMonitor.current().checkCancelled();
                 double sizeJ = commSizes.get(j) + 0.0;
                 double edgesFromJ = edgesFromComm.get(j);
                 double edgesToJ = edgesToComm.get(j);
@@ -101,6 +106,7 @@ public class SizeWeightedFastGreedy<U> extends AbstractFastGreedy<U>
             int second = first;
             while (second == first)
             {
+                ComputationMonitor.current().checkCancelled();
                 second = rnd.nextInt(numComm);
             }
             maxPair = new Pair<>(first, second);

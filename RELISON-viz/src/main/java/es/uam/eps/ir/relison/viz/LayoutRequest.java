@@ -1,0 +1,156 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. See https://mozilla.org/MPL/2.0/. */
+package es.uam.eps.ir.relison.viz;
+
+import es.uam.eps.ir.relison.utils.datatypes.Pair;
+
+import java.util.*;
+
+/**
+ * Immutable common layout inputs. Every pinned node must have an initial position.
+ * An explicit node order must be an exact permutation of the graph's nodes.
+ * Node objects themselves are not copied and must retain stable equality/hash codes.
+ * @param <U> node type
+ */
+public final class LayoutRequest<U>
+{
+    private final Map<U, Pair<Double>> initialPositions;
+    private final Map<U, Point3D> initialPositions3D;
+    private final Set<U> pinnedNodes;
+    private final List<U> nodeOrder;
+    private final long seed;
+    private final int maxIterations;
+    private final long timeLimitMillis;
+    private final Map<U, Double> nodeSizes;
+    private final java.util.function.BooleanSupplier cancellation;
+
+    private LayoutRequest(Builder<U> builder)
+    {
+        initialPositions = Collections.unmodifiableMap(new LinkedHashMap<>(builder.positions));
+        initialPositions3D = Collections.unmodifiableMap(new LinkedHashMap<>(builder.positions3D));
+        pinnedNodes = Collections.unmodifiableSet(new LinkedHashSet<>(builder.pins));
+        nodeOrder = builder.order == null ? null : Collections.unmodifiableList(new ArrayList<>(builder.order));
+        seed = builder.seed;
+        maxIterations = builder.maxIterations;
+        timeLimitMillis = builder.timeLimitMillis;
+        cancellation = builder.cancellation;
+        nodeSizes = Collections.unmodifiableMap(new LinkedHashMap<>(builder.nodeSizes));
+        if (maxIterations < 0 || timeLimitMillis < 0) throw new IllegalArgumentException("Execution limits must be non-negative");
+        nodeSizes.forEach((node, radius) -> {
+            Objects.requireNonNull(node);
+            if (radius == null || !Double.isFinite(radius) || radius < 0)
+                throw new IllegalArgumentException("Node radii must be finite and non-negative");
+        });
+        initialPositions.forEach((node, point) -> { Objects.requireNonNull(node); Objects.requireNonNull(point); });
+        Bounds2D.of(initialPositions.values());
+        if (!initialPositions.keySet().containsAll(pinnedNodes))
+            throw new IllegalArgumentException("Every pinned node requires an initial position");
+        if (nodeOrder != null && (nodeOrder.contains(null) || new HashSet<>(nodeOrder).size() != nodeOrder.size()))
+            throw new IllegalArgumentException("Node order cannot contain nulls or duplicates");
+    }
+
+    /**
+     * @param <U> node type
+     * @return builder with seed zero and no constraints
+     */
+    public static <U> Builder<U> builder() { return new Builder<>(); }
+    /**
+     * @param <U> node type
+     * @return default request
+     */
+    public static <U> LayoutRequest<U> defaults() { return LayoutRequest.<U>builder().build(); }
+    /** @return immutable initial positions */
+    public Map<U, Pair<Double>> getInitialPositions() { return initialPositions; }
+    /** @return immutable spatial warm starts; empty for ordinary 2D requests */
+    public Map<U, Point3D> getInitialPositions3D() { return initialPositions3D; }
+    /** @return immutable pinned nodes */
+    public Set<U> getPinnedNodes() { return pinnedNodes; }
+    /** @return explicit order, or empty if graph encounter order should be used */
+    public Optional<List<U>> getNodeOrder() { return Optional.ofNullable(nodeOrder); }
+    /** @return random seed */
+    public long getSeed() { return seed; }
+
+    /** @return force iteration budget, default 500 */
+    public int getMaxIterations() { return maxIterations; }
+    /** @return active computation time in milliseconds; zero means unlimited */
+    public long getTimeLimitMillis() { return timeLimitMillis; }
+    /** @return immutable radii in coordinate units; omitted nodes have radius zero */
+    public Map<U, Double> getNodeSizes() { return nodeSizes; }
+    /** @return caller-supplied cancellation signal */
+    public java.util.function.BooleanSupplier getCancellation() { return cancellation; }
+    /**
+     * Mutable request builder.
+     * @param <U> node type
+     */
+    public static final class Builder<U>
+    {
+        private Map<U, Pair<Double>> positions = Collections.emptyMap();
+        private Map<U, Point3D> positions3D = Collections.emptyMap();
+        private Set<U> pins = Collections.emptySet();
+        private List<U> order;
+        private long seed;
+        private int maxIterations = 500;
+        private long timeLimitMillis;
+        private Map<U, Double> nodeSizes = Collections.emptyMap();
+        private java.util.function.BooleanSupplier cancellation = () -> false;
+
+        private Builder() { }
+        /**
+         * @param value coordinates
+         * @return this builder
+         */
+        public Builder<U> initialPositions(Map<U, Pair<Double>> value) {
+            positions = new LinkedHashMap<>(value); positions3D = Collections.emptyMap(); return this;
+        }
+        /**
+         * @param value finite spatial coordinates
+         * @return this builder
+         */
+        public Builder<U> initialPositions3D(Map<U, Point3D> value) {
+            positions3D = new LinkedHashMap<>(value);
+            positions = new LinkedHashMap<>();
+            positions3D.forEach((node, point) -> {
+                Objects.requireNonNull(node); Objects.requireNonNull(point);
+                positions.put(node, new Pair<>(point.getX(), point.getY()));
+            });
+            return this;
+        }
+        /**
+         * @param value pinned nodes
+         * @return this builder
+         */
+        public Builder<U> pinnedNodes(Set<U> value) { pins = new LinkedHashSet<>(value); return this; }
+        /**
+         * @param value exact node order
+         * @return this builder
+         */
+        public Builder<U> nodeOrder(List<U> value) { order = new ArrayList<>(value); return this; }
+        /**
+         * @param value seed
+         * @return this builder
+         */
+        public Builder<U> seed(long value) { seed = value; return this; }
+        /**
+         * @param value non-negative force iteration budget
+         * @return this builder
+         */
+        public Builder<U> maxIterations(int value) { maxIterations = value; return this; }
+        /**
+         * @param value active computation milliseconds; zero means unlimited
+         * @return this builder
+         */
+        public Builder<U> timeLimitMillis(long value) { timeLimitMillis = value; return this; }
+        /**
+         * @param value node radii in coordinate units
+         * @return this builder
+         */
+        public Builder<U> nodeSizes(Map<U, Double> value) { nodeSizes = new LinkedHashMap<>(value); return this; }
+        /**
+         * @param value thread-safe cancellation signal
+         * @return this builder
+         */
+        public Builder<U> cancellation(java.util.function.BooleanSupplier value) { cancellation = Objects.requireNonNull(value); return this; }
+        /** @return immutable request */
+        public LayoutRequest<U> build() { return new LayoutRequest<>(this); }
+    }
+}

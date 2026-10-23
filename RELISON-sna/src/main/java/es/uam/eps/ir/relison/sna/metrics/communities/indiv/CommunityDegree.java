@@ -12,6 +12,7 @@ import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.sna.metrics.vertex.Degree;
 import es.uam.eps.ir.relison.sna.community.graph.InterCommunityGraphGenerator;
 import es.uam.eps.ir.relison.graph.Graph;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
 import es.uam.eps.ir.relison.graph.multigraph.MultiGraph;
 import es.uam.eps.ir.relison.sna.metrics.IndividualCommunityMetric;
@@ -64,7 +65,14 @@ public class CommunityDegree<U> implements IndividualCommunityMetric<U>
 
         Degree<Integer> degree = new Degree<>(orientation);
 
-        return degree.compute(commGraph);
+        ComputationMonitor monitor = ComputationMonitor.current();
+        if (monitor == ComputationMonitor.NONE) return degree.compute(commGraph);
+        try (ComputationMonitor.Scope scope = ComputationMonitor.open(new ComputationMonitor() {
+            @Override public void checkCancelled() { monitor.checkCancelled(); }
+            @Override public void progress(String phase, long done, long total, String unit) {
+                monitor.progress("Computing community degrees", done, total, "communities");
+            }
+        })) { return degree.compute(commGraph); }
     }
 
     @Override

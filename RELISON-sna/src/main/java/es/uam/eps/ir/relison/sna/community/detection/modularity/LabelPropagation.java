@@ -8,6 +8,8 @@
  */
 package es.uam.eps.ir.relison.sna.community.detection.modularity;
 
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
+
 import es.uam.eps.ir.relison.sna.community.detection.CommunityDetectionAlgorithm;
 import es.uam.eps.ir.relison.sna.community.Communities;
 import es.uam.eps.ir.relison.graph.Graph;
@@ -60,21 +62,27 @@ public class LabelPropagation<U> implements CommunityDetectionAlgorithm<U>
     @Override
     public Communities<U> detectCommunities(Graph<U> graph)
     {
+        ComputationMonitor.current().phase("Detecting communities");
         Random rng = new Random(rngSeed);
         List<U> nodes = graph.getAllNodes().collect(Collectors.toCollection(ArrayList::new));
 
         Object2IntMap<U> labels = new Object2IntOpenHashMap<>();
         nodes.forEach(u -> labels.put(u, labels.size()-1));
 
+        int sweeps = 0;
         boolean changed = true;
         while(changed)
         {
+            ComputationMonitor.current().progress("Propagating community labels", sweeps++, -1, "sweeps");
+
+            ComputationMonitor.current().checkCancelled();
             // We first shuffle the nodes
             Collections.shuffle(nodes);
 
             // Then:
             for(U node : nodes)
             {
+                ComputationMonitor.current().checkCancelled();
                 int currentLabel = labels.getInt(node);
                 Int2IntOpenHashMap counter = new Int2IntOpenHashMap();
 
@@ -83,6 +91,7 @@ public class LabelPropagation<U> implements CommunityDetectionAlgorithm<U>
                 int max = Integer.MIN_VALUE;
                 for(int label : counter.keySet())
                 {
+                    ComputationMonitor.current().checkCancelled();
                     int value = counter.get(label);
                     if(max < value)
                     {
@@ -116,6 +125,7 @@ public class LabelPropagation<U> implements CommunityDetectionAlgorithm<U>
             changed = false;
             for(U node : nodes)
             {
+                ComputationMonitor.current().checkCancelled();
                 int currentLabel = labels.getInt(node);
                 Int2IntOpenHashMap counter = new Int2IntOpenHashMap();
 
@@ -124,6 +134,7 @@ public class LabelPropagation<U> implements CommunityDetectionAlgorithm<U>
                 int max = Integer.MIN_VALUE;
                 for(int label : counter.keySet())
                 {
+                    ComputationMonitor.current().checkCancelled();
                     int value = counter.get(label);
                     if(max < value)
                     {

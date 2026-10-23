@@ -1,0 +1,2 @@
+# Preserve the bytes recorded by the generated SHA-256 asset manifest on all OSes.
+RELISON-gui/src/main/resources/public/vendor/** -text

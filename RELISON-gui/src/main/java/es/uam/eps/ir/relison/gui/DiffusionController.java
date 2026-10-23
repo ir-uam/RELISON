@@ -9,6 +9,7 @@
 package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.diffusion.data.Data;
+import es.uam.eps.ir.relison.utils.ComputationMonitor;
 import es.uam.eps.ir.relison.diffusion.data.filter.DataFilter;
 import es.uam.eps.ir.relison.diffusion.metrics.MetricsSimulationConsumer;
 import es.uam.eps.ir.relison.diffusion.metrics.SimulationMetric;
@@ -97,10 +98,13 @@ public class DiffusionController
 
         try
         {
+            ComputationMonitor.current().phase("Preparing diffusion data");
             // Run over the base graph, or — when the request asks for it and a recommendation is overlaid — over the
             // graph augmented with the active recommendation's edges, so information can spread along recommended links.
-            boolean withRec = MetricController.useRecommendation(body, session);
-            Graph<String> graph = withRec ? session.getAugmentedGraph() : session.getGraph();
+            GraphSession graphView = MetricController.metricSession(ctx, body, session);
+            if (graphView == null) return;
+            boolean withRec = MetricController.useRecommendation(body, graphView);
+            Graph<String> graph = withRec ? graphView.getAugmentedGraph() : session.getGraph();
             // Use the information pieces sent in the request if any, otherwise the ones persisted on the session;
             // if there are none, seed synthetically.
             Object piecesObj = body.get("pieces");
@@ -134,6 +138,7 @@ public class DiffusionController
                 return;
             }
 
+            ComputationMonitor.current().phase("Filtering diffusion data");
             Data<String, String, String> filtered = pair.v2().filter(data);
             Simulator<String, String, String> simulator = pair.v1();
             simulator.initialize(filtered);
@@ -163,28 +168,37 @@ public class DiffusionController
             {
                 jobs.run(MetricController.jobKey(body, "diffusion"), () ->
                 {
-                    sim.simulate(new CompositeSimulationConsumer<>(streamer, metricConsumer));
+                    try { sim.simulate(new CompositeSimulationConsumer<>(streamer, metricConsumer)); }
+                    finally { streamer.finish(); }
                     return null;
                 });
             }
-            catch (JobCancelledException ce)
+            catch (Exception | Error ce)
             {
-                new File(simFile.getAbsolutePath()).delete();
-                ctx.json(Map.of("cancelled", true));
-                return;
+                streamer.finish();
+                Files.deleteIfExists(simFile.toPath());
+                throw ce;
             }
 
-            Map<String, List<Double>> series = metricConsumer.getResults();
-            DiffusionResult result = new DiffusionResult(filtered, simFile.getAbsolutePath(),
-                    streamer.getNumIterations(), streamer.getSummaries(), series, labels);
-            session.setDiffusion(result);
+            try
+            {
+                Map<String, List<Double>> series = metricConsumer.getResults();
+                DiffusionResult result = new DiffusionResult(filtered, simFile.getAbsolutePath(),
+                        streamer.getNumIterations(), streamer.getSummaries(), series, labels);
 
-            Map<String, Object> response = result.toJson();
-            // Report any metrics that were dropped (typically ran out of memory) so the client can warn the user.
-            List<String> skipped = new ArrayList<>();
-            for (String id : metricConsumer.getFailed()) skipped.add(labels.getOrDefault(id, id));
-            if (!skipped.isEmpty()) response.put("skippedMetrics", skipped);
-            ctx.json(response);
+                Map<String, Object> response = result.toJson();
+                // Report any metrics that were dropped (typically ran out of memory) so the client can warn the user.
+                List<String> skipped = new ArrayList<>();
+                for (String id : metricConsumer.getFailed()) skipped.add(labels.getOrDefault(id, id));
+                if (!skipped.isEmpty()) response.put("skippedMetrics", skipped);
+                ctx.json(response);
+                JobManager.publish(() -> session.setDiffusion(result));
+            }
+            catch (Exception | Error error) { Files.deleteIfExists(simFile.toPath()); throw error; }
+        }
+        catch (JobCancelledException | java.util.concurrent.CancellationException cancelled)
+        {
+            ctx.json(Map.of("cancelled", true));
         }
         catch (Exception | NoClassDefFoundError | UnsatisfiedLinkError e)
         {
@@ -203,7 +217,7 @@ public class DiffusionController
         GraphSession session = requireSession(ctx, body);
         if (session == null) return;
 
-        DiffusionResult result = session.getDiffusion();
+        DiffusionResult result = session.getDiffusion(body.get("runId") == null ? null : body.get("runId").toString());
         if (result == null)
         {
             ctx.status(400).json(Map.of("error", "No diffusion result. Run a simulation first."));
@@ -295,7 +309,7 @@ public class DiffusionController
         GraphSession session = requireSession(ctx, body);
         if (session == null) return;
 
-        DiffusionResult result = session.getDiffusion();
+        DiffusionResult result = session.getDiffusion(body.get("runId") == null ? null : body.get("runId").toString());
         if (result == null)
         {
             ctx.status(400).json(Map.of("error", "No diffusion result. Run a simulation first."));
@@ -385,9 +399,14 @@ public class DiffusionController
 
         List<String> ranked = new ArrayList<>(peak.keySet());
         ranked.sort((a, b) -> Double.compare(peak.get(b), peak.get(a)));
+        boolean singleValue = Boolean.TRUE.equals(body.get("singleValue"));
+        String selectedValue = body.get("value") == null ? (ranked.isEmpty() ? null : ranked.get(0)) : body.get("value").toString();
+        out.put("availableValues", ranked);
+        if (singleValue) out.put("selectedValue", selectedValue);
         int k = 8;
-        boolean hasOther = ranked.size() > k;
-        List<String> top = new ArrayList<>(ranked.subList(0, Math.min(k, ranked.size())));
+        boolean hasOther = !singleValue && ranked.size() > k;
+        List<String> top = singleValue ? (selectedValue == null ? new ArrayList<>() : new ArrayList<>(List.of(selectedValue)))
+                : new ArrayList<>(ranked.subList(0, Math.min(k, ranked.size())));
         Set<String> topSet = new LinkedHashSet<>(top);
 
         List<String> values = new ArrayList<>(top);
@@ -465,7 +484,7 @@ public class DiffusionController
         GraphSession session = requireSession(ctx, body);
         if (session == null) return;
 
-        DiffusionResult result = session.getDiffusion();
+        DiffusionResult result = session.getDiffusion(body.get("runId") == null ? null : body.get("runId").toString());
         if (result == null)
         {
             ctx.status(400).json(Map.of("error", "No diffusion result. Run a simulation first."));
@@ -543,9 +562,14 @@ public class DiffusionController
 
         List<String> ranked = new ArrayList<>(peak.keySet());
         ranked.sort((a, b) -> Double.compare(peak.get(b), peak.get(a)));
+        boolean singleValue = Boolean.TRUE.equals(body.get("singleValue"));
+        String selectedValue = body.get("value") == null ? (ranked.isEmpty() ? null : ranked.get(0)) : body.get("value").toString();
+        out.put("availableValues", ranked);
+        if (singleValue) out.put("selectedValue", selectedValue);
         int k = 8;
-        boolean hasOther = ranked.size() > k;
-        List<String> top = new ArrayList<>(ranked.subList(0, Math.min(k, ranked.size())));
+        boolean hasOther = !singleValue && ranked.size() > k;
+        List<String> top = singleValue ? (selectedValue == null ? new ArrayList<>() : new ArrayList<>(List.of(selectedValue)))
+                : new ArrayList<>(ranked.subList(0, Math.min(k, ranked.size())));
         Set<String> topSet = new LinkedHashSet<>(top);
 
         List<String> values = new ArrayList<>(top);
@@ -605,7 +629,7 @@ public class DiffusionController
         GraphSession session = requireSession(ctx, body);
         if (session == null) return;
 
-        DiffusionResult result = session.getDiffusion();
+        DiffusionResult result = session.getDiffusion(body.get("runId") == null ? null : body.get("runId").toString());
         if (result == null)
         {
             ctx.status(400).json(Map.of("error", "No diffusion result. Run a simulation first."));
@@ -747,7 +771,7 @@ public class DiffusionController
 
         List<String> ranked = new ArrayList<>(peak.keySet());
         ranked.sort((a, b) -> Double.compare(peak.get(b), peak.get(a)));
-        int k = 8;
+        int k = Boolean.TRUE.equals(body.get("allValues")) ? ranked.size() : 8;
         boolean hasOther = ranked.size() > k;
         List<String> top = new ArrayList<>(ranked.subList(0, Math.min(k, ranked.size())));
         Set<String> topSet = new LinkedHashSet<>(top);
@@ -842,7 +866,7 @@ public class DiffusionController
         Map<?, ?> body = ctx.bodyAsClass(Map.class);
         GraphSession session = requireSession(ctx, body);
         if (session == null) return;
-        DiffusionResult result = session.getDiffusion();
+        DiffusionResult result = session.getDiffusion(body.get("runId") == null ? null : body.get("runId").toString());
         if (result == null)
         {
             ctx.status(400).json(Map.of("error", "No diffusion result. Run a simulation first."));
@@ -915,7 +939,7 @@ public class DiffusionController
         out.put("values", values);
     }
 
-    /** Parses a {@code v1 \t v2 \t count} file into a (top-12 × top-12) info-value × user-value count matrix. */
+    /** Parses every observed feature pair into a complete info-value × user-value count matrix. */
     private static void buildMixedDistribution(Map<String, Object> out, List<String> lines, String infoFeature, String userFeature)
     {
         Map<String, Map<String, Double>> cells = new LinkedHashMap<>();
@@ -932,21 +956,20 @@ public class DiffusionController
             infoMarginal.merge(iv, count, Double::sum);
             userMarginal.merge(uv, count, Double::sum);
         }
-        List<String> infoValues = topKeys(infoMarginal, 12);
-        List<String> userValues = topKeys(userMarginal, 12);
-        List<List<Double>> matrix = new ArrayList<>();
-        for (String iv : infoValues)
-        {
-            List<Double> row = new ArrayList<>();
-            Map<String, Double> r = cells.getOrDefault(iv, Map.of());
-            for (String uv : userValues) row.add(r.getOrDefault(uv, 0.0));
-            matrix.add(row);
-        }
+        List<String> infoValues = topKeys(infoMarginal, infoMarginal.size());
+        List<String> userValues = topKeys(userMarginal, userMarginal.size());
+        // Keep every observed pair without allocating the full Cartesian product.
+        Map<String, Integer> columns = new HashMap<>();
+        for (int i = 0; i < userValues.size(); i++) columns.put(userValues.get(i), i);
+        List<List<Number>> points = new ArrayList<>();
+        for (int row = 0; row < infoValues.size(); row++)
+            for (Map.Entry<String, Double> cell : cells.get(infoValues.get(row)).entrySet())
+                points.add(List.of(columns.get(cell.getKey()), row, cell.getValue()));
         out.put("infoFeature", infoFeature);
         out.put("userFeature", userFeature);
         out.put("infoValues", infoValues);
         out.put("userValues", userValues);
-        out.put("matrix", matrix);
+        out.put("points", points);
     }
 
     /** The keys of a marginal map with the largest values, at most {@code k}, largest first. */
@@ -963,13 +986,69 @@ public class DiffusionController
         catch (NumberFormatException e) { return 0.0; }
     }
 
+    /** Final unique piece counts per node, or unique user counts per piece, for rankings. */
+    public void rankings(Context ctx)
+    {
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        GraphSession session = requireSession(ctx, body);
+        if (session == null) return;
+        DiffusionResult result = session.getDiffusion(body.get("runId") == null ? null : body.get("runId").toString());
+        if (result == null) { ctx.status(404).json(Map.of("error", "This diffusion run is no longer available.")); return; }
+        String category = body.get("category") == null ? "received" : body.get("category").toString();
+        boolean pieces = "pieces".equals(body.get("entity"));
+        Map<String, Set<String>> memberships = new LinkedHashMap<>();
+        if (pieces) result.data.getInformationPiecesIndex().getAllObjects().forEach(id -> memberships.put(id, new LinkedHashSet<>()));
+        else result.data.getUserIndex().getAllObjects().forEach(id -> memberships.put(id, new LinkedHashSet<>()));
+        result.eachIteration(-1, (i, it) -> {
+            java.util.stream.Stream<String> users;
+            switch (category) {
+                case "propagated": users = it.getPropagatingUsers(); break;
+                case "discarded": users = it.getDiscardingUsers(); break;
+                case "read": users = it.getReceivingUsers(); break;
+                default: users = java.util.stream.Stream.concat(it.getReceivingUsers(), it.getReReceivingUsers()).distinct(); break;
+            }
+            users.forEach(user -> {
+                ComputationMonitor.current().checkCancelled();
+                java.util.stream.Stream<String> information;
+                switch (category) {
+                    case "propagated": information = it.getPropagatedInformation(user); break;
+                    case "discarded": information = it.getDiscardedInformation(user); break;
+                    case "read": information = it.getSeenInformation(user).map(t -> t.v1()); break;
+                    default: information = receivedThisIteration(it, user).stream(); break;
+                }
+                information.forEach(piece -> memberships.computeIfAbsent(pieces ? piece : user, key -> new LinkedHashSet<>()).add(pieces ? user : piece));
+            });
+        });
+        Map<String, Integer> values = new LinkedHashMap<>();
+        memberships.forEach((key, members) -> values.put(key, members.size()));
+        ctx.json(Map.of("values", values, "category", category, "entity", pieces ? "pieces" : "nodes"));
+    }
+
+    /** Returns the playback summaries for a retained run without changing the latest simulation. */
+    public void result(Context ctx)
+    {
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        GraphSession session = requireSession(ctx, body);
+        if (session == null) return;
+        DiffusionResult result = session.getDiffusion(body.get("runId") == null ? null : body.get("runId").toString());
+        if (result == null) {
+            ctx.status(404).json(Map.of("error", "This simulation is no longer available for playback.")); return;
+        }
+        ctx.json(result.toJson());
+    }
+
     /** Handles {@code POST /api/diffusion/clear}: drops the stored simulation. */
     public void clear(Context ctx)
     {
         Map<?, ?> body = ctx.bodyAsClass(Map.class);
         GraphSession session = requireSession(ctx, body);
         if (session == null) return;
-        session.setDiffusion(null);
+        if (body.get("runId") != null) {
+            session.removeDiffusion(body.get("runId").toString());
+            Map<String, Object> response = new LinkedHashMap<>(); response.put("ok", true);
+            response.put("result", session.getDiffusion() == null ? null : session.getDiffusion().toJson());
+            ctx.json(response); return;
+        } else session.setDiffusion(null);
         ctx.json(Map.of("ok", true));
     }
 

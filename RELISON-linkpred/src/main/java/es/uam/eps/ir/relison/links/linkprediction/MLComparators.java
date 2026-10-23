@@ -31,8 +31,7 @@ public class MLComparators<U>
      */
     public static <U> Comparator<Tuple2od<Pair<U>>> descendingComparator(List<U> nodes)
     {
-        List<U> n = new ArrayList<>(nodes);
-        Collections.shuffle(n, new Random(0));
+        Map<U, Integer> positions = shuffledPositions(nodes);
         
         return (Tuple2od<Pair<U>> t, Tuple2od<Pair<U>> t1) ->
         {
@@ -40,10 +39,10 @@ public class MLComparators<U>
                         
             if(val == 0.0)
             {
-                val = n.indexOf(t1.v1.v1()) - n.indexOf(t.v1.v1());
+                val = positions.getOrDefault(t1.v1.v1(), -1) - positions.getOrDefault(t.v1.v1(), -1);
                 if(val == 0.0)
                 {
-                    val = n.indexOf(t1.v1.v2()) - n.indexOf(t.v1.v2());
+                    val = positions.getOrDefault(t1.v1.v2(), -1) - positions.getOrDefault(t.v1.v2(), -1);
                 }
             }
 
@@ -59,8 +58,7 @@ public class MLComparators<U>
      */
     public static <U> Comparator<Tuple2od<Pair<U>>> ascendingComparator(List<U> nodes)
     {
-        List<U> n = new ArrayList<>(nodes);
-        Collections.shuffle(n, new Random(0));
+        Map<U, Integer> positions = shuffledPositions(nodes);
         
         return (Tuple2od<Pair<U>> t1, Tuple2od<Pair<U>> t) ->
         {
@@ -68,14 +66,24 @@ public class MLComparators<U>
                         
             if(val == 0.0)
             {
-                val = n.indexOf(t1.v1.v1()) - n.indexOf(t.v1.v1());
+                val = positions.getOrDefault(t1.v1.v1(), -1) - positions.getOrDefault(t.v1.v1(), -1);
                 if(val == 0.0)
                 {
-                    val = n.indexOf(t1.v1.v2()) - n.indexOf(t.v1.v2());
+                    val = positions.getOrDefault(t1.v1.v2(), -1) - positions.getOrDefault(t.v1.v2(), -1);
                 }
             }
 
             return Double.compare(val, 0.0);
         };
+    }
+
+    /** Indexes the original seeded tie order once instead of scanning it per comparison. */
+    private static <U> Map<U, Integer> shuffledPositions(List<U> nodes)
+    {
+        List<U> shuffled = new ArrayList<>(nodes);
+        Collections.shuffle(shuffled, new Random(0));
+        Map<U, Integer> positions = new HashMap<>();
+        for (int i = 0; i < shuffled.size(); i++) positions.putIfAbsent(shuffled.get(i), i);
+        return positions;
     }
 }

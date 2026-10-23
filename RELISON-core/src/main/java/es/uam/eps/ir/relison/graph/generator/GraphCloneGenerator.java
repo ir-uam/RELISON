@@ -86,6 +86,7 @@ public class GraphCloneGenerator<U> implements GraphGenerator<U>
                                                                                        }
                                                                                    }));
 
+            copyNodeAttributes(graph, newGraph);
             return newGraph;
         }
         else // Clone a simple graph
@@ -102,8 +103,29 @@ public class GraphCloneGenerator<U> implements GraphGenerator<U>
                                                                                    newGraph.addEdge(u, v, weight, type);
                                                                                }));
 
+            copyNodeAttributes(graph, newGraph);
             return newGraph;
         }
     }
 
+    /** Preserves node attribute definitions and assigned values when the source graph supports attributes. */
+    private void copyNodeAttributes(Graph<U> source, Graph<U> target)
+    {
+        try
+        {
+            source.getNodeAttributeNames().forEach(name ->
+            {
+                target.defineNodeAttribute(name, source.getNodeAttributeType(name));
+                source.getAllNodes().forEach(node ->
+                {
+                    Object value = source.getNodeAttribute(node, name);
+                    if (value != null) target.setNodeAttribute(node, name, value);
+                });
+            });
+        }
+        catch (UnsupportedOperationException ignored)
+        {
+            // Attribute support is optional on Graph; structural cloning still applies to legacy implementations.
+        }
+    }
 }

@@ -2,7 +2,7 @@
 
 /* ------------------------------------------------------------------ *
  * Compatibility shim – bridges old UI expectations to the current
- * graphology‑library@0.7.0 and sigma@3.0.3 APIs.
+ * graphology‑library@0.8.0 and sigma@3.0.3 APIs.
  * ------------------------------------------------------------------ */
 (() => {
   // ----- graphology‑library -------------------------------------------------
@@ -31,6 +31,59 @@
 
 })();
 
+/* Tooltip copy lives only in tooltips.json; markup and scripts use keys. */
+let TOOLTIP_TEXT = null;
+
+function applyTooltipKey(element) {
+  const key = element && element.dataset ? element.dataset.tooltip : "";
+  if (!key || !TOOLTIP_TEXT || typeof TOOLTIP_TEXT[key] !== "string") return;
+  const template = TOOLTIP_TEXT[key];
+  const text = template.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, name) => {
+    const value = element.dataset["tooltip" + name.charAt(0).toUpperCase() + name.slice(1)];
+    return value == null ? "" : value;
+  });
+  element.title = text;
+  element.setAttribute("aria-description", text);
+}
+
+function setTooltip(element, key, values) {
+  if (!element) return;
+  element.dataset.tooltip = key;
+  Object.entries(values || {}).forEach(([name, value]) => {
+    element.dataset["tooltip" + name.charAt(0).toUpperCase() + name.slice(1)] = String(value);
+  });
+  applyTooltipKey(element);
+}
+
+async function loadTooltipText() {
+  try {
+    const response = await fetch(new URL("tooltips.json", document.baseURI), { cache: "no-cache" });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const config = await response.json();
+    TOOLTIP_TEXT = config.tooltips || {};
+    const applyTo = (root) => {
+      if (!root || root.nodeType !== Node.ELEMENT_NODE) return;
+      applyTooltipKey(root);
+      root.querySelectorAll("[data-tooltip]").forEach(applyTooltipKey);
+    };
+
+    applyTo(document.body);
+    new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === "childList") mutation.addedNodes.forEach(applyTo);
+        else applyTooltipKey(mutation.target);
+      });
+    }).observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["data-tooltip"]
+    });
+  } catch (error) {
+    console.warn("Could not load tooltip text from tooltips.json.", error);
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * RELISON GUI frontend.
  *
@@ -41,7 +94,6 @@
 
 const Graph = (window.graphology && window.graphology.Graph) || window.graphology;
 const lib = window.graphologyLibrary || {};
-const FA2 = lib.layoutForceAtlas2 || window.graphologyLayoutForceAtlas2;
 const Sigma = window.Sigma;
 
 /* ------------------------------- state ------------------------------ */
@@ -54,14 +106,40 @@ const state = {
     weighted: false,
     stats: null,          // server-reported graph stats ({nodes, edges, directed, weighted}); used by the report export
     reportPlots: new Map(),  // every chart drawn this session, keyed for de-dup: key -> {section, title, url}; for the report
-    fa2Running: false,
-    fa2Raf: null,
+    iterativeLayoutRunning: false,
+    iterativeLayoutRaf: null,
     layoutTemp: 50,
+    layoutRequest: null,
+    relisonLayout: null,
+    savedLayoutPositions: null,
+    savedLayoutPositions3D: null,
     dragNodes: false,     // when on, dragging a node repositions it instead of panning the canvas
+    multiNodeSelect: false,
+    areaSelectingNodes: false,
+    multiSelectedNodes: new Set(),
+    cosmographLayoutRunning: false,
+    cosmographDirty: true,
+    cosmographTimelineActive: false,
+    cosmographFocusActive: false,
+    cosmographPathActive: false,
+    cosmographPathSignature: "",
+    cosmographLabelDefaultsApplied: false,
     selectedNode: null,
+    selectedEdge: null,
+    edgeSelectionPair: null,
+    cosmographEdgeStart: null,
     editFirstNode: null,
-    selection: { node: null, mode: "highlight", partition: null },
-    pathFocus: null,   // { nodes: Set, edges: Set("s|t") } highlighted from the Paths tab
+    selection: { type: "node", node: null, mode: "highlight", partition: null, edgeAttribute: null },
+    selectionModes: { node: "highlight", edge: "edge-highlight", path: "path-highlight" },
+    activePaths: [],
+    pathRequestVersion: 0,
+    networkRevision: 0,
+    pathFocus: null,   // derived display focus: eligible nodes, edge IDs, endpoint pairs and active paths
+    pathEdgeHighlight: { mode: "default", color: "#ff9f43" },
+    pathAppearance: { enlargeNodes: false, nodeScale: 1.5, edgeScale: 1 },
+    pathEdgeStyles: new Map(),
+    pathEdgeStyleSequence: 0,
+    pathEndpointFocusActive: false,
     lastPaths: [],     // most recent shortest-path result (array of node-id arrays)
 
     // Computed results.
@@ -69,24 +147,33 @@ const state = {
     metricOrder: [],       // vertex metric labels, in computation order
     pairData: {},          // edge: label -> { "s|t": value }  (computed over links)
     pairOrder: [],         // edge/pair metric labels, in computation order
-    nodePairAgg: {},       // node-pair: label -> { average, min, max, estimated, totalPairs, evaluated, infinite, histogram[] }
+    nodePairAgg: {},       // node-pair: label -> aggregate stats, histogram[], and distinct valueCounts[]
     nodePairOrder: [],     // node-pair metric labels, in computation order
     graphMetrics: {},      // global: label -> value (graph + community metrics)
+    globalMetricScopes: {}, // label -> { family, scope }, retained with saved results
+    metricComputations: {}, // submitted metric requests, for recommendation batch recomputation
     communityData: {},     // algo -> { node(string): communityId }
     commMetricData: {},    // per-community: label -> { algorithm, values: { comm(string): value } }
     commMetricOrder: [],   // per-community metric labels, in computation order
+    attributeMetricData: {}, // per-attribute-value: label -> { attribute, values, valueLabels }
+    attributeMetricOrder: [], // per-attribute-value metric labels, in computation order
+    edgeAttributeMetricData: {},
+    edgeAttributeMetricOrder: [],
 
     multigraph: false,     // the loaded network allows parallel edges (recommendation tab disabled)
     // Node-colour legend + per-category colour overrides for the main display panel.
     colorLegend: null,     // { type:"none"|"numeric"|"categorical", title, ... } describing the current node colouring
+    edgeColorLegend: null,
     catColors: {},         // colour overrides for categorical colourings: colorKey -> { categoryValue -> hex }
     nodeBorder: { on: false, color: "#1b1c1f", width: 1.5 },   // optional node borders drawn on the overlay
     // Recommendation / link-prediction overlay (only one model is shown at a time).
     rec: {
         active: null,      // key of the model currently overlaid, or null
+        selecting: false,  // a cached-result selection is being synchronized with the server
         models: {},        // key -> { label, mode, cutoff, edges:[{source,target,score}] }
         diff: true,        // differentiate recommended edges (dashed) in the visualization
         show: true,        // show the overlay (can be toggled off without removing the model)
+        only: false,       // hide the original edges while displaying recommended links
         color: "#28c76f",  // colour of the recommended edges
         tableEdges: [],    // edges shown in the recommendation table (kept for study even after the overlay is cleared)
     },
@@ -119,6 +206,9 @@ const state = {
         iteration: 0,
         graph: null,       // graphology copy rendered in the diffusion canvas
         renderer: null,    // its sigma renderer
+        cosmograph: null,  // independent Cosmograph instance for diffusion
+        rendererType: "sigma",
+        rendererPreference: "network",
         selectedNode: null,
         hoverNode: null,   // node currently hovered on the diffusion canvas (redrawn on top of the spread edges)
         playing: null,     // setInterval handle when playing
@@ -136,12 +226,12 @@ const state = {
     activeTableSubtab: "nodes",
     // Label rendering options (mirrors the Labels controls in the left panel).
     labelOpts: {
-        nodeShow: true, nodeSize: 12, nodeProp: false, nodeColor: "#e6e6e6", nodeFont: "sans-serif",
-        edgeShow: false, edgeSize: 9, edgeProp: false, edgeColor: "#e6e6e6", edgeFont: "sans-serif",
+        nodeShow: true, nodeSize: 12, nodeProp: false, nodeColorMode: "default", nodeColor: "#e6e6e6", nodeFont: "sans-serif",
+        edgeShow: false, edgeSize: 9, edgeProp: false, edgeColorMode: "default", edgeColor: "#e6e6e6", edgeFont: "sans-serif",
     },
     tables: {
-        nodes: { sort: { col: "id", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
-        edges: { sort: { col: "source", dir: 1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
+        nodes: { sort: { col: "id", dir: 1 }, filters: {}, filterMode: "and", filterExpression: null, filterDraft: null, page: 0, pageSize: 100, headerSig: null, columnOrder: [], hiddenColumns: [] },
+        edges: { sort: { col: "source", dir: 1 }, filters: {}, filterMode: "and", filterExpression: null, filterDraft: null, page: 0, pageSize: 100, headerSig: null, columnOrder: [], hiddenColumns: [] },
         rec: { sort: { col: "score", dir: -1 }, filters: {}, page: 0, pageSize: 100, headerSig: null },
     },
     catalog: null,
@@ -149,7 +239,7 @@ const state = {
     attrSchema: { node: [], edge: [] },   // user-defined attributes: [{name,type,numeric}]
     // Graph timeline: scrub the network through time using a node/edge attribute of type "time". A node/edge is shown
     // at timestamp t only if its time value covers t (an empty/unset value never shows).
-    timeline: { nodeAttr: "", edgeAttr: "", t: null, min: null, max: null, events: [], playing: null },
+    timeline: { nodeAttr: "", edgeAttr: "", mode: "instant", t: null, rangeStart: null, min: null, max: null, events: [], playing: null },
 };
 
 /* --------------------------- attribute helpers ---------------------- */
@@ -198,6 +288,18 @@ function parseTimeRanges(str) {
 function timeContains(str, t) {
     for (const [lo, hi] of parseTimeRanges(str)) if (t >= lo && t <= hi) return true;
     return false;
+}
+
+// Whether a time value overlaps an inclusive exploration range.
+function timeOverlaps(str, start, end) {
+    const lo = Math.min(start, end), hi = Math.max(start, end);
+    for (const [from, to] of parseTimeRanges(str)) if (from <= hi && to >= lo) return true;
+    return false;
+}
+
+function timelineMatches(str) {
+    const tl = state.timeline;
+    return tl.mode === "range" ? timeOverlaps(str, tl.rangeStart ?? tl.t, tl.t) : timeContains(str, tl.t);
 }
 
 // Global [min, max] over every value of the selected node/edge time attributes, or null if there is no timestamp.
@@ -252,9 +354,10 @@ function updateTimelineUI() {
     const on = !!(state.graph && (tl.nodeAttr || tl.edgeAttr));
     const bounds = on ? timelineBounds() : null;
     toggleHidden("tl-controls", !bounds);
+    toggleHidden("network-timeline", !bounds);
     if (!bounds) {
         stopTimeline();
-        tl.min = tl.max = tl.t = null;
+        tl.min = tl.max = tl.t = tl.rangeStart = null;
         tl.events = [];
         $("tl-hint").textContent = on
             ? "The selected attribute has no timestamps."
@@ -267,19 +370,25 @@ function updateTimelineUI() {
     tl.max = bounds.max;
     tl.events = timelineEvents();
     if (tl.t == null || tl.t < tl.min || tl.t > tl.max) tl.t = tl.min;
-    const slider = $("tl-slider"), num = $("tl-time");
+    if (tl.rangeStart == null || tl.rangeStart < tl.min || tl.rangeStart > tl.max) tl.rangeStart = tl.min;
+    const slider = $("tl-slider"), num = $("tl-time"), rangeStart = $("tl-range-start");
     slider.min = tl.min; slider.max = tl.max; slider.step = 1; slider.value = tl.t;
     num.min = tl.min; num.max = tl.max; num.step = 1; num.value = tl.t;
+    rangeStart.min = tl.min; rangeStart.max = tl.max; rangeStart.step = 1; rangeStart.value = tl.rangeStart;
+    $("tl-mode").value = tl.mode;
+    toggleHidden("tl-range-start-field", tl.mode !== "range");
     updateTimelineReadout();
     applyReducers();
 }
 
 function updateTimelineReadout() {
     const tl = state.timeline;
-    $("tl-range").textContent = "t = " + tl.t + "   (range " + tl.min + " – " + tl.max + ")";
+    $("tl-range").textContent = tl.mode === "range"
+        ? "range = " + Math.min(tl.rangeStart, tl.t) + " – " + Math.max(tl.rangeStart, tl.t) + "   (domain " + tl.min + " – " + tl.max + ")"
+        : "t = " + tl.t + "   (range " + tl.min + " – " + tl.max + ")";
 }
 
-// Sets the current timestamp (clamped to [min, max]) and re-applies the graph visibility filter.
+// Sets the current timestamp (the range end in range-exploration mode) and re-applies the visibility filter.
 function setTimelineT(t) {
     const tl = state.timeline;
     if (tl.min == null) return;
@@ -290,6 +399,21 @@ function setTimelineT(t) {
     applyReducers();
 }
 
+function setTimelineRangeStart(t) {
+    const tl = state.timeline;
+    if (tl.min == null) return;
+    tl.rangeStart = Math.max(tl.min, Math.min(tl.max, Math.round(t)));
+    $("tl-range-start").value = tl.rangeStart;
+    updateTimelineReadout();
+    applyReducers();
+}
+
+function setTimelineMode(mode) {
+    stopTimeline();
+    state.timeline.mode = mode === "range" ? "range" : "instant";
+    if (state.timeline.rangeStart == null) state.timeline.rangeStart = state.timeline.t;
+    updateTimelineUI();
+}
 function stopTimeline() {
     if (state.timeline.playing) { clearInterval(state.timeline.playing); state.timeline.playing = null; }
     const p = $("tl-play"); if (p) p.textContent = "▶";
@@ -324,7 +448,7 @@ function stepTimeline(dir) {
 }
 
 /* --------------------- canvas animation export (GIF / WebM) --------------------- */
-// A generic recorder for the animated sigma canvases (the graph timeline and the diffusion playback). A "spec"
+// A generic recorder for graph timeline, diffusion and camera rotation playback. A "spec"
 // describes one animation: its renderer, the container/overlay canvases to composite, an ordered list of frame args,
 // a setFrame(arg) that advances the animation (and triggers a render), and a restore() to put things back afterwards.
 
@@ -332,16 +456,7 @@ const FRAME_DELAY_MS = 600;   // GIF per-frame delay / WebM per-frame hold
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-// gif.js runs its LZW encoder in a Web Worker; a cross-origin worker URL is blocked, so we fetch the CDN worker once
-// and hand gif.js a same-origin blob URL for it.
-let _gifWorkerUrl = null;
-async function gifWorkerUrl() {
-    if (_gifWorkerUrl) return _gifWorkerUrl;
-    const resp = await fetch("https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js");
-    if (!resp.ok) throw new Error("could not load the GIF worker");
-    _gifWorkerUrl = URL.createObjectURL(await resp.blob());
-    return _gifWorkerUrl;
-}
+let animationRecording = false;
 
 // The best-supported WebM codec for MediaRecorder, or "" to let the browser choose.
 function pickWebmMime() {
@@ -373,6 +488,9 @@ function compositeCanvasFrame(containerId, overlayId, maxWidth) {
 
 // Advances an animation to one frame and resolves with its composited image, captured inside the renderer's afterRender.
 function captureRendererFrame(spec, arg) {
+    if (spec.captureFrame) {
+        return Promise.resolve(spec.setFrame(arg)).then(() => spec.captureFrame());
+    }
     return new Promise((resolve) => {
         const r = spec.renderer;
         const onRender = () => {
@@ -386,27 +504,31 @@ function captureRendererFrame(spec, arg) {
     });
 }
 
-// Records an animation spec to an animated GIF (frames captured up front, then encoded off the main thread).
+// Encode each frame before capturing the next so HD/4K GIFs retain only one RGBA frame at a time.
 async function recordGif(spec) {
-    if (typeof GIF === "undefined") { setStatus("GIF encoder not available (offline?).", "error"); return; }
+    if (animationRecording) { setStatus("An animation export is already in progress.", "busy"); return; }
     if (!spec.frameArgs.length) { setStatus("Nothing to record.", "error"); return; }
+    animationRecording = true;
     spec.button.disabled = true;
+    let encoder;
     try {
-        const workerScript = await gifWorkerUrl();
-        const gif = new GIF({ workers: 2, quality: 10, workerScript, background: cssVar("--canvas-bg", "#18191c") });
+        await spec.prepare?.();
+        encoder = await window.relisonAnimationExport.gifEncoder();
         for (let i = 0; i < spec.frameArgs.length; i++) {
             setStatus("Recording " + spec.name + "… frame " + (i + 1) + "/" + spec.frameArgs.length, "busy");
             const frame = await captureRendererFrame(spec, spec.frameArgs[i]);
-            if (frame) gif.addFrame(frame, { copy: true, delay: FRAME_DELAY_MS });
+            if (!frame) throw new Error("The renderer did not produce an animation frame.");
+            await encoder.addFrame(frame, spec.delayMs || FRAME_DELAY_MS);
         }
-        gif.on("progress", (p) => setStatus("Encoding GIF… " + Math.round(p * 100) + "%", "busy"));
-        gif.on("finished", (blob) => { download(spec.name + ".gif", blob, "image/gif"); setStatus(spec.name + " GIF downloaded (" + spec.frameArgs.length + " frames)."); });
-        gif.render();
+        const blob = await encoder.finish();
+        download(spec.name + ".gif", blob, "image/gif");
+        setStatus(spec.name + " GIF downloaded (" + spec.frameArgs.length + " frames).");
     } catch (e) {
         setStatus("Could not record the " + spec.name + ": " + e.message, "error");
     } finally {
-        spec.restore();
-        spec.button.disabled = false;
+        encoder?.close();
+        try { await spec.restore(); }
+        finally { spec.button.disabled = false; animationRecording = false; }
     }
 }
 
@@ -414,40 +536,57 @@ async function recordGif(spec) {
 // held on a recording canvas for FRAME_DELAY_MS while a 30fps stream is captured off it.
 async function recordWebm(spec) {
     if (typeof MediaRecorder === "undefined") { setStatus("WebM recording is not supported by this browser.", "error"); return; }
+    if (animationRecording) { setStatus("An animation export is already in progress.", "busy"); return; }
     if (!spec.frameArgs.length) { setStatus("Nothing to record.", "error"); return; }
+    animationRecording = true;
     spec.button.disabled = true;
+    let stream, recorder;
     try {
+        await spec.prepare?.();
         const first = await captureRendererFrame(spec, spec.frameArgs[0]);
         if (!first) throw new Error("nothing to record");
         const rec = document.createElement("canvas");
         rec.width = first.width; rec.height = first.height;
         const rctx = rec.getContext("2d");
         rctx.drawImage(first, 0, 0);
-        const stream = rec.captureStream(30);
+        stream = rec.captureStream(30);
         const mime = pickWebmMime();
-        const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        if (!mime) throw new Error("This browser has no supported WebM encoder.");
+        recorder = new MediaRecorder(stream, { mimeType: mime,
+            videoBitsPerSecond: window.relisonAnimationExport.videoBitrate(rec.width, rec.height) });
         const chunks = [];
         recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-        const stopped = new Promise((res) => { recorder.onstop = res; });
+        let recordingError = null;
+        const stopped = new Promise(resolve => { recorder.onstop = resolve;
+            recorder.onerror = event => { recordingError = event.error || new Error("The video encoder failed."); resolve(); }; });
         recorder.start();
         for (let i = 0; i < spec.frameArgs.length; i++) {
             setStatus("Recording " + spec.name + " (WebM)… frame " + (i + 1) + "/" + spec.frameArgs.length, "busy");
             if (i > 0) {
+                // Exclude time spent rendering high-resolution frames from playback duration.
+                recorder.pause();
                 const f = await captureRendererFrame(spec, spec.frameArgs[i]);
-                if (f) rctx.drawImage(f, 0, 0, rec.width, rec.height);
+                if (!f) throw new Error("The renderer did not produce an animation frame.");
+                if (f.width !== rec.width || f.height !== rec.height) throw new Error("The viewport size changed during recording. Restart the export at the new size.");
+                rctx.drawImage(f, 0, 0, rec.width, rec.height);
+                recorder.resume();
             }
-            await sleep(FRAME_DELAY_MS);
+            if (recordingError) throw recordingError;
+            await sleep(spec.delayMs || FRAME_DELAY_MS);
         }
-        recorder.stop();
+        if (recorder.state !== "inactive") recorder.stop();
         await stopped;
+        if (recordingError) throw recordingError;
         const blob = new Blob(chunks, { type: mime || "video/webm" });
         download(spec.name + ".webm", blob, mime || "video/webm");
         setStatus(spec.name + " WebM downloaded (" + spec.frameArgs.length + " frames).");
     } catch (e) {
         setStatus("Could not record the " + spec.name + ": " + e.message, "error");
     } finally {
-        spec.restore();
-        spec.button.disabled = false;
+        if (recorder && recorder.state !== "inactive") recorder.stop();
+        stream?.getTracks().forEach(track => track.stop());
+        try { await spec.restore(); }
+        finally { spec.button.disabled = false; animationRecording = false; }
     }
 }
 
@@ -460,15 +599,17 @@ function capFrames(pts) {
     return [...new Set(sampled)];
 }
 
-// The WebM frame width from a resolution selector: a pixel cap, or null for full native resolution.
-function webmMaxWidth(selectId) {
+// Requested render width, independent of the current viewport or monitor DPI.
+function animationExportWidth(selectId) {
     const sel = $(selectId);
-    return (sel && sel.value === "native") ? null : 1920;
+    if (sel?.value === "native") return null;
+    const value = Number(sel?.value);
+    return [1280, 1920, 2560, 3840].includes(value) ? value : 1920;
 }
 
 // ---- graph timeline (Network tab) ----
 // cap: whether to sample-cap the frames (GIF, where size/encode time matter) or keep them all (WebM).
-// maxWidth: frame width cap in px (null = full native resolution).
+// maxWidth: requested frame width (null = native resolution).
 function timelineRecordSpec(button, cap, maxWidth) {
     const tl = state.timeline;
     const savedT = tl.t;
@@ -479,17 +620,25 @@ function timelineRecordSpec(button, cap, maxWidth) {
         name: "timeline",
         button,
         renderer: state.renderer,
+        captureFrame: () => usingCosmograph()
+            ? window.relisonCosmograph.captureRotationFrame($("export-include-legend").checked ? networkLegendData() : null, { width: maxWidth })
+            : captureSigmaAnimationFrame(false, maxWidth),
         containerId: "sigma-container",
         overlayId: "rec-overlay",
         drawOverlay: drawRecOverlay,
         maxWidth,
         frameArgs: cap ? capFrames(pts) : pts,
-        setFrame: (t) => {
+        setFrame: async (t) => {
             tl.t = Math.max(tl.min, Math.min(tl.max, Math.round(t)));
             $("tl-slider").value = tl.t;
             $("tl-time").value = tl.t;
             updateTimelineReadout();
             applyReducers();
+            if (usingCosmograph()) {
+                clearTimeout(cosmographAppearanceRefreshTimer);
+                clearTimeout(cosmographTimelineRefreshTimer);
+                await window.relisonCosmograph.syncTimeline(state.graph, { ...cosmographInteractionCallbacks() });
+            }
         },
         restore: () => setTimelineT(savedT),
     };
@@ -499,14 +648,14 @@ function downloadTimelineGif() {
     if (state.timeline.min == null) { setStatus("Pick a time attribute with timestamps first.", "error"); return; }
     if (state.activeTab !== "network") switchTab("network");
     stopTimeline();
-    recordGif(timelineRecordSpec($("btn-tl-gif"), true, 900));
+    recordGif(timelineRecordSpec($("btn-tl-gif"), true, animationExportWidth("tl-webm-res")));
 }
 
 function downloadTimelineWebm() {
     if (state.timeline.min == null) { setStatus("Pick a time attribute with timestamps first.", "error"); return; }
     if (state.activeTab !== "network") switchTab("network");
     stopTimeline();
-    recordWebm(timelineRecordSpec($("btn-tl-webm"), false, webmMaxWidth("tl-webm-res")));   // WebM: no frame cap
+    recordWebm(timelineRecordSpec($("btn-tl-webm"), false, animationExportWidth("tl-webm-res")));   // WebM: no frame cap
 }
 
 // ---- diffusion playback (Diffusion tab) ----
@@ -519,7 +668,9 @@ function diffusionRecordSpec(button, cap, maxWidth) {
     return {
         name: "diffusion",
         button,
-        renderer: state.diffusion.renderer,
+        renderer: state.diffusion.rendererType === "cosmograph" ? state.diffusion.cosmograph?.instance : state.diffusion.renderer,
+        captureFrame: state.diffusion.rendererType === "cosmograph" ? () => state.diffusion.cosmograph?.captureFrame(maxWidth)
+            : () => captureSigmaAnimationFrame(true, maxWidth),
         containerId: "diff-sigma-container",
         overlayId: "diff-overlay",
         drawOverlay: drawDiffOverlay,
@@ -531,7 +682,8 @@ function diffusionRecordSpec(button, cap, maxWidth) {
 }
 
 async function prepareDiffusionRecording() {
-    if (!state.diffusion.result || !state.diffusion.renderer) { setStatus("Run a diffusion simulation first.", "error"); return false; }
+    if (usingDiffGeographic()) { setStatus("Map video export is not available yet. Choose Sigma or Cosmograph to record diffusion.", "error"); return false; }
+    if (!state.diffusion.result || !(state.diffusion.rendererType === "cosmograph" ? state.diffusion.cosmograph : state.diffusion.renderer)) { setStatus("Run a diffusion simulation first.", "error"); return false; }
     diffStop();
     if (state.activeTab !== "diffusion") switchTab("diffusion");
     if (state.diffusion.subview !== "graph") switchDiffSubtab("graph");
@@ -541,12 +693,12 @@ async function prepareDiffusionRecording() {
 
 async function downloadDiffusionGif() {
     if (!(await prepareDiffusionRecording())) return;
-    recordGif(diffusionRecordSpec($("btn-diff-gif"), true, 900));
+    recordGif(diffusionRecordSpec($("btn-diff-gif"), true, animationExportWidth("diff-webm-res")));
 }
 
 async function downloadDiffusionWebm() {
     if (!(await prepareDiffusionRecording())) return;
-    recordWebm(diffusionRecordSpec($("btn-diff-webm"), false, webmMaxWidth("diff-webm-res")));   // WebM: no frame cap
+    recordWebm(diffusionRecordSpec($("btn-diff-webm"), false, animationExportWidth("diff-webm-res")));   // WebM: no frame cap
 }
 
 /* ------------------------------ helpers ----------------------------- */
@@ -560,17 +712,34 @@ function setStatus(text, kind) {
 }
 
 async function api(url, options) {
-    const res = await fetch(url, options);
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || ("Request failed: " + res.status));
-    return data;
+    const tracked = typeof ProcessPanel !== "undefined" && ProcessPanel.routes.has(url);
+    const requestGraph = tracked ? JSON.parse(options?.body || "{}").graphId : null;
+    if (tracked) {
+        const id = crypto.randomUUID();
+        options = { ...options, headers: { ...options?.headers, "X-Relison-Job-ID": id } };
+        const job = Object.values(state.jobs).find(job => job.controller.signal === options.signal);
+        if (job) { job.id = id; job.graphId = JSON.parse(options.body || "{}").graphId; }
+        if (url === "/api/layout" && state.layoutRequest?.signal === options.signal) {
+            state.layoutRequest.jobId = id; state.layoutRequest.graphId = requestGraph;
+        }
+        ProcessPanel.started();
+    }
+    try {
+        const res = await fetch(url, options);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || ("Request failed: " + res.status));
+        if (tracked && requestGraph !== state.graphId) {
+            const error = new Error("The graph changed during this process."); error.name = "AbortError"; throw error;
+        }
+        if (typeof rememberMetricComputation === "function") rememberMetricComputation(url, options?.body, data);
+        return data;
+    } finally { if (tracked) ProcessPanel.finished(); }
 }
 
 /* ------------------------- cancellable jobs ------------------------- */
 // Long computations (metrics, community detection, recommendation, diffusion) run on the server on a worker thread so
 // they can be stopped mid-flight. Each is tied to a run button that turns into a "Stop" button while it is running:
-// pressing it aborts the in-flight request (so the UI is freed at once) and posts /api/jobs/cancel with the job kind,
-// which interrupts the server-side worker so cooperative computations also stop burning CPU.
+// Stop and the Processes panel cancel the same execution by id. The request remains pending until cleanup finishes.
 state.jobs = {};   // btnId -> { controller, kind }
 
 // Undo/redo history for structural edits (add/remove node, add/remove edge, add/remove information piece). Each
@@ -578,7 +747,63 @@ state.jobs = {};   // btnId -> { controller, kind }
 // apply* helpers (which never push history themselves). See the "edit history" section.
 state.history = { undo: [], redo: [], applying: false };
 
-function jobBusy(btnId) { return !!state.jobs[btnId]; }
+const JOB_CONFIG_FIELDS = {
+    "btn-vertex": ["vertex-metric", "vertex-params", "vertex-rec"],
+    "btn-graph": ["graph-metric", "graph-params", "graph-rec"],
+    "btn-pair": ["pair-metric", "pair-params", "pair-allpairs", "pair-rec"],
+    "btn-community": ["community-algo", "community-params"],
+    "btn-global-comm": ["global-comm-partition", "global-comm-metric", "global-comm-params", "global-comm-rec"],
+    "btn-indiv-comm": ["indiv-comm-partition", "indiv-comm-metric", "indiv-comm-params", "comm-rec"],
+    "btn-attribute-global-comm": ["attribute-comm-attribute", "attribute-global-comm-metric", "attribute-global-comm-params", "attribute-global-comm-rec"],
+    "btn-attribute-indiv-comm": ["attribute-comm-attribute", "attribute-indiv-comm-metric", "attribute-indiv-comm-params", "attribute-comm-rec"],
+    "btn-edge-attribute-global": ["edge-attribute-metric-attribute", "edge-attribute-global-metric"],
+    "btn-edge-attribute-indiv": ["edge-attribute-metric-attribute", "edge-attribute-indiv-metric"],
+    "btn-ep-global": ["ep-global-partition", "ep-global-metric", "ep-global-params"],
+    "btn-ep-individual": ["ep-individual-partition", "ep-individual-metric", "ep-individual-params"],
+    "btn-rec-apply": ["rec-mode", "rec-algo", "rec-params", "rec-cutoff", "rec-reciprocal"],
+    "btn-rec-evaluate": ["rec-eval-metrics", "rec-eval-cutoff", "rec-eval-feature", "rec-eval-population", "rec-eval-reciprocal", "rec-test-file"],
+    "btn-diff-run": ["diff-protocol-type", "diff-protocol", "diff-protocol-params", "diff-selection", "diff-selection-params",
+        "diff-expiration", "diff-expiration-params", "diff-propagation", "diff-propagation-params", "diff-update", "diff-update-params",
+        "diff-sight", "diff-sight-params", "diff-stop", "diff-stop-params", "diff-metrics", "diff-rec", "diff-run-label"]
+};
+
+function jobConfigValue(id) {
+    const root = $(id);
+    if (!root) return null;
+    const controls = root.matches("input,select,textarea") ? [root] : [...root.querySelectorAll("input,select,textarea")];
+    if (controls.length) return controls.map(control => {
+        const value = control.type === "file" ? [...(control.files || [])].map(file => [file.name, file.size, file.lastModified])
+            : control.multiple ? [...control.selectedOptions].map(option => option.value) : control.value;
+        return [control.id || control.name, control.type === "checkbox" || control.type === "radio" ? control.checked : value];
+    });
+    return root.value ?? null;
+}
+
+function jobConfiguration(btnId) {
+    return JSON.stringify([state.graphId, ...(JOB_CONFIG_FIELDS[btnId] || []).map(jobConfigValue)]);
+}
+
+function selectedJob(btnId) {
+    const signature = jobConfiguration(btnId);
+    return Object.values(state.jobs).find(job => job.buttonId === btnId && job.signature === signature);
+}
+
+function jobBusy(btnId) { return !!selectedJob(btnId); }
+
+function updateJobButton(btnId) {
+    const button = $(btnId);
+    if (!button) return;
+    if (!Object.prototype.hasOwnProperty.call(button.dataset, "idleHtml")) button.dataset.idleHtml = button.innerHTML;
+    const running = !!selectedJob(btnId);
+    button.innerHTML = running ? "⏹ Stop" : button.dataset.idleHtml;
+    button.classList.toggle("btn-stop", running);
+}
+
+function updateJobButtons() { Object.keys(JOB_CONFIG_FIELDS).forEach(updateJobButton); }
+
+// Keep Stop tied to the selected configuration as users edit or switch metrics.
+document.addEventListener("input", updateJobButtons);
+document.addEventListener("change", updateJobButtons);
 
 function isAbort(e) { return e && (e.name === "AbortError"); }
 
@@ -586,40 +811,40 @@ function isAbort(e) { return e && (e.name === "AbortError"); }
 function beginJob(btnId, kind) {
     const btn = $(btnId);
     const controller = new AbortController();
-    state.jobs[btnId] = { controller, kind };
+    const key = btnId + ":" + crypto.randomUUID();
+    controller.signal.jobKey = key;
+    state.jobs[key] = { buttonId: btnId, signature: jobConfiguration(btnId), controller, kind, graphId: state.graphId };
     if (btn) {
-        btn.dataset.runLabel = btn.innerHTML;
-        btn.innerHTML = "⏹ Stop";
-        btn.classList.add("btn-stop");
         btn.disabled = false;   // must stay clickable so it can be used to stop
     }
+    updateJobButton(btnId);
     return controller.signal;
 }
 
 // Restores a button to its idle (run) state.
-function endJob(btnId) {
-    if (!state.jobs[btnId]) return;
-    delete state.jobs[btnId];
-    const btn = $(btnId);
-    if (btn && btn.dataset.runLabel != null) {
-        btn.innerHTML = btn.dataset.runLabel;
-        delete btn.dataset.runLabel;
-        btn.classList.remove("btn-stop");
+function endJob(btnId, signal) {
+    const key = signal?.jobKey;
+    if (key) delete state.jobs[key];
+    else {
+        const job = selectedJob(btnId);
+        if (job) delete state.jobs[job.controller.signal.jobKey];
     }
+    updateJobButton(btnId);
 }
 
-// Stops the job attached to a button: abort the request client-side and ask the server to interrupt the worker.
+// Request cancellation without losing the server response or claiming cleanup has finished.
 async function cancelJob(btnId) {
-    const job = state.jobs[btnId];
+    const job = selectedJob(btnId);
     if (!job) return;
-    job.controller.abort();
-    setStatus("Stopping…", "busy");
-    try { await fetch("/api/jobs/cancel", jsonBody({ graphId: state.graphId, kind: job.kind })); }
-    catch (e) { /* best-effort: the client-side abort already freed the UI */ }
-    setStatus("Stopped.");
+    setStatus("Cancelling…", "busy");
+    try {
+        if (job.id) await ProcessPanel.cancelJob(job.id, job.graphId);
+        else await api("/api/jobs/cancel", jsonBody({ graphId: job.graphId, kind: job.kind }));
+    } catch (error) { setStatus(error.message, "error"); }
 }
 
 function fmt(v) {
+    if (v == null || typeof v === "number" && !Number.isFinite(v)) return "—";
     if (typeof v !== "number") return v;
     return Number.isInteger(v) ? v : v.toFixed(4);
 }
@@ -648,7 +873,7 @@ function numInput(id, def) {
 // Converts a {key: value} object's values to numbers.
 function numericMap(values) {
     const out = {};
-    for (const k of Object.keys(values)) out[k] = Number(values[k]);
+    for (const k of Object.keys(values)) out[k] = values[k] == null ? NaN : Number(values[k]);
     return out;
 }
 
@@ -668,7 +893,15 @@ function updateImportFormatHint() {
     const input = $("file-input");
     const file = input && input.files && input.files[0];
     const isSession = $("opt-format").value === "relison" || (!!file && /\.relison$/i.test(file.name));
+    if (file && !isSession && $("opt-separator").dataset.manual !== "1")
+        $("opt-separator").value = /\.csv$/i.test(file.name) ? "," : "tab";
+    const isEdgeList = !["pajek", "gexf", "relison"].includes($("opt-format").value)
+        && !(file && /\.(net|paj|gexf|relison)$/i.test(file.name));
+    toggleHidden("edge-import-options", !isEdgeList);
+    toggleHidden("edge-header-option", !isEdgeList);
     toggleHidden("import-session-hint", !isSession);
+    toggleHidden("gexf-label-option", isSession || !($("opt-format").value === "gexf"
+        || ($("opt-format").value === "" && file && /\.gexf$/i.test(file.name))));
     $("btn-load").textContent = isSession ? "Open session" : "Load network";
 }
 
@@ -693,11 +926,15 @@ async function loadGraph() {
     form.append("weighted", $("opt-weighted").checked);
     form.append("multigraph", $("opt-multigraph").checked);
     form.append("selfloops", $("opt-selfloops").checked);
+    form.append("separator", selectedDelimiter("opt-separator"));
+    form.append("header", $("opt-header").checked);
+    form.append("labelsAsIds", $("opt-gexf-labels-as-ids").checked);
 
     setStatus("Loading network…", "busy");
     $("btn-load").disabled = true;
     try {
         const data = await api("/api/graph/load", { method: "POST", body: form });
+        $("opt-directed").checked = data.stats.directed;
         applyLoadedGraph(data, $("opt-multigraph").checked);
         setStatus("Loaded " + data.stats.nodes + " nodes, " + data.stats.edges + " edges.");
     } catch (e) {
@@ -710,15 +947,18 @@ async function loadGraph() {
 // Installs a freshly loaded/generated network session: resets every per-graph result, renders the graph and switches
 // to the Network tab. Shared by the file-upload and the generator paths (both return the same payload).
 function applyLoadedGraph(data, multigraph) {
+    if (state.graphId !== data.graphId) state.savedLayoutPositions = null;
+    if (state.graphId !== data.graphId) state.savedLayoutPositions3D = null;
     state.graphId = data.graphId;
     state.directed = data.stats.directed;
+    syncMetricOrientations();
     state.weighted = data.stats.weighted;
     state.stats = data.stats;   // kept for the report export
     state.reportPlots.clear();  // the previous graph's captured plots no longer apply
     state.multigraph = multigraph;
     state.attrSchema = data.schema || { node: [], edge: [] };
     stopTimeline();
-    state.timeline = { nodeAttr: "", edgeAttr: "", t: null, min: null, max: null, events: [], playing: null };
+    state.timeline = { nodeAttr: "", edgeAttr: "", mode: "instant", t: null, rangeStart: null, min: null, max: null, events: [], playing: null };
     resetResults();
     resetRecommendation();
     resetDiffusion();
@@ -747,14 +987,21 @@ function applyLoadedGraph(data, multigraph) {
     $("indiv-comm-partition").innerHTML = "";
     $("global-comm-partition").innerHTML = "";
     state.pathFocus = null;
+    state.pathEdgeStyles.clear();
+    state.pathEdgeStyleSequence = 0;
+    state.pathEndpointFocusActive = false;
     state.lastPaths = [];
-    $("paths-table").innerHTML = "";
-    $("path-source").value = "";
-    $("path-target").value = "";
-    $("path-summary").textContent = "Pick a source and a target, then find their shortest paths.";
+    $("select-path-source").value = "";
+    $("select-path-target").value = "";
+    $("select-paths-table").replaceChildren();
+    $("select-path-summary").textContent = "Choose a source and target to find all shortest paths.";
     switchTab("network");          // ensure the (sized) network pane is visible before rendering
     renderGraph(data.graph);
     rebuildAppearanceOptions();    // surface any imported attributes in the appearance menus
+    $("size-by").value = nodeAttrDefs().some(d => d.name === "viz:size") ? "imported" : "";
+    $("node-color-mode").value = nodeAttrDefs().some(d => d.name === "viz:color") ? "imported" : "default";
+    $("edge-size-by").value = edgeAttrDefs().some(d => d.name === "viz:thickness") ? "imported" : "";
+    $("edge-color-mode").value = edgeAttrDefs().some(d => d.name === "viz:color") ? "imported" : "default";
     applyAppearance();
     updateOverview(data.stats);
     if (state.renderer) state.renderer.refresh();
@@ -820,10 +1067,18 @@ function resetResults() {
     state.nodePairAgg = {};
     state.nodePairOrder = [];
     state.graphMetrics = {};
+    state.globalMetricScopes = {};
+    state.metricComputations = {};
     state.communityData = {};
     state.commMetricData = {};
     state.commMetricOrder = [];
+    state.attributeMetricData = {};
+    state.attributeMetricOrder = [];
+    state.edgeAttributeMetricData = {};
+    state.edgeAttributeMetricOrder = [];
     state.recMetricData = { vertex: {}, graph: {}, pair: {}, nodePair: {}, comm: {} };
+    if (typeof resetCommunityExplorer === "function") resetCommunityExplorer();
+    resetEdgePartitionView();
 }
 
 // Clears table filters/paging on a fresh load (sort defaults kept).
@@ -831,14 +1086,22 @@ function resetTableViews() {
     for (const k of ["nodes", "edges"]) {
         const t = state.tables[k];
         t.filters = {};
+        t.filterMode = "and";
+        t.filterExpression = t.filterDraft = null;
+        cancelNetworkFilterBuilder(k);
         t.page = 0;
         t.headerSig = null;
+        t.columnOrder = [];
+        t.hiddenColumns = [];
     }
 }
 
 /* ----------------------------- rendering ---------------------------- */
 
 function renderGraph(serialized) {
+    leaveGeographicView();
+    window.relisonH3?.clear(); window.relisonPaper3d = null;
+    state.cosmographDirty = true;
     stopLayout();
     if (state.renderer) { state.renderer.kill(); state.renderer = null; }
 
@@ -849,6 +1112,7 @@ function renderGraph(serialized) {
     });
     graph.import(serialized);
     state.graph = graph;
+    window.relisonCosmographDirected = graph.type === "directed";
 
     graph.forEachNode((node) => graph.setNodeAttribute(node, "color", "#4f9dff"));
     applyAppearance();
@@ -857,26 +1121,38 @@ function renderGraph(serialized) {
     // Sigma v3 uses `defaultDrawNodeLabel` and `defaultDrawEdgeLabel` instead of the older
     // `labelRenderer` / `edgeLabelRenderer` options. Update the renderer configuration accordingly.
     state.renderer = new Sigma(graph, $("sigma-container"), {
-        defaultEdgeType: state.directed ? "arrow" : "line",
+        defaultEdgeType: sigmaDefaultEdgeType(),
+        edgeProgramClasses: window.relisonSigmaEdgePrograms || {},
         renderLabels: state.labelOpts.nodeShow,
         renderEdgeLabels: state.labelOpts.edgeShow,
         defaultDrawNodeLabel: drawNodeLabel,
         defaultDrawEdgeLabel: drawEdgeLabel,
         labelDensity: 0.5,
         labelRenderedSizeThreshold: 8,
+        zIndex: true,
         // The container can be momentarily hidden (zero-size) if a graph is loaded from another tab;
         // tolerate it and refresh once the Network tab becomes visible.
         allowInvalidContainer: true,
     });
+    // RELISON stores node sizes as diameters. Sigma interprets node `size` as
+    // a radius, so normalize only its displayed data at the renderer boundary.
+    state.renderer.setSetting("nodeReducer", (_node, data) => ({
+        ...data,
+        size: (Number.isFinite(data.size) ? data.size : 0) / 2,
+    }));
     syncLabelOpts();
 
     // Repaint the recommended-edge overlay after sigma renders. Debounced (and cleared during the gesture) so
     // panning/zooming a large overlay stays smooth and the dashed lines never lag behind the moving graph.
     state.renderer.on("afterRender", scheduleRecOverlay);
 
-    state.renderer.on("clickNode", ({ node }) => {
-        if ($("edit-mode").checked) handleEditNodeClick(node);
-        else selectNode(node);
+    state.renderer.on("clickNode", ({ node, event }) => {
+        if (state.dragNodes && dragDidMove) { dragDidMove = false; return; }
+        if (state.multiNodeSelect && state.dragNodes && !$("edit-mode").checked) {
+            toggleMultiSelectedNode(node);
+            return;
+        }
+        handleNetworkPointClick(node, event);
     });
     state.renderer.on("clickStage", (e) => {
         if ($("edit-mode").checked) {
@@ -888,33 +1164,119 @@ function renderGraph(serialized) {
     });
 
     // Node dragging (only when the "Drag nodes" control is on): reposition a node instead of panning the canvas.
-    let draggedNode = null;
-    state.renderer.on("downNode", ({ node }) => {
+    let draggedNodes = [];
+    let dragAnchorNode = null;
+    let dragStartPositions = new Map();
+    let dragStartPointer = null;
+    let dragDidMove = false;
+    state.renderer.on("downNode", ({ node, event }) => {
         if (!state.dragNodes) return;
-        draggedNode = node;
-        graph.setNodeAttribute(node, "highlighted", true);
+        dragDidMove = false;
+        dragAnchorNode = node;
+        draggedNodes = state.multiNodeSelect && state.multiSelectedNodes.has(node)
+            ? [...state.multiSelectedNodes].filter((id) => graph.hasNode(id)) : [node];
+        dragStartPositions = new Map(draggedNodes.map((id) => [id, { x: graph.getNodeAttribute(id, "x"), y: graph.getNodeAttribute(id, "y") }]));
+        dragStartPointer = event ? state.renderer.viewportToGraph(event) : null;
         // Freeze the auto-fit bounding box so moving a node out of bounds doesn't make the camera jump.
         if (!state.renderer.getCustomBBox()) state.renderer.setCustomBBox(state.renderer.getBBox());
     });
     const captor = state.renderer.getMouseCaptor();
     captor.on("mousemovebody", (e) => {
-        if (!draggedNode) return;
+        if (state.areaSelectingNodes) return;
+        if (!draggedNodes.length) return;
         const pos = state.renderer.viewportToGraph(e);
-        graph.setNodeAttribute(draggedNode, "x", pos.x);
-        graph.setNodeAttribute(draggedNode, "y", pos.y);
+        if (!dragStartPointer) dragStartPointer = pos;
+        const dx = pos.x - dragStartPointer.x, dy = pos.y - dragStartPointer.y;
+        if (Math.abs(dx) > 1e-7 || Math.abs(dy) > 1e-7) {
+            dragDidMove = true;
+            if (state.multiNodeSelect && dragAnchorNode != null && !state.multiSelectedNodes.has(dragAnchorNode)) {
+                state.multiSelectedNodes = new Set([dragAnchorNode]);
+                syncMultiNodeSelection();
+            }
+        }
+        for (const id of draggedNodes) {
+            const start = dragStartPositions.get(id);
+            graph.setNodeAttribute(id, "x", start.x + dx);
+            graph.setNodeAttribute(id, "y", start.y + dy);
+        }
         // Stop sigma (and the browser) from also panning/selecting while dragging.
         e.preventSigmaDefault();
         e.original.preventDefault();
         e.original.stopPropagation();
     });
     const endDrag = () => {
-        if (draggedNode) graph.removeNodeAttribute(draggedNode, "highlighted");
-        draggedNode = null;
+        draggedNodes = [];
+        dragAnchorNode = null;
+        dragStartPositions.clear();
+        dragStartPointer = null;
     };
     captor.on("mouseup", endDrag);
+    captor.on("downStage", (event) => {
+        if (!state.areaSelectingNodes || !state.multiNodeSelect || !state.dragNodes || $("edit-mode").checked) return;
+        const original = event.original || event.originalEvent || event;
+        const rect = $("sigma-container").getBoundingClientRect();
+        const start = {
+            x: Number.isFinite(original.clientX) ? original.clientX : rect.left + event.x,
+            y: Number.isFinite(original.clientY) ? original.clientY : rect.top + event.y,
+        };
+        const selection = document.createElement("div");
+        selection.className = "graph-area-selection";
+        selection.style.cssText = `position:fixed;z-index:99999;left:${start.x}px;top:${start.y}px;width:0;height:0;border:2px solid var(--accent);background:rgba(79,157,255,.18)`;
+        document.body.appendChild(selection);
+        const move = (moveEvent) => {
+            const x = moveEvent.clientX, y = moveEvent.clientY;
+            selection.style.left = Math.min(start.x, x) + "px";
+            selection.style.top = Math.min(start.y, y) + "px";
+            selection.style.width = Math.abs(x - start.x) + "px";
+            selection.style.height = Math.abs(y - start.y) + "px";
+        };
+        const finish = (upEvent) => {
+            document.removeEventListener("pointermove", move, true);
+            document.removeEventListener("pointerup", finish, true);
+            document.removeEventListener("pointercancel", finish, true);
+            const x = upEvent.clientX, y = upEvent.clientY;
+            selection.remove();
+            const bounds = {
+                left: Math.min(start.x, x) - rect.left, right: Math.max(start.x, x) - rect.left,
+                top: Math.min(start.y, y) - rect.top, bottom: Math.max(start.y, y) - rect.top,
+            };
+            const selected = new Set(upEvent.shiftKey || upEvent.ctrlKey || upEvent.metaKey ? state.multiSelectedNodes : []);
+            graph.forEachNode((id) => {
+                const data = state.renderer.getNodeDisplayData(id);
+                if (!data || data.hidden) return;
+                const point = state.renderer.framedGraphToViewport({ x: data.x, y: data.y });
+                if (point.x >= bounds.left && point.x <= bounds.right && point.y >= bounds.top && point.y <= bounds.bottom) selected.add(id);
+            });
+            state.multiSelectedNodes = selected;
+            setAreaNodeSelection(false);
+            syncMultiNodeSelection();
+        };
+        document.addEventListener("pointermove", move, true);
+        document.addEventListener("pointerup", finish, { once: true, capture: true });
+        document.addEventListener("pointercancel", finish, { once: true, capture: true });
+        event.preventSigmaDefault?.();
+        original.preventDefault?.();
+    });
+    if ($("network-renderer").value === "cosmograph") setTimeout(() => setNetworkRenderer("cosmograph"), 0);
 }
 
-function handleEditNodeClick(node) {
+function handleEditNodeClick(node, event) {
+    const nativeEvent = event?.originalEvent || event?.original || event?.event || event;
+    if (nativeEvent?.ctrlKey || nativeEvent?.metaKey) {
+        if (state.editFirstNode == null) {
+            state.editFirstNode = node;
+            selectNode(node);
+            setStatus("Edge source: " + node + ". Ctrl-click a target node to add the edge.");
+        } else if (state.editFirstNode === node) {
+            state.editFirstNode = null;
+            setStatus("Edge creation cancelled.");
+        } else {
+            const source = state.editFirstNode;
+            state.editFirstNode = null;
+            editAddEdge(source, node);
+        }
+        return;
+    }
     if (state.editFirstNode == null) {
         state.editFirstNode = node;
         selectNode(node);
@@ -944,6 +1306,7 @@ function rebuildAppearanceOptions() {
     const sizeSelect = $("size-by");
     const sizeCurrent = sizeSelect.value;
     sizeSelect.innerHTML = '<option value="">— uniform (default) —</option>';
+    if (nodeAttrDefs().some(d => d.name === "viz:size")) sizeSelect.appendChild(option("imported", "Imported size"));
     for (const name of metricNames) sizeSelect.appendChild(option(name, name));
     // Numeric node attributes can also drive node size.
     for (const d of nodeAttrDefs()) if (d.numeric) sizeSelect.appendChild(option("attr:" + d.name, "attr: " + d.name));
@@ -951,23 +1314,48 @@ function rebuildAppearanceOptions() {
 
     const colorSelect = $("color-by");
     const colorCurrent = colorSelect.value;
-    colorSelect.innerHTML = '<option value="">— none —</option>';
+    colorSelect.innerHTML = '<option value="">Choose an attribute</option>';
     for (const name of metricNames) colorSelect.appendChild(option("metric:" + name, name));
     for (const algo of communityNames) colorSelect.appendChild(option("community:" + algo, "community: " + algo));
     // Node attributes: numeric ones use the colour ramp, the rest are coloured categorically.
     for (const d of nodeAttrDefs()) colorSelect.appendChild(option((d.numeric ? "attr:" : "attrcat:") + d.name, "attr: " + d.name));
     restoreSelect(colorSelect, colorCurrent);
 
+    const edgeColorSelect = $("edge-color-by");
+    const edgeColorCurrent = edgeColorSelect.value;
+    edgeColorSelect.innerHTML = '<option value="">Choose an attribute</option>';
+    for (const d of edgeAttrDefs()) edgeColorSelect.appendChild(option(d.name, "attr: " + d.name));
+    restoreSelect(edgeColorSelect, edgeColorCurrent);
+
     // Edge thickness: uniform + each computed edge (link) metric + numeric edge attributes.
     const edgeSizeSelect = $("edge-size-by");
     const edgeCurrent = edgeSizeSelect.value;
     edgeSizeSelect.innerHTML = '<option value="">— uniform —</option>';
+    if (edgeAttrDefs().some(d => d.name === "viz:thickness")) edgeSizeSelect.appendChild(option("imported", "Imported thickness"));
     for (const name of state.pairOrder) edgeSizeSelect.appendChild(option(name, name));
     for (const d of edgeAttrDefs()) if (d.numeric) edgeSizeSelect.appendChild(option("eattr:" + d.name, "attr: " + d.name));
     restoreSelect(edgeSizeSelect, edgeCurrent);
 
     rebuildLayoutGroupOptions();   // keep the circle-packing "Group by" options in sync with communities/attributes
     rebuildTimelineOptions();      // keep the timeline's time-attribute selectors in sync with the schema
+    syncAttributeCommunityMetricControls();
+    syncEdgeAttributeMetricControls();
+    syncEdgePartitionControls();
+    syncNodeColorControls();
+    syncEdgeColorControls();
+    rebuildLabelAttributeOptions();
+}
+
+function setDefaultEdgeSeparator(inputId, selectId) {
+    const input = $(inputId);
+    const file = input && input.files && input.files[0];
+    const select = $(selectId);
+    if (file && select.dataset.manual !== "1") select.value = /\.csv$/i.test(file.name) ? "," : "tab";
+}
+
+function selectedDelimiter(selectId) {
+    const value = $(selectId).value;
+    return value === "tab" ? "\t" : value;
 }
 
 // Restores a select's value if the option still exists, otherwise falls back to the first (default) option.
@@ -976,41 +1364,95 @@ function restoreSelect(select, value) {
     select.value = exists ? value : "";
 }
 
+function syncSizeControlVisibility() {
+    const nodeUniform = !$("size-by").value;
+    const edgeUniform = !$("edge-size-by").value;
+    toggleHidden("node-size-uniform-params", !nodeUniform);
+    toggleHidden("node-size-range-params", nodeUniform || $("size-by").value === "imported");
+    toggleHidden("edge-size-uniform-params", !edgeUniform);
+    toggleHidden("edge-size-range-params", edgeUniform || $("edge-size-by").value === "imported");
+}
+
+// Maps measured values into a visual range. Proportional mode uses the numeric
+// extent; percentile mode uses rank, reducing the influence of outliers.
+function scaleVisualValues(items, valueFor, minSize, maxSize, mode, reverse = false) {
+    const values = items.map((item) => {
+        const value = Number(valueFor(item));
+        return Number.isFinite(value) ? value : 0;
+    });
+    const lo = Math.min(...values), hi = Math.max(...values);
+    const span = (hi - lo) || 1;
+    const range = Math.max(0, maxSize - minSize);
+    if (hi === lo) return values.map(() => minSize);
+    let percentile = null;
+    if (mode === "percentile") {
+        const ordered = [...values].sort((a, b) => a - b);
+        percentile = new Map();
+        ordered.forEach((value, index) => percentile.set(value, ordered.length > 1 ? index / (ordered.length - 1) : 0));
+    }
+    return values.map((value) => {
+        const fraction = percentile ? percentile.get(value) : (value - lo) / span;
+        return minSize + range * (reverse ? 1 - fraction : fraction);
+    });
+}
 function applyAppearance() {
     const graph = state.graph;
     if (!graph) return;
+    // Resolve an incompatible combination restored from a session before computing colours.
+    if ($("node-color-mode").value === "edges" && $("edge-color-mode").value === "endpoints") $("edge-color-mode").value = "default";
+    syncSizeControlVisibility();
+    syncNodeColorControls();
+    syncEdgeColorControls();
 
     const sizeBy = $("size-by").value;
-    const minSize = numInput("node-size-min", 2), maxSize = numInput("node-size-max", 14);
-    if (!sizeBy) {
-        // Default: every node the same size. Node size is not derived from degree (or any metric) unless the user
-        // explicitly picks one in "Size by"; the "Max size" control sets the uniform node size.
-        graph.forEachNode((n) => graph.setNodeAttribute(n, "size", maxSize));
+    if (sizeBy === "imported") {
+        const fallback = numInput("node-size-uniform", 14);
+        graph.forEachNode(node => {
+            const value = nodeAttrVal(node, "viz:size");
+            graph.setNodeAttribute(node, "size", typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : fallback);
+        });
+    } else if (!sizeBy) {
+        const uniform = numInput("node-size-uniform", 14);
+        graph.forEachNode((node) => graph.setNodeAttribute(node, "size", uniform));
     } else {
+        const minSize = numInput("node-size-min", 2), maxSize = numInput("node-size-max", 14);
         const sizeValues = sizeBy.startsWith("attr:") ? numericMap(nodeAttrValues(sizeBy.slice(5))) : (state.metricData[sizeBy] || {});
-        let min = Infinity, max = -Infinity;
-        for (const n of graph.nodes()) {
-            const val = sizeValues[n] ?? 0;
-            if (val < min) min = val;
-            if (val > max) max = val;
-        }
-        const span = (max - min) || 1;
-        const sizeRange = Math.max(0, maxSize - minSize);
-        graph.forEachNode((n) => graph.setNodeAttribute(n, "size", minSize + sizeRange * (((sizeValues[n] ?? 0) - min) / span)));
+        const nodes = graph.nodes();
+        const sizes = scaleVisualValues(nodes, (node) => sizeValues[node], minSize, maxSize, $("node-size-scale").value, $("node-size-reverse").checked);
+        nodes.forEach((node, index) => graph.setNodeAttribute(node, "size", sizes[index]));
     }
-
+    const colorMode = $("node-color-mode").value;
     const colorSel = $("color-by").value;
-    if (!colorSel) { graph.forEachNode((n) => graph.setNodeAttribute(n, "color", "#4f9dff")); state.colorLegend = { type: "none" }; }
-    else if (colorSel.startsWith("community:")) colorByCommunity(colorSel.slice("community:".length));
+    if (colorMode === "imported") {
+        const colors = new Map();
+        graph.forEachNode(node => {
+            const color = nodeAttrVal(node, "viz:color") || "#4f9dff";
+            graph.setNodeAttribute(node, "color", color);
+            colors.set(toHexColor(color), color);
+        });
+        state.colorLegend = { type: "categorical", title: "Imported colours", editable: false,
+            entries: [...colors].map(([value, color]) => ({ value, color })) };
+    } else if (colorMode === "single") {
+        const color = $("node-color-single").value || "#4f9dff";
+        graph.forEachNode((node) => graph.setNodeAttribute(node, "color", color));
+        state.colorLegend = { type: "categorical", title: "Single colour", editable: false, entries: [{ value: "All nodes", color }] };
+    } else if (colorMode !== "attribute" || !colorSel) {
+        graph.forEachNode((node) => graph.setNodeAttribute(node, "color", "#4f9dff"));
+        state.colorLegend = { type: "categorical", title: "Default colour", editable: false, entries: [{ value: "All nodes", color: "#4f9dff" }] };
+    } else if (colorSel.startsWith("community:")) colorByCommunity(colorSel.slice("community:".length));
     else if (colorSel.startsWith("metric:")) colorByMetric(colorSel.slice("metric:".length));
     else if (colorSel.startsWith("attrcat:")) colorByNodeCategorical(colorSel.slice("attrcat:".length));
     else if (colorSel.startsWith("attr:")) colorByNodeAttr(colorSel.slice("attr:".length));
 
     applyEdgeAppearance();
+    if (colorMode === "edges") colorNodesByEdges();
+    if (!graph.order) state.colorLegend = { type: "none" };
     applyLabels();
     buildNodeLegend();
+    buildEdgeLegend();
 
     if (state.renderer) { state.renderer.refresh(); drawRecOverlay(); }
+    queueCosmographAppearanceRefresh();
 }
 
 function colorByMetric(metricName) {
@@ -1029,7 +1471,8 @@ function colorByMetric(metricName) {
 }
 
 function colorByCommunity(algo) {
-    applyCategorical("community:" + algo, state.communityData[algo] || {}, "community: " + algo);
+    applyCategorical("community:" + algo, state.communityData[algo] || {}, "community: " + algo,
+        id => communityLabel(id, algo));
 }
 
 // Colours nodes by a numeric attribute, using the configured low→high colour ramp.
@@ -1058,7 +1501,7 @@ function colorByNodeCategorical(name) {
 
 // Shared categorical colouring: assigns one colour per distinct value (honouring per-category user overrides in
 // state.catColors[colorKey]) and records the value→colour mapping in state.colorLegend for the legend.
-function applyCategorical(colorKey, values, title) {
+function applyCategorical(colorKey, values, title, labelOf) {
     const graph = state.graph;
     const order = [];
     const seen = new Set();
@@ -1081,7 +1524,7 @@ function applyCategorical(colorKey, values, title) {
 
     state.colorLegend = {
         type: "categorical", colorKey, title,
-        entries: order.map((cat) => ({ value: cat, color: colorOf[cat] })),
+        entries: order.map((cat) => ({ value: cat, color: colorOf[cat], ...(labelOf ? { label: labelOf(cat) } : {}) })),
         hasMissing,
     };
 }
@@ -1090,47 +1533,87 @@ function applyCategorical(colorKey, values, title) {
 function applyEdgeAppearance() {
     const graph = state.graph;
     const sizeBy = $("edge-size-by").value;
-    // Thickness can come from a computed link metric or a numeric edge attribute.
     const edgeAttrName = sizeBy.startsWith("eattr:") ? sizeBy.slice("eattr:".length) : null;
     const sizeData = (sizeBy && !edgeAttrName) ? (state.pairData[sizeBy] || {}) : null;
-    const sizing = sizeBy !== "";
-    const edgeVal = (edge, s, t) => {
-        if (edgeAttrName) { const v = Number(edgeAttrVal(edge, edgeAttrName)); return Number.isNaN(v) ? undefined : v; }
-        if (sizeData) return sizeData[pairKey(s, t)];
-        return undefined;
+    const edgeVal = (edge, source, target) => {
+        if (edgeAttrName) { const value = Number(edgeAttrVal(edge, edgeAttrName)); return Number.isFinite(value) ? value : 0; }
+        return sizeData ? (sizeData[pairKey(source, target)] ?? 0) : 0;
     };
-
-    let min = Infinity, max = -Infinity;
-    if (sizing) {
-        graph.forEachEdge((e, a, s, t) => {
-            const v = edgeVal(e, s, t);
-            if (v === undefined) return;
-            if (v < min) min = v;
-            if (v > max) max = v;
-        });
+    const edges = graph.edges();
+    let widths = null;
+    if (sizeBy && sizeBy !== "imported") {
+        const minWidth = numInput("edge-size-min", 0.5), maxWidth = numInput("edge-size-max", 6);
+        widths = scaleVisualValues(edges, (edge) => edgeVal(edge, graph.source(edge), graph.target(edge)), minWidth, maxWidth, $("edge-size-scale").value, $("edge-size-reverse").checked);
     }
-    const span = (max - min) || 1;
-
-    const mode = $("edge-color-mode").value;
+    const uniform = numInput("edge-size-uniform", 0.5);
+    const colorMode = $("edge-color-mode").value;
     const single = $("edge-color-single").value;
-    const defColor = "#888888";
-    const minW = numInput("edge-size-min", 0.5), maxW = numInput("edge-size-max", 6);
-    const wRange = Math.max(0, maxW - minW);
+    const edgeColorAttribute = $("edge-color-by").value;
+    const edgeColorDefinition = edgeAttrDefs().find((attribute) => attribute.name === edgeColorAttribute);
+    const edgeColors = new Map();
+    let legend = { type: "categorical", title: "Colour", editable: false,
+        entries: [{ value: "All edges", color: colorMode === "single" ? single : "#888888" }] };
+    if (colorMode === "partition") {
+        for (const [edge, color] of edgePartitionNetworkColors($("edge-color-partition").value)) edgeColors.set(edge, color);
+        const data = EDGE_PARTITION_VIEW.partitions[$("edge-color-partition").value];
+        legend = isComputedEdgePartition(data) ? { type: "categorical", title: data.label, colorKey: "edgepartition:" + data.partitionId,
+            entries: data.groups.map(group => ({ value: group.id, label: group.label, color: edgePartitionColor(group, data) })),
+            hasMissing: edges.some(edge => !edgeColors.get(edge)) } : { type: "none" };
+    } else if (colorMode === "attribute" && edgeColorAttribute && edgeColorDefinition?.numeric) {
+        const values = edges.map((edge) => {
+            const value = edgeAttrVal(edge, edgeColorAttribute);
+            return value == null ? NaN : Number(value);
+        });
+        const finiteValues = values.filter(Number.isFinite);
+        const min = finiteValues.length ? finiteValues.reduce((a, b) => Math.min(a, b), Infinity) : 0;
+        const max = finiteValues.length ? finiteValues.reduce((a, b) => Math.max(a, b), -Infinity) : 1;
+        const span = max - min || 1;
+        values.forEach((value, index) => edgeColors.set(edges[index], Number.isFinite(value)
+            ? lerpHex($("edge-color-low").value, $("edge-color-high").value, max === min ? 0.5 : (value - min) / span)
+            : "#888888"));
+        legend = { type: "numeric", title: "Attribute: " + edgeColorAttribute,
+            low: $("edge-color-low").value, high: max === min ? lerpHex($("edge-color-low").value, $("edge-color-high").value, 0.5) : $("edge-color-high").value,
+            min, max, hasMissing: finiteValues.length < edges.length };
+        if (min === max) legend.low = legend.high;
+        if (!finiteValues.length) legend = { type: "categorical", title: "Attribute: " + edgeColorAttribute, entries: [], hasMissing: true, editable: false };
+    } else if (colorMode === "attribute" && edgeColorAttribute) {
+        const categories = new Map();
+        const colorKey = "edgeattr:" + edgeColorAttribute, overrides = state.catColors[colorKey] || {};
+        let hasMissing = false;
+        edges.forEach((edge) => {
+            const value = edgeAttrVal(edge, edgeColorAttribute);
+            if (value == null) { hasMissing = true; edgeColors.set(edge, "#888888"); return; }
+            const key = String(value);
+            if (!categories.has(key)) categories.set(key, overrides[key] || categoricalHex(categories.size));
+            edgeColors.set(edge, categories.get(key));
+        });
+        legend = { type: "categorical", title: "Attribute: " + edgeColorAttribute, colorKey, hasMissing,
+            entries: [...categories].map(([value, color]) => ({ value, color })) };
+    } else if (colorMode === "endpoints") {
+        legend = { type: "text", title: "Average of endpoints", description: "Each edge uses the mean colour of its source and target nodes." };
+    }
 
-    graph.forEachEdge((edge, attr, s, t) => {
-        if (sizing) {
-            const v = edgeVal(edge, s, t);
-            graph.setEdgeAttribute(edge, "size", v === undefined ? minW : minW + wRange * ((v - min) / span));
-        } else {
-            graph.setEdgeAttribute(edge, "size", minW > 0 ? minW : 1);
+    const importedColors = colorMode === "imported" ? new Map() : null;
+    edges.forEach((edge, index) => {
+        const source = graph.source(edge), target = graph.target(edge);
+        const importedThickness = edgeAttrVal(edge, "viz:thickness");
+        const thickness = sizeBy === "imported" && typeof importedThickness === "number"
+            && Number.isFinite(importedThickness) && importedThickness >= 0 ? importedThickness : null;
+        graph.setEdgeAttribute(edge, "size", thickness ?? (widths ? widths[index] : uniform));
+        if (colorMode === "imported") graph.setEdgeAttribute(edge, "color", edgeAttrVal(edge, "viz:color") || "#888888");
+        else if (colorMode === "single") graph.setEdgeAttribute(edge, "color", single);
+        else if (colorMode === "attribute" || colorMode === "partition") graph.setEdgeAttribute(edge, "color", edgeColors.get(edge) || "#888888");
+        else if (colorMode === "endpoints") graph.setEdgeAttribute(edge, "color", averageColor(graph.getNodeAttribute(source, "color"), graph.getNodeAttribute(target, "color")));
+        else graph.setEdgeAttribute(edge, "color", "#888888");
+        if (importedColors) {
+            const color = graph.getEdgeAttribute(edge, "color"), hex = toHexColor(color);
+            importedColors.set(hex, color);
         }
-
-        if (mode === "single") graph.setEdgeAttribute(edge, "color", single);
-        else if (mode === "endpoints") graph.setEdgeAttribute(edge, "color", averageColor(graph.getNodeAttribute(s, "color"), graph.getNodeAttribute(t, "color")));
-        else graph.setEdgeAttribute(edge, "color", defColor);
     });
+    if (importedColors) legend = { type: "categorical", title: "Imported colours", editable: false,
+        entries: [...importedColors].map(([value, color]) => ({ value, color })) };
+    state.edgeColorLegend = edges.length ? legend : { type: "none" };
 }
-
 // Linear interpolation between two hex colours, returning rgb().
 function lerpHex(c1, c2, t) {
     t = Math.max(0, Math.min(1, t));
@@ -1138,6 +1621,24 @@ function lerpHex(c1, c2, t) {
     const b = colorToRgb(c2) || { r: 255, g: 91, b: 91 };
     const ch = (k) => Math.round(a[k] + (b[k] - a[k]) * t);
     return `rgb(${ch("r")},${ch("g")},${ch("b")})`;
+}
+
+function colorNodesByEdges() {
+    const graph = state.graph, sums = new Map();
+    graph.forEachEdge((edge, attrs, source, target) => {
+        const color = colorToRgb(attrs.color) || { r: 136, g: 136, b: 136 };
+        for (const node of source === target ? [source] : [source, target]) {
+            if (!sums.has(node)) sums.set(node, { r: 0, g: 0, b: 0, count: 0 });
+            const sum = sums.get(node);
+            sum.r += color.r; sum.g += color.g; sum.b += color.b; sum.count++;
+        }
+    });
+    graph.forEachNode(node => {
+        const sum = sums.get(node);
+        graph.setNodeAttribute(node, "color", sum ? toHexColor(`rgb(${Math.round(sum.r / sum.count)},${Math.round(sum.g / sum.count)},${Math.round(sum.b / sum.count)})`) : "#4f9dff");
+    });
+    state.colorLegend = { type: "text", title: "Average of edges",
+        description: "Mean colour of all incident edges. Parallel edges count separately; isolated nodes use the default node colour." };
 }
 
 function averageColor(c1, c2) {
@@ -1172,10 +1673,27 @@ function toHexColor(c) {
 // Renders the node-colour legend overlaid on the display panel from state.colorLegend. Categorical legends expose a
 // colour picker per category (writing to state.catColors and re-applying); numeric legends show a gradient + range.
 function buildNodeLegend() {
-    const el = $("node-legend");
+    buildColorLegend("node-legend", scopedNetworkLegend(state.colorLegend, "Nodes"), $("network-node-legend")?.checked !== false);
+}
+
+function buildEdgeLegend() {
+    buildColorLegend("edge-legend", scopedNetworkLegend(state.edgeColorLegend, "Edges"), $("network-edge-legend")?.checked !== false);
+}
+
+function scopedNetworkLegend(legend, scope) {
+    return legend && legend.type !== "none" ? { ...legend, scope, title: scope + (legend.title ? " · " + legend.title : "") } : null;
+}
+
+function networkLegendData() {
+    const legends = [$("network-node-legend").checked ? scopedNetworkLegend(state.colorLegend, "Nodes") : null,
+        $("network-edge-legend").checked ? scopedNetworkLegend(state.edgeColorLegend, "Edges") : null].filter(Boolean);
+    return legends.length > 1 ? { type: "group", legends } : legends[0] || null;
+}
+
+function buildColorLegend(id, lg, visible) {
+    const el = $(id);
     if (!el) return;
-    const lg = state.colorLegend;
-    if (!lg || lg.type === "none") { el.hidden = true; el.innerHTML = ""; return; }
+    if (!visible || !lg || lg.type === "none") { el.hidden = true; el.innerHTML = ""; return; }
     el.innerHTML = "";
 
     const title = document.createElement("div");
@@ -1183,7 +1701,10 @@ function buildNodeLegend() {
     title.textContent = lg.title || "Node colour";
     el.appendChild(title);
 
-    if (lg.type === "numeric") {
+    if (lg.type === "text") {
+        const note = document.createElement("div"); note.className = "legend-note"; note.textContent = lg.description;
+        el.appendChild(note);
+    } else if (lg.type === "numeric") {
         const bar = document.createElement("div");
         bar.className = "legend-gradient";
         bar.style.background = "linear-gradient(to right, " + lg.low + ", " + lg.high + ")";
@@ -1194,11 +1715,12 @@ function buildNodeLegend() {
         const hi = document.createElement("span"); hi.textContent = fmt(lg.max);
         scale.appendChild(lo); scale.appendChild(hi);
         el.appendChild(scale);
+        if (lg.hasMissing) el.appendChild(legendCategoryRow(null, "(none)", "#888888", false));
     } else {
         const list = document.createElement("div");
         list.className = "legend-list";
-        for (const entry of lg.entries) {
-            list.appendChild(legendCategoryRow(lg.colorKey, entry.value, entry.color, true));
+        for (const entry of lg.entries || []) {
+            list.appendChild(legendCategoryRow(lg.colorKey, entry.value, entry.color, lg.editable !== false && !!lg.colorKey, entry.label ?? entry.value));
         }
         if (lg.hasMissing) list.appendChild(legendCategoryRow(null, "(none)", "#888888", false));
         el.appendChild(list);
@@ -1207,7 +1729,25 @@ function buildNodeLegend() {
 }
 
 // One legend row: an editable colour swatch (for real categories) + the category label.
-function legendCategoryRow(colorKey, value, color, editable) {
+function setCategoricalColor(colorKey, value, color) {
+    if (!/^#[\da-f]{6}$/i.test(color)) return;
+    if (colorKey.startsWith("edgepartition:")) {
+        const data = EDGE_PARTITION_VIEW.partitions[colorKey.slice("edgepartition:".length)];
+        const group = data?.groups.find(group => String(group.id) === String(value));
+        if (!group) return;
+        group.color = color;
+    } else {
+        if (!state.catColors[colorKey]) state.catColors[colorKey] = {};
+        state.catColors[colorKey][value] = color;
+    }
+    applyAppearance();
+    if (colorKey === "community:" + COMMUNITY_EXPLORER.partition) {
+        updateCommunityGraphAppearance();
+        if (state.activeTab !== "communities") renderCommunityTable();
+    }
+}
+
+function legendCategoryRow(colorKey, value, color, editable, label = value) {
     const row = document.createElement("div");
     row.className = "legend-row";
     if (editable) {
@@ -1215,11 +1755,9 @@ function legendCategoryRow(colorKey, value, color, editable) {
         sw.type = "color";
         sw.className = "legend-swatch-input";
         sw.value = toHexColor(color);
-        sw.title = "Colour for " + value;
+        setTooltip(sw, "js-colour-for", { value: label });
         sw.addEventListener("input", () => {
-            if (!state.catColors[colorKey]) state.catColors[colorKey] = {};
-            state.catColors[colorKey][value] = sw.value;
-            applyAppearance();
+            setCategoricalColor(colorKey, value, sw.value);
         });
         row.appendChild(sw);
     } else {
@@ -1230,59 +1768,98 @@ function legendCategoryRow(colorKey, value, color, editable) {
     }
     const lab = document.createElement("span");
     lab.className = "legend-label";
-    lab.textContent = value;
+    lab.textContent = label;
     row.appendChild(lab);
     return row;
 }
 
 /* ------------------------------ labels ------------------------------ */
 
-// Sets the graphology label of every node/edge from a "label" attribute when present (node ids are the fallback;
-// edges have no label unless a "label" attribute provides one). Sigma renders these via the custom drawers below.
+function rebuildLabelAttributeOptions() {
+    for (const [kind, defs, defaultText] of [
+        ["node", nodeAttrDefs(), "Default (label or node ID)"],
+        ["edge", edgeAttrDefs(), "Default (label attribute)"],
+    ]) {
+        const select = $(kind + "-label-attribute");
+        const current = select.value;
+        select.replaceChildren(option("", defaultText), option("id", kind === "node" ? "Node ID" : "Edge ID"));
+        defs.forEach((def) => select.appendChild(option("attr:" + def.name, def.name)));
+        restoreSelect(select, current);
+    }
+}
+
+function attributeLabelText(value, fallback) {
+    if (value === undefined || value === null || value === "") return fallback;
+    return typeof value === "object" ? JSON.stringify(value) : String(value);
+}
+
+// Map the chosen attributes into display labels shared by all graph renderers.
 function applyLabels() {
     const g = state.graph;
     if (!g) return;
-    const nodeHasLabel = nodeAttrDefs().some((d) => d.name === "label");
+    const nodeSelection = $("node-label-attribute").value;
+    const edgeSelection = $("edge-label-attribute").value;
+    state.labelOpts.nodeAttribute = nodeSelection;
+    state.labelOpts.edgeAttribute = edgeSelection;
+    const nodeAttribute = nodeSelection.startsWith("attr:") ? nodeSelection.slice(5) : "label";
+    const edgeAttribute = edgeSelection.startsWith("attr:") ? edgeSelection.slice(5) : "label";
     g.forEachNode((n) => {
-        const lbl = nodeHasLabel ? nodeAttrVal(n, "label") : null;
-        g.setNodeAttribute(n, "label", (lbl !== undefined && lbl !== null && lbl !== "") ? String(lbl) : n);
+        const lbl = nodeSelection === "id" ? n : nodeAttrVal(n, nodeAttribute);
+        g.setNodeAttribute(n, "label", attributeLabelText(lbl, String(n)));
     });
-    const edgeHasLabel = edgeAttrDefs().some((d) => d.name === "label");
     g.forEachEdge((e) => {
-        const lbl = edgeHasLabel ? edgeAttrVal(e, "label") : null;
-        g.setEdgeAttribute(e, "label", (lbl !== undefined && lbl !== null && lbl !== "") ? String(lbl) : "");
+        const lbl = edgeSelection === "id" ? e : edgeAttrVal(e, edgeAttribute);
+        g.setEdgeAttribute(e, "label", attributeLabelText(lbl, ""));
     });
 }
 
 // Reads the label controls into state and pushes the show/hide flags to the renderer.
 function syncLabelOpts() {
+    applyLabels();
     const o = state.labelOpts;
     o.nodeShow = $("node-label-show").checked;
     o.nodeSize = numInput("node-label-size", 12);
     o.nodeProp = $("node-label-prop").checked;
+    o.nodeColorMode = $("node-label-color-mode").value || "default";
     o.nodeColor = $("node-label-color").value;
+    toggleHidden("node-label-single-color-field", o.nodeColorMode !== "single");
     o.nodeFont = $("node-label-font").value;
     o.edgeShow = $("edge-label-show").checked;
     o.edgeSize = numInput("edge-label-size", 9);
     o.edgeProp = $("edge-label-prop").checked;
+    o.edgeColorMode = $("edge-label-color-mode").value || "default";
     o.edgeColor = $("edge-label-color").value;
+    toggleHidden("edge-label-single-color-field", o.edgeColorMode !== "single");
     o.edgeFont = $("edge-label-font").value;
+    window.relisonCosmographLabelOpts = { ...o };
     if (state.renderer) {
         state.renderer.setSetting("renderLabels", o.nodeShow);
         state.renderer.setSetting("renderEdgeLabels", o.edgeShow);
         // Mirror to the built-in settings too, as a fallback for the fixed-size case.
         state.renderer.setSetting("labelSize", o.nodeSize);
         state.renderer.setSetting("edgeLabelSize", o.edgeSize);
-        state.renderer.setSetting("labelColor", { color: o.nodeColor });
-        state.renderer.setSetting("edgeLabelColor", { color: o.edgeColor });
+        state.renderer.setSetting("labelColor", { color: labelDisplayColor("node", null, "sigma") });
+        state.renderer.setSetting("edgeLabelColor", { color: labelDisplayColor("edge", null, "sigma") });
         state.renderer.setSetting("labelFont", o.nodeFont);
         state.renderer.setSetting("edgeLabelFont", o.edgeFont);
         state.renderer.refresh();
     }
+    queueCosmographAppearanceRefresh();
+    if (usingGeographic()) window.relisonGeographic.refresh();
+    if (state.diffusion.graph) syncDiffAppearance();
 }
 
 function labelTextColor() {
     return document.body.classList.contains("light") ? "#1c1d20" : "#e6e6e6";
+}
+
+function labelDisplayColor(kind, underlyingColor, renderer) {
+    const options = state.labelOpts;
+    const mode = options[kind + "ColorMode"] || "default";
+    if (mode === "single") return options[kind + "Color"] || (renderer === "cosmograph" ? "#ffffff" : "#000000");
+    if ((kind === "node" && mode === "node") || (kind === "edge" && mode === "edge"))
+        return underlyingColor || (renderer === "cosmograph" ? "#ffffff" : "#000000");
+    return renderer === "cosmograph" ? "#ffffff" : "#000000";
 }
 
 // Custom node label drawer: font size is either fixed or proportional to the node's rendered size.
@@ -1295,10 +1872,13 @@ function drawNodeLabelWith(context, data, color) {
     context.font = `${fontSize}px ${o.nodeFont || "sans-serif"}`;
     context.fillText(data.label, data.x + data.size + 3, data.y + fontSize / 3);
 }
-function drawNodeLabel(context, data) { drawNodeLabelWith(context, data, state.labelOpts.nodeColor || labelTextColor()); }
+function drawNodeLabel(context, data) { drawNodeLabelWith(context, data, labelDisplayColor("node", data.color, "sigma")); }
 // Diffusion canvas: same label geometry as the main plot, but its own (theme-default) colour — label colour is
 // deliberately not mirrored from the main plot.
-function drawDiffNodeLabel(context, data) { drawNodeLabelWith(context, data, labelTextColor()); }
+function drawDiffNodeLabel(context, data) {
+    const renderer = state.diffusion.rendererType === "cosmograph" ? "cosmograph" : "sigma";
+    drawNodeLabelWith(context, data, labelDisplayColor("node", data.color, renderer));
+}
 
 // Custom edge label drawer: drawn at the edge midpoint, size fixed or proportional to the edge thickness.
 function drawEdgeLabelWith(context, data, sourceData, targetData, color) {
@@ -1313,32 +1893,561 @@ function drawEdgeLabelWith(context, data, sourceData, targetData, color) {
     context.fillText(data.label, x, y);
     context.textAlign = "left";
 }
-function drawEdgeLabel(context, data, sourceData, targetData) { drawEdgeLabelWith(context, data, sourceData, targetData, state.labelOpts.edgeColor || labelTextColor()); }
-function drawDiffEdgeLabel(context, data, sourceData, targetData) { drawEdgeLabelWith(context, data, sourceData, targetData, labelTextColor()); }
+function drawEdgeLabel(context, data, sourceData, targetData) { drawEdgeLabelWith(context, data, sourceData, targetData, labelDisplayColor("edge", data.color, "sigma")); }
+function drawDiffEdgeLabel(context, data, sourceData, targetData) {
+    const renderer = state.diffusion.rendererType === "cosmograph" ? "cosmograph" : "sigma";
+    drawEdgeLabelWith(context, data, sourceData, targetData, labelDisplayColor("edge", data.color, renderer));
+}
 
 /* --------------------------- canvas tools --------------------------- */
 
-function zoomIn() { if (state.renderer) state.renderer.getCamera().animatedZoom(); }
-function zoomOut() { if (state.renderer) state.renderer.getCamera().animatedUnzoom(); }
-function zoomFit() { if (state.renderer) state.renderer.getCamera().animatedReset(); }
-
-/* ----------------------------- selection ---------------------------- */
-
-// Selects a node (from a click or the UI) and refreshes the info panel + visualization emphasis.
-function selectNode(node) {
-    if (!state.graph || !state.graph.hasNode(node)) return;
-    state.selectedNode = node;
-    state.selection.node = node;
-    $("select-node-input").value = node;
-    renderNodeInfo(node);
-    updatePartitionField();
-    //if (document.body.classList.contains("focus-mode")) { document.body.classList.add("inspector-open"); $("inspector-toggle").classList.add("active"); $("inspector-toggle").setAttribute("aria-pressed", "true"); }
-    applyReducers();
-    if (state.selection.mode === "ego-only" || state.selection.mode === "community-only") {
-        renderTable(state.activeTableSubtab);
+function zoomIn() {
+    if (usingGeographic()) { window.relisonGeographic.zoomIn(); return; }
+    if (usingCosmograph()) { window.relisonCosmograph?.zoomIn(); return; }
+    if (state.renderer) state.renderer.getCamera().animatedZoom({ factor: 1.25, duration: 150 });
+}
+function zoomOut() {
+    if (usingGeographic()) { window.relisonGeographic.zoomOut(); return; }
+    if (usingCosmograph()) { window.relisonCosmograph?.zoomOut(); return; }
+    if (state.renderer) state.renderer.getCamera().animatedUnzoom({ factor: 1.25, duration: 150 });
+}
+function zoomFit() {
+    if (usingGeographic()) { window.relisonGeographic.fitView(); return; }
+    if (usingCosmograph() && window.relisonCosmograph?.getDimensions?.() === 3) {
+        window.relisonCosmograph.fitView();
+        return;
+    }
+    const view = fittedNetworkView();
+    if (view) {
+        if (usingCosmograph()) window.relisonCosmograph?.setNetworkView(view);
+        else restoreSigmaNetworkView(view);
+        return;
+    }
+    if (usingCosmograph()) { window.relisonCosmograph?.fitView(); return; }
+    if (state.renderer) state.renderer.getCamera().animatedReset();
+}
+function syncCosmographLabelColorControls() {
+    // Cosmograph supports node-label colour directly. Keep both colour inputs
+    // available so the shared label controls remain consistent between renderers.
+    for (const id of ["node-label-color", "edge-label-color"]) {
+        const control = $(id);
+        control.disabled = false;
+        control.removeAttribute("title");
+        control.removeAttribute("aria-description");
     }
 }
 
+
+let cosmographAppearanceRefreshTimer = null;
+function queueCosmographAppearanceRefresh() {
+    if (usingGeographic()) window.relisonGeographic.refresh();
+    if (!state.graph || !window.relisonCosmograph) return;
+    syncCosmographRecommendation();
+    // Avoid updating a hidden canvas. Its next visible render will consume the
+    // latest shared graph state instead.
+    if ($("network-renderer").value !== "cosmograph" || !$("pane-network").classList.contains("active")) {
+        state.cosmographDirty = true;
+        return;
+    }
+    clearTimeout(cosmographAppearanceRefreshTimer);
+    cosmographAppearanceRefreshTimer = setTimeout(() => {
+        if ($("network-renderer").value !== "cosmograph" || !$("pane-network").classList.contains("active") || !state.graph) {
+            state.cosmographDirty = true;
+            return;
+        }
+        window.relisonCosmograph.render(state.graph, {
+            ...cosmographInteractionCallbacks(),
+        }).then(() => { state.cosmographDirty = false; })
+          .catch((e) => setStatus("Cosmograph could not update its visual mapping: " + e.message, "error"));
+    }, 80);
+}
+
+let cosmographTimelineRefreshTimer = null;
+function queueCosmographTimelineRefresh() {
+    if (!state.graph || !window.relisonCosmograph) return;
+    if ($("network-renderer").value !== "cosmograph" || !$("pane-network").classList.contains("active")) {
+        state.cosmographDirty = true;
+        return;
+    }
+    clearTimeout(cosmographTimelineRefreshTimer);
+    cosmographTimelineRefreshTimer = setTimeout(() => {
+        if ($("network-renderer").value !== "cosmograph" || !$("pane-network").classList.contains("active") || !state.graph) return;
+        const update = window.relisonCosmograph.syncTimeline || window.relisonCosmograph.render;
+        update(state.graph, {
+            ...cosmographInteractionCallbacks(),
+        }).then(() => { state.cosmographDirty = false; })
+          .catch((e) => setStatus("Cosmograph could not update the timeline: " + e.message, "error"));
+    }, 40);
+}
+// Exchange cameras in shared graph units rather than comparing unrelated
+// library zoom values: preserve the graph center and CSS pixels per graph unit.
+function sigmaNetworkView() {
+    const renderer = state.renderer, container = $("sigma-container");
+    if (!renderer || !container.clientWidth || !container.clientHeight) return null;
+    renderer.refresh({ schedule: false });
+    const x = container.clientWidth / 2, y = container.clientHeight / 2;
+    const center = renderer.viewportToGraph({ x, y });
+    const offset = renderer.viewportToGraph({ x: x + 100, y });
+    const pixelsPerUnit = 100 / Math.hypot(offset.x - center.x, offset.y - center.y);
+    return [center.x, center.y, pixelsPerUnit].every(Number.isFinite) && pixelsPerUnit > 0
+        ? { x: center.x, y: center.y, pixelsPerUnit } : null;
+}
+
+function fittedNetworkView() {
+    if (!state.graph || !state.renderer) return null;
+    if (usingCosmograph()) window.relisonCosmograph?.savePointPositions();
+    state.renderer.refresh({ schedule: false });
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    state.graph.forEachNode((node, attributes) => {
+        if (state.renderer.getNodeDisplayData(node)?.hidden || !Number.isFinite(attributes.x) || !Number.isFinite(attributes.y)) return;
+        minX = Math.min(minX, attributes.x); maxX = Math.max(maxX, attributes.x);
+        minY = Math.min(minY, attributes.y); maxY = Math.max(maxY, attributes.y);
+    });
+    const container = $("sigma-container"), width = container.clientWidth, height = container.clientHeight;
+    if (!Number.isFinite(minX) || !width || !height) return null;
+    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2,
+        pixelsPerUnit: Math.min(width * 0.8 / Math.max(1, maxX - minX), height * 0.8 / Math.max(1, maxY - minY)) };
+}
+
+function restoreSigmaNetworkView(view) {
+    if (!view || !state.renderer) return;
+    const renderer = state.renderer;
+    renderer.refresh({ schedule: false });
+    const center = renderer.graphToFramedGraph({ x: view.x, y: view.y });
+    const camera = renderer.getCamera();
+    const cameraState = { ...camera.getState(), x: center.x, y: center.y, angle: 0 };
+    const distance = 100 / view.pixelsPerUnit;
+    const start = renderer.graphToViewport({ x: view.x, y: view.y }, { cameraState });
+    const end = renderer.graphToViewport({ x: view.x + distance, y: view.y }, { cameraState });
+    const ratio = cameraState.ratio * Math.hypot(end.x - start.x, end.y - start.y) / 100;
+    if (Number.isFinite(ratio) && ratio > 0) {
+        camera.setState({ ...cameraState, ratio });
+        renderer.refresh({ schedule: false });
+    }
+}
+
+async function setNetworkRenderer(name) {
+    const pane = $("pane-network"), container = $("cosmograph-container"), select = $("network-renderer");
+    toggleHidden("network-dimensions-field", name !== "cosmograph");
+    toggleHidden("cosmograph-sphere-shading-field", name !== "cosmograph" || $("network-dimensions").value !== "3");
+    toggleHidden("network-3d-help", name !== "cosmograph" || $("network-dimensions").value !== "3");
+    toggleHidden("btn-project-network-2d", name !== "cosmograph" || $("network-dimensions").value !== "3");
+    if (name === "geographic") {
+        $("layout-type").value = "geographic";
+        $("layout-advanced").open = true;
+        updateLayoutTypeUI(); updateLayoutButton();
+        return applyGeographicLayout();
+    }
+    if (state.layoutRequest && currentLayoutType() === "geographic") stopLayout();
+    if (pane.classList.contains("geographic-active")) leaveGeographicView(name);
+    if (name !== "cosmograph") {
+        const view = pane.classList.contains("cosmograph-active") ? window.relisonCosmograph?.getNetworkView() : null;
+        if (view) window.relisonCosmograph.savePointPositions();
+        pane.classList.remove("cosmograph-active");
+        container.hidden = true;
+        window.relisonCosmograph?.refreshOrientationGizmo?.();
+        restoreSigmaNetworkView(view);
+        if (typeof syncRotationExportControls === "function") syncRotationExportControls();
+        // Preserve the completed Cosmograph canvas. It can be shown again
+        // without reconstructing it when the shared graph is unchanged.
+        select.value = "sigma";
+        return;
+    }
+    if (!state.graph) {
+        setStatus("Load a network before selecting Cosmograph.", "error");
+        return;
+    }
+    if (!window.relisonCosmograph) {
+        setStatus("Cosmograph is still loading; try again in a moment.", "error");
+        return;
+    }
+    try {
+        const view = pane.classList.contains("cosmograph-active") && window.relisonCosmograph.isRendered(state.graph) ? null : sigmaNetworkView();
+        const recommendationChanged = syncCosmographRecommendation();
+        // Keep the theme defaults and the user's shared label colours.
+        // Forcing white here makes labels disappear on light canvases.
+        container.hidden = false;
+        const needsRender = recommendationChanged || state.cosmographDirty || !window.relisonCosmograph.isRendered();
+        if (needsRender) {
+            await window.relisonCosmograph.render(state.graph, {
+                ...cosmographInteractionCallbacks(),
+            });
+            state.cosmographDirty = false;
+        }
+        pane.classList.add("cosmograph-active");
+        window.relisonCosmograph?.refreshOrientationGizmo?.();
+        select.value = "cosmograph";
+        if (typeof syncRotationExportControls === "function") syncRotationExportControls();
+        if (view) window.relisonCosmograph.setNetworkView(view);
+        setStatus("Cosmograph visualization ready.");
+    } catch (e) {
+        container.hidden = true;
+        pane.classList.remove("cosmograph-active");
+        window.relisonCosmograph?.refreshOrientationGizmo?.();
+        select.value = "sigma";
+        if (typeof syncRotationExportControls === "function") syncRotationExportControls();
+        setStatus("Cosmograph could not render this graph: " + e.message, "error");
+    }
+}
+window.addEventListener("relison-cosmograph-ready", () => { if ($("network-renderer").value === "cosmograph") setNetworkRenderer("cosmograph"); });
+window.addEventListener("relison-diffusion-cosmograph-ready", () => {
+    if (state.diffusion.graph && state.diffusion.rendererType === "cosmograph" && !state.diffusion.cosmograph) initDiffCosmograph();
+});
+/* ----------------------------- selection ---------------------------- */
+
+function syncCosmographSelection() {
+    if (!window.relisonCosmograph?.setFocusedSelection) return;
+    const focus = networkView().emphasis;
+    window.relisonCosmograph.setFocusedSelection(focus?.selected ?? null, state.selection.type === "edge" && focus?.edges.has(state.selectedEdge) ? state.selectedEdge : null)
+        .catch((error) => console.warn("Cosmograph selection sync failed.", error));
+}
+
+function syncNodeColorControls() {
+    const mode = $("node-color-mode").value;
+    const selection = $("color-by").value;
+    const average = $("node-color-mode").querySelector('option[value="edges"]');
+    average.disabled = $("edge-color-mode").value === "endpoints";
+    average.title = average.disabled ? "Choose an edge colour mode that does not depend on node colours." : "Average of all incident edge colours";
+    toggleHidden("node-color-single-field", mode !== "single");
+    toggleHidden("node-color-attribute-field", mode !== "attribute");
+    const metric = selection.startsWith("metric:");
+    toggleHidden("node-color-range-field", mode !== "attribute" || !metric);
+}
+
+function syncEdgeColorControls() {
+    const mode = $("edge-color-mode").value;
+    const name = $("edge-color-by").value;
+    const definition = edgeAttrDefs().find((attribute) => attribute.name === name);
+    const endpoints = $("edge-color-mode").querySelector('option[value="endpoints"]');
+    endpoints.disabled = $("node-color-mode").value === "edges";
+    endpoints.title = endpoints.disabled ? "Choose a node colour mode that does not depend on edge colours." : "";
+    toggleHidden("edge-color-single-field", mode !== "single");
+    toggleHidden("edge-color-attribute-field", mode !== "attribute");
+    toggleHidden("edge-color-partition-field", mode !== "partition");
+    toggleHidden("edge-color-range-field", mode !== "attribute" || !definition?.numeric);
+}
+
+function sigmaDefaultEdgeType() {
+    const curved = $("edge-shape")?.value === "curved" && window.relisonSigmaEdgePrograms;
+    return curved ? (state.directed ? "curvedArrow" : "curve") : (state.directed ? "arrow" : "line");
+}
+
+function applyEdgeShape() {
+    if (usingCosmograph()) {
+        queueCosmographAppearanceRefresh();
+        return;
+    }
+    if (state.renderer) {
+        state.renderer.setSetting("defaultEdgeType", sigmaDefaultEdgeType());
+        state.renderer.refresh();
+        drawRecOverlay();
+        if ($("edge-shape").value === "curved" && !window.relisonSigmaEdgePrograms) {
+            setStatus("Curved Sigma edges are still loading.", "error");
+        }
+    }
+}
+
+window.addEventListener("relison-sigma-edge-curve-ready", () => {
+    if (state.renderer && !usingCosmograph() && $("edge-shape").value === "curved") {
+        // Sigma creates edge programs with the renderer. Recreate only in the
+        // rare case the user loaded a graph before the curve extension arrived.
+        const graphData = state.graph?.export();
+        if (graphData) renderGraph(graphData);
+    }
+});
+
+function updateSelectionSummary() {
+    const type = state.selection.type, kind = $("selection-kind"), summary = $("selection-summary");
+    if (!kind || !summary) return;
+    kind.textContent = type === "edge" ? "Edge" : type === "path" ? "Path" : "Node";
+    const view = networkView(), focus = view.focus;
+    if (type === "edge" && state.selectedEdge && state.graph?.hasEdge(state.selectedEdge)) {
+        summary.textContent = state.graph.source(state.selectedEdge) + " → " + state.graph.target(state.selectedEdge);
+    } else if (type === "node" && state.selectedNode != null) summary.textContent = state.selectedNode;
+    else if (type === "path" && $("select-path-source").value && $("select-path-target").value) {
+        summary.textContent = $("select-path-source").value + " → " + $("select-path-target").value +
+            (state.pathResult ? " · " + state.lastPaths.length + " shortest path(s) · " + state.activePaths.length + " selected" : " · not searched");
+    } else summary.textContent = type === "edge" ? "Choose an edge to inspect it." : type === "path" ? "Choose path endpoints to explore connections." : "Select a node to inspect it.";
+    if (focus) summary.textContent += " · " + focus.nodes.size + " nodes / " + focus.edges.size + " edges in focus";
+    const notice = $("selection-notice");
+    if (!notice) return;
+    const messages = [];
+    if (type === "node" && state.selectedNode != null && !view.working.nodes.has(state.selectedNode) ||
+        type === "edge" && state.selectedEdge != null && !view.working.edges.has(state.selectedEdge)) messages.push("Outside current filters. Inspection is retained; filters remain active.");
+    if (type === "path" && state.activePaths.length) {
+        const nodes = new Set(), edges = new Set(), pairs = new Set();
+        state.activePaths.forEach(path => {
+            path.forEach(node => nodes.add(node));
+            for (let i = 1; i < path.length; i++) {
+                pairs.add(window.relisonNetworkView.pair(path[i - 1], path[i]));
+                if (!state.directed) pairs.add(window.relisonNetworkView.pair(path[i], path[i - 1]));
+            }
+        });
+        state.graph?.forEachEdge(edge => { if (pairs.has(window.relisonNetworkView.pair(state.graph.source(edge), state.graph.target(edge)))) edges.add(edge); });
+        const missingNodes = [...nodes].filter(node => !view.working.nodes.has(node)).length;
+        const missingEdges = [...edges].filter(edge => !view.working.edges.has(edge)).length;
+        if (missingNodes || missingEdges) messages.push(missingNodes + " nodes and " + missingEdges + " edges in the selected paths are outside current filters." + (view.isolate ? " Showing a partial path." : " Excluded steps remain dimmed."));
+    }
+    if (focus?.unavailable) messages.push(focus.unavailable);
+    if (view.isolate && !view.tableNodes.size) messages.push("No selected entities match the current filters. Switch to Highlight or clear the relevant filter.");
+    notice.textContent = messages.join(" "); notice.hidden = !messages.length;
+}
+function populateEdgeSelector() {
+    const select = $("select-edge-input"), graph = state.graph;
+    if (!select) return;
+    const current = state.selectedEdge || select.value;
+    select.innerHTML = '<option value="">— choose an edge —</option>';
+    if (!graph) return;
+    const candidates = state.edgeSelectionPair
+        ? edgeIdsBetween(state.edgeSelectionPair.source, state.edgeSelectionPair.target)
+        : graph.edges();
+    candidates.slice().sort((a, b) => String(a).localeCompare(String(b))).forEach((edge) => {
+        const source = graph.source(edge), target = graph.target(edge);
+        const suffix = graph.multi ? " · " + edge : "";
+        select.appendChild(option(edge, source + " → " + target + suffix));
+    });
+    if (current && graph.hasEdge(current)) select.value = current;
+}
+function updateSelectionTargetUI() {
+    const edge = state.selection.type === "edge";
+    const path = state.selection.type === "path";
+    $("select-type").value = path ? "path" : edge ? "edge" : "node";
+    toggleHidden("select-node-field", edge || path);
+    toggleHidden("select-edge-field", !edge);
+    toggleHidden("select-path-fields", !path);
+    toggleHidden("select-path-results", !path);
+    toggleHidden("select-path-color-controls", !path);
+    toggleHidden("path-edge-highlight-color-field", state.pathEdgeHighlight.mode !== "single");
+    toggleHidden("path-node-scale-field", !state.pathAppearance.enlargeNodes);
+    toggleHidden("select-view-mode-field", false);
+    if (edge) populateEdgeSelector();
+    $("node-info-table").hidden = edge || path;
+    const options = Array.from($("select-mode").options);
+    options.forEach((option) => {
+        const value = option.value;
+        const isPathMode = value === "path-highlight" || value === "path-only";
+        const isEdgeMode = value === "edge-highlight" || value.startsWith("edge-attribute-")
+            || value.startsWith("edge-group-") && !!state.selection.edgeGroup?.length;
+        const isNodeEdgeMode = value.startsWith("ego-") || value.startsWith("community-");
+        const visible = value === "none" || (path ? isPathMode : edge ? isEdgeMode || isNodeEdgeMode : value === "highlight" || isNodeEdgeMode);
+        option.hidden = !visible;
+        option.disabled = !visible;
+    });
+    const highlight = $("select-mode").querySelector('option[value="highlight"]');
+    if (highlight) highlight.textContent = edge ? "Highlight endpoints" : "Highlight node";
+    const edgeHighlight = $("select-mode").querySelector('option[value="edge-highlight"]');
+    if (edgeHighlight) { edgeHighlight.hidden = !edge; edgeHighlight.disabled = !edge; }
+    ["edge-attribute-highlight", "edge-attribute-only"].forEach((value) => {
+        const option = $("select-mode").querySelector('option[value="' + value + '"]');
+        if (option) { option.hidden = !edge; option.disabled = !edge; }
+    });
+    const edgeAttributeMode = edge && ["edge-attribute-highlight", "edge-attribute-only"].includes(state.selection.mode);
+    $("select-edge-attribute-field").hidden = !edgeAttributeMode;
+    const edgeAttributes = edgeAttrDefs().map((def) => def.name);
+    setSelectOptions("select-edge-attribute", ["", ...edgeAttributes], ["— choose an attribute —", ...edgeAttributes]);
+    if (!edgeAttributes.includes(state.selection.edgeAttribute)) state.selection.edgeAttribute = null;
+    $("select-edge-attribute").value = state.selection.edgeAttribute || "";
+    if (path && !["path-highlight", "path-only", "none"].includes(state.selection.mode)) state.selection.mode = "path-highlight";
+    if (edge && (!state.selection.edgeGroup?.length && state.selection.mode.startsWith("edge-group-")
+        || !["edge-highlight", "edge-group-highlight", "edge-group-only", "edge-attribute-highlight", "edge-attribute-only", "ego-highlight", "ego-only", "community-highlight", "community-only", "none"].includes(state.selection.mode))) state.selection.mode = "edge-highlight";
+    if (!edge && !path && ["edge-highlight", "edge-group-highlight", "edge-group-only", "edge-attribute-highlight", "edge-attribute-only", "path-highlight", "path-only"].includes(state.selection.mode)) state.selection.mode = "highlight";
+    $("select-mode").value = state.selection.mode;
+    const labels = edge ? { "ego-highlight": "Highlight both ego-networks", "ego-only": "Show only both ego-networks", "community-highlight": "Highlight both communities", "community-only": "Show only both communities" } : { "ego-highlight": "Highlight ego-network", "ego-only": "Show only ego-network", "community-highlight": "Highlight community", "community-only": "Show only community" };
+    Object.entries(labels).forEach(([value, text]) => { const option = $("select-mode").querySelector('option[value="' + value + '"]'); if (option) option.textContent = text; });
+    const details = $("edge-selection-details");
+    if (details) details.hidden = !edge;
+    if (edge && !state.selectedEdge) {
+        const prompt = state.edgeSelectionPair
+            ? "Choose the desired link between " + state.edgeSelectionPair.source + " and " + state.edgeSelectionPair.target + " from the selector above."
+            : "Click a link, or Ctrl/Cmd-click its two endpoints.";
+        $("edge-info-table").innerHTML = '<tr><td class="muted" colspan="2">' + prompt + '</td></tr>';
+    }
+    updatePartitionField();
+    updateSelectionSummary();
+}
+
+function setSelectionType(type) {
+    type = ["node", "edge", "path"].includes(type) ? type : "node";
+    if (state.selection.type === type) return;
+    const previousNode = state.selectedNode;
+    clearSelection({ refreshTable: false, refreshGraph: false });
+    rememberSelectionType(type);
+    if (type === "path" && previousNode) $("select-path-source").value = previousNode;
+    refreshNetworkView();
+}
+function clearEdgeSelection() {
+    state.selection.edgeGroup = null;
+    state.selectedEdge = null;
+    state.edgeSelectionPair = null;
+    const details = $("edge-selection-details");
+    if (details) details.hidden = true;
+    const table = $("edge-info-table");
+    if (table) table.innerHTML = '<tr><td class="muted" colspan="2">No edge selected.</td></tr>';
+}
+
+function renderEdgeInfo(edge) {
+    const graph = state.graph, table = $("edge-info-table"), details = $("edge-selection-details");
+    if (!table || !details) return;
+    table.innerHTML = "";
+    if (edge == null || !graph || !graph.hasEdge(edge)) { clearEdgeSelection(); return; }
+    details.hidden = false;
+    const source = graph.source(edge), target = graph.target(edge), attrs = graph.getEdgeAttributes(edge);
+    $("edge-source-preview").textContent = source;
+    $("edge-target-preview").textContent = target;
+    const rows = [["id", edge], ["source", source], ["target", target]];
+    if (attrs.weight != null) rows.push(["weight", fmt(attrs.weight)]);
+    if (attrs.label) rows.push(["label", attrs.label]);
+    for (const d of edgeAttrDefs()) {
+        const value = edgeAttrVal(edge, d.name);
+        if (value !== undefined && value !== null && d.name !== "label") rows.push(["attr · " + d.name, fmt(value)]);
+    }
+    for (const [key, value] of rows) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${key}</td><td>${value}</td>`;
+        table.appendChild(tr);
+    }
+}
+
+function selectEdge(edge) {
+    if (!state.graph?.hasEdge(edge)) return;
+    state.selection.edgeGroup = null;
+    if (state.selection.type !== "edge") invalidatePathResults();
+    rememberSelectionType("edge");
+    state.selectedNode = state.selection.node = null;
+    state.cosmographEdgeStart = null;
+    $("select-node-input").value = "";
+    renderNodeInfo(null);
+    state.selectedEdge = edge;
+    state.edgeSelectionPair = null;
+    renderEdgeInfo(edge);
+    refreshNetworkView();
+    $("select-edge-input").value = edge;
+}
+function edgeIdsBetween(source, target) {
+    const graph = state.graph;
+    if (!graph || !graph.hasNode(source) || !graph.hasNode(target)) return [];
+    const ids = new Set(graph.edges(source, target));
+    // Endpoint-pair selection is direction-agnostic; direct link clicks retain
+    // the exact edge id, including direction and parallel-edge identity.
+    graph.edges(target, source).forEach((edge) => ids.add(edge));
+    return [...ids];
+}
+
+function handleCosmographPointClick(node, event) {
+    if (state.multiNodeSelect && state.dragNodes && !$("edit-mode").checked) {
+        toggleMultiSelectedNode(node);
+        return;
+    }
+    handleNetworkPointClick(node, event);
+}
+
+function syncMultiNodeSelection() {
+    if (state.graph) state.multiSelectedNodes = new Set([...state.multiSelectedNodes].filter((node) => state.graph.hasNode(node)));
+    if (state.renderer && state.graph) applyReducers();
+    window.relisonMultiSelectEnabled = state.multiNodeSelect;
+    window.relisonMultiSelectedNodes = [...state.multiSelectedNodes];
+    window.relisonCosmograph?.setMultiSelectedNodes?.([...state.multiSelectedNodes])
+        ?.catch?.((error) => console.warn("Could not update Cosmograph multi-selection.", error));
+}
+
+function toggleMultiSelectedNode(node) {
+    if (!state.graph?.hasNode(node)) return;
+    if (state.multiSelectedNodes.has(node)) state.multiSelectedNodes.delete(node);
+    else state.multiSelectedNodes.add(node);
+    syncMultiNodeSelection();
+}
+
+function setAreaNodeSelection(enabled) {
+    state.areaSelectingNodes = Boolean(enabled && state.multiNodeSelect && state.dragNodes && !$("edit-mode").checked);
+    $("btn-area-select-nodes").classList.toggle("active", state.areaSelectingNodes);
+    if (window.relisonCosmograph) {
+        window.relisonCosmograph.setRectSelectionEnabled?.(state.areaSelectingNodes)
+            ?.catch?.((error) => setStatus("Could not enable area selection: " + error.message, "error"));
+    }
+}
+
+function chooseEdgeBetween(source, target) {
+    clearSelection({ refreshTable: false, refreshGraph: false });
+    rememberSelectionType("edge");
+    state.edgeSelectionPair = { source, target };
+    refreshNetworkView();
+    setStatus("Choose the desired edge between " + source + " and " + target + " in the Edge selector.");
+}
+
+function handleNetworkPointClick(node, event) {
+    if (!state.graph || !state.graph.hasNode(node)) return;
+    if ($("edit-mode").checked) { handleEditNodeClick(node, event); return; }
+    const nativeEvent = event?.originalEvent || event?.original || event?.event || event;
+    const additive = Boolean(nativeEvent?.ctrlKey || nativeEvent?.metaKey);
+    const source = state.selectedNode;
+    if (additive && source && source !== node) {
+        const edges = edgeIdsBetween(source, node);
+        if (edges.length === 1) {
+            selectNode(node);
+            selectEdge(edges[0]);
+            return;
+        }
+        if (edges.length > 1) { chooseEdgeBetween(source, node); return; }
+        selectNode(node);
+        showPathsBetween(source, node);
+        return;
+    }
+    clearEdgeSelection();
+    state.cosmographEdgeStart = node;
+    selectNode(node);
+}
+
+function handleCosmographLinkClick(edge) {
+    if (!$("edit-mode").checked) selectEdge(edge);
+}
+
+function handleCosmographStageClick(event) {
+    if (!$("edit-mode").checked) { clearSelection(); return; }
+    const container = $("cosmograph-container");
+    const nativeEvent = event?.sourceEvent || event?.originalEvent || event?.original || event;
+    if (!container || !nativeEvent || !window.relisonCosmograph?.screenToSpacePosition) return;
+    const bounds = container.getBoundingClientRect();
+    const position = window.relisonCosmograph.screenToSpacePosition([
+        nativeEvent.clientX - bounds.left,
+        nativeEvent.clientY - bounds.top,
+    ]);
+    if (position && Number.isFinite(position[0]) && Number.isFinite(position[1])) {
+        editAddNodeAt({ x: position[0], y: position[1] });
+    }
+}
+
+function cosmographInteractionCallbacks() {
+    return {
+        onPointClick: handleCosmographPointClick,
+        onLinkClick: handleCosmographLinkClick,
+        onStageClick: handleCosmographStageClick,
+        onRectSelected: (indices, additive = false) => {
+            const selected = new Set(additive ? state.multiSelectedNodes : []);
+            indices.map((index) => window.relisonCosmograph?.getPointId?.(index)).filter((id) => id != null && state.graph?.hasNode(id)).forEach((id) => selected.add(id));
+            state.multiSelectedNodes = selected;
+            setAreaNodeSelection(false);
+            syncMultiNodeSelection();
+        },
+        onDragStartNode: (node) => {
+            if (node != null && !state.multiSelectedNodes.has(node)) {
+                state.multiSelectedNodes = new Set([node]);
+                syncMultiNodeSelection();
+            }
+        },
+    };
+}
+// Selects a node (from a click or the UI) and refreshes the info panel + visualization emphasis.
+function selectNode(node) {
+    if (!state.graph?.hasNode(node)) return;
+    state.selection.edgeGroup = null;
+    if (state.selection.type !== "node") invalidatePathResults();
+    rememberSelectionType("node");
+    state.selectedNode = state.selection.node = node;
+    clearEdgeSelection();
+    $("select-node-input").value = node;
+    renderNodeInfo(node);
+    refreshNetworkView();
+}
 function renderNodeInfo(node) {
     const graph = state.graph;
     const table = $("node-info-table");
@@ -1371,64 +2480,135 @@ function renderNodeInfo(node) {
     }
 }
 
-function clearSelection() {
-    state.selectedNode = null;
-    state.selection.node = null;
+function clearSelection({ refreshTable = true, refreshGraph = true } = {}) {
+    state.selection.edgeGroup = null;
+    state.selectedNode = state.selection.node = null;
+    state.cosmographEdgeStart = null;
     $("select-node-input").value = "";
+    $("select-edge-input").value = "";
+    invalidatePathResults({ clearInputs: true });
     renderNodeInfo(null);
-    applyReducers();
-    renderTable(state.activeTableSubtab);
+    clearEdgeSelection();
+    if (refreshGraph) refreshNetworkView({ refreshTable });
+    else { updateSelectionTargetUI(); if (refreshTable) { renderTable("nodes"); renderTable("edges"); } }
+}
+// Shows the community-partition picker only for community view modes, and keeps its options in sync.
+function groupingOptions() {
+    const partitions = Object.keys(state.communityData).map((name) => ({ value: "community:" + name, label: "Community · " + name }));
+    const attributes = nodeAttrDefs().map((def) => ({ value: "attribute:" + encodeURIComponent(def.name), label: "Attribute · " + def.name }));
+    return [...partitions, ...attributes];
 }
 
-// Shows the community-partition picker only for community view modes, and keeps its options in sync.
+function groupingValue(grouping, node) {
+    if (grouping.startsWith("community:")) return state.communityData[grouping.slice("community:".length)]?.[node];
+    if (grouping.startsWith("attribute:")) return nodeAttrVal(node, decodeURIComponent(grouping.slice("attribute:".length)));
+    // Preserve existing saved selections that stored a bare community algorithm id.
+    return state.communityData[grouping]?.[node];
+}
+
+function groupingKey(value) {
+    return value === undefined || value === null || value === "" ? null : typeof value + ":" + String(value);
+}
 function updatePartitionField() {
+    if (state.selection.type === "path") { $("select-partition-field").hidden = true; return; }
     const mode = state.selection.mode;
     const isCommunity = mode === "community-highlight" || mode === "community-only";
     $("select-partition-field").hidden = !isCommunity;
-    const algos = Object.keys(state.communityData);
-    setSelectOptions("select-partition", algos, algos);
-    if (!state.selection.partition || !algos.includes(state.selection.partition)) {
-        state.selection.partition = algos[0] || null;
-        if (state.selection.partition) $("select-partition").value = state.selection.partition;
+    const groups = groupingOptions();
+    const values = groups.map((group) => group.value), labels = groups.map((group) => group.label);
+    setSelectOptions("select-partition", ["", ...values], ["— choose a grouping —", ...labels]);
+    if (!values.includes(state.selection.partition)) state.selection.partition = null;
+    $("select-partition").value = state.selection.partition || "";
+}
+function networkColumnType(key, col) {
+    if (["id", "source", "target", "edgeid"].includes(col)) return "id";
+    if (col.startsWith("a:") || col.startsWith("ea:")) {
+        const defs = key === "nodes" ? nodeAttrDefs() : edgeAttrDefs();
+        const definition = defs.find(def => def.name === col.slice(key === "nodes" ? 2 : 3));
+        return definition?.numeric ? "number" : definition?.type || "string";
     }
+    return col.startsWith("c:") ? "categorical" : "number";
 }
 
-// Computes the focus set of nodes for the current selection + mode, and whether other nodes are hidden.
-function selectionFocus() {
-    const sel = state.selection;
+function networkWorkingSet(overrides = {}) {
+    if (state.currentNetworkView && !Object.keys(overrides).length) return state.currentNetworkView.working;
     const g = state.graph;
-    if (!g || !sel.node || sel.mode === "none" || !g.hasNode(sel.node)) return null;
-
-    let nodes;
-    let only = false;
-    if (sel.mode === "highlight") {
-        nodes = new Set([sel.node]);
-    } else if (sel.mode === "ego-highlight" || sel.mode === "ego-only") {
-        nodes = new Set([sel.node]);
-        g.neighbors(sel.node).forEach((n) => nodes.add(n));
-        only = sel.mode === "ego-only";
-    } else { // community-highlight / community-only
-        const data = state.communityData[sel.partition];
-        if (!data) return null;
-        const comm = data[sel.node];
-        nodes = new Set();
-        g.forEachNode((n) => { if (data[n] === comm) nodes.add(n); });
-        only = sel.mode === "community-only";
-    }
-    return { nodes, only, selected: sel.node };
+    if (!g) return { nodes: new Set(), edges: new Set(), filtered: false, edgeFiltered: false };
+    const nodeExpression = Object.prototype.hasOwnProperty.call(overrides, "nodes") ? overrides.nodes : effectiveNetworkExpression("nodes");
+    const edgeExpression = Object.prototype.hasOwnProperty.call(overrides, "edges") ? overrides.edges : effectiveNetworkExpression("edges");
+    const nodeFiltered = window.relisonNetworkView.expressionConditions(nodeExpression).some(isFilterActive);
+    const edgeFiltered = window.relisonNetworkView.expressionConditions(edgeExpression).some(isFilterActive);
+    return window.relisonNetworkView.workingSet(g, networkExpressionPredicate("nodes", nodeExpression),
+        networkExpressionPredicate("edges", edgeExpression), edgeFiltered, nodeFiltered || edgeFiltered);
 }
 
+function networkView() {
+    if (state.currentNetworkView) return state.currentNetworkView;
+    const working = networkWorkingSet();
+    if (!state.graph) return { working, focus: null, emphasis: null, isolate: false, tableNodes: working.nodes, tableEdges: working.edges };
+    return window.relisonNetworkView.calculate(state.graph, working,
+        { ...state.selection, edge: state.selectedEdge, paths: state.activePaths },
+        { directed: state.directed, edgeValue: edgeAttrVal, edgeType: name => networkColumnType("edges", "ea:" + name),
+            groupValue: groupingValue, groupKey: groupingKey });
+}
+
+function selectionFocus() { return networkView().focus; }
+
+function rememberSelectionType(type) {
+    if (type === state.selection.type) return;
+    state.selectionModes[state.selection.type] = state.selection.mode;
+    state.selection.type = type;
+    state.selection.mode = state.selectionModes[type];
+}
+
+function invalidatePathResults({ clearInputs = false } = {}) {
+    if ($("btn-select-paths").disabled) setStatus("Path search cleared.");
+    state.pathRequestVersion++;
+    state.activePaths = [];
+    state.pathFocus = null;
+    state.pathEndpointFocusActive = false;
+    state.lastPaths = [];
+    state.pathResult = null;
+    if (clearInputs) $("select-path-source").value = $("select-path-target").value = "";
+    $("select-path-summary").textContent = "Choose a source and target to find all shortest paths.";
+    $("select-paths-table").replaceChildren();
+    $("btn-select-paths").disabled = false;
+}
+
+function refreshNetworkView({ refreshTable = true } = {}) {
+    reconcileNetworkFilters();
+    for (const key of ["nodes", "edges"]) $("filter-mode-" + key).value = state.tables[key].filterMode || "and";
+    if (state.selectedNode != null && !state.graph?.hasNode(state.selectedNode)) {
+        state.selectedNode = state.selection.node = null;
+        $("select-node-input").value = "";
+        renderNodeInfo(null);
+    }
+    if (state.selectedEdge != null && !state.graph?.hasEdge(state.selectedEdge)) clearEdgeSelection();
+    updateSelectionTargetUI();
+    state.currentNetworkView = networkView();
+    try {
+        applyReducers();
+        syncCosmographSelection();
+        if (refreshTable) { renderTable("nodes"); renderTable("edges"); }
+        drawRecOverlay();
+        for (const key of ["nodes", "edges"]) if (state.tables[key].filterDraft) refreshFilterBuilder(key);
+    } finally { state.currentNetworkView = null; }
+}
 function setSelectionMode(mode) {
     state.selection.mode = mode;
-    updatePartitionField();
-    applyReducers();
-    renderTable(state.activeTableSubtab); // "show only" modes restrict the tables
+    state.selectionModes[state.selection.type] = mode;
+    if (state.selection.type === "path") renderPathsTable(state.lastPaths);
+    refreshNetworkView();
+}
+
+function setSelectionEdgeAttribute(attribute) {
+    state.selection.edgeAttribute = attribute;
+    refreshNetworkView();
 }
 
 function setSelectionPartition(partition) {
     state.selection.partition = partition;
-    applyReducers();
-    renderTable(state.activeTableSubtab);
+    refreshNetworkView();
 }
 
 function selectFromInput() {
@@ -1538,114 +2718,809 @@ function attachNodeCombo(input) {
 
 // Upgrades every node-id input into a searchable selector. Safe to call repeatedly (each input is wired once).
 function initNodeCombos() {
-    ["select-node-input", "path-source", "path-target", "add-edge-source", "add-edge-target", "diff-node-input", "diff-traj-node"]
+    ["select-node-input", "select-path-source", "select-path-target", "add-edge-source", "add-edge-target", "diff-node-input", "diff-traj-node", "layout-root"]
         .forEach((id) => attachNodeCombo($(id)));
 }
 
 /* ------------------------------ layout ------------------------------ */
 
 // Layouts that run continuously (animated) vs. one-shot layouts that are applied once.
-const ITERATIVE_LAYOUTS = new Set(["forceatlas2", "force"]);
+const ITERATIVE_LAYOUTS = new Set(["force"]);
+const LAYERED_3D_LAYOUTS = new Set(["shell-sphere-3d", "shell-cone-3d", "concentric-sphere-3d", "concentric-cone-3d", "radial-sphere-3d", "radial-cone-3d"]);
+const FLAT_2D_LAYOUTS = ["fruchterman-reingold", "relison-forceatlas2", "stress-majorization", "kamada-kawai", "multilevel-force",
+    "community", "preset", "random", "grid", "circular", "shell", "concentric", "radial", "feature-grid",
+    "ego-grid", "bipartite", "multipartite", "tree", "sugiyama"];
+const RELISON_3D_LAYOUTS = new Set(["spectral-3d", "spherical-mds-3d", "upward-grid-3d", "h3-3d", "fruchterman-reingold-3d", "stress-majorization-3d", "random-3d", "grid-3d", "spherical-3d", "sphere-packing-3d", "preset-3d", "radial-pyramid-3d", "feature-grid-3d", "community-3d", ...LAYERED_3D_LAYOUTS,
+    ...FLAT_2D_LAYOUTS.map(type => type + "-flat-3d")]);
+const RELISON_FORCE_LAYOUTS = new Set(["fruchterman-reingold", "relison-forceatlas2", "stress-majorization", "kamada-kawai", "multilevel-force", "fruchterman-reingold-3d", "stress-majorization-3d", "spherical-mds-3d"]);
+const RELISON_LAYOUTS = new Set([...RELISON_FORCE_LAYOUTS, ...RELISON_3D_LAYOUTS, "spectral", "geographic", "community", "feature-grid", "ego-grid", "preset", "random", "grid", "circular", "shell", "concentric", "radial", "bipartite", "multipartite", "tree", "sugiyama"]);
 
 function currentLayoutType() {
     const sel = $("layout-type");
-    return sel ? sel.value : "forceatlas2";
+    return sel ? sel.value : "force";
+}
+
+function isFlat3DLayout(type) { return typeof type === "string" && type.endsWith("-flat-3d"); }
+function flatLayoutBase(type) { return isFlat3DLayout(type) ? type.slice(0, -"-flat-3d".length) : type; }
+function layeredLayoutBase(type) {
+    const base = flatLayoutBase(type);
+    return LAYERED_3D_LAYOUTS.has(base) ? base.split("-")[0] : base;
+}
+
+function ensureFlat3DLayoutOptions() {
+    const select = $("layout-type");
+    for (const base of FLAT_2D_LAYOUTS) {
+        const value = base + "-flat-3d";
+        if (select.querySelector('option[value="' + value + '"]')) continue;
+        const source = select.querySelector('option[value="' + base + '"]');
+        if (!source?.parentElement) continue;
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = source.textContent + " 2D";
+        source.parentElement.append(option);
+    }
+}
+
+function layeredLayoutInputs(body, type) {
+    const base = layeredLayoutBase(type), nodes = body.nodeOrder;
+    const groupedLayout = isFlat3DLayout(type) && ["feature-grid", "community", "bipartite", "multipartite"].includes(base);
+    if (["feature-grid-3d", "community-3d", "sphere-packing-3d"].includes(type) || groupedLayout) {
+        const groupBy = $("circlepack-group").value, groups = new Map();
+        if (!groupBy && ["feature-grid-3d", "community-3d", "feature-grid", "community", "multipartite"].includes(base === type ? type : base))
+            throw new Error("Choose a community or node attribute in Group by.");
+        for (const node of nodes) {
+            const key = String(groupBy ? nodeGroupKey(groupBy, node) ?? "?" : "all");
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(node);
+        }
+        const partitions = [...groups.keys()].sort().map(key => groups.get(key));
+        if (type === "sphere-packing-3d") body.partitions = partitions;
+        else if (type === "feature-grid-3d" || type === "community-3d" || ["feature-grid", "community", "multipartite"].includes(base)
+            || (base === "bipartite" && groupBy)) {
+            if (base === "bipartite" && partitions.length !== 2) throw new Error("Bipartite grouping must have exactly two groups.");
+            if (base === "multipartite" && partitions.length < 2) throw new Error("Multipartite grouping must have at least two groups.");
+            body.partitions = partitions;
+        }
+    }
+    if (base === "shell") {
+        const groupBy = $("circlepack-group").value, groups = new Map();
+        for (const node of nodes) {
+            const key = groupBy ? String(nodeGroupKey(groupBy, node) ?? "?") : "all";
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(node);
+        }
+        body.shells = [...groups.keys()].sort().map(key => groups.get(key));
+    }
+    if (base === "concentric" && $("layout-score").value !== "degree") {
+        const spec = $("layout-score").value;
+        body.scores = Object.fromEntries(nodes.map(node => {
+            const value = spec.startsWith("attr:") ? nodeAttrVal(node, spec.slice(5)) : state.metricData[spec.slice(7)]?.[node];
+            if (value == null || value === "" || !Number.isFinite(Number(value)))
+                throw new Error("Score is missing or non-finite for node " + node + ". Choose a score available for every node.");
+            return [node, Number(value)];
+        }));
+    }
+    if (base === "geographic") {
+        const latitude = $("layout-geographic-latitude").value, longitude = $("layout-geographic-longitude").value;
+        if (!latitude || !longitude) throw new Error("Choose latitude and longitude attributes for this layout.");
+        body.latitudes = Object.fromEntries(nodes.map(node => [node, layoutCoordinateFeature(latitude, node, "latitude")]));
+        body.longitudes = Object.fromEntries(nodes.map(node => [node, layoutCoordinateFeature(longitude, node, "longitude")]));
+        body.params.projection = $("layout-geographic-projection").value === "equal-earth" ? "equal-earth" : "mercator";
+    }
 }
 
 // Keeps the layout button label in sync with the selected algorithm / running state.
 function updateLayoutButton() {
-    if (state.fa2Running) { $("btn-layout").textContent = "Stop layout"; return; }
-    $("btn-layout").textContent = ITERATIVE_LAYOUTS.has(currentLayoutType()) ? "Start layout" : "Apply layout";
+    const button = $("btn-layout");
+    const running = Boolean(state.relisonLayout || state.iterativeLayoutRunning ||
+        (currentLayoutType() === "cosmograph-force" && state.cosmographLayoutRunning));
+    button.classList.add("primary");
+    button.classList.toggle("btn-stop", running);
+    button.disabled = Boolean(state.layoutRequest) && !running;
+    if (running) { button.textContent = "⏹ Stop layout"; return; }
+    if (state.layoutRequest) { button.textContent = "Applying layout…"; return; }
+    if (currentLayoutType() === "cosmograph-force") {
+        button.textContent = "Start layout";
+        return;
+    }
+    const algorithm = flatLayoutBase(currentLayoutType());
+    button.textContent = (ITERATIVE_LAYOUTS.has(algorithm) || RELISON_FORCE_LAYOUTS.has(algorithm)) ? "Start layout" : "Apply layout";
 }
 
 // Button handler: toggles animated layouts, or applies a static layout once.
-function onLayoutButton() {
+function usingCosmograph() { return $("network-renderer").value === "cosmograph"; }
+function usingGeographic() { return $("pane-network").classList.contains("geographic-active"); }
+let geographicPreviousRenderer = "cosmograph";
+let geographicActiveProjection = "mercator";
+let geographicPreviousPositions = null;
+let cosmographLayoutJobId = null;
+let iterativeLayoutJobId = null;
+function geographicCoordinates(graph = state.graph, latitude = $("layout-geographic-latitude").value, longitude = $("layout-geographic-longitude").value, projection = $("layout-geographic-projection").value) {
+    if (!latitude || !longitude) throw new Error("Choose numeric latitude and longitude attributes in Advanced layout settings.");
+    return window.relisonGeographic.readCoordinates(graph.nodes(),
+        node => layoutCoordinateFeature(latitude, node, "Latitude"), node => layoutCoordinateFeature(longitude, node, "Longitude"), projection);
+}
+function leaveGeographicView(nextRenderer = geographicPreviousRenderer) {
+    window.relisonGeographic?.destroy();
+    const saved = geographicPreviousPositions;
+    geographicPreviousPositions = null;
+    if (saved?.graph === state.graph) {
+        for (const [node, position] of saved.positions) {
+            if (state.graph.hasNode(node)) state.graph.mergeNodeAttributes(node, position);
+        }
+        state.cosmographDirty = true;
+        state.renderer?.refresh();
+    }
+    $("pane-network").classList.remove("geographic-active");
+    $("pane-network").classList.remove("geographic-globe-active");
+    if (typeof syncRotationExportControls === "function") syncRotationExportControls();
+    toggleHidden("network-globe-help", true);
+    toggleHidden("cosmograph-rotation-controls", true);
+    if ($("network-renderer").value === "geographic") $("network-renderer").value = nextRenderer;
+    for (const id of ["btn-noverlap", "btn-reset-layout", "drag-nodes", "edit-mode"]) $(id).disabled = false;
+    $("multi-node-select").disabled = !state.dragNodes;
+    $("btn-area-select-nodes").disabled = !state.dragNodes || !state.multiNodeSelect;
+}
+async function applyGeographicLayout() {
+    const previous = usingGeographic() ? "geographic" : $("pane-network").classList.contains("cosmograph-active") ? "cosmograph" : "sigma";
+    if (!state.graph) { $("network-renderer").value = previous === "geographic" ? geographicPreviousRenderer : previous; setStatus("Load a network first.", "error"); return; }
+    stopLayout();
+    const graph = state.graph, graphId = state.graphId, controller = new AbortController();
+    state.layoutRequest = controller; updateLayoutButton();
+    try {
+        const latitude = $("layout-geographic-latitude").value, longitude = $("layout-geographic-longitude").value;
+        const projection = $("layout-geographic-projection").value;
+        const coordinates = geographicCoordinates();
+        await window.relisonGeographic.ensureLoaded(projection);
+        if (controller.signal.aborted || state.graph !== graph) return;
+        const result = projection === "globe" ? null : await api("/api/layout", { ...jsonBody({ graphId, algorithm: "geographic", nodeOrder: graph.nodes(),
+            latitudes: coordinates.latitudes, longitudes: coordinates.longitudes, params: { centralLongitude: coordinates.center, projection } }), signal: controller.signal });
+        if (result?.cancelled) return;
+        if (controller.signal.aborted || state.graph !== graph) return;
+        await window.relisonGeographic.render(graph, {
+            projection,
+            isCurrent: () => !controller.signal.aborted && state.graph === graph,
+            overlays: () => geographicRecommendationEdges(),
+            legend: () => networkLegendData(),
+            coordinates: () => geographicCoordinates(graph, latitude, longitude, projection),
+            nodeDisplay: (node, data) => state.renderer?.getSetting("nodeReducer")?.(node, { ...data }) || data,
+            edgeDisplay: (edge, data) => window.relisonNetworkViewSnapshot?.edgeVerdicts.get(edge) === "hidden" ? { ...data, hidden: true }
+                : state.renderer?.getSetting("edgeReducer")?.(edge, { ...data }) || data,
+            selectedNode: () => networkView().emphasis?.selected ?? null, labels: () => state.labelOpts,
+            onNodeClick: handleNetworkPointClick, onEdgeClick: selectEdge, onClearSelection: clearSelection,
+            onError: message => setStatus(message, "error"),
+        });
+        if (controller.signal.aborted || state.graph !== graph) { window.relisonGeographic.destroy(); return; }
+        // Validate the complete result before replacing shared coordinates.
+        if (result) for (const node of graph.nodes()) {
+            const p = result.positions?.[node];
+            if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) throw new Error("Incomplete geographic layout coordinates.");
+        }
+        // Retain the original layout across repeated map applications and
+        // projection switches. Map renderers read latitude/longitude directly.
+        if (result && geographicPreviousPositions?.graph !== graph) {
+            geographicPreviousPositions = { graph, positions: new Map(graph.nodes().map(node => [node, {
+                x: graph.getNodeAttribute(node, "x"), y: graph.getNodeAttribute(node, "y"),
+            }])) };
+        }
+        if (result) for (const node of graph.nodes()) {
+            const p = result.positions[node];
+            graph.mergeNodeAttributes(node, { x: p.x, y: p.y });
+        }
+        // The globe reads geographic attributes directly; undo temporary flat-map
+        // projection coordinates when switching from a map to the globe.
+        if (!result && geographicPreviousPositions?.graph === graph) {
+            for (const [node, position] of geographicPreviousPositions.positions) {
+                if (graph.hasNode(node)) graph.mergeNodeAttributes(node, position);
+            }
+        }
+        if (previous !== "geographic") geographicPreviousRenderer = previous;
+        $("pane-network").classList.remove("cosmograph-active");
+        $("cosmograph-container").hidden = true;
+        $("pane-network").classList.add("geographic-active");
+        $("pane-network").classList.remove("geographic-globe-active");
+        if (projection === "globe") $("pane-network").classList.add("geographic-globe-active");
+        $("network-renderer").value = "geographic";
+        geographicActiveProjection = projection;
+        $("edit-mode").checked = false;
+        setEditMode(false);
+        setAreaNodeSelection(false);
+        for (const id of ["btn-noverlap", "btn-reset-layout", "drag-nodes", "edit-mode", "multi-node-select", "btn-area-select-nodes"]) $(id).disabled = true;
+        toggleHidden("edit-help", true); toggleHidden("network-drag-hint", true);
+        toggleHidden("network-globe-help", projection !== "globe");
+        toggleHidden("cosmograph-rotation-controls", projection !== "globe");
+        toggleHidden("network-dimensions-field", true);
+        toggleHidden("network-3d-help", true);
+        toggleHidden("btn-project-network-2d", true);
+        if (typeof syncRotationExportControls === "function") syncRotationExportControls();
+        state.cosmographDirty = true;
+        setStatus(projection === "globe" ? "Globe ready. Drag to rotate; scroll to zoom; click nodes or links to select."
+            : "Geographic network ready. Pan and zoom the background map; click nodes or edges to select.");
+    } catch (error) {
+        if (!isAbort(error)) setStatus("Geographic view failed: " + error.message, "error");
+        $("network-renderer").value = previous === "geographic" ? "geographic" : previous;
+        if (previous !== "geographic") window.relisonGeographic.destroy();
+    } finally {
+        if (state.layoutRequest === controller) { state.layoutRequest = null; updateLayoutButton(); }
+    }
+}
+
+// Recommendations are transient results, rather than Graphology edges, so
+// Cosmograph receives them as an additional projected link list. Returning
+// whether it changed lets an already-created Cosmograph canvas stay intact
+// when switching renderers without changing any recommendation setting.
+function syncCosmographRecommendation() {
+    const model = state.rec.active && state.rec.models[state.rec.active];
+    const next = {
+        show: Boolean(model && state.rec.show),
+        edges: model ? model.edges : [],
+        color: state.rec.color,
+        diff: Boolean(state.rec.diff),
+        directed: Boolean(state.directed),
+    };
+    const signature = JSON.stringify(next);
+    const changed = !window.relisonCosmographRecommendation || window.relisonCosmographRecommendation.signature !== signature;
+    window.relisonCosmographRecommendation = { ...next, signature };
+    return changed;
+}
+function geographicRecommendationEdges(model = state.rec.active && state.rec.models[state.rec.active], show = state.rec.show, respectNetwork = true) {
+    if (!show || !model) return [];
+    const context = respectNetwork ? focusContext() : null;
+    return model.edges.flatMap(edge => {
+        const verdict = context ? overlayEdgeVerdict(edge.source, edge.target, context) : "normal";
+        return verdict === "hidden" ? [] : [{ ...edge, color: verdict === "dim" ? context.dimColor : state.rec.color, dashed: state.rec.diff,
+            label: "Recommended: " + edge.source + " → " + edge.target }];
+    });
+}
+
+function syncLayoutOptionsForRenderer() {
+    ensureFlat3DLayoutOptions();
+    const active = usingCosmograph();
+    const spatial = active && $("network-dimensions").value === "3";
+    toggleHidden("btn-project-network-2d", !spatial);
+    $("edit-mode").disabled = spatial;
+    $("btn-reset-layout").disabled = spatial;
+    if (spatial && $("edit-mode").checked) {
+        $("edit-mode").checked = false;
+        setEditMode(false);
+    }
+    const select = $("layout-type");
+    const cosmographForce = select.querySelector('option[value="cosmograph-force"]');
+    cosmographForce.hidden = !active;
+    cosmographForce.disabled = !active;
+    for (const value of ITERATIVE_LAYOUTS) {
+        const option = select.querySelector('option[value="' + value + '"]');
+        if (option) { option.hidden = active; option.disabled = active; }
+    }
+    if (active && ITERATIVE_LAYOUTS.has(select.value)) select.value = "circular";
+    if (!active && select.value === "cosmograph-force") select.value = "circular";
+    for (const option of select.options) {
+        if (!ITERATIVE_LAYOUTS.has(option.value) && option.value !== "cosmograph-force") {
+            const available = RELISON_3D_LAYOUTS.has(option.value) ? spatial : !spatial;
+            option.disabled = !available;
+            option.hidden = !available;
+        }
+    }
+    for (const group of select.querySelectorAll("optgroup")) {
+        group.hidden = ![...group.querySelectorAll("option")].some(option => !option.hidden && !option.disabled);
+    }
+    if (spatial && !RELISON_3D_LAYOUTS.has(select.value)) select.value = "cosmograph-force";
+    if (!spatial && RELISON_3D_LAYOUTS.has(select.value)) select.value = "circular";
+    cosmographForce.textContent = spatial ? "Cosmograph force 3D (animated)" : "Cosmograph force (animated)";
+    updateLayoutButton();
+    updateLayoutTypeUI();
+}
+
+async function toggleCosmographForceLayout() {
+    if (!window.relisonCosmograph) return;
+    if (state.cosmographLayoutRunning) {
+        const saved = window.relisonCosmograph.stopForceLayout();
+        state.cosmographLayoutRunning = false;
+        if (cosmographLayoutJobId) ProcessPanel.finishLocal(cosmographLayoutJobId, "cancelled");
+        cosmographLayoutJobId = null;
+        if (state.renderer) state.renderer.refresh();
+        drawRecOverlay();
+        setStatus("Cosmograph force layout stopped; saved positions for " + saved + " nodes.");
+    } else {
+        state.cosmographLayoutRunning = true;
+        cosmographLayoutJobId = ProcessPanel.registerLocal("Cosmograph force layout", state.graphId, () => stopLayout());
+        updateLayoutButton();
+        try {
+            if (await window.relisonCosmograph.startForceLayout()) {
+                setStatus("Cosmograph force layout running.");
+            } else {
+                state.cosmographLayoutRunning = false;
+                if (cosmographLayoutJobId) ProcessPanel.finishLocal(cosmographLayoutJobId, "completed");
+                cosmographLayoutJobId = null;
+                updateLayoutButton();
+            }
+        } catch (error) {
+            state.cosmographLayoutRunning = false;
+            if (cosmographLayoutJobId) ProcessPanel.finishLocal(cosmographLayoutJobId, "failed", error.message);
+            cosmographLayoutJobId = null;
+            setStatus("Could not start Cosmograph force layout: " + error.message, "error");
+        }
+    }
+    updateLayoutButton();
+}
+
+async function onLayoutButton() {
     if (!state.graph) { setStatus("Load a network first.", "error"); return; }
     const type = currentLayoutType();
+    if (type !== "h3-3d" && window.relisonH3?.active(state.graph)) { window.relisonH3.clear(); queueCosmographAppearanceRefresh(); }
+    if (!["h3-3d", "upward-grid-3d", "spherical-mds-3d"].includes(type)) window.relisonPaper3d = null;
+    if (type === "geographic") return applyGeographicLayout();
+    if (usingGeographic()) {
+        leaveGeographicView();
+        await setNetworkRenderer(geographicPreviousRenderer);
+    }
+    if (RELISON_FORCE_LAYOUTS.has(flatLayoutBase(type))) {
+        if (state.relisonLayout) stopLayout();
+        else return startRelisonAnimation(type);
+        return;
+    }
+    if (usingCosmograph()) {
+        if (type === "cosmograph-force") { toggleCosmographForceLayout(); return; }
+        if (ITERATIVE_LAYOUTS.has(type)) { setStatus("Use Cosmograph force layout or a static layout in this view.", "error"); return; }
+    }
     if (ITERATIVE_LAYOUTS.has(type)) {
-        if (state.fa2Running) { stopLayout(); return; }
+        if (state.iterativeLayoutRunning) { stopLayout(); return; }
         startIterativeLayout(type);
     } else {
         applyStaticLayout(type);
     }
 }
 
-// Starts an animated force layout (ForceAtlas2 or graphology's force layout), falling back to the built-in stepper.
+// Starts the generic graphology force layout, falling back to the built-in stepper.
 function startIterativeLayout(type) {
     let stepFn;
     if (type === "force" && lib.layoutForce && typeof lib.layoutForce.assign === "function") {
         stepFn = () => lib.layoutForce.assign(state.graph, { maxIterations: 1 });
-    } else if (FA2 && typeof FA2.assign === "function") {
-        let settings;
-        try { settings = FA2.inferSettings ? FA2.inferSettings(state.graph) : {}; }
-        catch (e) { console.warn("inferSettings failed, using defaults", e); settings = {}; }
-        const lp = layoutParams();
-        settings.scalingRatio = (settings.scalingRatio || 1) * lp.scaling;
-        settings.gravity = lp.gravity;
-        settings.slowDown = 1 / Math.max(0.1, lp.speed);
-        stepFn = () => FA2.assign(state.graph, { iterations: 1, settings });
     } else {
         stepFn = builtinForceStep;
     }
 
-    state.fa2Running = true;
+    state.iterativeLayoutRunning = true;
     state.layoutTemp = 50;
+    let iterations = 0;
+    iterativeLayoutJobId = ProcessPanel.registerLocal(type + " layout", state.graphId, () => stopLayout());
     updateLayoutButton();
 
     const step = () => {
         try {
             stepFn();
+            iterations++;
+            if (iterations === 1 || iterations % 10 === 0)
+                ProcessPanel.updateLocal(iterativeLayoutJobId, "Running layout iterations", iterations, -1, "iterations");
         } catch (e) {
             console.error("Layout error", e);
             setStatus("Layout error: " + e.message, "error");
+            if (iterativeLayoutJobId) ProcessPanel.finishLocal(iterativeLayoutJobId, "failed", e.message);
+            iterativeLayoutJobId = null;
             stopLayout();
             return;
         }
         if (state.renderer) state.renderer.refresh();
-        if (state.fa2Running) state.fa2Raf = requestAnimationFrame(step);
+        if (state.iterativeLayoutRunning) state.iterativeLayoutRaf = requestAnimationFrame(step);
     };
     step();
 }
 
-// Applies a one-shot geometric layout (circular / circle packing / random). These are computed natively (they are
-// trivial and dependency-free), so they work regardless of what the graphology UMD bundle exposes. Circle packing can
-// group nodes by a community partition or a node attribute.
-function applyStaticLayout(type) {
+// Advance one server session sequentially; each response becomes a displayed frame.
+function relisonForceBody(type, g, graphId) {
+    const nodes = g.nodes().sort();
+    const body = { graphId, algorithm: type, nodeOrder: nodes, params: staticLayoutParams(type) };
+    const spatial = RELISON_3D_LAYOUTS.has(type);
+    if ($("layout-warm-start").checked) {
+        body.positions = Object.fromEntries(nodes.map(node => [node, {
+            x: g.getNodeAttribute(node, "x"), y: g.getNodeAttribute(node, "y"),
+        }]));
+        if (spatial) body.positions = window.relisonCosmograph.getSpatialNodePositions(g);
+        if (nodes.some(node => !Number.isFinite(body.positions[node].x) || !Number.isFinite(body.positions[node].y)))
+            throw new Error("Apply a layout before using current positions.");
+    }
+    body.params.removeOverlap = $("layout-remove-overlap").checked;
+    if (["spherical-mds-3d", "upward-grid-3d", "h3-3d"].includes(type)) body.params.removeOverlap = false;
+    if (body.params.removeOverlap || body.params.adjustSizes) {
+        const radius = Number($("layout-node-radius").value), gap = Number($("layout-overlap-gap").value);
+        if (!Number.isFinite(radius) || radius < 0 || !Number.isFinite(gap) || gap < 0)
+            throw new Error("Node radius and overlap gap must be finite and non-negative.");
+        body.nodeSizes = Object.fromEntries(nodes.map(node => [node, radius]));
+        body.params.overlapGap = gap;
+    }
+    body.params.packComponents = !spatial && $("layout-pack-components").checked;
+    if (body.params.packComponents) {
+        const gap = Number($("layout-packing-gap").value);
+        if (!Number.isFinite(gap) || gap <= 0) throw new Error("Component gap must be positive and finite.");
+        body.params.packingGap = gap;
+    }
+    return body;
+}
+
+function cancelRelisonSession(run) {
+    if (!run.id || run.remoteCancelled) return Promise.resolve();
+    run.remoteCancelled = true;
+    return api("/api/layout/session/" + encodeURIComponent(run.id), { method: "DELETE" }).catch(() => {});
+}
+
+function waitRelisonFrame(run) {
+    return new Promise(resolve => {
+        run.resolveFrame = resolve;
+        run.raf = requestAnimationFrame(() => { run.resolveFrame = null; run.raf = null; resolve(); });
+    });
+}
+
+async function startRelisonAnimation(type) {
+    if (RELISON_3D_LAYOUTS.has(type) && (!usingCosmograph() || window.relisonCosmograph?.getDimensions() !== 3)) {
+        setStatus("Select Cosmograph 3D before starting a 3D layout.", "error"); return;
+    }
+    stopLayout();
+    const g = state.graph, graphId = state.graphId;
+    const flat3D = isFlat3DLayout(type), algorithm = flatLayoutBase(type);
+    const spatialView = RELISON_3D_LAYOUTS.has(type);
+    const spatial = spatialView && !flat3D;
+    const run = { controller: new AbortController(), id: null, raf: null, resolveFrame: null, remoteCancelled: false };
+    const current = () => state.relisonLayout === run && !run.controller.signal.aborted && state.graph === g && state.graphId === graphId;
+    try {
+        const body = relisonForceBody(algorithm, g, graphId), nodes = body.nodeOrder;
+        state.relisonLayout = run;
+        run.processId = ProcessPanel.registerLocal(algorithm + " layout", graphId, () => stopLayout());
+        updateLayoutButton();
+        setStatus("Starting " + algorithm + (flat3D ? " 2D in 3D view" : "") + " layout…");
+        // Keep the start response readable after Stop, so its allocated session can be cancelled.
+        let frame = await api("/api/layout/session", jsonBody(body));
+        if (current() && algorithm === "spherical-mds-3d") window.relisonPaper3d = { graph: g, algorithm };
+        if (typeof frame.sessionId !== "string") throw new Error("Missing layout session identifier.");
+        run.id = frame.sessionId;
+        while (current()) {
+            const positions = frame.positions;
+            if (!positions || Object.keys(positions).length !== g.order || nodes.length !== g.order
+                || nodes.some(node => !g.hasNode(node) || !Object.hasOwn(positions, node)
+                    || !Number.isFinite(positions[node]?.x) || !Number.isFinite(positions[node]?.y)
+                    || (spatial && !Number.isFinite(positions[node]?.z))))
+                throw new Error("The network changed or an animation frame has incomplete coordinates.");
+            if (!spatialView) for (const node of nodes) {
+                g.setNodeAttribute(node, "x", positions[node].x);
+                g.setNodeAttribute(node, "y", positions[node].y);
+            }
+            const cosmographVisible = usingCosmograph() && window.relisonCosmograph
+                && $("pane-network").classList.contains("active");
+            if (cosmographVisible || spatialView) {
+                const displayedPositions = flat3D
+                    ? Object.fromEntries(nodes.map(node => [node, { x: positions[node].x, y: positions[node].y, z: 0 }]))
+                    : positions;
+                const updated = await window.relisonCosmograph.setNodePositions(displayedPositions);
+                if (!current()) break;
+                if (algorithm === "spherical-mds-3d" && frame.iterations === 0)
+                    await window.relisonCosmograph.render(g, { ...cosmographInteractionCallbacks() });
+                if (!updated) {
+                    clearTimeout(cosmographAppearanceRefreshTimer);
+                    await window.relisonCosmograph.render(g, { ...cosmographInteractionCallbacks() });
+                }
+                if (spatialView && frame.iterations === 0) window.relisonCosmograph.fitView();
+            } else if (usingCosmograph()) state.cosmographDirty = true;
+            // Graphology coordinate events schedule Sigma's render. No full refresh
+            // or viewport rescale is needed for a frame that changes positions only.
+            drawRecOverlay();
+            if (!current()) break;
+            setStatus(algorithm + (flat3D ? " 2D (z=0)" : "") + ": " + frame.iterations + " iterations" + (frame.finished
+                ? " (" + String(frame.termination).toLowerCase().replaceAll("_", " ") + ")." : "…"));
+            if (frame.finished) break;
+            ProcessPanel.updateLocal(run.processId, "Running layout iterations", frame.iterations,
+                Number.isFinite(body.params.iterations) ? body.params.iterations : 500, "iterations");
+            await waitRelisonFrame(run);
+            if (!current()) break;
+            frame = await api("/api/layout/session/" + encodeURIComponent(run.id) + "/step",
+                { ...jsonBody({ iterations: 1 }), signal: run.controller.signal });
+        }
+    } catch (error) {
+        if (current() && !isAbort(error)) { run.error = error.message; setStatus("Layout failed: " + error.message, "error"); }
+    } finally {
+        if (run.raf) cancelAnimationFrame(run.raf);
+        await cancelRelisonSession(run);
+        if (run.processId) ProcessPanel.finishLocal(run.processId, run.error ? "failed" : run.controller.signal.aborted ? "cancelled" : "completed", run.error);
+        if (state.relisonLayout === run) { state.relisonLayout = null; updateLayoutButton(); }
+    }
+}
+
+// RELISON-viz computes Stage A layouts on the server; circle packing remains a client layout.
+async function applySpatialLayout(type, overlapsOnly = false) {
+    stopLayout();
+    const g = state.graph, graphId = state.graphId;
+    if (!g || !usingCosmograph() || window.relisonCosmograph?.getDimensions() !== 3) {
+        setStatus("Select Cosmograph 3D before applying a 3D layout.", "error"); return;
+    }
+    const controller = new AbortController();
+    try {
+        const body = relisonForceBody(type, g, graphId);
+        if (type === "h3-3d") body.parents = window.relisonH3.parents(g, body.params.root, body.params.direction);
+        if (isFlat3DLayout(type) || LAYERED_3D_LAYOUTS.has(type) || ["feature-grid-3d", "community-3d", "sphere-packing-3d"].includes(type)) layeredLayoutInputs(body, type);
+        if (type === "sphere-packing-3d") {
+            const radius = numInput("layout-node-radius", 5);
+            if (!Number.isFinite(radius) || radius < 0) throw new Error("Node radius must be finite and non-negative.");
+            body.nodeSizes = Object.fromEntries(g.nodes().map(node => [node, radius]));
+        }
+        if (type === "preset-3d") {
+            const saved = state.savedLayoutPositions3D;
+            if (overlapsOnly) body.positions = window.relisonCosmograph.getSpatialNodePositions(g);
+            else {
+                if (saved?.graphId !== graphId) throw new Error("Save 3D positions for this network first.");
+                body.positions = saved.positions;
+            }
+        }
+        if (isFlat3DLayout(type) && flatLayoutBase(type) === "preset") {
+            const nodes = g.nodes().sort(), xFeature = $("layout-preset-x").value, yFeature = $("layout-preset-y").value;
+            const saved = state.savedLayoutPositions;
+            if (!xFeature || !yFeature) {
+                if (!saved || saved.graphId !== graphId) throw new Error("Save positions for this network first, or choose a numeric feature for both axes.");
+                if (Object.keys(saved.positions).length !== nodes.length || nodes.some(node => !Object.hasOwn(saved.positions, node)))
+                    throw new Error("The network's nodes changed. Save positions again before restoring them.");
+            }
+            body.positions = Object.fromEntries(nodes.map(node => [node, {
+                x: xFeature ? layoutCoordinateFeature(xFeature, node, "X") : saved.positions[node].x,
+                y: yFeature ? layoutCoordinateFeature(yFeature, node, "Y") : saved.positions[node].y,
+                z: 0,
+            }]));
+        }
+        if (overlapsOnly) {
+            body.params.removeOverlap = true;
+            const radius = numInput("layout-node-radius", 5), gap = numInput("layout-overlap-gap", 5);
+            if (!Number.isFinite(radius) || radius < 0 || !Number.isFinite(gap) || gap < 0)
+                throw new Error("Node radius and gap must be finite and non-negative.");
+            body.nodeSizes = Object.fromEntries(g.nodes().map(node => [node, radius]));
+            body.params.overlapGap = gap;
+        }
+        state.layoutRequest = controller;
+        updateLayoutButton();
+        const response = await api("/api/layout", { ...jsonBody(body), signal: controller.signal });
+        if (response?.cancelled) return;
+        if (controller.signal.aborted || state.layoutRequest !== controller || state.graph !== g || state.graphId !== graphId) return;
+        if (response.dimensions !== 3) throw new Error("The server did not return a 3D layout.");
+        window.relisonPaper3d = ["h3-3d", "upward-grid-3d"].includes(type) ? { graph: g, algorithm: type } : null;
+        window.relisonH3?.clear();
+        if (type === "h3-3d") window.relisonH3.activate(g, response.positions, body.params.radius, body.parents);
+        await window.relisonCosmograph.setNodePositions(response.positions);
+        queueCosmographAppearanceRefresh();
+        window.relisonCosmograph.fitView();
+        setStatus(overlapsOnly ? "Removed spatial node overlaps. Screen occlusion depends on camera angle." : "Applied " + type + " layout."
+            + (response.termination === "LIMIT_REACHED" ? " Eigensolver budget reached before convergence; increase sweeps for greater accuracy." : ""));
+    } catch (error) {
+        if (!isAbort(error)) setStatus("3D layout failed: " + error.message, "error");
+    } finally {
+        if (state.layoutRequest === controller) { state.layoutRequest = null; updateLayoutButton(); }
+    }
+}
+
+async function applyStaticLayout(type) {
+    if (RELISON_3D_LAYOUTS.has(type)) return applySpatialLayout(type);
     stopLayout();
     const g = state.graph;
+    const graphId = state.graphId;
+    let controller = null;
+    let forceSummary = "";
     try {
-        if (type === "circular") nativeCircular(g);
-        else if (type === "random") nativeRandom(g);
-        else if (type === "circlepack") nativeCirclepack(g, $("circlepack-group") ? $("circlepack-group").value : "");
+        if (RELISON_LAYOUTS.has(type)) {
+            const nodes = g.nodes().sort();
+            const body = { graphId, algorithm: type, nodeOrder: nodes, params: staticLayoutParams(type) };
+            if (RELISON_FORCE_LAYOUTS.has(type)) {
+                if ($("layout-warm-start").checked) body.positions = Object.fromEntries(nodes.map(node => [node, {
+                    x: g.getNodeAttribute(node, "x"), y: g.getNodeAttribute(node, "y"),
+                }]));
+                body.params.removeOverlap = $("layout-remove-overlap").checked;
+                if (body.params.removeOverlap || body.params.adjustSizes) {
+                    const radius = Number($("layout-node-radius").value);
+                    const gap = Number($("layout-overlap-gap").value);
+                    if (!Number.isFinite(radius) || radius < 0 || !Number.isFinite(gap) || gap < 0)
+                        throw new Error("Node radius and overlap gap must be finite and non-negative.");
+                    body.nodeSizes = Object.fromEntries(nodes.map(node => [node, radius]));
+                    body.params.overlapGap = gap;
+                }
+            }
+            body.params.packComponents = $("layout-pack-components").checked;
+            if (body.params.packComponents) {
+                const gap = Number($("layout-packing-gap").value);
+                if (!Number.isFinite(gap) || gap <= 0) throw new Error("Component gap must be positive and finite.");
+                body.params.packingGap = gap;
+            }
+            if (type === "preset") {
+                const xFeature = $("layout-preset-x").value;
+                const yFeature = $("layout-preset-y").value;
+                const saved = state.savedLayoutPositions;
+                if (!xFeature || !yFeature) {
+                    if (!saved || saved.graphId !== graphId) throw new Error("Save positions for this network first, or choose a numeric feature for both axes.");
+                    if (Object.keys(saved.positions).length !== nodes.length || nodes.some(node => !Object.hasOwn(saved.positions, node)))
+                        throw new Error("The network's nodes changed. Save positions again before restoring them.");
+                }
+                body.positions = Object.fromEntries(nodes.map(node => [node, {
+                    x: xFeature ? layoutCoordinateFeature(xFeature, node, "X") : saved.positions[node].x,
+                    y: yFeature ? layoutCoordinateFeature(yFeature, node, "Y") : saved.positions[node].y,
+                }]));
+            }
+            if (["shell", "bipartite", "multipartite", "feature-grid", "community"].includes(type)) {
+                const groupBy = $("circlepack-group").value;
+                if (type === "community" && !groupBy) throw new Error("Choose a community or node attribute under Group by.");
+                if ((type === "multipartite" || type === "feature-grid") && !groupBy) throw new Error("Choose a grouping for this column layout.");
+                const groups = new Map();
+                for (const node of nodes) {
+                    const key = groupBy ? String(nodeGroupKey(groupBy, node) ?? "?") : "all";
+                    if (!groups.has(key)) groups.set(key, []);
+                    groups.get(key).push(node);
+                }
+                const parts = [...groups.keys()].sort().map(key => groups.get(key));
+                if (type === "shell") body.shells = parts;
+                else if (type === "multipartite" || type === "feature-grid" || groupBy) {
+                    if (nodes.length === 0 && type !== "community") parts.push([], []);
+                    if (type === "bipartite" && parts.length !== 2) throw new Error("Bipartite grouping must have exactly two groups.");
+                    if (type === "multipartite" && parts.length < 2) throw new Error("Multipartite grouping must have at least two groups.");
+                    body.partitions = parts;
+                }
+            }
+            if (type === "concentric" && $("layout-score").value !== "degree") {
+                const spec = $("layout-score").value;
+                body.scores = Object.fromEntries(nodes.map(node => {
+                    const value = spec.startsWith("attr:") ? nodeAttrVal(node, spec.slice(5))
+                        : state.metricData[spec.slice(7)]?.[node];
+                    if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value)))
+                        throw new Error("Score is missing or non-finite for node " + node + ". Choose a score available for every node.");
+                    return [node, Number(value)];
+                }));
+            }
+            controller = new AbortController();
+            state.layoutRequest = controller;
+            updateLayoutButton();
+            const response = await api("/api/layout", { ...jsonBody(body), signal: controller.signal });
+            if (response?.cancelled) return;
+            // A replaced graph or cancelled request must never receive stale coordinates.
+            if (controller.signal.aborted || state.layoutRequest !== controller || state.graph !== g || state.graphId !== graphId) return;
+            if (RELISON_FORCE_LAYOUTS.has(type) && Number.isInteger(response.iterations))
+                forceSummary = " (" + response.iterations + " iterations, " + String(response.termination).toLowerCase().replaceAll("_", " ") + ")";
+            if (type === "spectral") forceSummary = response.termination === "LIMIT_REACHED"
+                ? " (eigensolver limit reached; increase sweeps for greater accuracy)" : " (eigenvectors converged)";
+            const positions = response.positions;
+            if (!positions || Object.keys(positions).length !== g.order || nodes.length !== g.order
+                || nodes.some(node => !g.hasNode(node) || !Object.hasOwn(positions, node)
+                    || !Number.isFinite(positions[node]?.x) || !Number.isFinite(positions[node]?.y)))
+                throw new Error("The network changed or the layout returned incomplete coordinates. Apply it again.");
+            for (const node of nodes) {
+                g.setNodeAttribute(node, "x", positions[node].x);
+                g.setNodeAttribute(node, "y", positions[node].y);
+            }
+        } else if (type === "circlepack") nativeCirclepack(g, $("circlepack-group") ? $("circlepack-group").value : "");
         else { setStatus("Unknown layout: " + type, "error"); return; }
+        if (state.renderer) {
+            state.renderer.setCustomBBox(null);
+            state.renderer.refresh();
+        }
+        drawRecOverlay();
+        queueCosmographAppearanceRefresh();
+        const label = $("layout-type").selectedOptions[0]?.textContent || type;
+        setStatus(label + " layout applied" + forceSummary + ".");
     } catch (e) {
-        setStatus("Layout failed: " + e.message, "error");
+        if (!isAbort(e)) setStatus("Layout failed: " + e.message, "error");
+    } finally {
+        if (controller && state.layoutRequest === controller) {
+            state.layoutRequest = null;
+            updateLayoutButton();
+        }
+    }
+}
+
+function staticLayoutParams(type) {
+    const read = (id, integer = false, minimum = Number.MIN_VALUE) => {
+        const input = $(id);
+        const value = input.value === "" ? NaN : Number(input.value);
+        if (!Number.isFinite(value) || value < minimum || (integer && !Number.isSafeInteger(value)))
+            throw new Error(input.closest("label").querySelector("span").textContent + " is invalid.");
+        return value;
+    };
+    if (isFlat3DLayout(type)) return staticLayoutParams(flatLayoutBase(type));
+    if (type === "spectral" || type === "spectral-3d") return { scale: read("layout-spectral-scale"),
+        normalized: $("layout-spectral-model").value !== "classical", weighted: $("layout-spectral-weighted").checked,
+        iterations: read("layout-spectral-iterations",true,0), tolerance: read("layout-spectral-tolerance") };
+    if (RELISON_3D_LAYOUTS.has(type)) {
+        if (type === "upward-grid-3d") return { spacing: read("layout-spacing") };
+        if (type === "h3-3d") return { root: $("layout-root").value || null, direction: $("layout-direction").value,
+            radius: read("layout-radius"), leafRadius: read("layout-h3-leaf"), areaScale: read("layout-h3-area") };
+        if (type === "spherical-mds-3d") return { iterations: read("layout-iterations",true,0), seed: read("layout-seed",true,-Number.MAX_SAFE_INTEGER),
+            radius: read("layout-radius"), learningRate: read("layout-smds-rate"), tolerance: read("layout-smds-tolerance",false,0), weighted: $("layout-distance-weighted").checked };
+        if (LAYERED_3D_LAYOUTS.has(type)) {
+            const params = staticLayoutParams(layeredLayoutBase(type));
+            if (type.endsWith("-cone-3d")) params.zScale = read("layout-z-scale");
+            return params;
+        }
+        if (type === "random-3d") return { width: read("layout-width"), height: read("layout-height"), depth: read("layout-depth"), seed: read("layout-seed",true,-Number.MAX_SAFE_INTEGER) };
+        if (type === "grid-3d") return { spacing: read("layout-spacing"), columns: read("layout-columns",true,0), depth: read("layout-grid-depth",true,0) };
+        if (type === "spherical-3d") return { radius: read("layout-radius") };
+        if (type === "sphere-packing-3d") return { spacing: read("layout-spacing") };
+        if (type === "radial-pyramid-3d") return { root: $("layout-root").value || null, direction: $("layout-direction").value,
+            spacing: read("layout-spacing"), zScale: read("layout-z-scale") };
+        if (type === "feature-grid-3d") return { spacing: read("layout-spacing"), levelSpacing: read("layout-level-spacing") };
+        if (type === "community-3d") return { iterations: read("layout-community-iterations", true, 0),
+            seed: read("layout-seed", true, -Number.MAX_SAFE_INTEGER), communityGap: read("layout-community-gap", false, 0),
+            innerLayout: $("layout-community-inner").value, outerLayout: $("layout-community-outer").value };
+        if (type === "preset-3d") return {};
+        const common = { iterations: read("layout-iterations",true,0), seed: read("layout-seed",true,-Number.MAX_SAFE_INTEGER),
+            theta: 0, tolerance: read("layout-tolerance",false,0) };
+        if (common.iterations > 5000) throw new Error("Iterations must be at most 5000.");
+        if (type === "stress-majorization-3d") return { ...common, edgeLength: read("layout-distance-length"), weighted: $("layout-distance-weighted").checked };
+        if ($("layout-fr-bounded").checked) return { ...common, bounded: true, width: read("layout-fr-width"), height: read("layout-fr-height"),
+            depth: read("layout-fr-depth"), initialTemperature: read("layout-fr-temperature"), weighted: $("layout-weighted").checked };
+        const cooling = read("layout-cooling");
+        if (cooling >= 1) throw new Error("Cooling must be less than one.");
+        return { ...common, bounded: false, idealLength: read("layout-ideal-length"), cooling, weighted: $("layout-weighted").checked };
+    }
+    if (RELISON_FORCE_LAYOUTS.has(type)) {
+        const common = { iterations: read("layout-iterations", true, 0), seed: read("layout-seed", true, -Number.MAX_SAFE_INTEGER),
+            theta: read("layout-theta", false, 0), tolerance: read("layout-tolerance", false, 0) };
+        if (common.iterations > 5000 || common.theta > 2) throw new Error("Iterations must be at most 5000 and theta at most 2.");
+        if (type === "stress-majorization") return { ...common, edgeLength: read("layout-distance-length"), weighted: $("layout-distance-weighted").checked };
+        if (type === "kamada-kawai") return { ...common, drawingSize: read("layout-kk-size"), springConstant: read("layout-spring-constant"), weighted: $("layout-distance-weighted").checked };
+        if (type === "multilevel-force") {
+            const cooling = read("layout-hu-cooling");
+            const levelIterations = read("layout-hu-level-iterations", true, 1);
+            if (cooling >= 1 || levelIterations > 5000 || common.tolerance <= 0) throw new Error("Cooling must be below one, level iterations at most 5000, and tolerance positive.");
+            return { ...common, initialScale: read("layout-hu-scale"), repulsion: read("layout-hu-repulsion"), cooling, levelIterations,
+                weighted: $("layout-hu-weighted").checked };
+        }
+        if (type === "fruchterman-reingold") {
+            if ($("layout-fr-bounded").checked) return { ...common, bounded: true,
+                width: read("layout-fr-width"), height: read("layout-fr-height"),
+                initialTemperature: read("layout-fr-temperature"), weighted: $("layout-weighted").checked };
+            const cooling = read("layout-cooling");
+            if (cooling >= 1) throw new Error("Cooling must be less than one.");
+            return { ...common, bounded: false, idealLength: read("layout-ideal-length"), cooling, weighted: $("layout-weighted").checked };
+        }
+        return { ...common, scaling: read("layout-fa-scaling"), gravity: read("layout-fa-gravity", false, 0),
+            jitterTolerance: read("layout-jitter"), weightInfluence: read("layout-weight-influence", false, 0),
+            linLog: $("layout-linlog").checked, strongGravity: $("layout-strong-gravity").checked,
+            outboundAttractionDistribution: $("layout-outbound").checked, adjustSizes: $("layout-adjust-sizes").checked,
+            normalizeWeights: $("layout-normalize-weights").checked, invertWeights: $("layout-invert-weights").checked };
+    }
+    if (type === "community") return { iterations: read("layout-community-iterations", true, 0),
+        seed: read("layout-seed", true, -Number.MAX_SAFE_INTEGER), communityGap: read("layout-community-gap", false, 0),
+        innerLayout: $("layout-community-inner").value, outerLayout: $("layout-community-outer").value };
+    if (type === "circular") return { radius: read("layout-radius") };
+    if (type === "random") return { width: read("layout-width"), height: read("layout-height"), seed: read("layout-seed", true, -Number.MAX_SAFE_INTEGER) };
+    if (type === "grid") return { columns: read("layout-columns", true, 0), spacing: read("layout-spacing") };
+    if (type === "shell" || type === "concentric") return { spacing: read("layout-spacing"), reverse: type === "concentric" && $("layout-score-reverse").checked };
+    if (type === "radial") return { root: $("layout-root").value || null, direction: $("layout-direction").value, spacing: read("layout-spacing") };
+    if (type === "ego-grid") return { root: $("layout-root").value || null, direction: $("layout-direction").value, columnSpacing: read("layout-column-spacing"), spacing: read("layout-spacing") };
+    if (type === "tree") return { root: $("layout-root").value || null, spacing: read("layout-spacing"), levelSpacing: read("layout-level-spacing") };
+    if (type === "sugiyama") return { spacing: read("layout-spacing"), levelSpacing: read("layout-level-spacing"), sweeps: read("layout-sweeps", true, 0) };
+    if (type === "bipartite" || type === "multipartite" || type === "feature-grid") return {
+        columnSpacing: read("layout-column-spacing"), spacing: read("layout-spacing"), sweeps: read("layout-sweeps", true, 0),
+    };
+    return {};
+}
+
+// Coordinate features retain their original units and are never silently filled or normalized.
+function layoutCoordinateFeature(spec, node, axis) {
+    let value;
+    if (spec.startsWith("attr:")) value = nodeAttrVal(node, spec.slice(5));
+    else throw new Error("Choose a numeric node attribute or saved coordinate for the " + axis + " axis.");
+    if ((typeof value !== "number" && typeof value !== "string")
+        || (typeof value === "string" && value.trim() === "") || !Number.isFinite(Number(value)))
+        throw new Error(axis + " feature is missing or non-finite for node " + node + ". Choose a feature available for every node.");
+    return Number(value);
+}
+
+function saveLayoutPositions() {
+    if (!state.graph) { setStatus("Load a network first.", "error"); return; }
+    stopLayout();
+    if (usingCosmograph() && window.relisonCosmograph?.getDimensions() === 3) {
+        state.savedLayoutPositions3D = { graphId: state.graphId, positions: window.relisonCosmograph.getSpatialNodePositions(state.graph) };
+        setStatus("Saved 3D positions for " + state.graph.order + " nodes.");
         return;
     }
-    if (state.renderer) state.renderer.refresh();
-    drawRecOverlay();
-    setStatus(type + " layout applied.");
-}
-
-// Places nodes evenly on a circle whose radius grows with the node count.
-function nativeCircular(g) {
-    const nodes = g.nodes(), n = nodes.length;
-    const R = Math.max(50, n * 8);
-    nodes.forEach((nd, i) => {
-        const a = (2 * Math.PI * i) / Math.max(1, n);
-        g.setNodeAttribute(nd, "x", Math.cos(a) * R);
-        g.setNodeAttribute(nd, "y", Math.sin(a) * R);
-    });
-}
-
-// Scatters nodes uniformly in a square sized to the node count.
-function nativeRandom(g) {
-    const nodes = g.nodes();
-    const S = Math.max(100, Math.sqrt(nodes.length) * 60);
-    nodes.forEach((nd) => {
-        g.setNodeAttribute(nd, "x", (Math.random() - 0.5) * S);
-        g.setNodeAttribute(nd, "y", (Math.random() - 0.5) * S);
-    });
+    if (usingCosmograph()) window.relisonCosmograph?.savePointPositions();
+    const entries = state.graph.nodes().map(node => [node, {
+        x: state.graph.getNodeAttribute(node, "x"), y: state.graph.getNodeAttribute(node, "y"),
+    }]);
+    if (entries.some(([, point]) => !Number.isFinite(point.x) || !Number.isFinite(point.y))) {
+        setStatus("Apply a layout before saving positions.", "error"); return;
+    }
+    state.savedLayoutPositions = { graphId: state.graphId, positions: Object.fromEntries(entries) };
+    setStatus("Saved positions for " + entries.length + " nodes.");
 }
 
 // Lays out a set of nodes around (cx, cy) in a sunflower/phyllotaxis spiral (a compact, even disc).
@@ -1684,7 +3559,7 @@ function nativeNoverlap(g) {
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     nodes.forEach((nd, i) => {
         const x = g.getNodeAttribute(nd, "x") || 0, y = g.getNodeAttribute(nd, "y") || 0;
-        xs[i] = x; ys[i] = y; rs[i] = g.getNodeAttribute(nd, "size") || 3;
+        xs[i] = x; ys[i] = y; rs[i] = (g.getNodeAttribute(nd, "size") || 6) / 2;
         if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
     });
     // Map node "size" units into position units so collisions are meaningful at the current layout scale.
@@ -1720,7 +3595,7 @@ function nodeGroupKey(spec, node) {
     return undefined;
 }
 
-// Populates the circle-packing "Group by" selector with the detected partitions and node attributes.
+// Populates layout grouping and scoring choices from the available analysis results.
 function rebuildLayoutGroupOptions() {
     const sel = $("circlepack-group");
     if (!sel) return;
@@ -1729,19 +3604,126 @@ function rebuildLayoutGroupOptions() {
     Object.keys(state.communityData).forEach((a) => sel.appendChild(option("community:" + a, "community: " + a)));
     nodeAttrDefs().forEach((d) => sel.appendChild(option("attr:" + d.name, "attr: " + d.name)));
     restoreSelect(sel, current);
+    const score = $("layout-score");
+    const previousScore = score.value;
+    score.innerHTML = '<option value="degree">Degree</option>';
+    state.metricOrder.forEach(name => score.appendChild(option("metric:" + name, "metric: " + name)));
+    nodeAttrDefs().filter(def => def.numeric).forEach(def => score.appendChild(option("attr:" + def.name, "attr: " + def.name)));
+    score.value = Array.from(score.options).some(item => item.value === previousScore) ? previousScore : "degree";
+    for (const axis of ["x", "y"]) {
+        const coordinate = $("layout-preset-" + axis);
+        const previous = coordinate.value;
+        coordinate.innerHTML = '<option value="">Saved ' + axis.toUpperCase() + ' coordinate</option>';
+        nodeAttrDefs().filter(def => def.numeric).forEach(def => coordinate.appendChild(option("attr:" + def.name, "attr: " + def.name)));
+        restoreSelect(coordinate, previous);
+    }
+    for (const axis of ["latitude", "longitude"]) {
+        const select = $("layout-geographic-" + axis), previous = select.value;
+        select.replaceChildren(option("", "Choose " + axis));
+        for (const def of nodeAttrDefs().filter(def => def.numeric)) select.appendChild(option("attr:" + def.name, def.name));
+        restoreSelect(select, previous);
+        if (!select.value) {
+            const names = axis === "latitude" ? ["latitude", "lat"] : ["longitude", "lon", "lng", "long"];
+            const def = nodeAttrDefs().find(def => def.numeric && names.includes(def.name.toLowerCase()));
+            if (def) select.value = "attr:" + def.name;
+        }
+    }
 }
 
-// Shows only the controls relevant to the selected layout: the FA2 tuning parameters and the circle-packing grouping.
+// Shows only the controls relevant to the selected layout.
 function updateLayoutTypeUI() {
-    const type = currentLayoutType();
-    toggleHidden("layout-params", type !== "forceatlas2");
-    toggleHidden("layout-params-hint", type !== "forceatlas2");
-    toggleHidden("circlepack-group-field", type !== "circlepack");
+    const selectedType = currentLayoutType(), type = layeredLayoutBase(selectedType);
+    const spatial = RELISON_3D_LAYOUTS.has(selectedType);
+    const flat3D = isFlat3DLayout(selectedType);
+    toggleHidden("layout-geographic-controls", type !== "geographic");
+    toggleHidden("layout-geographic-hint", type !== "geographic");
+    const force = RELISON_FORCE_LAYOUTS.has(type);
+    toggleHidden("layout-spectral-controls", type !== "spectral" && type !== "spectral-3d");
+    toggleHidden("layout-spectral-hint", type !== "spectral" && type !== "spectral-3d");
+    toggleHidden("layout-sphere-packing-hint", type !== "sphere-packing-3d");
+    $("layout-remove-overlap").closest("label").hidden = ["spherical-mds-3d", "upward-grid-3d", "h3-3d"].includes(type);
+    for (const [id, visible] of [["layout-smds-controls", type === "spherical-mds-3d"], ["layout-smds-hint", type === "spherical-mds-3d"],
+        ["layout-h3-controls", type === "h3-3d"], ["layout-h3-hint", type === "h3-3d"], ["layout-upward-hint", type === "upward-grid-3d"]]) toggleHidden(id, !visible);
+    toggleHidden("layout-force-controls", !force && (!spatial || flat3D));
+    for (const id of ["layout-iterations", "layout-warm-start", "layout-tolerance"])
+        $(id).closest("label").hidden = !force;
+    toggleHidden("layout-fr-controls", type !== "fruchterman-reingold" && type !== "fruchterman-reingold-3d");
+    const framedFR = $("layout-fr-bounded").checked;
+    for (const id of ["layout-fr-width", "layout-fr-height", "layout-fr-temperature"])
+        $(id).closest("label").hidden = !framedFR;
+    for (const id of ["layout-ideal-length", "layout-cooling"])
+        $(id).closest("label").hidden = framedFR;
+    toggleHidden("layout-fr-depth-field", type !== "fruchterman-reingold-3d" || !framedFR);
+    toggleHidden("layout-fa-controls", type !== "relison-forceatlas2");
+    const distance = type === "stress-majorization" || type === "stress-majorization-3d" || type === "kamada-kawai" || type === "spherical-mds-3d";
+    toggleHidden("layout-distance-controls", !distance);
+    $("layout-distance-length").closest("label").hidden = type !== "stress-majorization" && type !== "stress-majorization-3d";
+    for (const id of ["layout-kk-size", "layout-spring-constant"]) $(id).closest("label").hidden = type !== "kamada-kawai";
+    $("layout-theta").closest("label").hidden = distance || (spatial && !flat3D);
+    toggleHidden("layout-hu-controls", type !== "multilevel-force");
+    toggleHidden("layout-community-controls", type !== "community" && type !== "community-3d");
+    $("layout-tolerance").dataset.tooltip = type === "stress-majorization" ? "ui-layout-stress-tolerance"
+        : type === "kamada-kawai" ? "ui-layout-kk-tolerance" : type === "multilevel-force" ? "ui-layout-hu-tolerance" : "ui-layout-tolerance";
+    $("layout-tolerance").closest("label").dataset.tooltip = $("layout-tolerance").dataset.tooltip;
+    toggleHidden("layout-distance-hint", !distance);
+    if (type === "spherical-mds-3d") { toggleHidden("layout-distance-hint", true); $("layout-tolerance").closest("label").hidden = true; }
+    toggleHidden("layout-hu-hint", type !== "multilevel-force");
+    toggleHidden("layout-community-hint", type !== "community" && type !== "community-3d");
+    toggleHidden("layout-force-hint", !force || spatial);
+    toggleHidden("layout-3d-hint", !spatial || LAYERED_3D_LAYOUTS.has(selectedType) || flat3D);
+    if (["spectral-3d", "spherical-mds-3d", "h3-3d", "upward-grid-3d"].includes(type)) toggleHidden("layout-3d-hint", true);
+    toggleHidden("layout-flat-3d-hint", !flat3D);
+    toggleHidden("layout-layered-3d-hint", !LAYERED_3D_LAYOUTS.has(selectedType));
+    toggleHidden("layout-pyramid-3d-hint", selectedType !== "radial-pyramid-3d");
+    toggleHidden("layout-feature-grid-3d-hint", selectedType !== "feature-grid-3d");
+    toggleHidden("layout-community-3d-hint", selectedType !== "community-3d");
+    if (LAYERED_3D_LAYOUTS.has(selectedType)) {
+        const meaning = type === "shell" ? "zero-based shell number" : type === "concentric" ? "raw score" : "hop count (−1 for unreachable nodes)";
+        $("layout-layered-3d-hint").textContent = selectedType.endsWith("-cone-3d")
+            ? "Keeps the 2D rings and sets z to the " + meaning + " × Z-axis multiplier. Use 1 for original heights; larger values increase depth."
+            : "Replaces each 2D ring with a sphere of the same radius. Grouping and radial ordering match the 2D layout.";
+    }
+    toggleHidden("layout-advanced", !RELISON_LAYOUTS.has(type) && type !== "circlepack");
+    toggleHidden("circlepack-group-field", !["circlepack", "shell", "bipartite", "multipartite", "feature-grid", "feature-grid-3d", "community", "community-3d", "sphere-packing-3d"].includes(type));
+    toggleHidden("static-layout-params", !RELISON_LAYOUTS.has(type) || type === "preset" || type === "preset-3d");
+    toggleHidden("layout-radius-field", !["circular", "spherical-3d", "spherical-mds-3d", "h3-3d"].includes(type));
+    toggleHidden("layout-spacing-field", !["grid", "grid-3d", "sphere-packing-3d", "shell", "concentric", "radial", "radial-pyramid-3d", "bipartite", "multipartite", "tree", "feature-grid", "feature-grid-3d", "ego-grid", "sugiyama"].includes(type));
+    if (type === "upward-grid-3d") toggleHidden("layout-spacing-field", false);
+    toggleHidden("layout-z-scale-field", !((LAYERED_3D_LAYOUTS.has(selectedType) && selectedType.endsWith("-cone-3d")) || selectedType === "radial-pyramid-3d"));
+    toggleHidden("layout-root-field", type !== "radial" && type !== "radial-pyramid-3d" && type !== "ego-grid" && type !== "tree");
+    toggleHidden("layout-direction-field", type !== "radial" && type !== "radial-pyramid-3d" && type !== "ego-grid");
+    if (type === "h3-3d") { toggleHidden("layout-root-field", false); toggleHidden("layout-direction-field", false); }
+    toggleHidden("layout-column-spacing-field", !["bipartite", "multipartite", "feature-grid", "ego-grid"].includes(type));
+    toggleHidden("layout-sweeps-field", !["bipartite", "multipartite", "feature-grid", "sugiyama"].includes(type));
+    toggleHidden("layout-level-spacing-field", type !== "tree" && type !== "sugiyama" && type !== "feature-grid-3d");
+    toggleHidden("layout-columns-field", type !== "grid" && type !== "grid-3d");
+    toggleHidden("layout-grid-depth-field", type !== "grid-3d");
+    for (const id of ["layout-width-field", "layout-height-field"]) toggleHidden(id, type !== "random" && type !== "random-3d");
+    toggleHidden("layout-depth-field", type !== "random-3d");
+    toggleHidden("layout-seed-field", type !== "random" && type !== "random-3d" && type !== "community" && !force);
+    toggleHidden("layout-score-field", type !== "concentric");
+    toggleHidden("layout-score-reverse-field", type !== "concentric");
+    toggleHidden("layout-shell-hint", type !== "shell");
+    toggleHidden("layout-preset-hint", type !== "preset");
+    toggleHidden("layout-preset-x-field", type !== "preset");
+    toggleHidden("layout-preset-y-field", type !== "preset");
+    toggleHidden("layout-radial-hint", type !== "radial");
+    toggleHidden("layout-ego-grid-hint", type !== "ego-grid");
+    toggleHidden("layout-feature-grid-hint", type !== "feature-grid");
+    toggleHidden("layout-partition-hint", type !== "bipartite" && type !== "multipartite");
+    toggleHidden("layout-tree-hint", type !== "tree");
+    toggleHidden("layout-sugiyama-hint", type !== "sugiyama");
+    toggleHidden("layout-packing-controls", !RELISON_LAYOUTS.has(type) || type === "geographic" || spatial);
+    toggleHidden("layout-packing-gap-field", !$("layout-pack-components").checked);
 }
 
 // Spreads overlapping nodes apart. Uses graphology-layout-noverlap when the bundle exposes it, otherwise a native pass.
 function removeOverlaps() {
     if (!state.graph) { setStatus("Load a network first.", "error"); return; }
+    if (window.relisonPaper3d?.graph === state.graph && usingCosmograph() && window.relisonCosmograph?.getDimensions() === 3) {
+        setStatus("Overlap removal would change this layout's sphere, hyperbolic or upward-grid geometry. Apply a Euclidean layout first.", "error"); return;
+    }
+    if (usingCosmograph() && window.relisonCosmograph?.getDimensions() === 3) return applySpatialLayout("preset-3d", true);
     const NOV = lib.layoutNoverlap || window.graphologyLayoutNoverlap;
     let ok = false;
     try {
@@ -1755,23 +3737,15 @@ function removeOverlaps() {
     if (!ok) nativeNoverlap(state.graph);
     if (state.renderer) state.renderer.refresh();
     drawRecOverlay();
+    queueCosmographAppearanceRefresh();
     setStatus("Removed node overlaps.");
-}
-
-function layoutParams() {
-    return {
-        scaling: parseFloat($("layout-scaling").value) || 1,
-        gravity: parseFloat($("layout-gravity").value) || 0,
-        speed: parseFloat($("layout-speed").value) || 1,
-    };
 }
 
 function builtinForceStep() {
     const g = state.graph;
     const nodes = g.nodes();
     const n = nodes.length || 1;
-    const lp = layoutParams();
-    const k = Math.max(10, Math.sqrt(250000 / n)) * lp.scaling;
+    const k = Math.max(10, Math.sqrt(250000 / n));
     const disp = new Map(), x = new Map(), y = new Map();
     for (const v of nodes) {
         disp.set(v, { x: 0, y: 0 });
@@ -1800,7 +3774,7 @@ function builtinForceStep() {
         ds.x -= fx; ds.y -= fy; dt.x += fx; dt.y += fy;
     });
     // Gravity: pull every node toward the centre, proportional to its distance.
-    const gpull = 0.01 * lp.gravity;
+    const gpull = 0.01;
     if (gpull > 0) {
         for (const v of nodes) {
             const d = disp.get(v);
@@ -1821,24 +3795,44 @@ function builtinForceStep() {
 }
 
 function stopLayout() {
-    state.fa2Running = false;
-    if (state.fa2Raf) cancelAnimationFrame(state.fa2Raf);
-    state.fa2Raf = null;
+    if (state.relisonLayout) {
+        const run = state.relisonLayout;
+        state.relisonLayout = null;
+        run.controller.abort();
+        if (run.raf) cancelAnimationFrame(run.raf);
+        if (run.resolveFrame) { run.resolveFrame(); run.resolveFrame = null; }
+        cancelRelisonSession(run);
+        setStatus("Layout stopped; keeping displayed positions.");
+    }
+    if (state.layoutRequest) {
+        if (state.layoutRequest.jobId)
+            ProcessPanel.cancelJob(state.layoutRequest.jobId, state.layoutRequest.graphId).catch(() => {});
+        state.layoutRequest.abort();
+        state.layoutRequest = null;
+    }
+    if (state.cosmographLayoutRunning) {
+        window.relisonCosmograph?.stopForceLayout();
+        state.cosmographLayoutRunning = false;
+        if (cosmographLayoutJobId) ProcessPanel.finishLocal(cosmographLayoutJobId, "cancelled");
+        cosmographLayoutJobId = null;
+    }
+    const wasRunning = state.iterativeLayoutRunning;
+    state.iterativeLayoutRunning = false;
+    if (iterativeLayoutJobId) ProcessPanel.finishLocal(iterativeLayoutJobId, "cancelled");
+    iterativeLayoutJobId = null;
+    if (state.iterativeLayoutRaf) cancelAnimationFrame(state.iterativeLayoutRaf);
+    state.iterativeLayoutRaf = null;
     updateLayoutButton();
+    if (wasRunning) queueCosmographAppearanceRefresh();
 }
 
 function resetLayout() {
     const graph = state.graph;
     if (!graph) return;
-    stopLayout();
-    const nodes = graph.nodes();
-    const n = nodes.length;
-    nodes.forEach((node, i) => {
-        const angle = (2 * Math.PI * i) / Math.max(1, n);
-        graph.setNodeAttribute(node, "x", Math.cos(angle) * 100);
-        graph.setNodeAttribute(node, "y", Math.sin(angle) * 100);
-    });
-    if (state.renderer) state.renderer.refresh();
+    window.relisonH3?.clear(); window.relisonPaper3d = null;
+    $("layout-type").value = "circular";
+    updateLayoutTypeUI();
+    applyStaticLayout("circular");
 }
 
 /* ------------------------------ catalog ----------------------------- */
@@ -1850,20 +3844,28 @@ async function loadCatalog() {
         state.defs = {
             vertex: indexById(cat.vertex), graph: indexById(cat.graph), pair: indexById(cat.pair),
             community: indexById(cat.community), communityIndividual: indexById(cat.communityIndividual),
+            intraCommunityIndividual: indexById(cat.intraCommunityIndividual),
+            intraAttributeIndividual: indexById(cat.intraAttributeIndividual),
             communityGlobal: indexById(cat.communityGlobal),
         };
+        loadEdgePartitionMetricCatalog(cat);
         fillSelect("vertex-metric", cat.vertex);
         fillSelect("graph-metric", cat.graph);
         fillSelect("pair-metric", cat.pair);
         fillCommunitySelect("community-algo", cat.community);
-        fillSelect("indiv-comm-metric", cat.communityIndividual);
+        fillSelect("indiv-comm-metric", [...(cat.communityIndividual || []), ...(cat.intraCommunityIndividual || [])]);
         fillSelect("global-comm-metric", cat.communityGlobal);
+        fillAttributeMetricSelect("attribute-indiv-comm-metric", [...(cat.communityIndividual || []), ...(cat.intraAttributeIndividual || [])]);
+        fillAttributeMetricSelect("attribute-global-comm-metric", cat.communityGlobal);
         renderParams("vertex-params", "vertex", $("vertex-metric").value);
         renderParams("graph-params", "graph", $("graph-metric").value);
         renderParams("pair-params", "pair", $("pair-metric").value);
         renderParams("community-params", "community", $("community-algo").value);
-        renderParams("indiv-comm-params", "communityIndividual", $("indiv-comm-metric").value);
+        renderIndividualCommunityParams("indiv-comm-params", $("indiv-comm-metric").value, false);
         renderParams("global-comm-params", "communityGlobal", $("global-comm-metric").value);
+        renderIndividualCommunityParams("attribute-indiv-comm-params", $("attribute-indiv-comm-metric").value, true);
+        renderParams("attribute-global-comm-params", "communityGlobal", $("attribute-global-comm-metric").value);
+        syncAttributeCommunityMetricControls();
     } catch (e) {
         setStatus("Could not load metric catalog: " + e.message, "error");
     }
@@ -1881,6 +3883,28 @@ function fillSelect(id, items) {
     (items || []).forEach((m) => select.appendChild(option(m.id, m.label)));
 }
 
+// Uses the same metric identifiers as community metrics, but frames their labels for attribute-induced partitions.
+function fillAttributeMetricSelect(id, items) {
+    const select = $(id);
+    select.innerHTML = "";
+    (items || []).forEach((metric) => {
+        const label = metric.id.startsWith("intra-attribute:") ? metric.label
+            : metric.id === "Distinct neighboring communities" ? "Distinct neighboring attribute values"
+            : metric.label.replace(/\bcommunities\b/gi, "attributes").replace(/\bcommunity\b/gi, "attribute");
+        select.appendChild(option(metric.id, label));
+    });
+}
+function renderIndividualCommunityParams(containerId, metricId, byAttribute) {
+    const intra = metricId.startsWith(byAttribute ? "intra-attribute:" : "intra-community:");
+    renderParams(containerId, intra ? (byAttribute ? "intraAttributeIndividual" : "intraCommunityIndividual") : "communityIndividual", metricId);
+}
+function individualCommunityMetricLabel(metricId) {
+    for (const family of ["communityIndividual", "intraCommunityIndividual", "intraAttributeIndividual"]) {
+        const def = state.defs[family]?.[metricId];
+        if (def?.label) return def.label;
+    }
+    return metricId;
+}
 function fillCommunitySelect(id, items) {
     const select = $(id);
     select.innerHTML = "";
@@ -1891,6 +3915,40 @@ function fillCommunitySelect(id, items) {
         og.label = group;
         groups[group].forEach((a) => og.appendChild(option(a.id, a.label)));
         select.appendChild(og);
+    }
+}
+
+// Keeps the attribute-partition metric controls in sync with the current node-attribute schema.
+function syncAttributeCommunityMetricControls() {
+    const select = $("attribute-comm-attribute");
+    if (!select) return;
+    const current = select.value;
+    const attributes = nodeAttrDefs().map((def) => def.name);
+    setSelectOptions("attribute-comm-attribute", attributes, attributes);
+    if (attributes.includes(current)) select.value = current;
+    const enabled = attributes.length > 0;
+    $("btn-attribute-global-comm").disabled = !enabled;
+    $("btn-attribute-indiv-comm").disabled = !enabled;
+}
+function syncEdgeAttributeMetricControls() {
+    const select = $("edge-attribute-metric-attribute");
+    if (!select) return;
+    const current = select.value;
+    const attributes = edgeAttrDefs().map((def) => def.name);
+    setSelectOptions("edge-attribute-metric-attribute", attributes, attributes);
+    if (attributes.includes(current)) select.value = current;
+    $("btn-edge-attribute-global").disabled = attributes.length === 0;
+    $("btn-edge-attribute-indiv").disabled = attributes.length === 0;
+}
+function syncMetricOrientations(container = document) {
+    for (const input of container.querySelectorAll("[data-metric-orientation]")) {
+        if (state.directed === false) {
+            if (!input.dataset.undirectedOrientation) input.dataset.directedOrientation = input.value;
+            input.value = "UND"; input.disabled = true; input.dataset.undirectedOrientation = "true";
+        } else if (input.dataset.undirectedOrientation) {
+            input.value = input.dataset.directedOrientation; input.disabled = false;
+            delete input.dataset.undirectedOrientation;
+        }
     }
 }
 
@@ -1911,6 +3969,10 @@ function renderParams(containerId, family, metricId) {
             input = document.createElement("select");
             p.options.forEach((o) => input.appendChild(option(o, o)));
             input.value = p.default;
+        } else if (p.type === "bool" && p.name === "mode" && (/(?:^|:)HITS$/i.test(metricId) || /\bauthorit(?:y|ies)\b/i.test(p.label || ""))) {
+            input = document.createElement("select"); span.textContent = "Mode";
+            input.append(option("false", "Hubs"), option("true", "Authorities"));
+            input.value = String(!!p.default);
         } else if (p.type === "bool") {
             input = document.createElement("input");
             input.type = "checkbox";
@@ -1927,19 +3989,23 @@ function renderParams(containerId, family, metricId) {
         }
         input.dataset.param = p.name;
         input.dataset.ptype = p.type;
+        const metricFamily = ["vertex", "graph", "pair", "communityGlobal", "communityIndividual", "intraCommunityIndividual", "intraAttributeIndividual", "edgePartitionGlobal", "edgePartitionIndividual", "intraEdgePartitionIndividual"].includes(family);
+        if (metricFamily && p.options?.includes("UND") && (p.type === "orientation" || p.options.includes("IN") && p.options.includes("OUT"))) input.dataset.metricOrientation = "true";
         label.appendChild(input);
         container.appendChild(label);
     }
+    syncMetricOrientations(container);
 }
 
 // Collects the current parameter values from a container into a plain object.
 function collectParams(containerId) {
     const container = $(containerId);
+    syncMetricOrientations(container);
     const params = {};
     container.querySelectorAll("[data-param]").forEach((input) => {
         const name = input.dataset.param;
         const type = input.dataset.ptype;
-        if (type === "bool") params[name] = input.checked;
+        if (type === "bool") params[name] = input.tagName === "SELECT" ? input.value === "true" : input.checked;
         else if (type === "double") params[name] = parseFloat(input.value);
         else if (type === "int") params[name] = parseInt(input.value, 10);
         else params[name] = input.value;
@@ -1959,13 +4025,14 @@ async function runVertexMetric() {
         const res = await api("/api/metrics/vertex",
             { ...jsonBody({ graphId: state.graphId, metric, params: collectParams("vertex-params") }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
-        const values = {};
-        for (const k of Object.keys(res.values)) values[k] = Number(res.values[k]);
+        const values = numericMap(res.values);
         if (!state.metricOrder.includes(res.label)) state.metricOrder.push(res.label);
         state.metricData[res.label] = values;
         rebuildAppearanceOptions();
         $("size-by").value = res.label;
+        $("node-color-mode").value = "attribute";
         $("color-by").value = "metric:" + res.label;
+        syncNodeColorControls();
         applyAppearance();
         $("vertex-result").textContent = res.label + " — avg " + fmt(res.average);
         if (state.rec.active && $("vertex-rec").checked) {
@@ -1981,7 +4048,7 @@ async function runVertexMetric() {
         if (isAbort(e)) return;
         setStatus(e.message, "error");
     } finally {
-        endJob("btn-vertex");
+        endJob("btn-vertex", signal);
     }
 }
 
@@ -1996,6 +4063,7 @@ async function runGraphMetric() {
             { ...jsonBody({ graphId: state.graphId, metric, params: collectParams("graph-params") }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
         state.graphMetrics[res.label] = res.value;
+        (state.globalMetricScopes ||= {})[res.label] = { family: "global", scope: "graph" };
         if (state.rec.active && $("graph-rec").checked) {
             try {
                 const r2 = await api("/api/metrics/graph", { ...jsonBody(
@@ -2009,7 +4077,7 @@ async function runGraphMetric() {
         if (isAbort(e)) return;
         setStatus(e.message, "error");
     } finally {
-        endJob("btn-graph");
+        endJob("btn-graph", signal);
     }
 }
 
@@ -2017,7 +4085,7 @@ async function runPairMetric() {
     if (jobBusy("btn-pair")) return cancelJob("btn-pair");
     if (!requireGraph()) return;
     const metric = $("pair-metric").value;
-    const allPairs = $("pair-allpairs").checked;
+    const allPairs = state.activeSubtab === "pairs";
     const onlyLinks = !allPairs;
     setStatus("Computing " + metric + (allPairs ? " over all node pairs" : "") + "…", "busy");
     const signal = beginJob("btn-pair", "pair");
@@ -2034,8 +4102,9 @@ async function runPairMetric() {
         } else {
             const map = {};
             res.values.forEach((e) => {
-                map[pairKey(e.source, e.target)] = Number(e.value);
-                if (!state.directed) map[pairKey(e.target, e.source)] = Number(e.value);
+                const value = e.value == null ? NaN : Number(e.value);
+                map[pairKey(e.source, e.target)] = value;
+                if (!state.directed) map[pairKey(e.target, e.source)] = value;
             });
             if (!state.pairOrder.includes(res.label)) state.pairOrder.push(res.label);
             state.pairData[res.label] = map;
@@ -2052,8 +4121,9 @@ async function runPairMetric() {
                 } else {
                     const map = {};
                     r2.values.forEach((e) => {
-                        map[pairKey(e.source, e.target)] = Number(e.value);
-                        if (!state.directed) map[pairKey(e.target, e.source)] = Number(e.value);
+                        const value = e.value == null ? NaN : Number(e.value);
+                        map[pairKey(e.source, e.target)] = value;
+                        if (!state.directed) map[pairKey(e.target, e.source)] = value;
                     });
                     storeRecMetric("pair", res.label, map);
                 }
@@ -2065,7 +4135,7 @@ async function runPairMetric() {
         if (isAbort(e)) return;
         setStatus(e.message, "error");
     } finally {
-        endJob("btn-pair");
+        endJob("btn-pair", signal);
     }
 }
 
@@ -2075,20 +4145,32 @@ async function detectCommunity() {
     if (jobBusy("btn-community")) return cancelJob("btn-community");
     if (!requireGraph()) return;
     const algorithm = $("community-algo").value;
+    const graphId = state.graphId, graph = state.graph, revision = state.networkRevision, params = collectParams("community-params");
+    const existing = findCommunityPartition(algorithm, params);
+    if (existing !== undefined) {
+        selectCommunityPartition(existing);
+        $("community-result").textContent = existing + " — " + communityRows().length + " communities";
+        setStatus("Selected existing partition: " + existing + ".");
+        return;
+    }
     setStatus("Detecting communities (" + algorithm + ")…", "busy");
     const signal = beginJob("btn-community", "community");
     try {
         const res = await api("/api/communities",
-            { ...jsonBody({ graphId: state.graphId, algorithm, params: collectParams("community-params") }), signal });
+            { ...jsonBody({ graphId, algorithm, params }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
+        if (graphId !== state.graphId || graph !== state.graph || revision !== state.networkRevision) return;
         state.communityData[res.algorithm] = res.values;
+        communityDetected(res.algorithm, algorithm, params, res.numCommunities);
         rebuildAppearanceOptions();
+        $("node-color-mode").value = "attribute";
         $("color-by").value = "community:" + res.algorithm;
+        syncNodeColorControls();
         applyAppearance();
         $("community-result").textContent = res.label + " — " + res.numCommunities + " communities";
         $("btn-global-comm").disabled = false;
         $("btn-indiv-comm").disabled = false;
-        const algos = Object.keys(state.communityData);
+        const algos = Object.keys(state.communityData).filter(name => !name.startsWith("attribute:"));
         setSelectOptions("indiv-comm-partition", algos, algos);
         $("indiv-comm-partition").value = res.algorithm;
         setSelectOptions("global-comm-partition", algos, algos);
@@ -2101,7 +4183,7 @@ async function detectCommunity() {
         if (isAbort(e)) return;
         setStatus(e.message, "error");
     } finally {
-        endJob("btn-community");
+        endJob("btn-community", signal);
     }
 }
 
@@ -2109,6 +4191,7 @@ async function runGlobalCommMetric() {
     if (jobBusy("btn-global-comm")) return cancelJob("btn-global-comm");
     if (!requireGraph()) return;
     const algorithm = $("global-comm-partition").value;
+    const graphId = state.graphId, partition = state.communityData[algorithm];
     if (!algorithm || !state.communityData[algorithm]) { setStatus("Detect a partition first.", "error"); return; }
     const metric = $("global-comm-metric").value;
     setStatus("Computing global " + metric + "…", "busy");
@@ -2117,12 +4200,79 @@ async function runGlobalCommMetric() {
         const res = await api("/api/communities/global",
             { ...jsonBody({ graphId: state.graphId, algorithm, metric, params: collectParams("global-comm-params") }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
+        if (graphId !== state.graphId || partition !== state.communityData[algorithm]) return;
         const label = res.label + " (" + algorithm + ")";
         state.graphMetrics[label] = res.value;
+        (state.globalMetricScopes ||= {})[label] = { family: isAttributeCommunityPartition(algorithm) ? "attrcomm" : "comm", scope: algorithm };
         if (state.rec.active && $("global-comm-rec").checked) {
             try {
                 const r2 = await api("/api/communities/global", { ...jsonBody(
                     { graphId: state.graphId, algorithm, metric, params: collectParams("global-comm-params"), withRecommendation: true }), signal });
+                if (!r2.cancelled && graphId === state.graphId && partition === state.communityData[algorithm]) storeRecMetric("graph", label, r2.value);
+            } catch (e) { /* recommendation metric is optional */ }
+        }
+        refreshAfterCompute();
+        setStatus("Computed " + label + " = " + fmt(res.value));
+    } catch (e) {
+        if (isAbort(e)) return;
+        setStatus(e.message, "error");
+    } finally {
+        endJob("btn-global-comm", signal);
+    }
+}
+
+async function runIndividualCommMetric() {
+    if (jobBusy("btn-indiv-comm")) return cancelJob("btn-indiv-comm");
+    if (!requireGraph()) return;
+    const algorithm = $("indiv-comm-partition").value;
+    const graphId = state.graphId, partition = state.communityData[algorithm];
+    if (!algorithm || !state.communityData[algorithm]) { setStatus("Detect a partition first.", "error"); return; }
+    const metric = $("indiv-comm-metric").value;
+    setStatus("Computing per-community " + metric + "…", "busy");
+    const signal = beginJob("btn-indiv-comm", "commIndividual");
+    try {
+        const res = await api("/api/communities/individual",
+            { ...jsonBody({ graphId: state.graphId, algorithm, metric, params: collectParams("indiv-comm-params") }), signal });
+        if (res.cancelled) { setStatus("Stopped."); return; }
+        if (graphId !== state.graphId || partition !== state.communityData[algorithm]) return;
+        const label = res.label + " · " + algorithm;
+        if (!state.commMetricOrder.includes(label)) state.commMetricOrder.push(label);
+        state.commMetricData[label] = { algorithm, metric, axisLabel: individualCommunityMetricLabel(metric), values: numericMap(res.values) };
+        if (state.rec.active && $("comm-rec").checked) {
+            try {
+                const r2 = await api("/api/communities/individual", { ...jsonBody(
+                    { graphId: state.graphId, algorithm, metric, params: collectParams("indiv-comm-params"), withRecommendation: true }), signal });
+                if (!r2.cancelled && graphId === state.graphId && partition === state.communityData[algorithm]) storeRecMetric("comm", label, numericMap(r2.values));
+            } catch (e) { /* recommendation metric is optional */ }
+        }
+        refreshAfterCompute();
+        setStatus("Computed " + res.label + " over " + algorithm + " — avg " + fmt(res.average) + ".");
+    } catch (e) {
+        if (isAbort(e)) return;
+        setStatus(e.message, "error");
+    } finally {
+        endJob("btn-indiv-comm", signal);
+    }
+}
+
+async function runAttributeGlobalCommMetric() {
+    if (jobBusy("btn-attribute-global-comm")) return cancelJob("btn-attribute-global-comm");
+    if (!requireGraph()) return;
+    const attribute = $("attribute-comm-attribute").value;
+    if (!attribute) { setStatus("Add a node attribute with values first.", "error"); return; }
+    const metric = $("attribute-global-comm-metric").value;
+    setStatus("Computing global " + metric + " by " + attribute + "…", "busy");
+    const signal = beginJob("btn-attribute-global-comm", "attributeCommGlobal");
+    try {
+        const body = { graphId: state.graphId, attribute, metric, params: collectParams("attribute-global-comm-params") };
+        const res = await api("/api/communities/global", { ...jsonBody(body), signal });
+        if (res.cancelled) { setStatus("Stopped."); return; }
+        const label = res.label + " (" + res.algorithm + ")";
+        state.graphMetrics[label] = res.value;
+        (state.globalMetricScopes ||= {})[label] = { family: "attrcomm", scope: attribute };
+        if (state.rec.active && $("attribute-global-comm-rec").checked) {
+            try {
+                const r2 = await api("/api/communities/global", { ...jsonBody({ ...body, withRecommendation: true }), signal });
                 if (!r2.cancelled) storeRecMetric("graph", label, r2.value);
             } catch (e) { /* recommendation metric is optional */ }
         }
@@ -2132,76 +4282,155 @@ async function runGlobalCommMetric() {
         if (isAbort(e)) return;
         setStatus(e.message, "error");
     } finally {
-        endJob("btn-global-comm");
+        endJob("btn-attribute-global-comm", signal);
     }
 }
 
-async function runIndividualCommMetric() {
-    if (jobBusy("btn-indiv-comm")) return cancelJob("btn-indiv-comm");
+async function runAttributeIndividualCommMetric() {
+    if (jobBusy("btn-attribute-indiv-comm")) return cancelJob("btn-attribute-indiv-comm");
     if (!requireGraph()) return;
-    const algorithm = $("indiv-comm-partition").value;
-    if (!algorithm || !state.communityData[algorithm]) { setStatus("Detect a partition first.", "error"); return; }
-    const metric = $("indiv-comm-metric").value;
-    setStatus("Computing per-community " + metric + "…", "busy");
-    const signal = beginJob("btn-indiv-comm", "commIndividual");
+    const attribute = $("attribute-comm-attribute").value;
+    if (!attribute) { setStatus("Add a node attribute with values first.", "error"); return; }
+    const metric = $("attribute-indiv-comm-metric").value;
+    setStatus("Computing per-value " + metric + " by " + attribute + "…", "busy");
+    const signal = beginJob("btn-attribute-indiv-comm", "attributeCommIndividual");
     try {
-        const res = await api("/api/communities/individual",
-            { ...jsonBody({ graphId: state.graphId, algorithm, metric, params: collectParams("indiv-comm-params") }), signal });
+        const body = { graphId: state.graphId, attribute, metric, params: collectParams("attribute-indiv-comm-params") };
+        const res = await api("/api/communities/individual", { ...jsonBody(body), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
-        const label = res.label + " · " + algorithm;
-        if (!state.commMetricOrder.includes(label)) state.commMetricOrder.push(label);
-        state.commMetricData[label] = { algorithm, values: numericMap(res.values) };
-        if (state.rec.active && $("comm-rec").checked) {
+        const label = res.label + " · " + res.algorithm;
+        if (!state.attributeMetricOrder.includes(label)) state.attributeMetricOrder.push(label);
+        state.attributeMetricData[label] = { attribute, metric, axisLabel: individualCommunityMetricLabel(metric), values: numericMap(res.values), valueLabels: res.valueLabels || {} };
+        if (state.rec.active && $("attribute-comm-rec").checked) {
             try {
-                const r2 = await api("/api/communities/individual", { ...jsonBody(
-                    { graphId: state.graphId, algorithm, metric, params: collectParams("indiv-comm-params"), withRecommendation: true }), signal });
+                const r2 = await api("/api/communities/individual", { ...jsonBody({ ...body, withRecommendation: true }), signal });
                 if (!r2.cancelled) storeRecMetric("comm", label, numericMap(r2.values));
             } catch (e) { /* recommendation metric is optional */ }
         }
         refreshAfterCompute();
-        setStatus("Computed " + res.label + " over " + algorithm + " — avg " + fmt(res.average) + ".");
+        setStatus("Computed " + res.label + " over " + res.algorithm + " — avg " + fmt(res.average) + ".");
     } catch (e) {
         if (isAbort(e)) return;
         setStatus(e.message, "error");
     } finally {
-        endJob("btn-indiv-comm");
+        endJob("btn-attribute-indiv-comm", signal);
     }
 }
-
+async function runEdgeAttributeMetric(metric, global) {
+    const button = global ? "btn-edge-attribute-global" : "btn-edge-attribute-indiv";
+    if (jobBusy(button)) return cancelJob(button);
+    if (!requireGraph()) return;
+    const attribute = $("edge-attribute-metric-attribute").value;
+    if (!attribute) { setStatus("Add an edge attribute first.", "error"); return; }
+    const graphId = state.graphId, graph = state.graph, revision = state.networkRevision;
+    setStatus("Computing edge attribute metric by " + attribute + "…", "busy");
+    const signal = beginJob(button, global ? "edgeAttributeGlobal" : "edgeAttributeIndividual");
+    try {
+        const res = await api("/api/metrics/edge-attributes", { ...jsonBody({ graphId: state.graphId, attribute, metric }), signal });
+        if (res.cancelled) { setStatus("Stopped."); return; }
+        if (graphId !== state.graphId || graph !== state.graph || revision !== state.networkRevision) return;
+        if (global) {
+            state.graphMetrics[res.label] = res.value;
+            (state.globalMetricScopes ||= {})[res.label] = { family: "edgeattr", scope: attribute };
+            setStatus("Computed " + res.label + " = " + fmt(res.value));
+        } else {
+            const label = res.label;
+            if (!state.edgeAttributeMetricOrder.includes(label)) state.edgeAttributeMetricOrder.push(label);
+            state.edgeAttributeMetricData[label] = { attribute, values: numericMap(res.values), valueLabels: res.valueLabels || {} };
+            setStatus("Computed " + res.label + " — avg " + fmt(res.average) + ".");
+        }
+        refreshAfterCompute();
+    } catch (e) {
+        if (!isAbort(e)) setStatus(e.message, "error");
+    } finally {
+        endJob(button, signal);
+    }
+}
 /* ------------------------------- paths ------------------------------ */
 
-async function findPaths() {
+async function findPaths(options = {}) {
     if (!requireGraph()) return;
-    const source = $("path-source").value.trim();
-    const target = $("path-target").value.trim();
-    if (!source || !target) { setStatus("Enter both source and target.", "error"); return; }
-    const withRecommendation = !!(state.rec.active && $("path-graph") && $("path-graph").value === "rec");
-    setStatus("Finding shortest paths…", "busy");
-    $("btn-find-paths").disabled = true;
-    try {
-        const res = await api("/api/paths", jsonBody({ graphId: state.graphId, source, target, withRecommendation }));
-        state.lastPaths = res.paths || [];
-        if (res.length < 0) {
-            $("path-summary").textContent = "No path from " + source + " to " + target + ".";
-        } else {
-            $("path-summary").textContent =
-                res.count + (res.truncated ? "+" : "") + " shortest path(s) of length " + res.length +
-                " from " + source + " to " + target + (res.truncated ? " (showing first " + res.count + ")" : "") + ".";
-        }
-        renderPathsTable(state.lastPaths);
-        setStatus("Found " + res.count + " path(s).");
-    } catch (e) {
-        setStatus(e.message, "error");
-    } finally {
-        $("btn-find-paths").disabled = false;
+    const source = String(options.source ?? $("select-path-source").value).trim();
+    const target = String(options.target ?? $("select-path-target").value).trim();
+    invalidatePathResults();
+    if (!source || !target) { setStatus("Enter both source and target.", "error"); refreshNetworkView(); return; }
+    if (!state.graph.hasNode(source) || !state.graph.hasNode(target)) { setStatus("Both endpoints must exist in the graph.", "error"); refreshNetworkView(); return; }
+    $("select-path-source").value = source; $("select-path-target").value = target;
+    const scope = $("select-path-scope").value, working = networkWorkingSet();
+    if (scope === "filtered" && (!working.nodes.has(source) || !working.nodes.has(target))) {
+        $("select-path-summary").textContent = "An endpoint is outside current filters. Change the filters or choose Whole graph.";
+        setStatus("Both endpoints must belong to the filtered graph.", "error"); refreshNetworkView(); return;
     }
+    state.pathEndpointFocusActive = true;
+    const requestVersion = ++state.pathRequestVersion, graph = state.graph, graphId = state.graphId, revision = state.networkRevision;
+    const current = () => requestVersion === state.pathRequestVersion && state.graph === graph && state.graphId === graphId &&
+        revision === state.networkRevision && state.selection.type === "path" && $("select-path-source").value.trim() === source &&
+        $("select-path-target").value.trim() === target && $("select-path-scope").value === scope;
+    const body = { graphId, source, target, withRecommendation: false };
+    if (scope === "filtered") {
+        body.allowedNodes = [...working.nodes];
+        // Simple-graph edge keys are generated in the browser. Endpoint pairs define reachability;
+        // eligible parallel-edge IDs have already been accounted for in the shared working set.
+        body.allowedLinks = [...working.edges].map(edge => [graph.source(edge), graph.target(edge)]);
+    }
+    refreshNetworkView();
+    setStatus("Finding shortest paths…", "busy"); $("btn-select-paths").disabled = true;
+    try {
+        const res = await api("/api/paths", jsonBody(body));
+        if (!current()) return;
+        state.lastPaths = res.paths || [];
+        state.pathResult = { source, target, scope };
+        state.pathEndpointFocusActive = false;
+        $("select-path-summary").textContent = res.length < 0 ? "No path from " + source + " to " + target + " in the " + (scope === "filtered" ? "filtered" : "whole") + " graph." :
+            res.count + (res.truncated ? "+" : "") + " shortest path(s) of length " + res.length + " from " + source + " to " + target +
+            " in the " + (scope === "filtered" ? "filtered" : "whole") + " graph" + (res.truncated ? " (showing first " + res.count + ")" : "") + ".";
+        highlightPaths(state.lastPaths);
+        setStatus("Found " + res.count + " path(s).");
+    } catch (error) {
+        if (!current()) return;
+        state.pathEndpointFocusActive = false;
+        $("select-path-summary").textContent = error.message;
+        setStatus(error.message, "error"); refreshNetworkView();
+    } finally { if (current()) $("btn-select-paths").disabled = false; }
 }
 
-function renderPathsTable(paths) {
-    const table = $("paths-table");
+function getPathEdgeStyle(path, index = 0) {
+    const key = JSON.stringify(path);
+    if (!state.pathEdgeStyles.has(key)) {
+        const colors = ["#ff9f43", "#4f9dff", "#28c76f", "#ea5caa", "#b08cff", "#f5d04c"];
+        state.pathEdgeStyles.set(key, { color: colors[index % colors.length], priority: 0 });
+    }
+    return state.pathEdgeStyles.get(key);
+}
+
+function buildPathEdgeColors(path) {
+    const colors = new Map();
+    if (!path || state.pathEdgeHighlight.mode !== "per-path") return colors;
+    (path.paths || []).map((nodes, index) => ({ nodes, style: getPathEdgeStyle(nodes, index) }))
+        .sort((a, b) => a.style.priority - b.style.priority)
+        .forEach(({ nodes, style }) => {
+            for (let i = 1; i < nodes.length; i++) {
+                colors.set(window.relisonNetworkView.pair(nodes[i - 1], nodes[i]), style.color);
+                if (!state.directed) colors.set(window.relisonNetworkView.pair(nodes[i], nodes[i - 1]), style.color);
+            }
+        });
+    return colors;
+}
+
+function updatePathEdgeStyle(path, color) {
+    const style = getPathEdgeStyle(path);
+    style.color = color;
+    style.priority = ++state.pathEdgeStyleSequence;
+    applyReducers();
+    drawRecOverlay();
+}
+
+function renderPathsTable(paths, tableId = "select-paths-table") {
+    const table = $(tableId);
     table.innerHTML = "";
     const thead = document.createElement("thead");
-    thead.innerHTML = "<tr><th>#</th><th>path</th><th>action</th></tr>";
+    const perPathColor = state.pathEdgeHighlight.mode === "per-path";
+    thead.innerHTML = "<tr><th>#</th><th>path</th><th>action</th>" + (perPathColor ? "<th>Color</th>" : "") + "</tr>";
     table.appendChild(thead);
     const tbody = document.createElement("tbody");
     paths.forEach((p, i) => {
@@ -2210,38 +4439,57 @@ function renderPathsTable(paths) {
         const path = document.createElement("td"); path.textContent = p.join(" → "); path.style.textAlign = "left";
         const act = document.createElement("td");
         const btn = document.createElement("button");
-        btn.textContent = "Highlight";
+        const highlighted = state.activePaths.some((activePath) => JSON.stringify(activePath) === JSON.stringify(p));
+        btn.textContent = highlighted ? "Deselect" : "Select";
         btn.style.width = "auto"; btn.style.margin = "0"; btn.style.padding = "2px 8px";
-        btn.addEventListener("click", () => highlightPaths([p]));
+        btn.addEventListener("click", () => togglePathHighlight(p));
         act.appendChild(btn);
+        const colorCell = document.createElement("td");
+        const style = getPathEdgeStyle(p, i);
+        const picker = document.createElement("input");
+        picker.type = "color";
+        picker.value = style.color;
+        picker.style.cssText = "width:32px;min-width:32px;height:24px;padding:0";
+        picker.setAttribute("aria-label", "Edge color for path " + (i + 1));
+        setTooltip(picker, "path-specific-edge-color");
+        picker.addEventListener("input", () => updatePathEdgeStyle(p, picker.value));
+        colorCell.appendChild(picker);
         tr.append(idx, path, act);
+        if (perPathColor) tr.appendChild(colorCell);
         tbody.appendChild(tr);
     });
     table.appendChild(tbody);
 }
 
-// Highlights one or more paths on the network (dims everything else) and switches to the Network tab.
-function highlightPaths(paths) {
-    if (!paths.length) return;
-    const nodes = new Set();
-    const edges = new Set();
-    for (const p of paths) {
-        for (let i = 0; i < p.length; i++) {
-            nodes.add(p[i]);
-            if (i > 0) {
-                edges.add(pairKey(p[i - 1], p[i]));
-                if (!state.directed) edges.add(pairKey(p[i], p[i - 1]));
-            }
-        }
-    }
-    state.pathFocus = { nodes, edges, only: $("path-display").value === "only" };
-    switchTab("network");
-    applyReducers();
+function togglePathHighlight(path) {
+    const key = JSON.stringify(path), remaining = state.activePaths.filter(active => JSON.stringify(active) !== key);
+    highlightPaths(remaining.length !== state.activePaths.length ? remaining : [...state.activePaths, path]);
 }
 
-function clearPathHighlight() {
-    state.pathFocus = null;
-    applyReducers();
+// Highlights one or more paths on the network (dims everything else).
+function highlightPaths(paths) {
+    if (state.selection.type !== "path") {
+        rememberSelectionType("path");
+        state.selectedNode = state.selection.node = null;
+        $("select-node-input").value = ""; renderNodeInfo(null); clearEdgeSelection();
+    }
+    const previous = new Set(state.activePaths.map(path => JSON.stringify(path)));
+    paths.forEach((path, index) => { if (!previous.has(JSON.stringify(path))) getPathEdgeStyle(path, index).priority = ++state.pathEdgeStyleSequence; });
+    state.activePaths = paths.map(path => [...path]);
+    state.pathEndpointFocusActive = false;
+    renderPathsTable(state.lastPaths);
+    refreshNetworkView();
+}
+
+function showPathsBetween(source, target) {
+    setSelectionType("path");
+    $("select-path-source").value = source; $("select-path-target").value = target;
+    return findPaths({ source, target });
+}
+
+function findSelectedPaths() {
+    if (state.selection.type !== "path") setSelectionType("path");
+    return findPaths({ source: $("select-path-source").value, target: $("select-path-target").value });
 }
 
 /* ------------------------------ editing ----------------------------- */
@@ -2249,6 +4497,8 @@ function clearPathHighlight() {
 function setEditMode(on) {
     $("edit-help").hidden = !on;
     state.editFirstNode = null;
+    $("btn-area-select-nodes").disabled = on || !state.dragNodes || !state.multiNodeSelect;
+    if (on) setAreaNodeSelection(false);
 }
 
 async function editAddNodeAt(coords) {
@@ -2380,6 +4630,8 @@ function confirmClears(action) {
 }
 
 function onGraphEdited(stats) {
+    state.networkRevision++;
+    invalidatePathResults();
     // Server cleared its caches, so all computed results (and any recommendation overlay) are stale.
     resetResults();
     resetRecommendation();
@@ -2390,10 +4642,16 @@ function onGraphEdited(stats) {
     $("btn-global-comm").disabled = true;
     $("btn-indiv-comm").disabled = true;
     state.pathFocus = null;
+    state.cosmographDirty = true;
     if (state.selectedNode != null && !state.graph.hasNode(state.selectedNode)) clearSelection();
     refreshAfterCompute();
     applyReducers();
     if (state.renderer) state.renderer.refresh();
+    if (usingCosmograph() && window.relisonCosmograph?.isRendered()) {
+        window.relisonCosmograph.render(state.graph, cosmographInteractionCallbacks())
+            .then(() => { state.cosmographDirty = false; })
+            .catch((error) => setStatus("Cosmograph could not refresh after graph editing: " + error.message, "error"));
+    }
 }
 
 /* --------------------------- edit history (undo/redo) --------------------------- */
@@ -2439,9 +4697,21 @@ async function historyRedo() {
 }
 
 function updateHistoryUI() {
-    const u = $("btn-undo"), r = $("btn-redo"), h = state.history;
-    if (u) { u.disabled = h.applying || !h.undo.length; u.title = h.undo.length ? "Undo: " + h.undo[h.undo.length - 1].label + " (Ctrl+Z)" : "Nothing to undo"; }
-    if (r) { r.disabled = h.applying || !h.redo.length; r.title = h.redo.length ? "Redo: " + h.redo[h.redo.length - 1].label + " (Ctrl+Y)" : "Nothing to redo"; }
+    const h = state.history;
+    ["btn-undo", "btn-network-undo"].forEach((id) => {
+        const button = $(id);
+        if (button) {
+            button.disabled = h.applying || !h.undo.length;
+            setTooltip(button, h.undo.length ? "js-undo" : "js-nothing-to-undo", h.undo.length ? { label: h.undo[h.undo.length - 1].label } : {});
+        }
+    });
+    ["btn-redo", "btn-network-redo"].forEach((id) => {
+        const button = $(id);
+        if (button) {
+            button.disabled = h.applying || !h.redo.length;
+            setTooltip(button, h.redo.length ? "js-redo" : "js-nothing-to-redo", h.redo.length ? { label: h.redo[h.redo.length - 1].label } : {});
+        }
+    });
 }
 
 function defaultNodeAttrs(id) {
@@ -2550,28 +4820,44 @@ function applyPieceRemove(index) {
 /* ------------------------------ tabs -------------------------------- */
 
 function switchTab(tab) {
+    if (state.activeTab === "communities" && tab !== "communities") leaveCommunityExplorer();
     state.activeTab = tab;
     document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
     $("pane-import").classList.toggle("active", tab === "import");
     $("pane-network").classList.toggle("active", tab === "network");
     $("pane-tables").classList.toggle("active", tab === "tables");
+    $("pane-communities").classList.toggle("active", tab === "communities");
+    $("pane-edge-partitions").classList.toggle("active", tab === "edge-partitions");
     $("pane-metrics").classList.toggle("active", tab === "metrics");
-    $("pane-paths").classList.toggle("active", tab === "paths");
     $("pane-recommend").classList.toggle("active", tab === "recommend");
     $("pane-diffusion").classList.toggle("active", tab === "diffusion");
 
+    window.relisonCosmograph?.refreshOrientationGizmo?.();
+    if (typeof syncRotationExportControls === "function") syncRotationExportControls();
+
     updatePanels(tab);
 
-    if (tab === "network" && state.renderer) setTimeout(() => { state.renderer.refresh(); drawRecOverlay(); }, 0);
+    if (tab === "network") setTimeout(() => {
+        if (state.renderer) { state.renderer.refresh(); drawRecOverlay(); }
+        if ($("network-renderer").value === "cosmograph" && state.graph && window.relisonCosmograph &&
+            (state.cosmographDirty || !window.relisonCosmograph.isRendered())) {
+            window.relisonCosmograph.render(state.graph, {
+                ...cosmographInteractionCallbacks(),
+            }).then(() => { state.cosmographDirty = false; })
+              .catch((e) => setStatus("Cosmograph could not restore after switching tabs: " + e.message, "error"));
+        }
+    }, 0);
     if (tab === "tables") renderTable(state.activeTableSubtab);
+    if (tab === "communities") refreshCommunityExplorer();
+    if (tab === "edge-partitions") refreshEdgePartitionExplorer();
     if (tab === "metrics") renderMetricsDashboard();
-    if (tab === "paths" && state.selectedNode && !$("path-source").value) $("path-source").value = state.selectedNode;
     if (tab === "recommend") { loadRecCatalog(); renderTable("rec"); }
     if (tab === "diffusion") enterDiffusionTab();
 }
 
 // Switches between the subtabs in the Diffusion tab's center panel.
 function switchDiffSubtab(sub) {
+    if (sub === "metrics" && DiffusionWorkspace.ready) { state.diffusion.statsView = "metrics"; sub = "stats"; }
     state.diffusion.subview = sub;
     document.querySelectorAll(".diffsubtab").forEach((b) => b.classList.toggle("active", b.dataset.diffsubtab === sub));
     $("diff-view-graph").classList.toggle("active", sub === "graph");
@@ -2584,6 +4870,7 @@ function switchDiffSubtab(sub) {
     document.querySelector(".diff-layout").classList.toggle("no-state", !onGraph);
     if (sub === "graph") {
         if (state.diffusion.renderer) setTimeout(() => { state.diffusion.renderer.refresh(); drawDiffOverlay(); }, 0);
+        if (state.diffusion.rendererType === "cosmograph") restoreDiffCosmograph();
     } else if (sub === "metrics") {
         renderDiffMetrics();
     } else if (sub === "pieces") {
@@ -2596,15 +4883,19 @@ function switchDiffSubtab(sub) {
 // Switches the inner Node / Piece / Feature / Distributions view of the "Statistics" subtab.
 function switchStatsView(view) {
     state.diffusion.statsView = view;
-    document.querySelectorAll(".diffstatsview").forEach((b) => b.classList.toggle("active", b.dataset.statsview === view));
-    ["node", "piece", "feat", "dist"].forEach((v) => toggleHidden("diff-stats-view-" + v, v !== view));
+    document.querySelectorAll(".diffstatsview").forEach((b) => { b.classList.toggle("active", b.dataset.statsview === view); b.setAttribute("aria-selected", String(b.dataset.statsview === view)); });
+    ["overview", "metrics", "node", "piece", "feat", "dist", "compare"].forEach((v) => toggleHidden("diff-stats-view-" + v, v !== view));
     renderActiveStatsView();
 }
 
 // Renders whichever view of the Statistics subtab is currently active.
 function renderActiveStatsView() {
     const view = state.diffusion.statsView;
-    if (view === "piece") renderPieceTimeline();
+    if (DiffusionWorkspace.ready) DiffusionWorkspace.sync();
+    if (view === "overview") DiffusionWorkspace.renderOverview();
+    else if (view === "metrics") renderDiffMetrics();
+    else if (view === "compare") DiffusionWorkspace.renderCompare();
+    else if (view === "piece") renderPieceTimeline();
     else if (view === "feat") renderFeatureTimeline();
     else if (view === "dist") renderDiffDistribution();
     else renderNodeTimeline();
@@ -2616,13 +4907,9 @@ function statsActive(view) {
 }
 
 // Shows/hides the side panels per tab and resizes the layout grid accordingly:
-// import → no panels; network → left (layout/visualization) + right (selection); metrics → right (runners);
-// tables/paths → no panels (full-width content).
-// The left panel carries the controls of whichever tab needs them — layout/appearance on Network, the metric and
-// community runners on Metrics — so configuration always sits on the left. The right panel is now only the
-// canvas-side Selection block, which is meaningful on the Network tab alone.
+// Network has layout/selection panels, Communities has detection, and Metrics has metric runners.
 function updatePanels(tab) {
-    const showLeft = tab === "network" || tab === "metrics";
+    const showLeft = tab === "network" || (tab === "metrics" && metricWorkspaceComputeOpen && state.activeSubtab !== "relationships") || tab === "communities" || tab === "edge-partitions";
     const showRight = tab === "network";
     $("left").style.display = showLeft ? "" : "none";
     $("right").style.display = showRight ? "" : "none";
@@ -2633,6 +4920,8 @@ function updatePanels(tab) {
 
     toggleHidden("left-layout", tab !== "network");
     toggleHidden("left-metrics", tab !== "metrics");
+    toggleHidden("left-communities", tab !== "communities");
+    toggleHidden("left-edge-partitions", tab !== "edge-partitions");
 }
 
 // Disables the Recommendation tab for multigraphs (recommenders need a simple FastGraph); switches away if needed.
@@ -2641,7 +4930,8 @@ function updateRecTabAvailability() {
     if (!btn) return;
     btn.disabled = state.multigraph;
     btn.classList.toggle("disabled", state.multigraph);
-    btn.title = state.multigraph ? "Recommendation is not available for multigraphs." : "";
+    if (state.multigraph) setTooltip(btn, "js-recommendation-multigraph");
+    else { btn.removeAttribute("title"); btn.removeAttribute("aria-description"); }
     if (state.multigraph && state.activeTab === "recommend") switchTab("network");
 }
 
@@ -2653,10 +4943,12 @@ function switchSubtab(sub) {
     $("subpane-edges").classList.toggle("active", sub === "edges");
     $("subpane-pairs").classList.toggle("active", sub === "pairs");
     $("subpane-comm").classList.toggle("active", sub === "comm");
-    if (sub === "nodes") { drawNodeChart(); drawNodeScatter(); }
-    if (sub === "edges") { drawEdgeChart(); drawEdgeScatter(); }
-    if (sub === "pairs") drawPairChart();
-    if (sub === "comm") { drawCommChart(); drawCommScatter(); }
+    $("subpane-attrcomm").classList.toggle("active", sub === "attrcomm");
+    $("subpane-edgeattr").classList.toggle("active", sub === "edgeattr");
+    $("subpane-edgepartitions").classList.toggle("active", sub === "edgepartitions");
+    $("subpane-relationships").classList.toggle("active", sub === "relationships");
+    if (state.activeTab === "metrics") updatePanels("metrics");
+    renderMetricsDashboard();
 }
 
 function switchTableSubtab(sub) {
@@ -2669,8 +4961,10 @@ function switchTableSubtab(sub) {
 
 // Refresh whichever data-driven views are currently visible after a computation.
 function refreshAfterCompute() {
-    if (state.activeTab === "tables") renderTable(state.activeTableSubtab);
+    if ($("select-path-scope").value === "filtered") invalidatePathResults();
+    refreshNetworkView();
     if (state.activeTab === "metrics") renderMetricsDashboard();
+    if (typeof refreshCommunityExplorer === "function") refreshCommunityExplorer();
 }
 
 /* ---------------------------- table models -------------------------- */
@@ -2681,13 +4975,14 @@ function nodeColumns() {
     // Attribute columns come before the computed metric / community columns.
     nodeAttrDefs().forEach((d) => cols.push({ key: "a:" + d.name, label: d.name }));
     state.metricOrder.forEach((m) => cols.push({ key: "m:" + m, label: m }));
-    Object.keys(state.communityData).forEach((a) => cols.push({ key: "c:" + a, label: "comm:" + a }));
+    Object.keys(state.communityData).filter(a => !a.startsWith("attribute:"))
+        .forEach((a) => cols.push({ key: "c:" + a, label: "comm:" + a }));
     cols.push({ key: "_act", label: "" });   // trailing remove-row column
     return cols;
 }
 
 function nodeRowValue(node, key) {
-    if (key === "id") return idValue(node);
+    if (key === "id") return node;
     if (key.startsWith("m:")) return state.metricData[key.slice(2)]?.[node];
     if (key.startsWith("c:")) return state.communityData[key.slice(2)]?.[node];
     if (key.startsWith("a:")) return nodeAttrVal(node, key.slice(2));
@@ -2709,9 +5004,9 @@ function edgeColumns() {
 function edgeRowValue(edge, key) {
     const g = state.graph;
     const s = g.source(edge), t = g.target(edge);
-    if (key === "source") return idValue(s);
-    if (key === "target") return idValue(t);
-    if (key === "edgeid") return idValue(edge);
+    if (key === "source") return s;
+    if (key === "target") return t;
+    if (key === "edgeid") return edge;
     if (key === "weight") return g.getEdgeAttribute(edge, "weight");
     if (key.startsWith("p:")) return state.pairData[key.slice(2)]?.[pairKey(s, t)];
     if (key.startsWith("ea:")) return edgeAttrVal(edge, key.slice(3));
@@ -2737,6 +5032,83 @@ function tableModel(key) {
         };
     }
     return { cols: edgeColumns(), ids: state.graph ? state.graph.edges() : [], val: edgeRowValue };
+}
+
+// Keep graph identity columns first, the actions column last, and restore the user's order for all other columns.
+function orderedTableColumns(key, cols) {
+    if (key !== "nodes" && key !== "edges") return cols;
+    const t = state.tables[key];
+    const fixed = key === "nodes" ? ["id"] : ["source", "target"];
+    const movable = cols.filter((c) => !fixed.includes(c.key) && c.key !== "_act");
+    const available = new Map(movable.map((c) => [c.key, c]));
+    const ordered = (t.columnOrder || []).map((k) => available.get(k)).filter(Boolean);
+    const seen = new Set(ordered.map((c) => c.key));
+    movable.forEach((c) => { if (!seen.has(c.key)) ordered.push(c); });
+    t.columnOrder = ordered.map((c) => c.key);
+    const visible = [...fixed.map((k) => cols.find((c) => c.key === k)).filter(Boolean), ...ordered.filter((c) => !(t.hiddenColumns || []).includes(c.key)), ...cols.filter((c) => c.key === "_act")];
+    return visible;
+}
+
+function tableColumnGroup(key, column) {
+    if (key === "nodes") {
+        if (column.key.startsWith("a:")) return "attribute";
+        if (column.key.startsWith("m:")) return "metric";
+        if (column.key.startsWith("c:")) return "community";
+    }
+    if (key === "edges") {
+        if (column.key.startsWith("ea:")) return "attribute";
+        if (column.key.startsWith("p:")) return "metric";
+    }
+    return null;
+}
+
+function renderColumnVisibilityMenu(key) {
+    const menu = $(key === "nodes" ? "node-column-menu" : "edge-column-menu");
+    const cols = tableModel(key).cols.filter((c) => c.key !== "_act");
+    menu.replaceChildren();
+    const groups = [
+        { key: "attribute", label: "Attributes" },
+        { key: "metric", label: "Metrics" },
+        ...(key === "nodes" ? [{ key: "community", label: "Communities" }] : []),
+        { key: null, label: "Other columns" },
+    ];
+    for (const group of groups) {
+        const items = cols.filter((c) => tableColumnGroup(key, c) === group.key);
+        if (!items.length) continue;
+        const heading = document.createElement("div");
+        heading.className = "column-menu-heading" + (group.key ? " column-menu-heading-" + group.key : "");
+        heading.textContent = group.label;
+        menu.appendChild(heading);
+        for (const c of items) {
+            const label = document.createElement("label");
+            label.className = "column-menu-item";
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = !(state.tables[key].hiddenColumns || []).includes(c.key);
+            checkbox.disabled = (key === "nodes" && c.key === "id") || (key === "edges" && (c.key === "source" || c.key === "target"));
+            checkbox.addEventListener("change", () => {
+                const hidden = new Set(state.tables[key].hiddenColumns || []);
+                if (checkbox.checked) hidden.delete(c.key); else hidden.add(c.key);
+                state.tables[key].hiddenColumns = [...hidden];
+                state.tables[key].headerSig = null;
+                renderTable(key);
+                renderColumnVisibilityMenu(key);
+            });
+            const text = document.createElement("span");
+            text.textContent = c.label;
+            label.append(checkbox, text);
+            menu.appendChild(label);
+        }
+    }
+}
+
+function toggleColumnVisibilityMenu(key) {
+    const menu = $(key === "nodes" ? "node-column-menu" : "edge-column-menu");
+    const button = $(key === "nodes" ? "btn-node-columns" : "btn-edge-columns");
+    const open = menu.hidden;
+    menu.hidden = !open;
+    button.setAttribute("aria-expanded", String(open));
+    if (open) renderColumnVisibilityMenu(key);
 }
 
 function compareValues(a, b) {
@@ -2778,12 +5150,13 @@ function setupResizableColumns(table) {
     table.insertBefore(colgroup, table.firstChild);
     table.style.tableLayout = "fixed";
     table.style.width = widths.reduce((a, b) => a + b, 0) + "px";
+    syncIdentityColumnOffsets(table, widths);
 
     ths.forEach((th, i) => {
         const grip = document.createElement("span");
         grip.className = "col-grip";
         if (i === ths.length - 1) grip.style.right = "0";   // last column: keep the grip inside the table's right edge
-        grip.title = "Drag to resize column";
+        setTooltip(grip, "js-resize-column");
         grip.addEventListener("mousedown", (e) => startColResize(e, table, colgroup, i));
         grip.addEventListener("click", (e) => e.stopPropagation());   // a click on the grip must not sort the column
         th.appendChild(grip);
@@ -2803,6 +5176,7 @@ function startColResize(e, table, colgroup, i) {
         let sum = 0;
         for (const c of colgroup.children) sum += parseFloat(c.style.width) || 0;
         table.style.width = sum + "px";
+        syncIdentityColumnOffsets(table, Array.from(colgroup.children, (c) => parseFloat(c.style.width) || 0));
     };
     const onUp = () => {
         document.removeEventListener("mousemove", onMove);
@@ -2812,6 +5186,11 @@ function startColResize(e, table, colgroup, i) {
     document.body.classList.add("col-resizing");
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
+}
+
+function syncIdentityColumnOffsets(table, widths) {
+    if (table.id !== "edges-table") return;
+    table.style.setProperty("--edge-source-sticky-width", (widths[0] || 0) + "px");
 }
 
 /* ----------------------------- filtering ---------------------------- */
@@ -2887,7 +5266,7 @@ function makeColFilter(existing, apply) {
     inp.type = "text"; inp.placeholder = "…";
     const inp2 = document.createElement("input");
     inp2.type = "text"; inp2.placeholder = "…"; inp2.className = "filter-hi";
-    if (existing) { sel.value = existing.op; inp.value = existing.value || ""; inp2.value = existing.value2 || ""; }
+    if (existing) { sel.value = existing.op; inp.value = existing.value ?? ""; inp2.value = existing.value2 ?? ""; }
     const updateVis = () => {
         inp.style.display = UNARY_OPS.has(sel.value) ? "none" : "";
         inp2.style.display = sel.value === "between" ? "" : "none";
@@ -2910,30 +5289,31 @@ function activeFilters(key, cols) {
         .map((col) => ({ col, op: filters[col].op, value: filters[col].value, value2: filters[col].value2 }));
 }
 
-// True if a row passes every active filter (AND).
-function rowPasses(valFn, id, filters) {
-    return filters.every((f) => matchFilter(valFn(id, f.col), f.op, f.value, f.value2));
+// Match all (AND) or any (OR) active column filters. No filters always includes the row.
+function rowPasses(valFn, id, filters, mode = "and") {
+    if (!filters.length) return true;
+    const matches = (f) => valFn === nodeRowValue || valFn === edgeRowValue
+        ? window.relisonNetworkView.match(valFn(id, f.col), f, networkColumnType(valFn === nodeRowValue ? "nodes" : "edges", f.col))
+        : matchFilter(valFn(id, f.col), f.op, f.value, f.value2);
+    return mode === "or" ? filters.some(matches) : filters.every(matches);
 }
 
 // Full filtered + sorted id list for a table (no pagination); used for rendering and export.
 function tableRows(key) {
-    const m = tableModel(key);
-    const t = state.tables[key];
-    const filters = activeFilters(key, m.cols);
-    let ids = Array.from(m.ids);
-    if (filters.length) ids = ids.filter((id) => rowPasses(m.val, id, filters));
-
-    // "Show only" selection modes (ego-only / community-only) also restrict the node/edge tables (not the rec table).
-    const focus = (key === "nodes" || key === "edges") ? selectionFocus() : null;
-    if (focus && focus.only) {
-        const g = state.graph;
-        ids = key === "nodes"
-            ? ids.filter((id) => focus.nodes.has(id))
-            : ids.filter((e) => focus.nodes.has(g.source(e)) && focus.nodes.has(g.target(e)));
+    const model = tableModel(key), t = state.tables[key];
+    let ids;
+    if (key === "nodes" || key === "edges") {
+        const view = networkView();
+        model.view = view; model.focus = view.focus;
+        ids = [...(key === "nodes" ? view.tableNodes : view.tableEdges)];
+    } else {
+        const filters = activeFilters(key, model.cols);
+        ids = Array.from(model.ids).filter(id => rowPasses(model.val, id, filters));
     }
-
-    ids.sort((a, b) => compareValues(m.val(a, t.sort.col), m.val(b, t.sort.col)) * t.sort.dir);
-    return { model: m, ids };
+    const identity = ["id", "source", "target", "edgeid"].includes(t.sort.col);
+    ids.sort((a, b) => compareValues(identity ? idValue(model.val(a, t.sort.col)) : model.val(a, t.sort.col),
+        identity ? idValue(model.val(b, t.sort.col)) : model.val(b, t.sort.col)) * t.sort.dir || String(a).localeCompare(String(b)));
+    return { model, ids };
 }
 
 function renderTable(key) {
@@ -2945,6 +5325,7 @@ function renderTable(key) {
 // so typing in a filter input never recreates the input and never loses focus.
 function ensureHeader(key) {
     const m = tableModel(key);
+    m.cols = orderedTableColumns(key, m.cols);
     const sig = m.cols.map((c) => c.key).join("|");
     if (state.tables[key].headerSig === sig) { updateSortIndicators(key, m.cols); return; }
     state.tables[key].headerSig = sig;
@@ -2958,28 +5339,68 @@ function buildHeader(key, cols) {
     const thead = document.createElement("thead");
 
     const sortRow = document.createElement("tr");
-    cols.forEach((c) => {
+    cols.forEach((c, index) => {
         if (c.key === "_act") { const th = document.createElement("th"); th.className = "act-th"; sortRow.appendChild(th); return; }
-        const onSort = () => applySort(state.tables[key].sort, c.key, () => { state.tables[key].page = 0; }, () => renderTable(key));
-        sortRow.appendChild(makeSortTh(c.key, c.label, onSort));
+        const th = makeSortTh(c.key, c.label, () => applySort(state.tables[key].sort, c.key, () => { state.tables[key].page = 0; }, () => renderTable(key)));
+        const columnGroup = tableColumnGroup(key, c);
+        if (columnGroup) {
+            th.classList.add("column-type-" + columnGroup);
+            const tag = document.createElement("span");
+            tag.className = "column-type-tag";
+            tag.textContent = columnGroup === "attribute" ? "ATTR"
+                : columnGroup === "community" ? "COMMUNITY" : "METRIC";
+            th.insertBefore(tag, th.firstChild);
+        }
+        if ((key === "nodes" && c.key === "id") || (key === "edges" && (c.key === "source" || c.key === "target"))) th.classList.add("identity-col", "identity-col-" + index);
+        if (key === "nodes" || key === "edges") {
+            th.draggable = !(key === "nodes" && c.key === "id") && !(key === "edges" && (c.key === "source" || c.key === "target"));
+            th.dataset.columnKey = c.key;
+            if (th.draggable) {
+                th.classList.add("reorderable-col");
+                setTooltip(th, "js-reorder-table-column");
+                th.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", c.key); e.dataTransfer.effectAllowed = "move"; });
+                th.addEventListener("dragover", (e) => { if (e.dataTransfer.types.includes("text/plain")) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } });
+                th.addEventListener("drop", (e) => {
+                    e.preventDefault();
+                    const from = e.dataTransfer.getData("text/plain"), to = c.key;
+                    if (!from || from === to) return;
+                    const order = state.tables[key].columnOrder.slice();
+                    const fromIndex = order.indexOf(from), toIndex = order.indexOf(to);
+                    if (fromIndex < 0 || toIndex < 0) return;
+                    order.splice(toIndex, 0, ...order.splice(fromIndex, 1));
+                    state.tables[key].columnOrder = order;
+                    state.tables[key].headerSig = null;
+                    renderTable(key);
+                });
+            }
+        }
+        sortRow.appendChild(th);
     });
     thead.appendChild(sortRow);
 
     const filterRow = document.createElement("tr");
     filterRow.className = "filter-row";
-    cols.forEach((c) => {
+    cols.forEach((c, index) => {
         const th = document.createElement("th");
+        if ((key === "nodes" && c.key === "id") || (key === "edges" && (c.key === "source" || c.key === "target"))) th.classList.add("identity-col", "identity-col-" + index);
         if (c.key === "_act") { filterRow.appendChild(th); return; }   // no filter on the actions column
         const wrap = makeColFilter(state.tables[key].filters[c.key],
             (op, value, value2) => setColFilter(key, c.key, op, value, value2));
+        if (key === "nodes" || key === "edges") wrap.dataset.filterCol = c.key;
         // Attribute columns get a remove (✕) control in the header.
         const isAttr = (key === "nodes" && c.key.startsWith("a:")) || (key === "edges" && c.key.startsWith("ea:"));
         if (isAttr) {
+            const rename = document.createElement("button");
+            rename.textContent = "✎";
+            rename.className = "col-rename";
+            rename.title = "Rename attribute column";
+            const name = c.key.slice(c.key.indexOf(":") + 1);
+            rename.addEventListener("click", (e) => { e.stopPropagation(); renameAttrColumn(key === "nodes" ? "node" : "edge", name); });
+            wrap.appendChild(rename);
             const rm = document.createElement("button");
             rm.textContent = "✕";
             rm.className = "col-remove";
-            rm.title = "Remove attribute column";
-            const name = c.key.slice(c.key.indexOf(":") + 1);
+            setTooltip(rm, "js-remove-attribute-column");
             rm.addEventListener("click", () => removeAttrColumn(key === "nodes" ? "node" : "edge", name));
             wrap.appendChild(rm);
         }
@@ -3011,23 +5432,30 @@ function renderBody(key) {
     const oldBody = table.querySelector("tbody");
     if (oldBody) oldBody.remove();
     const tbody = document.createElement("tbody");
+    const cols = orderedTableColumns(key, model.cols);
+    const colIndexes = new Map(cols.map((c, i) => [c.key, i]));
     for (const id of pageIds) {
         const tr = document.createElement("tr");
-        for (const c of model.cols) {
+        if ((key === "nodes" || key === "edges") && model.focus?.[key].has(id)) tr.classList.add("network-focused-row");
+        for (const c of cols) {
             const td = document.createElement("td");
+            if ((key === "nodes" && c.key === "id") || (key === "edges" && (c.key === "source" || c.key === "target"))) {
+                const identityIndex = colIndexes.get(c.key);
+                td.classList.add("identity-col", "identity-col-" + identityIndex);
+            }
             if (c.key === "_act") {
                 if (key === "rec") {
                     const add = document.createElement("button");
                     add.className = "row-add";
                     add.textContent = "+ Add";
-                    add.title = "Add this link to the graph";
+                    setTooltip(add, "js-add-link");
                     add.addEventListener("click", () => addRecLinkFromTable(id));
                     td.appendChild(add);
                 } else {
                     const rm = document.createElement("button");
                     rm.className = "row-remove";
                     rm.textContent = "✕";
-                    rm.title = key === "nodes" ? "Remove node" : "Remove edge";
+                    setTooltip(rm, key === "nodes" ? "js-remove-node" : "js-remove-edge");
                     rm.addEventListener("click", () => (key === "nodes" ? removeNodeFromTable(id) : removeEdgeFromTable(id)));
                     td.appendChild(rm);
                 }
@@ -3047,24 +5475,229 @@ function renderBody(key) {
     table.appendChild(tbody);
     setupResizableColumns(table);
     updatePager(key, total, pages, start, pageIds.length);
+    if (key === "nodes" || key === "edges") renderNetworkFilterSummary(key, model.view);
 }
 
 function setColFilter(key, col, op, value, value2) {
-    const filters = state.tables[key].filters;
-    const f = { op, value, value2 };
-    if (isFilterActive(f)) filters[col] = f;
-    else delete filters[col];
+    const f = { op, value, value2 }, filters = state.tables[key].filters;
+    if (isFilterActive(f)) filters[col] = f; else delete filters[col];
     state.tables[key].page = 0;
-    renderBody(key);     // body only → keeps the filter input focused
-    applyReducers();   // hide filtered-out nodes/edges in the visualization
+    if (key === "nodes" || key === "edges") {
+        if ($("select-path-scope").value === "filtered") invalidatePathResults();
+        refreshNetworkView();
+    } else { renderBody(key); applyReducers(); }
 }
 
 function clearFilters(key) {
     state.tables[key].filters = {};
-    state.tables[key].headerSig = null; // force header rebuild so inputs reset
+    if (key === "nodes" || key === "edges") {
+        state.tables[key].filterExpression = null;
+        cancelNetworkFilterBuilder(key);
+    }
+    state.tables[key].headerSig = null;
     state.tables[key].page = 0;
-    renderTable(key);
-    applyReducers();
+    if (key === "nodes" || key === "edges") {
+        if ($("select-path-scope").value === "filtered") invalidatePathResults();
+        refreshNetworkView();
+    } else { renderTable(key); applyReducers(); }
+}
+
+function setNetworkFilterMode(key, mode) {
+    if (key !== "nodes" && key !== "edges") return;
+    mode = mode === "or" ? "or" : "and";
+    if ((state.tables[key].filterMode || "and") === mode) return;
+    state.tables[key].filterMode = mode;
+    state.tables.nodes.page = state.tables.edges.page = 0;
+    if ($("select-path-scope").value === "filtered") invalidatePathResults();
+    refreshNetworkView();
+}
+
+function networkFilterColumns(key) {
+    return (key === "nodes" ? nodeColumns() : edgeColumns()).filter(column => column.key !== "_act");
+}
+
+function effectiveNetworkExpression(key) {
+    const table = state.tables[key], filters = activeFilters(key, networkFilterColumns(key));
+    const columns = { kind: "group", children: filters.map(filter => ({ ...filter, kind: "condition" })),
+        joins: filters.slice(1).map(() => table.filterMode || "and") };
+    return table.filterExpression ? { kind: "group", children: [table.filterExpression, columns], joins: ["and"] } : columns;
+}
+
+function networkExpressionPredicate(key, expression) {
+    const value = key === "nodes" ? nodeRowValue : edgeRowValue;
+    const available = new Set(networkFilterColumns(key).map(column => column.key));
+    return id => window.relisonNetworkView.expressionMatch(expression, col => value(id, col), col => networkColumnType(key, col),
+        condition => available.has(condition.col) && isFilterActive(condition));
+}
+
+function networkExpressionText(key, expression) {
+    const labels = new Map(networkFilterColumns(key).map(column => [column.key, column.label]));
+    return window.relisonNetworkView.expressionText(expression, col => labels.get(col) || col,
+        op => OPERATORS.find(operator => operator.value === op)?.label || op);
+}
+
+function openNetworkFilterBuilder(key) {
+    const dialog = $("filter-builder-" + key);
+    if (dialog.open) return;
+    for (const other of ["nodes", "edges"]) if (other !== key && $("filter-builder-" + other).open) cancelNetworkFilterBuilder(other);
+    const table = state.tables[key];
+    const expression = activeFilters(key, networkFilterColumns(key)).length ? effectiveNetworkExpression(key) :
+        table.filterExpression || { kind: "group", children: [], joins: [] };
+    table.filterDraft = window.relisonNetworkView.mapExpression(JSON.parse(JSON.stringify(expression)), condition => condition);
+    table.builderSchemaSignature = null;
+    $("btn-filter-builder-" + key).setAttribute("aria-expanded", "true");
+    refreshFilterBuilder(key);
+    dialog.showModal();
+    dialog.querySelector(".filter-builder-field, .filter-builder-group-actions button")?.focus();
+}
+
+function cancelNetworkFilterBuilder(key) {
+    state.tables[key].filterDraft = null;
+    const dialog = $("filter-builder-" + key), wasOpen = dialog.open;
+    if (wasOpen) dialog.close();
+    $("btn-filter-builder-" + key).setAttribute("aria-expanded", "false");
+    if (wasOpen) $("btn-filter-builder-" + key).focus();
+}
+
+function networkBuilderErrors(key, expression) {
+    const cols = new Set(networkFilterColumns(key).map(column => column.key));
+    return window.relisonNetworkView.expressionConditions(expression).flatMap((condition, index) => {
+        let error = !cols.has(condition.col) ? "Choose an available field." : "";
+        const type = networkColumnType(key, condition.col);
+        if (!error && !window.relisonFilterBuilder.operatorsFor(type, OPERATORS).some(operator => operator.value === condition.op)) error = "Choose an operator supported by this field.";
+        if (!error && !isFilterActive(condition)) error = condition.op === "between" ? "Enter at least one range bound." : "Enter a value.";
+        if (!error) error = window.relisonNetworkView.filterError(condition, type);
+        return error ? ["Condition " + (index + 1) + ": " + error] : [];
+    });
+}
+
+function updateFilterBuilderPreview(key) {
+    const draft = state.tables[key].filterDraft;
+    if (!draft) return;
+    const errors = networkBuilderErrors(key, draft);
+    $("filter-builder-expression-" + key).textContent = networkExpressionText(key, draft) || "No filters";
+    $("filter-builder-errors-" + key).textContent = errors.join(" ");
+    $("filter-builder-apply-" + key).disabled = errors.length > 0;
+    const preview = $("filter-builder-preview-" + key);
+    if (errors.length) preview.textContent = "Complete the conditions to preview matches.";
+    else {
+        const working = networkWorkingSet({ [key]: draft });
+        preview.textContent = "Would match " + working.nodes.size + " nodes and " + working.edges.size + " edges, including the other table's filters.";
+    }
+}
+
+function refreshFilterBuilder(key) {
+    const table = state.tables[key];
+    if (!table.filterDraft) return;
+    const cols = networkFilterColumns(key);
+    const signature = JSON.stringify(cols.map(column => [column.key, column.label, networkColumnType(key, column.key)]));
+    if (signature !== table.builderSchemaSignature) {
+        table.builderSchemaSignature = signature;
+        const newCondition = () => ({ kind: "condition", col: cols[0]?.key || "", op: "eq", value: "", value2: "" });
+        window.relisonFilterBuilder.render($("filter-builder-editor-" + key), {
+            expression: table.filterDraft, columns: cols, operators: OPERATORS,
+            typeOf: col => networkColumnType(key, col), newCondition,
+            newGroup: () => ({ kind: "group", children: [newCondition()], joins: [] }),
+            onChange: () => updateFilterBuilderPreview(key),
+        });
+    }
+    updateFilterBuilderPreview(key);
+}
+
+function applyNetworkFilterBuilder(key) {
+    const table = state.tables[key], draft = table.filterDraft;
+    if (!draft || networkBuilderErrors(key, draft).length) { updateFilterBuilderPreview(key); return; }
+    const expression = window.relisonNetworkView.mapExpression(JSON.parse(JSON.stringify(draft)), condition => condition);
+    table.filterExpression = window.relisonNetworkView.expressionConditions(expression).length ? expression : null;
+    table.filters = {};
+    table.headerSig = null;
+    state.tables.nodes.page = state.tables.edges.page = 0;
+    if ($("select-path-scope").value === "filtered") invalidatePathResults();
+    refreshNetworkView();
+    $("filter-builder-preview-" + key).textContent = "Applied. " + $("filter-builder-preview-" + key).textContent;
+}
+
+function removeNetworkCustomFilter(key) {
+    state.tables[key].filterExpression = null;
+    cancelNetworkFilterBuilder(key);
+    state.tables.nodes.page = state.tables.edges.page = 0;
+    if ($("select-path-scope").value === "filtered") invalidatePathResults();
+    refreshNetworkView();
+}
+
+function renderNetworkFilterSummary(key, view) {
+    const container = $("filters-" + key);
+    if (!container || !view) return;
+    container.replaceChildren();
+    for (const tableKey of ["nodes", "edges"]) {
+        const cols = tableKey === "nodes" ? nodeColumns() : edgeColumns();
+        const filters = activeFilters(tableKey, cols);
+        const expression = state.tables[tableKey].filterExpression;
+        if (window.relisonNetworkView.expressionConditions(expression).length) {
+            const group = document.createElement("div"); group.className = "network-expression-summary";
+            const text = document.createElement("span");
+            text.textContent = (tableKey === "nodes" ? "Nodes: " : "Edges: ") + networkExpressionText(tableKey, expression);
+            const edit = document.createElement("button"); edit.textContent = "Edit";
+            edit.addEventListener("click", () => { switchTableSubtab(tableKey); openNetworkFilterBuilder(tableKey); });
+            const remove = document.createElement("button"); remove.textContent = "Remove custom filter";
+            remove.setAttribute("aria-label", "Remove " + (tableKey === "nodes" ? "node" : "edge") + " custom filter");
+            remove.addEventListener("click", () => removeNetworkCustomFilter(tableKey));
+            group.append(text, edit, remove); container.appendChild(group);
+            if (filters.length) { const join = document.createElement("span"); join.className = "network-filter-group"; join.textContent = "AND column filters:"; container.appendChild(join); }
+        }
+        if (filters.length) {
+            const group = document.createElement("span");
+            group.className = "network-filter-group";
+            group.textContent = (tableKey === "nodes" ? "Node" : "Edge") + " filters: " +
+                (state.tables[tableKey].filterMode === "or" ? "match any (OR)" : "match all (AND)");
+            container.appendChild(group);
+        }
+        const controls = $(TABLE_IDS[tableKey]).querySelectorAll("[data-filter-col]");
+        controls.forEach(control => {
+            const f = state.tables[tableKey].filters[control.dataset.filterCol];
+            const error = f ? window.relisonNetworkView.filterError(f, networkColumnType(tableKey, control.dataset.filterCol)) : "";
+            control.querySelectorAll("input").forEach(input => { input.setCustomValidity(error); input.setAttribute("aria-invalid", String(Boolean(error))); });
+        });
+        for (const f of filters) {
+            const label = cols.find(col => col.key === f.col)?.label || f.col;
+            const error = window.relisonNetworkView.filterError(f, networkColumnType(tableKey, f.col));
+            const chip = document.createElement("button");
+            chip.className = "network-filter-chip" + (error ? " invalid" : "");
+            const hidden = (state.tables[tableKey].hiddenColumns || []).includes(f.col);
+            chip.textContent = (tableKey === "nodes" ? "Nodes: " : "Edges: ") + label + " " + f.op +
+                (UNARY_OPS.has(f.op) ? "" : " " + f.value + (f.op === "between" ? " … " + (f.value2 || "") : "")) + (hidden ? " (hidden column)" : "") + " ×";
+            chip.setAttribute("aria-label", "Remove " + tableKey + " filter on " + label);
+            chip.addEventListener("click", () => {
+                state.tables[tableKey].headerSig = null;
+                setColFilter(tableKey, f.col, "contains", "", "");
+            });
+            container.appendChild(chip);
+            if (error) { const message = document.createElement("span"); message.textContent = label + ": " + error; container.appendChild(message); }
+        }
+    }
+    const info = document.createElement("span");
+    info.className = "network-result-count";
+    const working = key === "nodes" ? view.working.nodes : view.working.edges;
+    const shown = key === "nodes" ? view.tableNodes : view.tableEdges;
+    const total = key === "nodes" ? state.graph?.order || 0 : state.graph?.size || 0;
+    info.textContent = working.size + " of " + total + " " + key + " match filters" + (view.isolate ? " · " + shown.size + " shown by selection" : "") +
+        (view.working.filtered ? " · Node and edge filters apply together." : "");
+    if (!shown.size) info.textContent += view.isolate ? " No selected entities match the filters." :
+        view.working.edgeFiltered ? " No edges match both the node and edge filters." : " No entities match the node filters.";
+    container.appendChild(info);
+}
+
+function reconcileNetworkFilters() {
+    for (const key of ["nodes", "edges"]) {
+        const cols = key === "nodes" ? nodeColumns() : edgeColumns();
+        const available = new Set(cols.map(col => col.key));
+        for (const col of Object.keys(state.tables[key].filters)) {
+            if (!available.has(col)) { delete state.tables[key].filters[col]; state.tables[key].headerSig = null; }
+        }
+        state.tables[key].filterExpression = window.relisonNetworkView.mapExpression(state.tables[key].filterExpression,
+            condition => available.has(condition.col) ? condition : null);
+        if (!available.has(state.tables[key].sort.col)) state.tables[key].sort.col = key === "nodes" ? "id" : "source";
+    }
 }
 
 /* -------------------------- inline attribute editing -------------------- */
@@ -3107,7 +5740,9 @@ async function commitRename(oldId, td) {
         renderGraph(data.graph);
         state.graph.forEachNode((n) => { if (pos[n]) { state.graph.setNodeAttribute(n, "x", pos[n].x); state.graph.setNodeAttribute(n, "y", pos[n].y); } });
         if (data.stats) { $("ov-nodes").textContent = data.stats.nodes; $("ov-edges").textContent = data.stats.edges; }
-        state.pathFocus = null;
+        state.networkRevision++;
+        resetEdgePartitionView();
+        invalidatePathResults();
 
         rebuildAppearanceOptions();
         applyAppearance();
@@ -3175,8 +5810,57 @@ async function removeAttrColumn(target, name) {
         state.tables.edges.headerSig = null;
         rebuildAppearanceOptions();
         applyAppearance();
-        renderTable(state.activeTableSubtab);
+        if ($("select-path-scope").value === "filtered") invalidatePathResults();
+        refreshNetworkView();
         setStatus("Removed attribute " + name + ".");
+    } catch (e) { setStatus(e.message, "error"); }
+}
+
+async function renameAttrColumn(target, oldName) {
+    const newName = window.prompt("New name for attribute column:", oldName);
+    if (newName === null) return;
+    const trimmed = newName.trim();
+    if (!trimmed) { setStatus("Attribute name must not be blank.", "error"); return; }
+    if (trimmed === oldName) return;
+    try {
+        const res = await api("/api/graph/" + state.graphId + "/attributes/rename", jsonBody({ target, oldName, newName: trimmed }));
+        state.attrSchema = res.schema || state.attrSchema;
+        const oldKey = (target === "node" ? "a:" : "ea:") + oldName;
+        const newKey = (target === "node" ? "a:" : "ea:") + trimmed;
+        const tableKey = target === "node" ? "nodes" : "edges";
+        const table = state.tables[tableKey];
+        table.columnOrder = table.columnOrder.map((column) => column === oldKey ? newKey : column);
+        table.hiddenColumns = table.hiddenColumns.map((column) => column === oldKey ? newKey : column);
+        if (table.filters[oldKey]) { table.filters[newKey] = table.filters[oldKey]; delete table.filters[oldKey]; }
+        for (const name of ["filterExpression", "filterDraft"]) table[name] = window.relisonNetworkView.mapExpression(table[name],
+            condition => condition.col === oldKey ? { ...condition, col: newKey } : condition);
+        if (table.sort.col === oldKey) table.sort.col = newKey;
+        table.headerSig = null;
+
+        if (target === "node") {
+            if (state.selection.partition === "attribute:" + encodeURIComponent(oldName)) state.selection.partition = "attribute:" + encodeURIComponent(trimmed);
+            state.graph.forEachNode((node) => {
+                const attrs = Object.assign({}, state.graph.getNodeAttribute(node, "attrs") || {});
+                if (Object.prototype.hasOwnProperty.call(attrs, oldName)) { attrs[trimmed] = attrs[oldName]; delete attrs[oldName]; }
+                state.graph.setNodeAttribute(node, "attrs", attrs);
+            });
+        } else {
+            if (state.selection.edgeAttribute === oldName) state.selection.edgeAttribute = trimmed;
+            state.graph.forEachEdge((edge) => {
+                const attrs = Object.assign({}, state.graph.getEdgeAttribute(edge, "attrs") || {});
+                if (Object.prototype.hasOwnProperty.call(attrs, oldName)) { attrs[trimmed] = attrs[oldName]; delete attrs[oldName]; }
+                state.graph.setEdgeAttribute(edge, "attrs", attrs);
+            });
+        }
+        rebuildAppearanceOptions();
+        rebuildTimelineOptions();
+        rebuildLabelAttributeOptions();
+        syncAttributeCommunityMetricControls();
+        syncEdgeAttributeMetricControls();
+        applyAppearance();
+        if ($("select-path-scope").value === "filtered") invalidatePathResults();
+        refreshNetworkView();
+        setStatus("Renamed attribute " + oldName + " to " + trimmed + ".");
     } catch (e) { setStatus(e.message, "error"); }
 }
 
@@ -3208,8 +5892,13 @@ async function commitAttrEdit(kind, id, name, td) {
             const attrs = Object.assign({}, g.getEdgeAttribute(id, "attrs") || {});
             applyLocalAttr(attrs, name, raw, edgeAttrDefs());
             g.setEdgeAttribute(id, "attrs", attrs);
+            state.networkRevision++;
+            invalidateEdgeAttributePartitions(name);
+            if ($("edge-color-mode").value === "partition") applyEdgePartitionColorSelection();
         }
         applyAppearance();   // the edited attribute may drive size / colour / labels
+        if ($("select-path-scope").value === "filtered") invalidatePathResults();
+        refreshNetworkView();
         setStatus("Updated " + name + ".");
     } catch (e) {
         setStatus(e.message, "error");
@@ -3248,90 +5937,108 @@ function updatePager(key, total, pages, start, shown) {
 
 /* ------------------- visualization reducers (filter + selection) ------------------- */
 
+// The whole filtered table, independent of sorting and pagination, defines
+// the graph emphasis. Edge filters also emphasize the remaining endpoints.
+function tableFilterFocus() {
+    const working = networkWorkingSet();
+    return working.filtered ? working : null;
+}
+
 // Combines two view effects into sigma's reducers:
-//  - table filters: filtered-out nodes/edges are hidden;
+//  - table filters: matching rows are emphasized; other nodes/edges are dimmed;
 //  - node selection: depending on the mode, the focus set is highlighted (others dimmed) or isolated (others hidden).
 // Neither affects metric computation (always done over the whole graph on the server).
 function applyReducers() {
-    if (!state.renderer || !state.graph) return;
-    const g = state.graph;
-
-    const nodeFilters = activeFilters("nodes", nodeColumns());
-    const edgeFilters = activeFilters("edges", edgeColumns());
-    const hasEdgeFilter = edgeFilters.length > 0;
-
-    let filterNodes = null;
-    if (nodeFilters.length) {
-        filterNodes = new Set();
-        g.forEachNode((node) => { if (rowPasses(nodeRowValue, node, nodeFilters)) filterNodes.add(node); });
-    }
-
-    // Timeline: at timestamp t, only nodes/edges whose time attribute covers t are shown (empty value → never shown).
+    if (!state.graph) return;
+    const g = state.graph, view = networkView(), dimColor = cssVar("--border", "#3a3c41");
     const tl = state.timeline;
-    const tlNode = !!(tl.nodeAttr && tl.t != null && tl.min != null);
-    const tlEdge = !!(tl.edgeAttr && tl.t != null && tl.min != null);
-    let presentNodes = null;
-    if (tlNode) {
-        presentNodes = new Set();
-        g.forEachNode((n) => { if (timeContains(nodeAttrVal(n, tl.nodeAttr), tl.t)) presentNodes.add(n); });
+    const tlNode = Boolean(tl.nodeAttr && tl.t != null && tl.min != null), tlEdge = Boolean(tl.edgeAttr && tl.t != null && tl.min != null);
+    const presentNodes = tlNode ? new Set(g.nodes().filter(node => timelineMatches(nodeAttrVal(node, tl.nodeAttr)))) : null;
+    const presentEdges = tlEdge ? new Set(g.edges().filter(edge => timelineMatches(edgeAttrVal(edge, tl.edgeAttr)))) : null;
+    const nodeVerdicts = new Map(g.nodes().map(node => [node, presentNodes && !presentNodes.has(node) ? "hidden" : view.nodeVerdict(node)]));
+    const onlyRecommended = !!(state.rec?.show && state.rec.only && state.rec.models[state.rec.active]);
+    const edgeVerdicts = new Map(g.edges().map(edge => [edge, (onlyRecommended || presentNodes && (!presentNodes.has(g.source(edge)) || !presentNodes.has(g.target(edge))) ||
+        presentEdges && !presentEdges.has(edge)) ? "hidden" : view.edgeVerdict(edge)]));
+    const endpointNodes = new Set();
+    if (state.selection.type === "path" && state.selection.mode !== "none" && state.pathEndpointFocusActive && !state.activePaths.length) {
+        [$("select-path-source").value.trim(), $("select-path-target").value.trim()].forEach(node => {
+            if (view.working.nodes.has(node)) endpointNodes.add(node);
+        });
+        if (endpointNodes.size) {
+            nodeVerdicts.forEach((verdict, node) => { if (verdict !== "hidden" && !endpointNodes.has(node)) nodeVerdicts.set(node, "dim"); });
+            edgeVerdicts.forEach((verdict, edge) => { if (verdict !== "hidden" && (!endpointNodes.has(g.source(edge)) || !endpointNodes.has(g.target(edge)))) edgeVerdicts.set(edge, "dim"); });
+        }
     }
-
-    const path = state.pathFocus;           // highlighting shortest paths takes priority over selection
-    const focus = path ? null : selectionFocus();
-    const dim = focus && !focus.only;       // highlight modes: dim non-focus
-    const isolate = focus && focus.only;    // "show only" modes: hide non-focus
-    const dimColor = cssVar("--border", "#3a3c41");
-
-    const nodeActive = filterNodes || focus || path || tlNode;
-    state.renderer.setSetting("nodeReducer", nodeActive ? (node, data) => {
-        if (presentNodes && !presentNodes.has(node)) return { ...data, hidden: true };
-        if (filterNodes && !filterNodes.has(node)) return { ...data, hidden: true };
-        if (path) {
-            if (path.nodes.has(node)) return { ...data, zIndex: 2 };
-            return path.only
-                ? { ...data, hidden: true }
-                : { ...data, color: dimColor, label: "", size: Math.max(1, (data.size || 3) * 0.6), zIndex: 0 };
-        }
-        if (isolate && !focus.nodes.has(node)) return { ...data, hidden: true };
-        if (focus && node === focus.selected) return { ...data, highlighted: true, zIndex: 2 };
-        if (dim && !focus.nodes.has(node)) return { ...data, color: dimColor, label: "", size: Math.max(1, (data.size || 3) * 0.6), zIndex: 0 };
-        if (focus && focus.nodes.has(node)) return { ...data, zIndex: 1 };
-        return data;
-    } : null);
-
-    const edgeActive = filterNodes || hasEdgeFilter || focus || path || tlNode || tlEdge;
-    state.renderer.setSetting("edgeReducer", edgeActive ? (edge, data) => {
-        const s = g.source(edge), t = g.target(edge);
-        if (presentNodes && (!presentNodes.has(s) || !presentNodes.has(t))) return { ...data, hidden: true };
-        if (tlEdge && !timeContains(edgeAttrVal(edge, tl.edgeAttr), tl.t)) return { ...data, hidden: true };
-        if (filterNodes && (!filterNodes.has(s) || !filterNodes.has(t))) return { ...data, hidden: true };
-        if (hasEdgeFilter && !rowPasses(edgeRowValue, edge, edgeFilters)) return { ...data, hidden: true };
-        if (path) {
-            if (path.edges.has(pairKey(s, t))) return { ...data, zIndex: 2 };
-            return path.only ? { ...data, hidden: true } : { ...data, color: dimColor, zIndex: 0 };
-        }
-        if (isolate && (!focus.nodes.has(s) || !focus.nodes.has(t))) return { ...data, hidden: true };
-        if (dim && (!focus.nodes.has(s) || !focus.nodes.has(t))) return { ...data, color: dimColor };
-        return data;
-    } : null);
-
-    state.renderer.refresh();
+    let path = null;
+    if (view.emphasis?.type === "path") {
+        const pairs = new Set();
+        view.emphasis.edges.forEach(edge => {
+            pairs.add(window.relisonNetworkView.pair(g.source(edge), g.target(edge)));
+            if (!state.directed) pairs.add(window.relisonNetworkView.pair(g.target(edge), g.source(edge)));
+        });
+        path = { nodes: view.emphasis.nodes, edges: pairs, edgeIds: view.emphasis.edges, only: view.isolate, paths: state.activePaths };
+    }
+    state.pathFocus = path;
+    const pathEdgeColor = state.pathEdgeHighlight.mode === "single" ? state.pathEdgeHighlight.color : null;
+    const pathEdgeColors = buildPathEdgeColors(path);
+    const nodeSizeScale = state.pathAppearance.enlargeNodes ? state.pathAppearance.nodeScale : 1;
+    const edgeWidthScale = state.pathAppearance.edgeScale;
+    if (state.renderer) {
+        state.renderer.setSetting("nodeReducer", (node, sourceData) => {
+            const data = { ...sourceData, size: (Number.isFinite(sourceData.size) ? sourceData.size : 0) / 2 };
+            const verdict = nodeVerdicts.get(node);
+            if (verdict === "hidden") return { ...data, hidden: true, highlighted: false };
+            if (verdict === "dim") return { ...data, color: dimColor, highlighted: false, zIndex: 0 };
+            const highlighted = state.multiSelectedNodes.has(node) || view.emphasis?.selected === node;
+            return { ...data, size: data.size * (path?.nodes.has(node) ? nodeSizeScale : 1), highlighted, zIndex: highlighted || path?.nodes.has(node) ? 2 : 1 };
+        });
+        state.renderer.setSetting("edgeReducer", (edge, data) => {
+            const verdict = edgeVerdicts.get(edge);
+            if (verdict === "hidden") return { ...data, hidden: true };
+            if (verdict === "dim") return { ...data, color: dimColor, zIndex: 0 };
+            if (path?.edgeIds.has(edge)) return { ...data, size: data.size * edgeWidthScale,
+                color: pathEdgeColors.get(window.relisonNetworkView.pair(g.source(edge), g.target(edge))) || pathEdgeColor || data.color, zIndex: 2 };
+            return data;
+        });
+        state.renderer.refresh();
+    }
+    window.relisonNetworkViewSnapshot = { nodeVerdicts, edgeVerdicts, dimColor };
+    window.relisonNetworkViewSnapshot.recommendationVerdict = (source, target) => {
+        if (presentNodes && (!presentNodes.has(source) || !presentNodes.has(target)) || view.isolate) return "hidden";
+        if (view.working.edgeFiltered || !view.working.nodes.has(source) || !view.working.nodes.has(target) || view.emphasis || endpointNodes.size) return "dim";
+        return "normal";
+    };
+    window.relisonCosmographTableFocus = view.working.filtered ? { ...view.working, dimColor } : null;
+    window.relisonCosmographFocus = !path && view.emphasis ? { ...view.emphasis, matchingEdges: view.emphasis.edges, dimColor } : null;
+    window.relisonCosmographTemporal = { nodes: presentNodes, edges: presentEdges };
+    window.relisonCosmographPath = path ? { ...path, edgeColor: pathEdgeColor, edgeColors: pathEdgeColors, nodeSizeScale, edgeWidthScale, dimColor } : null;
+    window.relisonCosmographPathSelection = endpointNodes.size ? { nodes: endpointNodes, dimColor } : null;
+    const signature = JSON.stringify({ nodes: [...nodeVerdicts], edges: [...edgeVerdicts], path: path && { paths: state.activePaths, colors: [...pathEdgeColors],
+        edgeColor: pathEdgeColor, nodeSizeScale, edgeWidthScale } });
+    if (signature !== state.cosmographViewSignature) {
+        state.cosmographViewSignature = signature;
+        queueCosmographAppearanceRefresh();
+    }
+    if (usingGeographic()) window.relisonGeographic.refresh();
+    updateSelectionSummary();
 }
 
 /* ------------------------- metrics dashboard ------------------------ */
 
 function renderMetricsDashboard() {
+    if (state.activeSubtab === "edgepartitions") renderEdgePartitionMetricResults();
     renderGlobalTable();
     renderAverages("node-averages-table", state.metricOrder, state.metricData, "vertex");
     renderAverages("edge-averages-table", state.pairOrder, state.pairData, "pair");
     renderPairAverages();
     renderCommAverages();
+    renderAttributeCommAverages();
+    renderEdgeAttributeAverages();
     syncChartSelectors();
+    renderNodeTopK();
     updateScatterBlocks();
-    if (state.activeSubtab === "nodes") { drawNodeChart(); drawNodeScatter(); }
-    if (state.activeSubtab === "edges") { drawEdgeChart(); drawEdgeScatter(); }
-    if (state.activeSubtab === "pairs") drawPairChart();
-    if (state.activeSubtab === "comm") { drawCommChart(); drawCommScatter(); }
+    refreshMetricWorkspace();
+    if (state.activeSubtab === "relationships") renderAttributeRelationships();
 }
 
 // Per-community averages come from each stored metric's value map, plus one column per recommendation.
@@ -3345,6 +6052,22 @@ function renderCommAverages() {
     buildAverageTable("comm-averages-table", rows, recKeys);
 }
 
+// Attribute-based metrics reuse the community metric engines, but their categories are attribute values.
+function renderAttributeCommAverages() {
+    const recKeys = recColumnKeys("comm");
+    const rows = state.attributeMetricOrder.map((label) => ({
+        label,
+        original: average(state.attributeMetricData[label].values),
+        rec: recKeys.map((k) => { const m = state.recMetricData.comm?.[label]?.[k]; return m ? average(m) : undefined; }),
+    }));
+    buildAverageTable("attrcomm-averages-table", rows, recKeys);
+}
+function renderEdgeAttributeAverages() {
+    const keys = recColumnKeys("edgeattr");
+    const rows = state.edgeAttributeMetricOrder.map((label) => ({ label, original: average(state.edgeAttributeMetricData[label].values),
+        rec: keys.map(key => { const values = state.recMetricData.edgeattr?.[label]?.[key]; return values ? average(values) : undefined; }) }));
+    buildAverageTable("edgeattr-averages-table", rows, keys);
+}
 // Node-pair averages come from the streamed aggregate (one summary object per metric), not a per-pair map.
 function renderPairAverages() {
     const recKeys = recColumnKeys("nodePair");
@@ -3370,8 +6093,8 @@ function renderGlobalTable() {
 }
 
 function average(values) {
-    const arr = Object.values(values);
-    if (!arr.length) return 0;
+    const arr = Object.values(values).filter(Number.isFinite);
+    if (!arr.length) return NaN;
     return arr.reduce((a, b) => a + b, 0) / arr.length;
 }
 
@@ -3385,33 +6108,45 @@ function renderAverages(tableId, order, data, family) {
     buildAverageTable(tableId, rows, recKeys);
 }
 
-// Renders a metric/average table: a "metric" column, an "original" column, and one column per recommendation
-// (headed by the model label) when any recommendation values are present. Falls back to a plain two-column table.
-function buildAverageTable(tableId, rows, recKeys) {
-    const table = $(tableId);
-    table.innerHTML = "";
-    if (recKeys.length) {
-        const thead = document.createElement("thead");
-        const tr = document.createElement("tr");
-        tr.appendChild(thEl("metric"));
-        tr.appendChild(thEl("original"));
-        recKeys.forEach((k) => tr.appendChild(thEl(recLabel(k))));
-        thead.appendChild(tr);
-        table.appendChild(thead);
-    }
-    const tbody = document.createElement("tbody");
-    for (const row of rows) {
-        const tr = document.createElement("tr");
-        tr.appendChild(tdText(row.label));
-        tr.appendChild(tdText(fmt(row.original)));
-        (row.rec || []).forEach((v) => tr.appendChild(tdText(v === undefined || v === null ? "" : fmt(v))));
-        tbody.appendChild(tr);
-    }
-    table.appendChild(tbody);
-}
-
 function thEl(text) { const th = document.createElement("th"); th.textContent = text; return th; }
 function tdText(text) { const td = document.createElement("td"); td.textContent = text; return td; }
+
+function renderNodeTopK() {
+    const metric = $("node-topk-metric").value;
+    const metricEntry = typeof metricResultSources === "function" ? metricAnalysisEntries("nodes").find(entry => entry.key === metric) : null;
+    const resultSource = metricEntry ? metricResultSources(metricEntry).find(source => source.id === (METRIC_WORKSPACE_VIEWS.get("nodes")?.rankingSource || "original")) : null;
+    const values = metricEntry ? resultSource?.map : state.metricData[metric];
+    const table = $("node-topk-table");
+    const note = $("node-topk-note");
+    table.replaceChildren();
+    $("node-topk-metric").disabled = !state.metricOrder.length;
+    if (!state.graph || !values) {
+        note.textContent = "Run a node metric to see the highest-scoring nodes.";
+        return;
+    }
+    const k = Number($("node-topk-k").value);
+    if (!Number.isSafeInteger(k) || k < 1) {
+        note.textContent = "Enter a positive whole number for k.";
+        return;
+    }
+    const nodes = state.graph.nodes().filter((node) => Number.isFinite(values[node]));
+    nodes.sort((a, b) => values[b] - values[a]
+        || String(a).localeCompare(String(b), undefined, { numeric: true }));
+    const top = nodes.slice(0, k);
+    const thead = document.createElement("thead");
+    const header = document.createElement("tr");
+    ["Rank", "Node", metric].forEach((label) => header.appendChild(thEl(label)));
+    thead.appendChild(header);
+    const tbody = document.createElement("tbody");
+    top.forEach((node, index) => {
+        const row = document.createElement("tr");
+        [index + 1, node, fmt(values[node])].forEach((value) => row.appendChild(tdText(value)));
+        tbody.appendChild(row);
+    });
+    table.append(thead, tbody);
+    note.textContent = "Showing " + top.length + " of " + nodes.length
+        + " nodes with finite metric values, highest first.";
+}
 
 // The recommendation columns currently populated for a metric family (union across that family's metrics).
 function recColumnKeys(family) {
@@ -3422,12 +6157,20 @@ function recColumnKeys(family) {
 }
 
 function recLabel(key) {
-    return (state.rec.models[key] && state.rec.models[key].label) || key;
+    const model = state.rec.models[key], label = model?.label || key;
+    const same = Object.keys(state.rec.models).filter(id => (state.rec.models[id].label || id) === label);
+    if (!model || same.length < 2) return label;
+    const detail = [model.mode, model.cutoff == null ? "" : "k=" + model.cutoff].filter(Boolean).join(", ");
+    const duplicate = same.filter(id => state.rec.models[id].mode === model.mode && state.rec.models[id].cutoff === model.cutoff);
+    return label + " (" + [detail, duplicate.length > 1 ? "result " + (same.indexOf(key) + 1) : ""].filter(Boolean).join("; ") + ")";
 }
 
 function syncChartSelectors() {
+    const communityMetrics = state.commMetricOrder.filter(label =>
+        !isAttributeCommunityPartition(state.commMetricData[label]?.algorithm));
     // Node chart.
     setSelectOptions("node-chart-metric", state.metricOrder, state.metricOrder);
+    setSelectOptions("node-topk-metric", state.metricOrder, state.metricOrder);
     setSelectOptions("node-chart-sort", ["id", ...state.metricOrder], ["id", ...state.metricOrder]);
     // Edge chart.
     setSelectOptions("edge-chart-metric", state.pairOrder, state.pairOrder);
@@ -3435,17 +6178,24 @@ function syncChartSelectors() {
     // Node-pair distribution chart (histogram per metric).
     setSelectOptions("pair-chart-metric", state.nodePairOrder, state.nodePairOrder);
     // Per-community chart.
-    setSelectOptions("comm-chart-metric", state.commMetricOrder, state.commMetricOrder);
-    setSelectOptions("comm-chart-sort", ["community", ...state.commMetricOrder], ["community", ...state.commMetricOrder]);
+    setSelectOptions("comm-chart-metric", communityMetrics, communityMetrics);
+    setSelectOptions("comm-chart-sort", ["community", ...communityMetrics], ["community", ...communityMetrics]);
+    // Per-attribute-value chart.
+    setSelectOptions("attrcomm-chart-metric", state.attributeMetricOrder, state.attributeMetricOrder);
+    setSelectOptions("attrcomm-chart-sort", ["attribute", ...state.attributeMetricOrder], ["attribute value", ...state.attributeMetricOrder]);
+    setSelectOptions("edgeattr-chart-metric", state.edgeAttributeMetricOrder, state.edgeAttributeMetricOrder);
+    setSelectOptions("edgeattr-chart-sort", ["attribute", ...state.edgeAttributeMetricOrder], ["attribute value", ...state.edgeAttributeMetricOrder]);
 
     // Original-vs-recommendation scatter selectors (metric + which recommendation column).
     syncScatterSelectors("node", "vertex", state.metricOrder);
     syncScatterSelectors("edge", "pair", state.pairOrder);
-    syncScatterSelectors("comm", "comm", state.commMetricOrder);
+    syncScatterSelectors("comm", "comm", communityMetrics);
 }
 
 // Populates a scatter subtab's metric + recommendation selectors from the metrics that have recommendation values.
 function syncScatterSelectors(prefix, family, order) {
+    if (family === "comm") order = order.filter(label =>
+        !isAttributeCommunityPartition(state.commMetricData[label]?.algorithm));
     const withRec = order.filter((label) => state.recMetricData[family] && state.recMetricData[family][label]);
     setSelectOptions(prefix + "-scatter-metric", withRec, withRec);
     const metric = $(prefix + "-scatter-metric").value;
@@ -3490,6 +6240,32 @@ function setupMenu(buttonId, menuId, onSelect) {
         item.addEventListener("click", () => { close(); onSelect(item.dataset.act); }));
 }
 
+function setupSettingsMenu() {
+    const btn = $("settings-button"), menu = $("settings-menu");
+    if (!btn || !menu) return;
+    const onOutside = (e) => { if (!menu.contains(e.target) && !btn.contains(e.target)) close(); };
+    const onKey = (e) => {
+        if (e.key !== "Escape") return;
+        close();
+        btn.focus();
+        e.preventDefault();
+    };
+    function close() {
+        menu.hidden = true;
+        btn.setAttribute("aria-expanded", "false");
+        document.removeEventListener("mousedown", onOutside, true);
+        document.removeEventListener("keydown", onKey, true);
+    }
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!menu.hidden) { close(); return; }
+        menu.hidden = false;
+        btn.setAttribute("aria-expanded", "true");
+        document.addEventListener("mousedown", onOutside, true);
+        document.addEventListener("keydown", onKey, true);
+    });
+}
+
 function setSelectOptions(id, values, labels) {
     const select = $(id);
     const current = select.value;
@@ -3498,180 +6274,10 @@ function setSelectOptions(id, values, labels) {
     if (values.includes(current)) select.value = current;
 }
 
-/* ------------------------------- charts ----------------------------- */
-
-function drawNodeChart() {
-    const metric = $("node-chart-metric").value;
-    if (!state.graph || !metric || !state.metricData[metric]) { clearChart("node-chart"); return; }
-    const sortBy = $("node-chart-sort").value;
-    const values = state.metricData[metric];
-    let nodes = state.graph.nodes().slice();
-    if (sortBy === "id") nodes.sort((a, b) => Number(a) - Number(b));
-    else {
-        const sv = state.metricData[sortBy] || values;
-        nodes.sort((a, b) => (sv[b] ?? 0) - (sv[a] ?? 0));
-    }
-    const items = nodes.map((n) => ({ label: n, value: values[n] ?? 0 }));
-    drawBarChart("node-chart", "node-chart-tip", items, metric, "nodes", metric);
-}
-
-function drawEdgeChart() {
-    const metric = $("edge-chart-metric").value;
-    if (!state.graph || !metric || !state.pairData[metric]) { clearChart("edge-chart"); return; }
-    const sortBy = $("edge-chart-sort").value;
-    const data = state.pairData[metric];
-    const g = state.graph;
-    let edges = g.edges().slice().filter((e) => data[pairKey(g.source(e), g.target(e))] !== undefined);
-    const valOf = (e) => data[pairKey(g.source(e), g.target(e))] ?? 0;
-    if (sortBy === "pair") {
-        edges.sort((a, b) => Number(g.source(a)) - Number(g.source(b)) || Number(g.target(a)) - Number(g.target(b)));
-    } else {
-        const sd = state.pairData[sortBy] || data;
-        const sv = (e) => sd[pairKey(g.source(e), g.target(e))] ?? 0;
-        edges.sort((a, b) => sv(b) - sv(a));
-    }
-    const items = edges.map((e) => ({ label: g.source(e) + "→" + g.target(e), value: valOf(e) }));
-    drawBarChart("edge-chart", "edge-chart-tip", items, metric, "edges (source→target)", metric);
-}
-
-// The node-pair distribution is a histogram of the streamed aggregate (exact or sampled), so it scales to any N.
-function drawPairChart() {
-    const metric = $("pair-chart-metric").value;
-    const agg = state.nodePairAgg[metric];
-    if (!metric || !agg || !agg.histogram) { clearChart("pair-chart"); $("pair-chart-note").textContent = ""; return; }
-    const items = agg.histogram.map((b) => ({ label: fmt(b.x0) + "–" + fmt(b.x1), value: b.count }));
-    drawBarChart("pair-chart", "pair-chart-tip", items, metric + " — value distribution", "value", "count");
-    const parts = [];
-    parts.push(agg.estimated
-        ? "Estimated from " + agg.evaluated.toLocaleString() + " sampled pairs of " + agg.totalPairs.toLocaleString() + " total."
-        : "Exact over " + agg.totalPairs.toLocaleString() + " pairs.");
-    if (agg.infinite) parts.push(agg.infinite.toLocaleString() + " pairs had no finite value (excluded).");
-    parts.push("min " + fmt(agg.min) + ", max " + fmt(agg.max) + ".");
-    $("pair-chart-note").textContent = parts.join(" ");
-}
-
-function drawCommChart() {
-    const metric = $("comm-chart-metric").value;
-    const entry = state.commMetricData[metric];
-    if (!metric || !entry) { clearChart("comm-chart"); return; }
-    const values = entry.values;
-    const sortBy = $("comm-chart-sort").value;
-    let comms = Object.keys(values);
-    if (sortBy === "community") {
-        comms.sort((a, b) => Number(a) - Number(b));
-    } else {
-        const sv = state.commMetricData[sortBy]?.values || values;
-        comms.sort((a, b) => (sv[b] ?? 0) - (sv[a] ?? 0));
-    }
-    const items = comms.map((c) => ({ label: "community " + c, value: values[c] ?? 0 }));
-    drawBarChart("comm-chart", "comm-chart-tip", items, metric, "communities", metric);
-}
-
-function clearChart(canvasId) {
-    const canvas = $(canvasId);
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-// Shared chart typography: axis titles at 12px, tick labels at 10px (see drawBarChart / drawScatter / drawMultiLineChart).
-const AXIS_TITLE_FONT = "12px sans-serif";
-const AXIS_LABEL_FONT = "10px sans-serif";
-
-function drawBarChart(canvasId, tipId, items, title, xLabel, yLabel) {
-    const canvas = $(canvasId);
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-
-    // Extra padding for the axis titles when present (room so the rotated y title clears the tick labels).
-    const padL = 58 + (yLabel ? 18 : 0);
-    const padR = 14;
-    const padT = 18;
-    const padB = 28 + (xLabel ? 18 : 0);
-    const plotW = W - padL - padR, plotH = H - padT - padB;
-
-    const values = items.map((d) => d.value);
-    let max = Math.max(0, ...values), min = Math.min(0, ...values);
-    if (max === min) max = min + 1;
-
-    const colText = cssVar("--text", "#e6e6e6");
-    const colMuted = cssVar("--muted", "#9aa0a6");
-    const colBorder = cssVar("--border", "#333");
-    const colBar = cssVar("--accent", "#4f9dff");
-
-    // Axes.
-    const yOf = (v) => padT + plotH - ((v - min) / (max - min)) * plotH;
-    ctx.strokeStyle = colMuted;
-    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
-    ctx.font = AXIS_LABEL_FONT; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (let g = 0; g <= 4; g++) {
-        const val = min + ((max - min) * g) / 4;
-        const y = yOf(val);
-        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), padL - 6, y);
-        ctx.strokeStyle = colBorder; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
-    }
-    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT; ctx.fillText(title + "  (n=" + items.length + ")", padL, 12);
-
-    // Axis titles.
-    if (xLabel) {
-        ctx.textAlign = "center";
-        ctx.fillText(xLabel, padL + plotW / 2, H - 5);
-        ctx.textAlign = "start";
-    }
-    if (yLabel) {
-        ctx.save();
-        ctx.translate(14, padT + plotH / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.textAlign = "center";
-        ctx.fillText(yLabel, 0, 0);
-        ctx.restore();
-    }
-
-    // Bars.
-    const n = items.length || 1;
-    const bw = plotW / n;
-    const zeroY = yOf(0);
-    const bars = [];
-    for (let i = 0; i < items.length; i++) {
-        const v = items[i].value;
-        const x = padL + i * bw;
-        const y = yOf(v);
-        const h = Math.abs(zeroY - y);
-        ctx.fillStyle = colBar;
-        ctx.fillRect(x, Math.min(y, zeroY), Math.max(1, bw - (bw > 3 ? 1 : 0)), Math.max(1, h));
-        bars.push({ x, w: bw, label: items[i].label, value: v });
-    }
-
-    // Hover tooltip.
-    const tip = $(tipId);
-    canvas.onmousemove = (ev) => {
-        const r = canvas.getBoundingClientRect();
-        const mx = ev.clientX - r.left;
-        const idx = Math.floor((mx - padL) / bw);
-        if (idx >= 0 && idx < bars.length) {
-            const b = bars[idx];
-            tip.hidden = false;
-            tip.style.left = (b.x + bw / 2) + "px";
-            tip.style.top = (ev.clientY - r.top) + "px";
-            tip.textContent = b.label + ": " + fmt(b.value);
-        } else {
-            tip.hidden = true;
-        }
-    };
-    canvas.onmouseleave = () => { tip.hidden = true; };
-    capturePlot(canvas, title);
-}
-
 /* ------------------------------ exports ----------------------------- */
 
 function csvCell(v) {
-    if (v === undefined || v === null) return "";
+    if (v === undefined || v === null || typeof v === "number" && !Number.isFinite(v)) return "";
     const s = String(v);
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
@@ -3719,22 +6325,271 @@ function exportPairAveragesCsv() {
 }
 
 // Composite sigma's layered canvases into a single PNG of the current view.
+async function exportGeographicImage(format) {
+    const map = window.relisonGeographic;
+    try {
+        const filename = "network-map." + format;
+        const exported = await map?.[format === "png" ? "exportPng" : "exportSvg"](filename, {
+            includeLegend: $("export-include-legend").checked,
+        });
+        if (!exported) throw new Error("The geographic map is not ready to export.");
+        const globe = geographicActiveProjection === "globe";
+        setStatus("Geographic " + format.toUpperCase() + " downloaded." + (globe && format === "svg"
+            ? " Globe geometry is an embedded high-resolution image; labels and legend are vector." : ""));
+    } catch (error) { setStatus("Map export failed: " + error.message, "error"); }
+}
+
+function activeRotationRenderer() {
+    if (usingGeographic() && geographicActiveProjection === "globe") return window.relisonGeographic;
+    if (usingCosmograph() && window.relisonCosmograph?.getDimensions?.() === 3) return window.relisonCosmograph;
+    return null;
+}
+
+function syncRotationExportControls() {
+    const available = Boolean(activeRotationRenderer());
+    toggleHidden("btn-export-rotation-gif", !available);
+    toggleHidden("btn-export-rotation-webm", !available);
+    toggleHidden("rotation-export-resolution-field", !available);
+}
+
+function rotationExportSpec(button) {
+    const renderer = activeRotationRenderer();
+    if (!renderer?.getRotationSnapshot || !renderer?.setRotationFrame || !renderer?.captureRotationFrame) {
+        setStatus("Rotation export is available only for a rendered 3D view.", "error"); return null;
+    }
+    const axis = ["x", "y", "z"].map(name => Number($("cosmograph-rotation-axis-" + name).value));
+    const magnitude = Math.hypot(...axis);
+    if (!Number.isFinite(magnitude) || magnitude < 1e-8) { setStatus("Choose a non-zero rotation axis.", "error"); return null; }
+    const normalizedAxis = axis.map(value => value / magnitude);
+    const snapshot = renderer.getRotationSnapshot();
+    if (!snapshot) { setStatus("The 3D camera is not ready to export.", "error"); return null; }
+    const frames = 72, reverse = $("cosmograph-reverse-rotation").checked;
+    const autoRotate = $("cosmograph-auto-rotate").checked;
+    const rotationSettings = { axis: normalizedAxis, speed: Number($("cosmograph-rotation-speed").value) || 25, reverse };
+    const geographic = usingGeographic();
+    const setRotationEnabled = enabled => geographic
+        ? renderer.setContinuousRotation?.({ ...rotationSettings, enabled })
+        : renderer.setContinuousRotation?.(enabled);
+    const width = animationExportWidth("rotation-export-resolution");
+    const includeLegend = $("export-include-legend").checked;
+    return {
+        name: "network-rotation", button, renderer, frameArgs: Array.from({ length: frames }, (_, index) => index),
+        delayMs: Math.round(8000 / frames),
+        setFrame: index => renderer.setRotationFrame(snapshot, normalizedAxis, (reverse ? -1 : 1) * 360 * index / frames),
+        prepare: () => { setRotationEnabled(false); $("cosmograph-auto-rotate").checked = false; },
+        captureFrame: () => renderer.captureRotationFrame(includeLegend && !geographic ? networkLegendData() : null, { width, includeLegend }),
+        restore: () => {
+            renderer.setRotationFrame(snapshot, normalizedAxis, 0);
+            $("cosmograph-auto-rotate").checked = autoRotate;
+            if (autoRotate) setRotationEnabled(true);
+        },
+    };
+}
+
+function exportRotationGif() {
+    const spec = rotationExportSpec($("btn-export-rotation-gif"));
+    if (spec) recordGif(spec);
+}
+function exportRotationWebm() {
+    const spec = rotationExportSpec($("btn-export-rotation-webm"));
+    if (spec) recordWebm(spec);
+}
+
 // Nodes/edges are drawn with WebGL, whose buffer reads blank outside a render pass, so we capture inside
 // sigma's own "afterRender" event (synchronously, before the buffer is cleared) to match the on-screen plot.
-function exportPng() {
+async function exportPng() {
+    if (usingGeographic()) { await exportGeographicImage("png"); return; }
+    if (usingCosmograph()) {
+        try {
+            const exported = await window.relisonCosmograph?.exportPng("network.png", { legend: $("export-include-legend").checked ? networkLegendData() : null });
+            if (!exported) { setStatus("Cosmograph is not ready to export yet.", "error"); return; }
+            setStatus("Cosmograph PNG downloaded.");
+        } catch (error) {
+            setStatus("PNG export failed: " + error.message, "error");
+        }
+        return;
+    }
     if (!state.renderer) { setStatus("Load a network first.", "error"); return; }
     const r = state.renderer;
     const capture = () => {
         if (typeof r.off === "function") r.off("afterRender", capture);
         else if (typeof r.removeListener === "function") r.removeListener("afterRender", capture);
-        try { compositePng(); }
+        try { compositePng().catch(e => setStatus("PNG export failed: " + e.message, "error")); }
         catch (e) { console.error(e); setStatus("PNG export failed: " + e.message, "error"); }
     };
     r.on("afterRender", capture);
     r.refresh(); // schedules a render; afterRender fires at the end of it
 }
 
-function compositePng() {
+async function exportSvg(fullNetwork) {
+    if (usingGeographic()) { await exportGeographicImage("svg"); return; }
+    if (!state.graph) { setStatus("Load a network first.", "error"); return; }
+    if (typeof fullNetwork !== "boolean") { $("network-svg-dialog").showModal(); return; }
+    const filename = fullNetwork ? "network-full.svg" : "network.svg";
+    const legend = $("export-include-legend").checked ? networkLegendData() : null;
+    if (usingCosmograph()) {
+        try {
+            const exported = await window.relisonCosmograph?.exportSvg(filename, { legend, fullNetwork });
+            if (!exported) { setStatus("Cosmograph is not ready to export yet.", "error"); return; }
+            setStatus("Cosmograph SVG downloaded.");
+        } catch (error) { setStatus("SVG export failed: " + error.message, "error"); }
+        return;
+    }
+    try {
+        let svg = buildSigmaSvg({ fullNetwork });
+        if (!svg) { setStatus("Sigma is not ready to export yet.", "error"); return; }
+        if (fullNetwork) svg = await window.relisonNetworkSvg.fit(svg, legend);
+        download(filename, window.relisonGeographicExport.withLegend(svg, legend), "image/svg+xml;charset=utf-8");
+        setStatus("Sigma SVG downloaded.");
+    } catch (error) {
+        console.error("Sigma SVG export failed", error);
+        setStatus("SVG export failed: " + error.message, "error");
+    }
+}
+
+// Reconstruct Sigma's current viewport as vector primitives. Display data is
+// resolved after node/edge reducers, so hidden and dimmed selections match the
+// live graph without rasterizing Sigma's WebGL canvas.
+async function captureSigmaAnimationFrame(diffusion, width) {
+    let svg = buildSigmaSvg({ diffusion });
+    if (!svg) throw new Error("The graph is not ready to record.");
+    const container = $(diffusion ? "diff-sigma-container" : "sigma-container");
+    if (!diffusion && $("export-include-legend").checked) svg = window.relisonGeographicExport.withLegend(svg, networkLegendData());
+    return window.relisonAnimationExport.svgFrame(svg, container.clientWidth, container.clientHeight,
+        width || container.querySelector("canvas")?.width || container.clientWidth);
+}
+
+function buildSigmaSvg({ fullNetwork = false, diffusion = false } = {}) {
+    const renderer = diffusion ? state.diffusion.renderer : state.renderer, graph = diffusion ? state.diffusion.graph : state.graph;
+    if (!renderer || !graph || !renderer.getNodeDisplayData || !renderer.getEdgeDisplayData) return null;
+    renderer.refresh({ schedule: false });
+    const container = $(diffusion ? "diff-sigma-container" : "sigma-container");
+    const width = container.clientWidth, height = container.clientHeight;
+    if (!width || !height) return null;
+    const scaleSize = (size) => renderer.scaleSize ? renderer.scaleSize(size) : size / Math.sqrt(renderer.getCamera().getState().ratio || 1);
+    const esc = (value) => String(value ?? "").replace(/[&<>\"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&apos;" })[ch]);
+    // Display data is already normalized into Sigma's framed graph space.
+    const point = (data) => renderer.framedGraphToViewport({ x: data.x, y: data.y });
+    const positions = new Map();
+    graph.forEachNode((node) => {
+        const d = renderer.getNodeDisplayData(node);
+        if (!d || d.hidden || !Number.isFinite(d.x) || !Number.isFinite(d.y)) return;
+        positions.set(node, { ...point(d), radius: Math.max(0, scaleSize(d.size || 0)), data: d });
+    });
+    const background = cssVar("--canvas-bg", "#18191c");
+    const labelSettings = window.relisonNetworkSvg.labelSettings(state.labelOpts);
+    const edgeLabels = renderer.getEdgeDisplayedLabels?.() || new Set();
+    const nodeLabels = renderer.getNodeDisplayedLabels?.() || new Set();
+    const edgeMarkup = [];
+    graph.forEachEdge((edge, attrs, source, target) => {
+        const s = positions.get(source), t = positions.get(target);
+        const d = renderer.getEdgeDisplayData(edge);
+        if (!s || !t || !d || d.hidden) return;
+        const dx = t.x - s.x, dy = t.y - s.y, distance = Math.hypot(dx, dy) || 1;
+        const ux = dx / distance, uy = dy / distance;
+        const strokeWidth = Math.max(0.25, scaleSize(d.size || 1));
+        const color = d.color || attrs.color || "#999999";
+        const curved = $("edge-shape").value === "curved" && window.relisonSigmaEdgePrograms;
+        const controlX = (s.x + t.x) / 2 - uy * distance * 0.25;
+        const controlY = (s.y + t.y) / 2 + ux * distance * 0.25;
+        const tangentLength = curved ? (Math.hypot(t.x - controlX, t.y - controlY) || 1) : distance;
+        const arrowUx = curved ? (t.x - controlX) / tangentLength : ux;
+        const arrowUy = curved ? (t.y - controlY) / tangentLength : uy;
+        const arrow = state.directed;
+        const arrowLength = arrow ? Math.max(6, strokeWidth * 4) : 0;
+        const lineEnd = Math.max(0, t.radius - (arrow ? arrowLength * 0.65 : 0));
+        const x2 = t.x - arrowUx * lineEnd, y2 = t.y - arrowUy * lineEnd;
+        edgeMarkup.push(curved
+            ? '<path d="M ' + s.x + ' ' + s.y + ' Q ' + controlX + ' ' + controlY + ' ' + x2 + ' ' + y2
+                + '" fill="none" stroke="' + esc(color) + '" stroke-width="' + strokeWidth + '"/>'
+            : '<line x1="' + s.x + '" y1="' + s.y + '" x2="' + x2 + '" y2="' + y2
+                + '" stroke="' + esc(color) + '" stroke-width="' + strokeWidth + '"/>');
+        if (arrow && distance > 1) {
+            const tipX = t.x - arrowUx * Math.max(1, t.radius * 0.45), tipY = t.y - arrowUy * Math.max(1, t.radius * 0.45);
+            const baseX = tipX - arrowUx * arrowLength, baseY = tipY - arrowUy * arrowLength;
+            const half = Math.max(2.5, arrowLength * 0.34);
+            edgeMarkup.push('<polygon points="' + tipX + ',' + tipY + ' ' + (baseX - arrowUy * half) + ',' + (baseY + arrowUx * half)
+                + ' ' + (baseX + arrowUy * half) + ',' + (baseY - arrowUx * half) + '" fill="' + esc(color) + '"/>');
+        }
+        const label = attrs.label;
+        if (label != null && label !== "" && (fullNetwork ? state.labelOpts.edgeShow : (edgeLabels.has(edge) || (edgeLabels.size === 0 && state.labelOpts.edgeShow)))) {
+            const fontSize = state.labelOpts.edgeProp ? Math.max(5, (d.size || 1) * (state.labelOpts.edgeSize / 2)) : state.labelOpts.edgeSize;
+            const labelX = curved ? ((s.x + 2 * controlX + t.x) / 4) : ((s.x + t.x) / 2);
+            const labelY = curved ? ((s.y + 2 * controlY + t.y) / 4) : ((s.y + t.y) / 2);
+            edgeMarkup.push('<text x="' + labelX + '" y="' + labelY
+                + '" text-anchor="middle" fill="' + esc(labelDisplayColor("edge", d.color, "sigma")) + '" font-family="' + esc(state.labelOpts.edgeFont || "sans-serif")
+                + '" font-size="' + fontSize + '">' + esc(label) + '</text>');
+        }
+    });
+    const nodeMarkup = [], nodeLabelMarkup = [];
+    for (const [node, p] of positions) {
+        const d = p.data;
+        nodeMarkup.push('<circle cx="' + p.x + '" cy="' + p.y + '" r="' + p.radius + '" fill="' + esc(d.color || "#4f9dff") + '"/>');
+        if (state.nodeBorder.on) {
+            const verdict = diffusion ? "normal" : overlayNodeVerdict(node, focusContext());
+            if (verdict !== "hidden") nodeMarkup.push('<circle cx="' + p.x + '" cy="' + p.y + '" r="' + p.radius
+                + '" fill="none" stroke="' + esc(verdict === "dim" ? cssVar("--border", "#3a3c41") : state.nodeBorder.color)
+                + '" stroke-width="' + state.nodeBorder.width + '"/>');
+        }
+        const label = window.relisonNetworkSvg.nodeLabel(graph, node, labelSettings);
+        if (label != null && label !== "" && (fullNetwork ? labelSettings.nodeShow : (nodeLabels.has(node) || (nodeLabels.size === 0 && labelSettings.nodeShow)))) {
+            const fontSize = labelSettings.nodeProp ? Math.max(6, d.size * (labelSettings.nodeSize / 8)) : labelSettings.nodeSize;
+            nodeLabelMarkup.push('<text x="' + (p.x + p.radius + 3) + '" y="' + (p.y + fontSize / 3)
+                + '" fill="' + esc(labelDisplayColor("node", d.color, "sigma")) + '" font-family="' + esc(labelSettings.nodeFont || "sans-serif")
+                + '" font-size="' + fontSize + '">' + esc(label) + '</text>');
+        }
+    }
+    const overlayMarkup = [];
+    const recKey = diffusion ? state.diffusion.recKey : state.rec.active;
+    const model = recKey && state.rec.models[recKey];
+    if (model && (diffusion || state.rec.show)) {
+        const context = diffusion ? null : focusContext();
+        for (const link of model.edges) {
+            const s = positions.get(link.source), t = positions.get(link.target);
+            if (!s || !t) continue;
+            const verdict = diffusion ? "normal" : overlayEdgeVerdict(link.source, link.target, context);
+            if (verdict === "hidden") continue;
+            const color = verdict === "dim" ? context.dimColor : state.rec.color;
+            const dash = state.rec.diff ? ' stroke-dasharray="6 4"' : "";
+            const thickness = 1.5;
+            if ($("edge-shape").value === "curved") {
+                const dx = t.x - s.x, dy = t.y - s.y, length = Math.hypot(dx, dy) || 1;
+                const cx = (s.x + t.x) / 2 - dy / length * length * 0.25;
+                const cy = (s.y + t.y) / 2 + dx / length * length * 0.25;
+                overlayMarkup.push('<path d="M ' + s.x + ' ' + s.y + ' Q ' + cx + ' ' + cy + ' ' + t.x + ' ' + t.y
+                    + '" fill="none" stroke="' + esc(color) + '" stroke-width="' + thickness + '"' + dash + '/>');
+            } else overlayMarkup.push('<line x1="' + s.x + '" y1="' + s.y + '" x2="' + t.x + '" y2="' + t.y
+                + '" stroke="' + esc(color) + '" stroke-width="' + thickness + '"' + dash + '/>');
+            if (state.directed && model.edges.length <= 1500 && verdict !== "dim") {
+                const angle = Math.atan2(t.y - s.y, t.x - s.x), len = 7, off = 10;
+                const tx = t.x - Math.cos(angle) * off, ty = t.y - Math.sin(angle) * off;
+                overlayMarkup.push('<polygon points="' + tx + ',' + ty + ' ' + (tx - len * Math.cos(angle - Math.PI / 7)) + ',' + (ty - len * Math.sin(angle - Math.PI / 7))
+                    + ' ' + (tx - len * Math.cos(angle + Math.PI / 7)) + ',' + (ty - len * Math.sin(angle + Math.PI / 7)) + '" fill="' + esc(color) + '"/>');
+            }
+        }
+    }
+    if (diffusion && state.diffusion.result) {
+        const propagating = state.diffusion.result.iterations[state.diffusion.iteration]?.propagating || [];
+        let drawn = 0;
+        for (const node of propagating) {
+            const source = positions.get(node);
+            if (!source || drawn > 3000) continue;
+            const draw = neighbor => {
+                const target = positions.get(neighbor);
+                if (!target || drawn++ > 3000) return;
+                overlayMarkup.push('<line x1="' + source.x + '" y1="' + source.y + '" x2="' + target.x + '" y2="' + target.y
+                    + '" stroke="' + esc(DIFF_COL.prop) + '" stroke-width="1.4" stroke-dasharray="5 4"/>');
+            };
+            if (state.directed) graph.forEachOutNeighbor(node, draw); else graph.forEachNeighbor(node, draw);
+        }
+    }
+    return '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height
+        + '" viewBox="0 0 ' + width + ' ' + height + '"><rect width="100%" height="100%" fill="' + esc(background) + '"/>'
+        + edgeMarkup.join("") + overlayMarkup.join("") + nodeMarkup.join("")
+        + '<g data-layer="node-labels">' + nodeLabelMarkup.join("") + '</g></svg>';
+}
+
+async function compositePng() {
     const canvases = $("sigma-container").querySelectorAll("canvas");
     if (!canvases.length) return;
     const w = canvases[0].width, h = canvases[0].height;
@@ -3744,25 +6599,14 @@ function compositePng() {
     ctx.fillStyle = cssVar("--canvas-bg", "#18191c");
     ctx.fillRect(0, 0, w, h);
     canvases.forEach((c) => ctx.drawImage(c, 0, 0, w, h));
+    await window.relisonGeographicExport.canvasLegend(out, $("export-include-legend").checked ? networkLegendData() : null,
+        w / Math.max(1, $("sigma-container").clientWidth));
     out.toBlob((blob) => download("network.png", blob, "image/png"), "image/png");
 }
 
 function cssVar(name, fallback) {
     const v = getComputedStyle(document.body).getPropertyValue(name).trim();
     return v || fallback;
-}
-
-// Downloads a chart canvas as a PNG, compositing it over the panel background so the (transparent) plot is legible.
-function downloadChartPng(canvas, filename) {
-    if (typeof canvas === "string") canvas = $(canvas);
-    if (!canvas || !canvas.width || !canvas.height) { setStatus("Nothing to download yet — draw the chart first.", "error"); return; }
-    const out = document.createElement("canvas");
-    out.width = canvas.width; out.height = canvas.height;
-    const ctx = out.getContext("2d");
-    ctx.fillStyle = cssVar("--panel-2", "#1e1f23");
-    ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(canvas, 0, 0);
-    out.toBlob((blob) => download(filename || "chart.png", blob, "image/png"), "image/png");
 }
 
 function exportGlobalCsv() {
@@ -3786,9 +6630,24 @@ function exportAveragesCsv(name, order, data) {
 
 // Appearance controls captured by value, so the visual state returns exactly as it was left.
 const SESSION_CONTROLS = [
-    "size-by", "color-by", "node-size-min", "node-size-max", "node-color-low", "node-color-high",
-    "edge-size-by", "edge-size-min", "edge-size-max", "edge-color-mode", "edge-color-single",
-    "node-border-on", "node-border-color", "node-border-width", "layout-type",
+    "network-node-legend", "network-edge-legend",
+    "layout-grid-depth",
+    "layout-spectral-model", "layout-spectral-scale", "layout-spectral-weighted", "layout-spectral-iterations", "layout-spectral-tolerance",
+    "layout-smds-rate", "layout-smds-tolerance", "layout-h3-leaf", "layout-h3-area", "layout-h3-nontree",
+    "node-label-attribute", "edge-label-attribute",
+    "edge-shape",
+    "size-by", "node-color-mode", "node-color-single", "color-by", "node-size-uniform", "node-size-min", "node-size-max", "node-size-scale", "node-size-reverse", "node-color-low", "node-color-high",
+    "edge-size-by", "edge-size-uniform", "edge-size-min", "edge-size-max", "edge-size-scale", "edge-size-reverse", "edge-color-mode", "edge-color-single", "edge-color-by", "edge-color-partition", "edge-color-low", "edge-color-high",
+    "node-border-on", "node-border-color", "node-border-width", "cosmograph-sphere-shading", "layout-type",
+    "layout-radius", "layout-spacing", "layout-columns", "layout-width", "layout-height", "layout-seed", "layout-score", "layout-score-reverse", "circlepack-group",
+    "layout-preset-x", "layout-preset-y",
+    "layout-geographic-latitude", "layout-geographic-longitude", "layout-geographic-projection",
+    "layout-iterations", "layout-theta", "layout-tolerance", "layout-fr-bounded", "layout-fr-width", "layout-fr-height", "layout-fr-temperature",
+    "layout-ideal-length", "layout-cooling", "layout-weighted",
+    "layout-fa-scaling", "layout-fa-gravity", "layout-jitter", "layout-weight-influence", "layout-linlog", "layout-strong-gravity",
+    "layout-outbound", "layout-adjust-sizes", "layout-normalize-weights", "layout-invert-weights",
+    "layout-warm-start", "layout-remove-overlap", "layout-node-radius", "layout-overlap-gap",
+    "layout-root", "layout-direction", "layout-column-spacing", "layout-level-spacing", "layout-sweeps", "layout-pack-components", "layout-packing-gap",
 ];
 
 function collectSessionClientState() {
@@ -3804,17 +6663,22 @@ function collectSessionClientState() {
 
     return {
         positions,
+        communityExplorer: collectCommunityExplorer(),
+        savedLayoutPositions: state.savedLayoutPositions?.graphId === state.graphId ? state.savedLayoutPositions.positions : null,
         controls,
         metrics: {
             metricData: state.metricData, metricOrder: state.metricOrder,
             pairData: state.pairData, pairOrder: state.pairOrder,
             nodePairAgg: state.nodePairAgg, nodePairOrder: state.nodePairOrder,
-            graphMetrics: state.graphMetrics,
+            graphMetrics: state.graphMetrics, globalMetricScopes: state.globalMetricScopes,
+            metricComputations: state.metricComputations, recMetricData: state.recMetricData,
             communityData: state.communityData,
             commMetricData: state.commMetricData, commMetricOrder: state.commMetricOrder,
+            attributeMetricData: state.attributeMetricData, attributeMetricOrder: state.attributeMetricOrder,
+            edgeAttributeMetricData: state.edgeAttributeMetricData, edgeAttributeMetricOrder: state.edgeAttributeMetricOrder,
         },
         rec: { models: state.rec.models, active: state.rec.active, tableEdges: state.rec.tableEdges,
-               show: state.rec.show, diff: state.rec.diff, color: state.rec.color },
+               show: state.rec.show, only: state.rec.only, diff: state.rec.diff, color: state.rec.color },
         recEval: { result: state.recEval.result, test: state.recEval.test },
         diffusion: { pieces: state.diffusion.pieces, realPropagated: state.diffusion.realPropagated,
                      featureParams: state.diffusion.featureParams, runs: state.diffusion.runs },
@@ -3825,6 +6689,7 @@ function collectSessionClientState() {
 // everything, so this only ever adds state back).
 function applySessionClientState(c) {
     if (!c) return;
+    state.savedLayoutPositions = c.savedLayoutPositions ? { graphId: state.graphId, positions: c.savedLayoutPositions } : null;
 
     if (c.positions && state.graph) {
         state.graph.forEachNode((n) => {
@@ -3842,14 +6707,21 @@ function applySessionClientState(c) {
     if (m.pairData) { state.pairData = m.pairData; state.pairOrder = m.pairOrder || []; }
     if (m.nodePairAgg) { state.nodePairAgg = m.nodePairAgg; state.nodePairOrder = m.nodePairOrder || []; }
     if (m.graphMetrics) state.graphMetrics = m.graphMetrics;
+    state.globalMetricScopes = m.globalMetricScopes || {};
+    state.metricComputations = m.metricComputations || {};
+    if (m.recMetricData) state.recMetricData = { vertex: {}, graph: {}, pair: {}, nodePair: {}, comm: {}, ...m.recMetricData };
     if (m.communityData) state.communityData = m.communityData;
+    restoreCommunityExplorer(c.communityExplorer);
     if (m.commMetricData) { state.commMetricData = m.commMetricData; state.commMetricOrder = m.commMetricOrder || []; }
+    if (m.attributeMetricData) { state.attributeMetricData = m.attributeMetricData; state.attributeMetricOrder = m.attributeMetricOrder || []; }
+    if (m.edgeAttributeMetricData) { state.edgeAttributeMetricData = m.edgeAttributeMetricData; state.edgeAttributeMetricOrder = m.edgeAttributeMetricOrder || []; }
 
     if (c.rec) {
         state.rec.models = c.rec.models || {};
         state.rec.active = c.rec.active || null;
         state.rec.tableEdges = c.rec.tableEdges || [];
         if (c.rec.show != null) state.rec.show = c.rec.show;
+        state.rec.only = !!c.rec.only;
         if (c.rec.diff != null) state.rec.diff = c.rec.diff;
         if (c.rec.color) state.rec.color = c.rec.color;
     }
@@ -3860,12 +6732,13 @@ function applySessionClientState(c) {
         state.diffusion.realPropagated = c.diffusion.realPropagated || [];
         state.diffusion.featureParams = c.diffusion.featureParams || [];
         state.diffusion.runs = c.diffusion.runs || [];
+        if (typeof DiffusionWorkspace !== "undefined") DiffusionWorkspace.restoreRuns();
         state.diffusion.piecesHeaderSig = null;
         state.diffusion.piecesPage = 0;
     }
 
     // The community-metric buttons are gated on having a partition.
-    const algos = Object.keys(state.communityData);
+    const algos = Object.keys(state.communityData).filter(name => !name.startsWith("attribute:"));
     if (algos.length) {
         setSelectOptions("indiv-comm-partition", algos, algos);
         setSelectOptions("global-comm-partition", algos, algos);
@@ -3883,6 +6756,7 @@ function applySessionClientState(c) {
         else el.value = c.controls[id];
     }
     applyAppearance();
+    syncLayoutOptionsForRenderer();
 
     if (state.recEval.result) renderRecEvalTable(state.recEval.result);
     if (state.recEval.test) {
@@ -3987,22 +6861,16 @@ function recEvalReportData() {
     return { headers, rows, meta, note };
 }
 
-// A single chart canvas → PNG data URI, composited over the panel background (so light-on-dark text stays legible
-// however the report page itself is themed).
-function chartToDataUrl(canvas) {
-    if (!canvas || !canvas.width || !canvas.height) return null;
-    const out = document.createElement("canvas");
-    out.width = canvas.width; out.height = canvas.height;
-    const ctx = out.getContext("2d");
-    ctx.fillStyle = cssVar("--panel-2", "#1e1f23");
-    ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(canvas, 0, 0);
-    return out.toDataURL("image/png");
+// Captures a high-resolution ECharts PNG over the current opaque panel color for HTML/PDF reports.
+function chartToDataUrl(chart) {
+    if (!chart || chart.isDisposed() || !chart.getWidth() || !chart.getHeight()) return null;
+    return chart.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: echartColors().background, excludeComponents: ["dataZoom"] });
 }
 
 // The report section a chart belongs to, inferred from its canvas id.
-function plotSection(canvas) {
-    const id = (canvas && canvas.id) || "";
+function plotSection(chart) {
+    const id = (chart?.getDom() && chart.getDom().id) || "";
+    if (id === "relationship-chart") return "Attribute relationships";
     if (id.startsWith("node-")) return "Vertex metrics";
     if (id.startsWith("edge-")) return "Link metrics";
     if (id.startsWith("pair-")) return "Node-pair metrics";
@@ -4014,12 +6882,12 @@ function plotSection(canvas) {
 // Records a chart as it is drawn, so the report can include every plot generated during the session. Keyed by
 // canvas + title so redraws of the same plot overwrite (latest kept) while different selections stay distinct.
 // Blank / zero-size canvases (a chart that was never actually shown) are ignored.
-function capturePlot(canvas, title) {
-    if (!canvas || !state.graph || !state.reportPlots) return;
-    const url = chartToDataUrl(canvas);
+function capturePlot(chart, title) {
+    if (!chart || !state.graph || !state.reportPlots) return;
+    const url = chartToDataUrl(chart);
     if (!url) return;
-    const key = (canvas.id || "chart") + "::" + (title || "");
-    state.reportPlots.set(key, { section: plotSection(canvas), title: title || "chart", url });
+    const key = (chart.getDom().id || "chart") + "::" + (title || "");
+    state.reportPlots.set(key, { section: plotSection(chart), title: title || "chart", url });
 }
 
 // Snapshots the network (sigma's WebGL layers must be read inside an afterRender pass, as in exportPng).
@@ -4300,6 +7168,14 @@ function exportCommAveragesCsv() {
     download("community-metric-averages.csv", kvCsv("metric", "average", rows), "text/csv");
 }
 
+function exportAttributeCommAveragesCsv() {
+    const rows = state.attributeMetricOrder.map((label) => [label, average(state.attributeMetricData[label].values)]);
+    download("attribute-metric-averages.csv", kvCsv("metric", "average", rows), "text/csv");
+}
+function exportEdgeAttributeAveragesCsv() {
+    const rows = state.edgeAttributeMetricOrder.map((label) => [label, average(state.edgeAttributeMetricData[label].values)]);
+    download("edge-attribute-metric-averages.csv", kvCsv("metric", "average", rows), "text/csv");
+}
 function kvCsv(keyHeader, valueHeader, rows) {
     const lines = [csvCell(keyHeader) + "," + csvCell(valueHeader)];
     for (const [k, v] of rows) lines.push(csvCell(k) + "," + csvCell(v));
@@ -4309,11 +7185,31 @@ function kvCsv(keyHeader, valueHeader, rows) {
 // Serializes the current graph (with computed node/edge attributes) to GEXF for Gephi/other tools.
 function exportGexf() {
     if (!state.graph) { setStatus("Load a network first.", "error"); return; }
+    // GEXF is graph data, rather than an image. When Cosmograph is active,
+    // persist its current live coordinates first so the exported viz:position
+    // entries reproduce the layout the user is looking at.
+    if (usingCosmograph()) window.relisonCosmograph?.savePointPositions();
     const g = state.graph;
+    const numericIds = $("export-gexf-numeric-ids").checked;
+    const exportIds = new Map(g.nodes().map((node, index) => [node, numericIds ? String(index) : node]));
     const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-    const nodeAttrs = [...state.metricOrder, ...Object.keys(state.communityData).map((a) => "community:" + a)];
-    const edgeAttrs = [...state.pairOrder];
+    const gexfType = type => ({ int: "integer", integer: "integer", long: "long", double: "double",
+        float: "float", bool: "boolean", boolean: "boolean" }[type] || "string");
+    // Keep custom columns intact; disambiguate computed columns with the same title.
+    const columns = (defs, computed) => {
+        const used = new Set(defs.map(d => d.name));
+        const result = defs.map(d => ({ name: d.name, type: gexfType(d.type), custom: true, key: d.name }));
+        for (const key of computed) {
+            let name = key;
+            while (used.has(name)) name = "computed:" + name;
+            used.add(name);
+            result.push({ name, type: "double", custom: false, key });
+        }
+        return result;
+    };
+    const nodeAttrs = columns(nodeAttrDefs(), [...state.metricOrder, ...Object.keys(state.communityData).map(a => "community:" + a)]);
+    const edgeAttrs = columns(edgeAttrDefs(), state.pairOrder);
     const nodeAttrId = (i) => "n" + i;
     const edgeAttrId = (i) => "e" + i;
 
@@ -4324,18 +7220,18 @@ function exportGexf() {
 
     if (nodeAttrs.length) {
         lines.push('<attributes class="node">');
-        nodeAttrs.forEach((a, i) => lines.push('<attribute id="' + nodeAttrId(i) + '" title="' + esc(a) + '" type="double"/>'));
+        nodeAttrs.forEach((a, i) => lines.push('<attribute id="' + nodeAttrId(i) + '" title="' + esc(a.name) + '" type="' + a.type + '"/>'));
         lines.push('</attributes>');
     }
     if (edgeAttrs.length) {
         lines.push('<attributes class="edge">');
-        edgeAttrs.forEach((a, i) => lines.push('<attribute id="' + edgeAttrId(i) + '" title="' + esc(a) + '" type="double"/>'));
+        edgeAttrs.forEach((a, i) => lines.push('<attribute id="' + edgeAttrId(i) + '" title="' + esc(a.name) + '" type="' + a.type + '"/>'));
         lines.push('</attributes>');
     }
 
     lines.push('<nodes>');
     g.forEachNode((node, attr) => {
-        lines.push('<node id="' + esc(node) + '" label="' + esc(attr.label ?? node) + '">');
+        lines.push('<node id="' + esc(exportIds.get(node)) + '" label="' + esc(numericIds ? node : (attr.label ?? node)) + '">');
         if (attr.x !== undefined && attr.y !== undefined)
             lines.push('<viz:position x="' + attr.x + '" y="' + attr.y + '" z="0"/>');
         if (attr.size !== undefined) lines.push('<viz:size value="' + attr.size + '"/>');
@@ -4344,8 +7240,9 @@ function exportGexf() {
         if (nodeAttrs.length) {
             lines.push('<attvalues>');
             nodeAttrs.forEach((a, i) => {
-                const v = a.startsWith("community:") ? state.communityData[a.slice(10)]?.[node] : state.metricData[a]?.[node];
-                if (v !== undefined && v !== null) lines.push('<attvalue for="' + nodeAttrId(i) + '" value="' + v + '"/>');
+                const v = a.custom ? attr.attrs?.[a.key] : a.key.startsWith("community:")
+                    ? state.communityData[a.key.slice(10)]?.[node] : state.metricData[a.key]?.[node];
+                if (v !== undefined && v !== null) lines.push('<attvalue for="' + nodeAttrId(i) + '" value="' + esc(v) + '"/>');
             });
             lines.push('</attvalues>');
         }
@@ -4356,13 +7253,15 @@ function exportGexf() {
     lines.push('<edges>');
     let ei = 0;
     g.forEachEdge((edge, attr, s, t) => {
+        const label = attr.attrs?.label ?? attr.label;
+        const labelField = label != null ? ' label="' + esc(label) + '"' : "";
         const weight = attr.weight !== undefined ? ' weight="' + attr.weight + '"' : "";
-        lines.push('<edge id="' + (ei++) + '" source="' + esc(s) + '" target="' + esc(t) + '"' + weight + '>');
+        lines.push('<edge id="' + (ei++) + '" source="' + esc(exportIds.get(s)) + '" target="' + esc(exportIds.get(t)) + '"' + weight + labelField + '>');
         if (edgeAttrs.length) {
             lines.push('<attvalues>');
             edgeAttrs.forEach((a, i) => {
-                const v = state.pairData[a]?.[pairKey(s, t)];
-                if (v !== undefined && v !== null) lines.push('<attvalue for="' + edgeAttrId(i) + '" value="' + v + '"/>');
+                const v = a.custom ? attr.attrs?.[a.key] : state.pairData[a.key]?.[pairKey(s, t)];
+                if (v !== undefined && v !== null) lines.push('<attvalue for="' + edgeAttrId(i) + '" value="' + esc(v) + '"/>');
             });
             lines.push('</attvalues>');
         }
@@ -4377,14 +7276,22 @@ function exportGexf() {
 
 // Parses a CSS colour (#hex, rgb(), hsl()) into {r,g,b}, or null if it can't.
 function colorToRgb(color) {
+    if (typeof color !== "string") return null;
+    color = color.trim();
     if (!color) return null;
     if (color[0] === "#") {
         const h = color.slice(1);
-        const n = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+        if (!/^(?:[\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i.test(h)) return null;
+        const n = h.length <= 4 ? h.split("").map((c) => c + c).join("") : h;
         return { r: parseInt(n.slice(0, 2), 16), g: parseInt(n.slice(2, 4), 16), b: parseInt(n.slice(4, 6), 16) };
     }
-    let m = color.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
-    if (m) return { r: +m[1], g: +m[2], b: +m[3] };
+    let m = color.match(/^rgba?\(([^)]+)\)$/i);
+    if (m) {
+        const channels = m[1].split("/")[0].trim().split(/[\s,]+/).slice(0, 3);
+        if (channels.length !== 3 || channels.some(channel => !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)%?$/.test(channel))) return null;
+        const values = channels.map(channel => Math.max(0, Math.min(255, channel.endsWith("%") ? parseFloat(channel) * 255 / 100 : parseFloat(channel))));
+        return { r: values[0], g: values[1], b: values[2] };
+    }
     m = color.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%/i);
     if (m) return hslToRgb(+m[1], +m[2] / 100, +m[3] / 100);
     return null;
@@ -4439,6 +7346,9 @@ async function uploadAttributeFile(kind, file) {
     if (!file) { setStatus("Choose an attribute file first.", "error"); return; }
     const form = new FormData();
     form.append("file", file);
+    const prefix = kind === "nodes" ? "node" : "edge";
+    form.append("separator", selectedDelimiter(prefix + "-attr-separator"));
+    form.append("header", $(prefix + "-attr-header").checked);
     setStatus("Importing " + kind + " attributes…", "busy");
     try {
         const res = await api("/api/graph/" + state.graphId + "/attributes/" + kind, { method: "POST", body: form });
@@ -4505,18 +7415,40 @@ function applyLogo(dark) {
     });
 }
 
+function themeIconMarkup(light) {
+    return '<span class="material-symbols-outlined" aria-hidden="true">' + (light ? "light_mode" : "dark_mode") + '</span>';
+}
+
 function applyTheme(theme) {
     const light = theme === "light";
     document.body.classList.toggle("light", light);
-    $("theme-toggle").textContent = light ? "☀️" : "🌙";
+    $("theme-toggle").innerHTML = themeIconMarkup(light);
     applyLogo(!light);
     try { localStorage.setItem("relison-theme", theme); } catch (e) { /* ignore */ }
-    // Charts are drawn imperatively, so re-render the visible one with the new palette.
+    redrawVisibleCharts();
+    // Globe.gl updates its material and country accessors during refresh. A
+    // theme toggle does not otherwise produce graph events or camera motion.
+    if (usingGeographic()) window.relisonGeographic?.refresh();
+    if (usingDiffGeographic()) state.diffusion.geographic?.refresh();
+    if (state.activeTab === "communities") updateCommunityGraphAppearance();
+}
+
+function redrawVisibleCharts() {
     if (state.activeTab === "metrics") {
-        if (state.activeSubtab === "nodes") { drawNodeChart(); drawNodeScatter(); }
-        if (state.activeSubtab === "edges") { drawEdgeChart(); drawEdgeScatter(); }
-        if (state.activeSubtab === "pairs") drawPairChart();
-        if (state.activeSubtab === "comm") { drawCommChart(); drawCommScatter(); }
+        refreshMetricWorkspace();
+        if (state.activeSubtab === "relationships") renderAttributeRelationships();
+    }
+    if (state.activeTab === "diffusion") {
+        if (state.diffusion.subview === "metrics") renderDiffMetrics();
+        else if (state.diffusion.subview === "stats") {
+            if (state.diffusion.statsView === "metrics") renderDiffMetrics();
+            if (state.diffusion.statsView === "compare") DiffusionWorkspace.renderCompare();
+            if (state.diffusion.statsView === "overview") DiffusionWorkspace.renderOverview();
+            if (state.diffusion.statsView === "node" && state.diffusion.traj) drawTrajectoryChart();
+            if (state.diffusion.statsView === "piece" && state.diffusion.ptraj) drawPieceTimeline();
+            if (state.diffusion.statsView === "feat" && state.diffusion.ftraj) drawFeatureTimeline();
+            if (state.diffusion.statsView === "dist" && state.diffusion.dist) drawDistribution();
+        }
     }
 }
 
@@ -4527,7 +7459,7 @@ function toggleTheme() {
 /* ------------------------------ debug console ----------------------------- */
 function applyVisualStyle(style) { const modern = style !== "classic"; document.body.classList.toggle("modern-slate", modern); document.body.classList.toggle("classic", !modern); $("style-selector").value = modern ? "modern-slate" : "classic"; try { localStorage.setItem("relison-visual-style", modern ? "modern-slate" : "classic"); } catch (e) { /* ignore */ } }
 //function applyFocusMode(enabled) { document.body.classList.toggle("focus-mode", enabled); if (!enabled) document.body.classList.remove("inspector-open"); $("focus-toggle").classList.toggle("active", enabled); $("focus-toggle").setAttribute("aria-pressed", String(enabled)); $("focus-toggle").textContent = enabled ? "Focus on" : "Focus"; toggleHidden("inspector-toggle", !enabled); if (!enabled) { $("inspector-toggle").classList.remove("active"); $("inspector-toggle").setAttribute("aria-pressed", "false"); } try { localStorage.setItem("relison-focus-mode", enabled ? "on" : "off"); } catch (e) { /* ignore */ } setTimeout(() => { if (state.renderer) { state.renderer.refresh(); drawRecOverlay(); } if (state.diffusion.renderer) { state.diffusion.renderer.refresh(); drawDiffOverlay(); } }, 0); }
-function applyExtendedVisualStyle(style) { const valid = ["classic", "modern-slate", "quiet-light", "graph-first-dark"]; const next = valid.includes(style) ? style : "modern-slate"; document.body.classList.remove(...valid); document.body.classList.add(next); $("style-selector").value = next; try { localStorage.setItem("relison-visual-style", next); } catch (e) { /* ignore */ } }
+function applyExtendedVisualStyle(style) { const valid = ["classic", "modern-slate", "quiet-light", "graph-first-dark"]; const next = valid.includes(style) ? style : "modern-slate"; document.body.classList.remove(...valid); document.body.classList.add(next); $("style-selector").value = next; try { localStorage.setItem("relison-visual-style", next); } catch (e) { /* ignore */ } setTimeout(() => applyTheme(document.body.classList.contains("light") ? "light" : "dark"), 0); }
 // Available only when the server was launched with --debug. The button reveals a terminal-like overlay that mirrors
 //function toggleFocusMode() { applyFocusMode(!document.body.classList.contains("focus-mode")); }
 // the server's standard output / error (polled incrementally from /api/logs), replacing everything below the top bar.
@@ -4629,6 +7561,88 @@ function onRecModeChange() {
     $("rec-cutoff-label").textContent = $("rec-mode").value === "prediction" ? "Total links" : "Links per node";
 }
 
+// Every completed run is selectable independently of the configuration for the next run.
+function renderComputedRecommendations() {
+    const entries = Object.entries(state.rec.models);
+    for (const id of ["rec-computed", "rec-edge-model"]) {
+        const select = $(id);
+        select.replaceChildren();
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = entries.length ? "Select a computed result" : "No computed results";
+        placeholder.disabled = true;
+        select.appendChild(placeholder);
+        for (const [mode, label] of [["recommendation", "Recommendations"], ["prediction", "Predictions"]]) {
+            const models = entries.filter(([, model]) => model.mode === mode);
+            if (!models.length) continue;
+            const group = document.createElement("optgroup");
+            group.label = label;
+            for (const [key] of models) {
+                const option = document.createElement("option");
+                option.value = key;
+                option.textContent = key;   // includes parameters, cutoff and reciprocal setting
+                group.appendChild(option);
+            }
+            select.appendChild(group);
+        }
+        select.value = state.rec.active || "";
+        select.disabled = !entries.length || state.rec.selecting;
+    }
+    const active = !!state.rec.models[state.rec.active];
+    $("rec-edge-mode").value = active && state.rec.show ? state.rec.only ? "only" : "highlight" : "none";
+    $("rec-edge-mode").disabled = !active;
+    $("rec-edge-show").checked = !!state.rec.show;
+}
+
+function setRecommendationDisplay(mode) {
+    state.rec.show = mode !== "none";
+    state.rec.only = mode === "only";
+    renderComputedRecommendations();
+    applyReducers(); drawRecOverlay();
+}
+
+// Both a newly computed run and a cached selection activate the same table and overlay.
+function activateRecommendation(key) {
+    const model = state.rec.models[key];
+    if (!model) return;
+    state.rec.active = key;
+    state.rec.tableEdges = model.edges;
+    state.rec.show = true;
+    state.tables.rec.filters = {};
+    state.tables.rec.page = 0;
+    state.tables.rec.headerSig = null;
+    $("rec-edge-show").checked = true;
+    applyReducers();
+    drawRecOverlay();
+    renderTable("rec");
+    updateRecUI();
+    refreshAfterCompute();
+}
+
+async function selectComputedRecommendation(key) {
+    const model = state.rec.models[key];
+    if (!model || key === state.rec.active || state.rec.selecting) return;
+    if (jobBusy("btn-rec-apply")) {
+        renderComputedRecommendations();
+        setStatus("Wait for the current recommendation or prediction to finish before switching results.", "error");
+        return;
+    }
+    const graphId = state.graphId;
+    state.rec.selecting = true;
+    renderComputedRecommendations();
+    try {
+        await api("/api/recommendation/select", jsonBody({ graphId, key }));
+        if (state.graphId !== graphId || state.rec.models[key] !== model) return;
+        activateRecommendation(key);
+        setStatus("Selected " + key + ".");
+    } catch (error) {
+        if (state.graphId === graphId) setStatus(error.message, "error");
+    } finally {
+        state.rec.selecting = false;
+        renderComputedRecommendations();
+    }
+}
+
 // Trains the selected model (or loads it from the server cache), then overlays its links on the graph and tables.
 async function applyRecommendation() {
     if (jobBusy("btn-rec-apply")) return cancelJob("btn-rec-apply");
@@ -4645,20 +7659,13 @@ async function applyRecommendation() {
             { graphId: state.graphId, algorithm, mode, cutoff, reciprocal, params: collectParams("rec-params") }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
         state.rec.models[res.key] = { label: res.label, mode: res.mode, cutoff: res.cutoff, edges: res.edges };
-        state.rec.active = res.key;     // only one model is shown at a time
-        state.rec.tableEdges = res.edges;
-        state.rec.show = true;          // a freshly applied model is shown
-        $("rec-edge-show").checked = true;
-        drawRecOverlay();               // recommended links are drawn on the overlay, not added to the sigma graph
-        renderTable("rec");
-        updateRecUI();
-        refreshAfterCompute();
+        activateRecommendation(res.key);
         setStatus("Applied " + res.label + " — " + res.count + " recommended link(s).");
     } catch (e) {
         if (isAbort(e)) return;
         setStatus(e.message, "error");
     } finally {
-        endJob("btn-rec-apply");
+        endJob("btn-rec-apply", signal);
     }
 }
 
@@ -4823,6 +7830,7 @@ function resetRecommendation() {
     state.rec.active = null;
     state.rec.models = {};
     state.rec.tableEdges = [];
+    state.rec.only = false;
     state.recMetricData = { vertex: {}, graph: {}, pair: {}, nodePair: {}, comm: {} };
     state.tables.rec.filters = {};
     state.tables.rec.page = 0;
@@ -4834,8 +7842,9 @@ function resetRecommendation() {
 
 // Shows/hides the recommendation-dependent controls and updates the status line.
 function updateRecUI() {
+    renderComputedRecommendations();
     const active = !!state.rec.active;
-    toggleHidden("rec-edge-block", !active);
+    toggleHidden("rec-edge-block", false);
     document.querySelectorAll(".rec-include-field").forEach((el) => { el.hidden = !active; });
     const addAll = $("btn-rec-add-all");
     if (addAll) addAll.disabled = !(state.rec.tableEdges && state.rec.tableEdges.length);
@@ -4901,7 +7910,7 @@ function renderRecEvalMetrics() {
         cb.checked = m.group === "Accuracy";
         label.appendChild(cb);
         label.appendChild(document.createTextNode(" " + m.label));
-        if (m.needsFeatures) label.title = "Needs a feature attribute to be meaningful.";
+        if (m.needsFeatures) setTooltip(label, "js-metric-needs-feature");
         box.appendChild(label);
     }
 }
@@ -4928,6 +7937,8 @@ async function uploadRecTestSet() {
     if (!input.files || !input.files.length) { setStatus("Choose a test-set file first.", "error"); return; }
     const form = new FormData();
     form.append("file", input.files[0]);
+    form.append("separator", selectedDelimiter("rec-test-separator"));
+    form.append("header", $("rec-test-header").checked);
     setStatus("Uploading test set…", "busy");
     try {
         const res = await api("/api/graph/" + state.graphId + "/recommendation/test", { method: "POST", body: form });
@@ -4975,7 +7986,7 @@ async function runRecEvaluation() {
         $("rec-eval-status").textContent = e.message;
         setStatus(e.message, "error");
     } finally {
-        endJob("btn-rec-evaluate");
+        endJob("btn-rec-evaluate", signal);
     }
 }
 
@@ -5011,7 +8022,7 @@ function renderRecEvalTable(res) {
         const cov = document.createElement("td");
         cov.className = "num";
         cov.textContent = row.users;
-        if (res.evaluatedUsers && row.users < res.evaluatedUsers) cov.title = "of " + res.evaluatedUsers + " evaluated users";
+        if (res.evaluatedUsers && row.users < res.evaluatedUsers) setTooltip(cov, "js-evaluated-users", { count: res.evaluatedUsers });
         tr.appendChild(cov);
         for (const m of res.metrics) {
             const td = document.createElement("td");
@@ -5089,57 +8100,27 @@ function clearRecOverlay() {
 // The current emphasis context (table filters + selection focus / path focus), mirroring applyReducers, so the
 // overlay can apply the same hide/dim decisions to its recommended edges and node copies.
 function focusContext() {
-    const g = state.graph;
-    const nodeFilters = activeFilters("nodes", nodeColumns());
-    let filterNodes = null;
-    if (nodeFilters.length) {
-        filterNodes = new Set();
-        g.forEachNode((n) => { if (rowPasses(nodeRowValue, n, nodeFilters)) filterNodes.add(n); });
-    }
-    const path = state.pathFocus;
-    const focus = path ? null : selectionFocus();
-    // Timeline presence: nodes absent at the current timestamp are hidden in the overlay too, so recommended links
-    // between them disappear along with the base graph.
-    const tl = state.timeline;
-    let presentNodes = null;
-    if (tl.nodeAttr && tl.t != null && tl.min != null) {
-        presentNodes = new Set();
-        g.forEachNode((n) => { if (timeContains(nodeAttrVal(n, tl.nodeAttr), tl.t)) presentNodes.add(n); });
-    }
-    return {
-        presentNodes,
-        filterNodes,
-        path,
-        focus,
-        dim: !!(focus && !focus.only),
-        isolate: !!(focus && focus.only),
-        dimColor: cssVar("--border", "#3a3c41"),
-    };
+    const view = networkView(), tl = state.timeline, g = state.graph;
+    const presentNodes = tl.nodeAttr && tl.t != null && tl.min != null ? new Set(g.nodes().filter(node => timelineMatches(nodeAttrVal(node, tl.nodeAttr)))) : null;
+    return { view, presentNodes, tableFocus: view.working.filtered ? view.working : null, path: state.pathFocus,
+        pathEdgeColor: state.pathEdgeHighlight.mode === "single" ? state.pathEdgeHighlight.color : null,
+        pathEdgeColors: buildPathEdgeColors(state.pathFocus), focus: view.emphasis, dim: Boolean(view.emphasis && !view.isolate),
+        isolate: view.isolate, dimColor: cssVar("--border", "#3a3c41") };
 }
 
 // "hidden" | "dim" | "normal" for a node, matching the nodeReducer in applyReducers.
-function overlayNodeVerdict(node, c) {
-    if (c.presentNodes && !c.presentNodes.has(node)) return "hidden";
-    if (c.filterNodes && !c.filterNodes.has(node)) return "hidden";
-    if (c.path) return c.path.nodes.has(node) ? "normal" : (c.path.only ? "hidden" : "dim");
-    if (c.focus) {
-        if (c.isolate) return c.focus.nodes.has(node) ? "normal" : "hidden";
-        if (node === c.focus.selected) return "normal";
-        return c.focus.nodes.has(node) ? "normal" : "dim";
-    }
-    return "normal";
+function overlayNodeVerdict(node, context) {
+    if (context.presentNodes && !context.presentNodes.has(node)) return "hidden";
+    return window.relisonNetworkViewSnapshot?.nodeVerdicts.get(node) || context.view.nodeVerdict(node);
 }
 
 // "hidden" | "dim" | "normal" for a recommended edge, matching the edgeReducer (a path may run over rec edges).
-function overlayEdgeVerdict(s, t, c) {
-    if (c.presentNodes && (!c.presentNodes.has(s) || !c.presentNodes.has(t))) return "hidden";
-    if (c.filterNodes && (!c.filterNodes.has(s) || !c.filterNodes.has(t))) return "hidden";
-    if (c.path) {
-        if (c.path.edges.has(pairKey(s, t)) || c.path.edges.has(pairKey(t, s))) return "normal";
-        return c.path.only ? "hidden" : "dim";
-    }
-    if (c.isolate) return (c.focus.nodes.has(s) && c.focus.nodes.has(t)) ? "normal" : "hidden";
-    if (c.dim) return (c.focus.nodes.has(s) && c.focus.nodes.has(t)) ? "normal" : "dim";
+function overlayEdgeVerdict(source, target, context) {
+    if (context.presentNodes && (!context.presentNodes.has(source) || !context.presentNodes.has(target))) return "hidden";
+    // Transient recommendations are not members of the loaded network's working edge set.
+    if (context.isolate) return "hidden";
+    if (context.view.working.edgeFiltered || !context.view.working.nodes.has(source) || !context.view.working.nodes.has(target)) return "dim";
+    if (context.view.emphasis || window.relisonCosmographPathSelection) return "dim";
     return "normal";
 }
 
@@ -5147,6 +8128,15 @@ function overlayEdgeVerdict(s, t, c) {
 // current filter / selection / path emphasis. Node copies keep the nodes visible above the recommended edges.
 function drawRecOverlay() {
     clearRecOverlay();
+    if (usingGeographic()) { window.relisonGeographic.refresh(); return; }
+    // Sigma uses a canvas overlay for transient recommendation results. In
+    // Cosmograph those links are part of its projected data, so refresh that
+    // projection instead of trying to align Sigma's overlay canvas.
+    if (usingCosmograph()) {
+        const changed = syncCosmographRecommendation();
+        if (changed) queueCosmographAppearanceRefresh();
+        return;
+    }
     const canvas = $("rec-overlay");
     if (!canvas) return;
     const r = state.renderer, g = state.graph;
@@ -5154,7 +8144,8 @@ function drawRecOverlay() {
     const model = state.rec.active && state.rec.models[state.rec.active];
     const showRec = model && state.rec.show;   // rec links are not part of the sigma graph, drawn here when enabled
     const showBorder = state.nodeBorder.on;
-    if (!showRec && !showBorder) return;
+    const path = state.pathFocus;
+    if (!showRec && !showBorder && !path) return;
 
     const ctx = canvas.getContext("2d");
     try {
@@ -5162,7 +8153,12 @@ function drawRecOverlay() {
         const cam = r.getCamera();
         const ratio = (cam && (cam.ratio || (cam.getState && cam.getState().ratio))) || 1;
         const pos = (id) => r.graphToViewport({ x: g.getNodeAttribute(id, "x"), y: g.getNodeAttribute(id, "y") });
-        const nodeRadius = (node) => Math.max(1.5, (g.getNodeAttribute(node, "size") || 3) / Math.sqrt(ratio));
+        const scaleSize = (size) => r.scaleSize ? r.scaleSize(size) : size / Math.sqrt(ratio);
+        const nodeRadius = (node) => {
+            const displayedSize = r.getNodeDisplayData(node)?.size;
+            const storedDiameter = g.getNodeAttribute(node, "size");
+            return Math.max(0, scaleSize(Number.isFinite(displayedSize) ? displayedSize : (Number.isFinite(storedDiameter) ? storedDiameter / 2 : 3)));
+        };
 
         if (showRec) {
             // Recommended edges (dashed) — same hide/dim rules as the base graph.
@@ -5180,12 +8176,18 @@ function drawRecOverlay() {
                 if (sxy == null || txy == null) continue;
                 const ps = pos(e.source), pt = pos(e.target);
                 const dimmed = verdict === "dim";
-                ctx.strokeStyle = dimmed ? c.dimColor : state.rec.color;
+                const color = dimmed ? c.dimColor : state.rec.color;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
                 ctx.beginPath();
                 ctx.moveTo(ps.x, ps.y);
-                ctx.lineTo(pt.x, pt.y);
+                if ($("edge-shape").value === "curved") {
+                    const dx = pt.x - ps.x, dy = pt.y - ps.y, length = Math.hypot(dx, dy) || 1;
+                    ctx.quadraticCurveTo((ps.x + pt.x) / 2 - dy / length * length * 0.25,
+                        (ps.y + pt.y) / 2 + dx / length * length * 0.25, pt.x, pt.y);
+                } else ctx.lineTo(pt.x, pt.y);
                 ctx.stroke();
-                if (arrows && !dimmed) { ctx.fillStyle = state.rec.color; drawRecArrow(ctx, ps, pt); }
+                if (arrows && !dimmed) { ctx.fillStyle = color; drawRecArrow(ctx, ps, pt, $("edge-shape").value === "curved"); }
             }
             ctx.setLineDash([]);
 
@@ -5198,7 +8200,7 @@ function drawRecOverlay() {
                 const p = pos(node);
                 let radius = nodeRadius(node);
                 let color = g.getNodeAttribute(node, "color") || "#4f9dff";
-                if (verdict === "dim") { color = c.dimColor; radius = Math.max(1, radius * 0.6); }
+                if (verdict === "dim") color = c.dimColor;
                 ctx.fillStyle = color;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, radius, 0, 2 * Math.PI);
@@ -5217,11 +8219,43 @@ function drawRecOverlay() {
                 if (x == null) return;
                 const p = pos(node);
                 let radius = nodeRadius(node);
-                if (verdict === "dim") radius = Math.max(1, radius * 0.6);
                 ctx.strokeStyle = verdict === "dim" ? c.dimColor : state.nodeBorder.color;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, radius, 0, 2 * Math.PI);
                 ctx.stroke();
+            });
+        }
+        // Draw the active paths after the background node copies and borders,
+        // so unrelated nodes cannot cover their links at crossings.
+        if (path) {
+            ctx.setLineDash([]);
+            const curved = $("edge-shape").value === "curved";
+            g.forEachEdge((edge) => {
+                const source = g.source(edge), target = g.target(edge);
+                if (!path.edgeIds.has(edge)) return;
+                const data = r.getEdgeDisplayData(edge);
+                if (!data || data.hidden || overlayNodeVerdict(source, c) === "hidden" || overlayNodeVerdict(target, c) === "hidden") return;
+                const from = pos(source), to = pos(target);
+                ctx.strokeStyle = data.color;
+                ctx.lineWidth = scaleSize(data.size);
+                ctx.beginPath();
+                ctx.moveTo(from.x, from.y);
+                if (curved) ctx.quadraticCurveTo((from.x + to.x) / 2 - (to.y - from.y) * 0.25,
+                    (from.y + to.y) / 2 + (to.x - from.x) * 0.25, to.x, to.y);
+                else ctx.lineTo(to.x, to.y);
+                ctx.stroke();
+                if (!g.isUndirected(edge)) { ctx.fillStyle = data.color; drawRecArrow(ctx, from, to, curved); }
+            });
+            path.nodes.forEach((node) => {
+                if (!g.hasNode(node) || overlayNodeVerdict(node, c) === "hidden") return;
+                const data = r.getNodeDisplayData(node);
+                if (!data || data.hidden) return;
+                const p = pos(node);
+                ctx.fillStyle = data.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, nodeRadius(node), 0, 2 * Math.PI);
+                ctx.fill();
+                if (showBorder) { ctx.strokeStyle = state.nodeBorder.color; ctx.lineWidth = state.nodeBorder.width; ctx.stroke(); }
             });
         }
     } catch (err) {
@@ -5230,8 +8264,10 @@ function drawRecOverlay() {
 }
 
 // Small filled arrowhead near the target endpoint, to convey direction on the dashed overlay.
-function drawRecArrow(ctx, from, to) {
-    const ang = Math.atan2(to.y - from.y, to.x - from.x);
+function drawRecArrow(ctx, from, to, curved = false) {
+    let dx = to.x - from.x, dy = to.y - from.y;
+    if (curved) { const x = dx; dx = x * 0.5 + dy * 0.25; dy = dy * 0.5 - x * 0.25; }
+    const ang = Math.atan2(dy, dx);
     const len = 7, off = 10;   // pull the head slightly back from the node
     const tx = to.x - Math.cos(ang) * off, ty = to.y - Math.sin(ang) * off;
     ctx.save();
@@ -5251,110 +8287,6 @@ function storeRecMetric(family, label, value) {
     const fam = state.recMetricData[family];
     if (!fam[label]) fam[label] = {};
     fam[label][state.rec.active] = value;
-}
-
-/* ------------------------------ scatterplots ------------------------------ */
-
-function drawNodeScatter() {
-    const metric = $("node-scatter-metric").value, recKey = $("node-scatter-rec").value;
-    const orig = state.metricData[metric], rmap = state.recMetricData.vertex?.[metric]?.[recKey];
-    if (!metric || !recKey || !orig || !rmap) { clearChart("node-scatter"); return; }
-    const points = Object.keys(orig).filter((n) => rmap[n] !== undefined).map((n) => ({ label: n, x: orig[n], y: rmap[n] }));
-    drawScatter("node-scatter", "node-scatter-tip", points, metric + " — original vs " + recLabel(recKey), "original", "recommendation");
-}
-
-function drawEdgeScatter() {
-    const metric = $("edge-scatter-metric").value, recKey = $("edge-scatter-rec").value;
-    const orig = state.pairData[metric], rmap = state.recMetricData.pair?.[metric]?.[recKey];
-    if (!metric || !recKey || !orig || !rmap) { clearChart("edge-scatter"); return; }
-    const points = Object.keys(orig).filter((k) => rmap[k] !== undefined)
-        .map((k) => ({ label: k.replace("|", "→"), x: orig[k], y: rmap[k] }));
-    drawScatter("edge-scatter", "edge-scatter-tip", points, metric + " — original vs " + recLabel(recKey), "original", "recommendation");
-}
-
-function drawCommScatter() {
-    const metric = $("comm-scatter-metric").value, recKey = $("comm-scatter-rec").value;
-    const entry = state.commMetricData[metric], rmap = state.recMetricData.comm?.[metric]?.[recKey];
-    if (!metric || !recKey || !entry || !rmap) { clearChart("comm-scatter"); return; }
-    const orig = entry.values;
-    const points = Object.keys(orig).filter((c) => rmap[c] !== undefined)
-        .map((c) => ({ label: "community " + c, x: orig[c], y: rmap[c] }));
-    drawScatter("comm-scatter", "comm-scatter-tip", points, metric + " — original vs " + recLabel(recKey), "original", "recommendation");
-}
-
-// Draws a scatter of (original, recommendation) values with a y=x reference line; shares the chart palette.
-function drawScatter(canvasId, tipId, points, title, xLabel, yLabel) {
-    const canvas = $(canvasId);
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    if (!points.length) return;
-
-    const padL = 64, padR = 14, padT = 18, padB = 46;
-    const plotW = W - padL - padR, plotH = H - padT - padB;
-    let lo = Infinity, hi = -Infinity;
-    for (const p of points) { lo = Math.min(lo, p.x, p.y); hi = Math.max(hi, p.x, p.y); }
-    if (hi === lo) hi = lo + 1;
-
-    const colText = cssVar("--text", "#e6e6e6"), colMuted = cssVar("--muted", "#9aa0a6");
-    const colBorder = cssVar("--border", "#333"), colDot = cssVar("--accent", "#4f9dff");
-    const xOf = (v) => padL + ((v - lo) / (hi - lo)) * plotW;
-    const yOf = (v) => padT + plotH - ((v - lo) / (hi - lo)) * plotH;
-
-    ctx.strokeStyle = colMuted;
-    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
-    ctx.font = AXIS_LABEL_FONT; ctx.fillStyle = colMuted;
-    for (let i = 0; i <= 4; i++) {
-        const val = lo + ((hi - lo) * i) / 4;
-        const y = yOf(val);
-        ctx.fillStyle = colMuted; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-        ctx.fillText(fmt(val), padL - 6, y);
-        ctx.strokeStyle = colBorder; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
-        ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), xOf(val), padT + plotH + 14);
-    }
-    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
-
-    // y = x reference line.
-    ctx.strokeStyle = colMuted; ctx.setLineDash([4, 4]);
-    ctx.beginPath(); ctx.moveTo(xOf(lo), yOf(lo)); ctx.lineTo(xOf(hi), yOf(hi)); ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT;
-    ctx.fillText(title + "  (n=" + points.length + ")", padL, 12);
-    ctx.textAlign = "center"; ctx.fillText(xLabel, padL + plotW / 2, H - 5);
-    ctx.save(); ctx.translate(14, padT + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(yLabel, 0, 0); ctx.restore();
-    ctx.textAlign = "start";
-
-    ctx.fillStyle = colDot;
-    const dots = [];
-    for (const p of points) {
-        const x = xOf(p.x), y = yOf(p.y);
-        ctx.beginPath(); ctx.arc(x, y, 2.5, 0, 2 * Math.PI); ctx.fill();
-        dots.push({ x, y, label: p.label, px: p.x, py: p.y });
-    }
-
-    const tip = $(tipId);
-    canvas.onmousemove = (ev) => {
-        const r = canvas.getBoundingClientRect();
-        const mx = ev.clientX - r.left, my = ev.clientY - r.top;
-        let best = null, bd = 1e9;
-        for (const d of dots) { const dd = (d.x - mx) ** 2 + (d.y - my) ** 2; if (dd < bd) { bd = dd; best = d; } }
-        if (best && bd < 120) {
-            tip.hidden = false;
-            tip.style.left = best.x + "px";
-            tip.style.top = best.y + "px";
-            tip.textContent = best.label + ": " + fmt(best.px) + " → " + fmt(best.py);
-        } else { tip.hidden = true; }
-    };
-    canvas.onmouseleave = () => { tip.hidden = true; };
-    capturePlot(canvas, title);
 }
 
 /* ------------------------ information diffusion ------------------------ */
@@ -5405,13 +8337,18 @@ function onDiffProtocolType() {
 
 function enterDiffusionTab() {
     loadDiffusionCatalog();
+    syncDiffPlaybackRuns();
     if (!state.graph) return;
     if (!state.diffusion.graph) initDiffGraph();
     else syncDiffAppearance();   // mirror any appearance changes made on the Network tab while we were away
+    if (state.diffusion.rendererPreference === "network" && state.diffusion.rendererType !== mainDiffRendererType())
+        setDiffRenderer("network");
     if (state.diffusion.renderer) setTimeout(() => { state.diffusion.renderer.refresh(); drawDiffOverlay(); }, 0);
-    if (state.diffusion.result) setDiffIteration(state.diffusion.iteration);
+    if (state.diffusion.rendererType === "cosmograph" && state.diffusion.subview === "graph") restoreDiffCosmograph();
+    if (state.diffusion.result && state.diffusion.rendererType !== "cosmograph") setDiffIteration(state.diffusion.iteration);
     if (state.diffusion.subview === "metrics") renderDiffMetrics();
     if (state.diffusion.subview === "pieces") renderActivePiecesMode();
+    if (state.diffusion.subview === "stats") renderActiveStatsView();
 }
 
 // Builds a sigma renderer over a copy of the loaded graph (sharing its node positions).
@@ -5439,6 +8376,10 @@ function initDiffGraph() {
         labelRenderedSizeThreshold: 8,
         allowInvalidContainer: true,
     });
+    state.diffusion.renderer.setSetting("nodeReducer", (_node, data) => ({
+        ...data,
+        size: (Number.isFinite(data.size) ? data.size : 0) / 2,
+    }));
     state.diffusion.renderer.on("clickNode", ({ node }) => selectDiffNode(node));
     state.diffusion.renderer.on("afterRender", drawDiffOverlay);
     // Track the hovered node so the overlay can redraw it (and its label) on top of the diffusion edges.
@@ -5446,6 +8387,153 @@ function initDiffGraph() {
     state.diffusion.renderer.on("leaveNode", () => { state.diffusion.hoverNode = null; drawDiffOverlay(); });
     syncDiffAppearance();
     buildDiffLegend();
+    setDiffRenderer(state.diffusion.rendererPreference);
+}
+
+// Hidden app tabs can give the WebGL canvas a zero-sized viewport. Restore its
+// dimensions only after the diffusion pane and graph subtab have become visible.
+function restoreDiffCosmograph() {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (state.activeTab !== "diffusion" || state.diffusion.subview !== "graph" || state.diffusion.rendererType !== "cosmograph") return;
+        initDiffCosmograph();
+    }));
+}
+
+function mainNetworkDimensions() {
+    return Number($("network-dimensions")?.value) === 3 ? 3 : 2;
+}
+
+// Serialize uploads: Cosmograph owns its container until initialization finishes.
+// Initializing while the graph pane is hidden can fit a zero-sized viewport.
+let diffusionCosmographPending = null;
+function initDiffCosmograph() {
+    const diffusion = state.diffusion;
+    if (diffusion.rendererType !== "cosmograph" || !diffusion.graph || !window.relisonDiffusionCosmograph
+        || state.activeTab !== "diffusion" || diffusion.subview !== "graph") return Promise.resolve();
+    const graph = diffusion.graph, result = diffusion.result, recKey = diffusion.recKey, dimensions = mainNetworkDimensions();
+    const matches = context => context && context.graph === graph && context.result === result
+        && context.recKey === recKey && context.dimensions === dimensions;
+    if (diffusionCosmographPending) {
+        if (matches(diffusionCosmographPending)) return diffusionCosmographPending.promise;
+        return diffusionCosmographPending.promise.then(() => initDiffCosmograph());
+    }
+    if (diffusion.cosmograph && matches(diffusion.cosmographContext)) {
+        diffusion.cosmograph.resize();
+        return Promise.resolve(diffusion.cosmograph);
+    }
+    const request = { graph, result, recKey, dimensions };
+    diffusionCosmographPending = request;
+    request.promise = (async () => {
+        try {
+            diffusion.cosmograph?.destroy(); diffusion.cosmograph = null; diffusion.cosmographContext = null;
+            window.relisonDiffusionRecModel = recKey && state.rec.models[recKey] || null;
+            window.relisonDiffusionRecColor = state.rec.color;
+            window.relisonDiffusionRecDashed = state.rec.diff;
+            window.relisonDiffusionDirected = state.directed;
+            const positions = dimensions === 3 ? (window.relisonCosmograph?.getSpatialNodePositions?.(state.graph) || {}) : {};
+            const cosmograph = await window.relisonDiffusionCosmograph.create(
+                graph, $("diff-cosmograph-container"), node => selectDiffNode(node), { dimensions, positions });
+            // Another run, graph or renderer may have been selected during upload.
+            if (diffusion.rendererType !== "cosmograph" || diffusion.graph !== graph || diffusion.result !== result
+                || diffusion.recKey !== recKey || mainNetworkDimensions() !== dimensions) {
+                cosmograph.destroy(); return;
+            }
+            diffusion.cosmograph = cosmograph; diffusion.cosmographContext = request;
+            await cosmograph.setIteration(diffusion.iteration || 0, result, DIFF_COL);
+            if (diffusion.cosmograph === cosmograph) cosmograph.resize();
+            return cosmograph;
+        } catch (error) {
+            // A stale upload must not switch the user's newer renderer selection.
+            if (diffusion.rendererType !== "cosmograph" || diffusion.graph !== graph || diffusion.result !== result
+                || diffusion.recKey !== recKey || mainNetworkDimensions() !== dimensions) return;
+            if (diffusion.cosmographContext === request) {
+                diffusion.cosmograph?.destroy(); diffusion.cosmograph = null; diffusion.cosmographContext = null;
+            }
+            console.error("Could not initialize diffusion Cosmograph.", error);
+            setStatus("Cosmograph could not render the diffusion graph: " + error.message, "error");
+            $("diff-renderer").value = "sigma"; setDiffRenderer("sigma");
+        } finally {
+            if (diffusionCosmographPending === request) diffusionCosmographPending = null;
+        }
+    })();
+    return request.promise;
+}
+
+function mainDiffRendererType() {
+    if (usingGeographic()) return geographicActiveProjection;
+    return $("network-renderer").value === "cosmograph" ? "cosmograph" : "sigma";
+}
+function setDiffRenderer(type) {
+    state.diffusion.rendererPreference = type;
+    $("diff-renderer").value = type;
+    if (type === "network") type = mainDiffRendererType();
+    const view = $("diff-view-graph");
+    const geographic = ["mercator", "equal-earth", "globe"].includes(type);
+    state.diffusion.geographic?.destroy(); state.diffusion.geographic = null;
+    state.diffusion.rendererType = geographic ? type : type === "cosmograph" ? "cosmograph" : "sigma";
+    view.classList.toggle("geographic-active", geographic);
+    $("diff-geographic-container").hidden = !geographic;
+    view.classList.toggle("cosmograph-active", state.diffusion.rendererType === "cosmograph");
+    $("diff-cosmograph-container").hidden = state.diffusion.rendererType !== "cosmograph";
+    if (geographic) {
+        initDiffGeographic(type);
+    } else if (state.diffusion.rendererType === "cosmograph") {
+        restoreDiffCosmograph();
+    } else {
+        if (state.diffusion.renderer) state.diffusion.renderer.refresh();
+        drawDiffOverlay();
+    }
+}
+function usingDiffGeographic() { return ["mercator", "equal-earth", "globe"].includes(state.diffusion.rendererType); }
+function geographicDiffusionEdges() {
+    const g = state.diffusion.graph, result = state.diffusion.result;
+    const model = state.diffusion.recKey && state.rec.models[state.diffusion.recKey];
+    const edges = geographicRecommendationEdges(model, Boolean(model), false);
+    const frame = result?.iterations[state.diffusion.iteration];
+    if (g && frame) for (const source of frame.propagating) {
+        if (!g.hasNode(source)) continue;
+        const add = target => {
+            if (edges.length < 3000) edges.push({ source, target, color: DIFF_COL.prop, dashed: true,
+                label: "Propagating: " + source + " → " + target });
+        };
+        if (state.directed) g.forEachOutNeighbor(source, add); else g.forEachNeighbor(source, add);
+    }
+    return edges;
+}
+async function initDiffGeographic(projection) {
+    if (!state.diffusion.graph) initDiffGraph();
+    const graph = state.diffusion.graph;
+    if (!graph) return;
+    const map = window.createRelisonGeographic("diff-geographic-container");
+    state.diffusion.geographic = map;
+    // Freeze the coordinate selection for this view, as in the network map.
+    const latitude = $("layout-geographic-latitude").value, longitude = $("layout-geographic-longitude").value;
+    try {
+        await map.render(graph, { projection,
+            isCurrent: () => state.diffusion.geographic === map && state.diffusion.graph === graph && usingDiffGeographic(),
+            coordinates: () => geographicCoordinates(graph, latitude, longitude, projection),
+            nodeDisplay: (node, data) => state.diffusion.renderer?.getSetting("nodeReducer")?.(node, { ...data }) || data,
+            edgeDisplay: (_edge, data) => data,
+            selectedNode: () => state.diffusion.selectedNode, labels: () => state.labelOpts,
+            overlays: geographicDiffusionEdges,
+            legend: () => ({ type: "categorical", title: "Diffusion state", entries: [
+                { value: "Not informed", color: DIFF_COL.base }, { value: "Informed", color: DIFF_COL.informed },
+                { value: "Newly informed", color: DIFF_COL.newly }, { value: "Propagating", color: DIFF_COL.prop },
+            ] }),
+            onNodeClick: selectDiffNode, onEdgeClick: () => {}, onClearSelection: () => {},
+            onError: message => setStatus(message, "error"),
+        });
+        if (state.diffusion.geographic !== map || state.diffusion.graph !== graph || !usingDiffGeographic()) {
+            map.destroy(); return;
+        }
+        if (state.diffusion.result) setDiffIteration(state.diffusion.iteration);
+    } catch (error) {
+        map.destroy();
+        if (state.diffusion.geographic === map) {
+            setStatus("Diffusion map failed: " + error.message + " Choose latitude/longitude attributes in Network → Advanced layout settings.", "error");
+            $("diff-renderer").value = "sigma"; setDiffRenderer("sigma");
+        }
+    }
 }
 
 // Mirrors the main display's drawing into the diffusion canvas — node sizes/positions, edge thickness/colour, labels
@@ -5479,6 +8567,10 @@ function syncDiffAppearance() {
         r.setSetting("edgeLabelFont", o.edgeFont);
         r.refresh();
     }
+    const dimensions = mainNetworkDimensions();
+    const positions = dimensions === 3 ? (window.relisonCosmograph?.getSpatialNodePositions?.(main) || {}) : {};
+    if (!state.diffusion.cosmograph || state.diffusion.cosmograph.getDimensions?.() === dimensions)
+        state.diffusion.cosmograph?.syncAppearance(g, o, positions);
     drawDiffOverlay();
 }
 
@@ -5525,6 +8617,7 @@ function buildDiffLegend() {
 
 function selectDiffNode(node) {
     state.diffusion.selectedNode = node;
+    state.diffusion.geographic?.refresh();
     $("diff-node-input").value = node;
     $("diff-traj-node").value = node;
     $("diff-state-hint").textContent = "Node " + node;
@@ -5630,6 +8723,7 @@ function buildDiffMetricsRequest() {
 async function runDiffusion() {
     if (jobBusy("btn-diff-run")) return cancelJob("btn-diff-run");
     if (!requireGraph()) return;
+    const runGraphId = state.graphId, runGraph = state.graph;
     if (!state.diffusion.pieces.length) { setStatus("Add at least one information piece to run a simulation.", "error"); return; }
     // When "apply filters to simulation" is on, only the pieces passing the table filters are simulated.
     let simPieces = null;
@@ -5654,7 +8748,8 @@ async function runDiffusion() {
     // Optionally run over the graph augmented with the selected recommendation; when so, tag the run's plot label
     // with the recommendation model name: "Protocol (Model)".
     const withRec = !!(state.rec.active && $("diff-rec") && $("diff-rec").checked);
-    const recSuffix = withRec ? " (" + recLabel(state.rec.active) + ")" : "";
+    const runRecKey = withRec ? state.rec.active : null, runNetwork = withRec ? recLabel(runRecKey) : "Original";
+    const recSuffix = withRec ? " (" + runNetwork + ")" : "";
     // Legend/CSV label for this run. A user-typed label wins; otherwise it is generated: preset protocols get
     // "Name [params]" (so runs of the same protocol with different settings are distinguishable), custom protocols a
     // short "Custom X" tag. The full configuration is always kept in runDetail and shown on demand in the runs list.
@@ -5677,20 +8772,21 @@ async function runDiffusion() {
     const signal = beginJob("btn-diff-run", "diffusion");
     try {
         await persistPiecesNow();   // ensure the session has the latest pieces; the run reads them from there
-        const body = { graphId: state.graphId, protocol, stop, metrics, filters: [] };
-        if (withRec) body.withRecommendation = true;   // run over the recommendation-augmented graph
+        if (state.graphId !== runGraphId || state.graph !== runGraph) return;
+        const body = { graphId: runGraphId, protocol, stop, metrics, filters: [] };
+        if (withRec) { body.withRecommendation = true; body.recommendationKey = runRecKey; }   // freeze the selected recommendation for queued runs
         if (simPieces) body.pieces = simPieces;   // filtered subset overrides the persisted (full) set for this run
         const res = await api("/api/diffusion/run", { ...jsonBody(body), signal });
         if (res.cancelled) { $("diff-status").textContent = "Stopped."; setStatus("Stopped."); return; }
         state.diffusion.result = res;
-        state.diffusion.recKey = withRec ? state.rec.active : null;   // remember which recommendation to overlay
+        state.diffusion.recKey = runRecKey;   // remember which recommendation to overlay
         buildDiffLegend();
         state.diffusion.iteration = 0;
         // Accumulate this run's metric series (tagged with a unique protocol label) for overlaid plotting.
-        if (res.metrics && res.metrics.length) {
-            state.diffusion.runs.push({ label: uniqueRunLabel(baseLabel), detail: runDetail, numIterations: res.numIterations, metrics: res.metrics });
-        }
+        state.diffusion.runs.push({ id: res.runId, label: uniqueRunLabel(baseLabel), detail: runDetail, config: { type, protocol, stop, metrics }, recKey: runRecKey, network: runNetwork, numIterations: res.numIterations, metrics: res.metrics || [] });
+        DiffusionWorkspace.addRun(res.runId);
         $("diff-empty-hint").style.display = "none";
+        if (state.diffusion.rendererType === "cosmograph") await initDiffCosmograph();
         toggleHidden("diff-timebar", res.numIterations <= 0);
         const slider = $("diff-slider");
         slider.min = 0; slider.max = Math.max(0, res.numIterations - 1); slider.value = 0;
@@ -5705,6 +8801,7 @@ async function runDiffusion() {
         if (statsActive("piece")) renderPieceTimeline();
         if (statsActive("feat")) renderFeatureTimeline();
         if (statsActive("dist")) renderDiffDistribution();
+        if (state.diffusion.subview === "stats" && ["overview", "compare"].includes(state.diffusion.statsView)) renderActiveStatsView();
         $("diff-status").textContent = "Done — " + res.numIterations + " iteration(s).";
         if (res.skippedMetrics && res.skippedMetrics.length) {
             const msg = "Skipped " + res.skippedMetrics.length + " metric(s) — out of memory: " + res.skippedMetrics.join(", ");
@@ -5718,7 +8815,7 @@ async function runDiffusion() {
         $("diff-status").textContent = e.message;
         setStatus(e.message, "error");
     } finally {
-        endJob("btn-diff-run");
+        endJob("btn-diff-run", signal);
     }
 }
 
@@ -5747,10 +8844,12 @@ function setDiffIteration(i) {
     if (statsActive("node") && state.diffusion.traj) drawTrajectoryChart();
     if (statsActive("piece") && state.diffusion.ptraj) drawPieceTimeline();
     if (statsActive("feat") && state.diffusion.ftraj) drawFeatureTimeline();
+    return state.diffusion.cosmograph?.setIteration(i, res, DIFF_COL);
 }
 
 // Draws, for the current iteration, dashed spread edges from each propagating user to its neighbours.
 function drawDiffOverlay() {
+    if (usingDiffGeographic()) { state.diffusion.geographic?.refresh(); return; }
     const canvas = $("diff-overlay");
     if (!canvas) return;
     const cont = $("diff-sigma-container"), r = state.diffusion.renderer, g = state.diffusion.graph, res = state.diffusion.result;
@@ -5762,7 +8861,7 @@ function drawDiffOverlay() {
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    if (!r || !g || state.activeTab !== "diffusion") return;
+    if (!r || !g || state.activeTab !== "diffusion" || state.diffusion.rendererType === "cosmograph") return;
 
     try {
         const pos = (n) => r.graphToViewport({ x: g.getNodeAttribute(n, "x"), y: g.getNodeAttribute(n, "y") });
@@ -5786,7 +8885,7 @@ function drawDiffOverlay() {
             ctx.setLineDash([]);
         }
 
-        if (res) {
+        if (res?.iterations?.[state.diffusion.iteration]) {
             const prop = res.iterations[state.diffusion.iteration].propagating;
             ctx.strokeStyle = DIFF_COL.prop; ctx.lineWidth = 1.4; ctx.setLineDash([5, 4]);
             let drawn = 0;
@@ -5812,7 +8911,7 @@ function drawDiffOverlay() {
             g.forEachNode((n) => {
                 if (g.getNodeAttribute(n, "x") == null) return;
                 const p = pos(n);
-                const radius = Math.max(1.5, (g.getNodeAttribute(n, "size") || 3) / Math.sqrt(ratio));
+                const radius = Math.max(1.5, ((g.getNodeAttribute(n, "size") || 6) / 2) / Math.sqrt(ratio));
                 ctx.beginPath(); ctx.arc(p.x, p.y, radius, 0, 2 * Math.PI); ctx.stroke();
             });
         }
@@ -5823,7 +8922,7 @@ function drawDiffOverlay() {
             const cam = r.getCamera();
             const ratio = (cam && (cam.ratio || (cam.getState && cam.getState().ratio))) || 1;
             const p = pos(hover);
-            const radius = Math.max(2, (g.getNodeAttribute(hover, "size") || 3) / Math.sqrt(ratio));
+            const radius = Math.max(2, ((g.getNodeAttribute(hover, "size") || 6) / 2) / Math.sqrt(ratio));
             ctx.setLineDash([]);
             ctx.fillStyle = g.getNodeAttribute(hover, "color") || "#4f9dff";
             ctx.beginPath(); ctx.arc(p.x, p.y, radius, 0, 2 * Math.PI); ctx.fill();
@@ -5861,9 +8960,11 @@ const DIFF_CATS = [
 async function fetchDiffState() {
     const node = state.diffusion.selectedNode;
     if (!node || !state.diffusion.result) return;
+    const graphId = state.graphId, result = state.diffusion.result, iteration = state.diffusion.iteration;
     try {
         const res = await api("/api/diffusion/state", jsonBody(
-            { graphId: state.graphId, iteration: state.diffusion.iteration, node }));
+            { graphId, runId: result.runId, iteration, node }));
+        if (state.graphId !== graphId || state.diffusion.result !== result || state.diffusion.iteration !== iteration || state.diffusion.selectedNode !== node) return;
         renderDiffState(res);
     } catch (e) { /* ignore transient state errors */ }
 }
@@ -5916,7 +9017,7 @@ function distBar(dist) {
         seg.className = "dist-seg";
         seg.style.flexBasis = (100 * w / total) + "%";
         seg.style.background = value === "other" ? cssVar("--muted", "#888") : featureValueColor(value);
-        seg.title = value + " — " + fmt(w) + " (" + Math.round(100 * w / total) + "%)";
+        setTooltip(seg, "js-distribution-segment", { value, weight: fmt(w), percent: Math.round(100 * w / total) });
         bar.appendChild(seg);
     });
     return bar;
@@ -6067,8 +9168,8 @@ function diffCatColumn(title, items, param, byId) {
 // Exports every computed diffusion metric across all runs as a wide CSV: one row per iteration, one column
 // per (metric, run) named "Metric (diffusion protocol)".
 function downloadDiffMetricsCsv() {
-    const runs = state.diffusion.runs;
-    if (!runs.length) { setStatus("Run a simulation with metrics first.", "error"); return; }
+    const runs = DiffusionWorkspace.ready ? DiffusionWorkspace.selectedRuns() : state.diffusion.runs;
+    if (!runs.length) { setStatus("Select a simulation with metrics first.", "error"); return; }
     // One column per (run, metric); track the longest series for the row count.
     const cols = [];
     let maxIters = 0;
@@ -6104,18 +9205,78 @@ function diffStop() {
     const p = $("diff-play"); if (p) p.textContent = "▶";
 }
 
+function syncDiffPlaybackRuns() {
+    const select = $("diff-playback-run"); if (!select) return;
+    const runs = state.diffusion.runs, active = state.diffusion.result?.runId;
+    select.replaceChildren();
+    if (!active) select.append(option("", runs.some(run => !run.archived) ? "Select a run" : "No simulation available for playback"));
+    for (const run of runs) {
+        const entry = option(run.id, run.label + (run.archived ? " (metrics only)" : ""));
+        entry.disabled = !!run.archived; select.append(entry);
+    }
+    select.value = active || ""; select.disabled = !runs.some(run => !run.archived);
+}
+
+async function selectDiffPlaybackRun(runId) {
+    const diffusion = state.diffusion, run = diffusion.runs.find(run => run.id === runId && !run.archived);
+    const ticket = diffusion.playbackRequest = (diffusion.playbackRequest || 0) + 1;
+    if (!run || runId === diffusion.result?.runId) { syncDiffPlaybackRuns(); return; }
+    const graphId = state.graphId, previous = diffusion.result;
+    diffStop();
+    try {
+        const result = await api("/api/diffusion/result", jsonBody({ graphId, runId }));
+        if (diffusion.playbackRequest !== ticket || state.graphId !== graphId || diffusion.result !== previous || !diffusion.runs.includes(run)) return;
+        if (result.error) throw new Error(result.error);
+        activateDiffusionAnalysisRun(result);
+    } catch (error) {
+        if (diffusion.playbackRequest === ticket && state.graphId === graphId && diffusion.result === previous) { syncDiffPlaybackRuns(); setStatus(error.message, "error"); }
+    }
+}
+
+// Switch playback to a retained simulation, including after deleting the displayed run.
+function activateDiffusionAnalysisRun(result) {
+    diffStop();
+    const diffusion = state.diffusion;
+    diffusion.result = result; diffusion.iteration = 0;
+    diffusion.playbackRequest = (diffusion.playbackRequest || 0) + 1;
+    diffusion.recKey = result ? diffusion.runs.find(run => run.id === result.runId)?.recKey || null : null;
+    diffusion.lastState = diffusion.traj = diffusion.ptraj = diffusion.ftraj = diffusion.dist = null;
+    $("diff-cats").replaceChildren();
+    $("diff-empty-hint").style.display = result ? "none" : "";
+    syncDiffPlaybackRuns();
+    diffusion.cosmograph?.destroy(); diffusion.cosmograph = null; diffusion.cosmographContext = null;
+    $("diff-slider").max = Math.max(0, (result?.numIterations || 0) - 1); $("diff-slider").value = 0;
+    $("diff-iter-label").textContent = "iteration 0";
+    toggleHidden("diff-timebar", !result?.numIterations);
+    diffusion.graph?.forEachNode(node => diffusion.graph.setNodeAttribute(node, "color", DIFF_COL.base));
+    buildDiffLegend();
+    if (result?.numIterations) setDiffIteration(0);
+    else { diffusion.renderer?.refresh(); drawDiffOverlay(); }
+    if (diffusion.rendererType === "cosmograph") restoreDiffCosmograph();
+    $("diff-status").textContent = diffusion.runs.length ? diffusion.runs.length + " retained simulation run(s)." : "No simulation run yet.";
+}
+
 async function clearDiffusion() {
-    if (state.graphId) { try { await api("/api/diffusion/clear", jsonBody({ graphId: state.graphId })); } catch (e) { /* best effort */ } }
+    if (state.graphId) { try { await api("/api/diffusion/clear", jsonBody({ graphId: state.graphId })); } catch (e) { setStatus(e.message, "error"); return; } }
     resetDiffusion();
 }
 
 function resetDiffusion() {
     diffStop();
+    if (state.diffusion.cosmograph) { state.diffusion.cosmograph.destroy(); state.diffusion.cosmograph = null; }
+    state.diffusion.cosmographContext = null;
+    state.diffusion.rendererType = "sigma";
+    state.diffusion.rendererPreference = "network";
+    const rendererSelect = $("diff-renderer"); if (rendererSelect) rendererSelect.value = "network";
+    state.diffusion.geographic?.destroy(); state.diffusion.geographic = null;
+    const graphView = $("diff-view-graph"); if (graphView) graphView.classList.remove("cosmograph-active", "geographic-active");
+    const cosmographContainer = $("diff-cosmograph-container"); if (cosmographContainer) cosmographContainer.hidden = true;
     if (state.diffusion.renderer) { try { state.diffusion.renderer.kill(); } catch (e) { /* ignore */ } state.diffusion.renderer = null; }
     state.diffusion.graph = null;
     state.diffusion.result = null;
     state.diffusion.recKey = null;
     state.diffusion.runs = [];
+    if (typeof DiffusionWorkspace !== "undefined") DiffusionWorkspace.reset();
     state.diffusion.iteration = 0;
     state.diffusion.selectedNode = null;
     state.diffusion.hoverNode = null;
@@ -6150,6 +9311,7 @@ function invalidateDiffusionResults() {
     state.diffusion.result = null;
     state.diffusion.recKey = null;
     state.diffusion.runs = [];
+    if (typeof DiffusionWorkspace !== "undefined") DiffusionWorkspace.reset();
     state.diffusion.iteration = 0;
     toggleHidden("diff-timebar", true);
     toggleHidden("diff-legend", true);
@@ -6203,7 +9365,8 @@ function updateDiffRunEnabled() {
     if (!btn) return;
     const has = state.diffusion.pieces.length > 0;
     btn.disabled = !has;
-    btn.title = has ? "" : "Add at least one information piece (in the \"Information pieces\" subtab) to run.";
+    if (has) { btn.removeAttribute("title"); btn.removeAttribute("aria-description"); }
+    else setTooltip(btn, "js-add-information-piece-to-run");
 }
 
 // Persistence: the pieces are stored on the session so they survive across runs and aren't resent on every run.
@@ -6461,7 +9624,7 @@ function pieceRow(p, i) {
     const del = document.createElement("button");
     del.className = "piece-del";
     del.textContent = "✕";
-    del.title = "Delete piece";
+    setTooltip(del, "js-delete-piece");
     del.addEventListener("click", () => {
         if (!confirmPiecesChange()) return;
         const removed = JSON.parse(JSON.stringify(state.diffusion.pieces[i]));
@@ -6522,7 +9685,7 @@ function featureColumnHeader(param, sortBy) {
     const del = document.createElement("button");
     del.className = "feature-col-del";
     del.textContent = "✕";
-    del.title = 'Remove the "' + param + '" feature column';
+    setTooltip(del, "js-remove-feature-column", { column: param });
     del.addEventListener("click", (e) => { e.stopPropagation(); removeFeatureColumn(param); });   // don't trigger a sort
     th.append(label, del);
     return th;
@@ -6753,7 +9916,7 @@ function uploadPiecesCsv(file) {
     if (!confirmPiecesChange()) return;
     const reader = new FileReader();
     reader.onload = () => {
-        state.diffusion.pieces = parsePiecesText(String(reader.result));
+        state.diffusion.pieces = parsePiecesText(String(reader.result), selectedDelimiter("diff-piece-separator"), $("diff-piece-header").checked);
         historyReset();   // wholesale piece replacement invalidates piece-level undo history
         state.diffusion.featureParams = [];   // rebuilt from the loaded pieces
         state.diffusion.pieceFilters = {};
@@ -6792,7 +9955,7 @@ function uploadRealPropagatedFile(file) {
     if (!confirmPiecesChange()) return;
     const reader = new FileReader();
     reader.onload = () => {
-        state.diffusion.realPropagated = parseRealPropagatedText(String(reader.result));
+        state.diffusion.realPropagated = parseRealPropagatedText(String(reader.result), selectedDelimiter("diff-realprop-separator"), $("diff-realprop-header").checked);
         state.diffusion.rpFilters = {};
         state.diffusion.rpHeaderSig = null;
         state.diffusion.rpPage = 0;
@@ -6804,14 +9967,14 @@ function uploadRealPropagatedFile(file) {
     reader.readAsText(file);
 }
 
-// Parses a real-propagated file. Columns: user, piece, timestamp. Tab-separated (falls back to any whitespace when a
-// line has no tab). A leading header row (first cell "user"/"userid") is skipped; a missing timestamp defaults to 0.
-function parseRealPropagatedText(text) {
+// Parses a real-propagated file. Columns: user, piece, timestamp. The optional header is controlled by import settings;
+// a missing timestamp defaults to 0.
+function parseRealPropagatedText(text, delimiter = "\t", hasHeader = true) {
     const lines = text.split(/\r?\n/).filter((l) => l.trim().length);
     const out = [];
     lines.forEach((line, idx) => {
-        const c = (line.includes("\t") ? line.split("\t") : line.split(/\s+/)).map((x) => x.trim());
-        if (idx === 0 && ["user", "userid"].includes((c[0] || "").toLowerCase())) return;   // header
+        const c = splitDelimitedRow(line, delimiter).map((x) => x.trim());
+        if (idx === 0 && hasHeader && ["user", "userid"].includes((c[0] || "").toLowerCase())) return;
         if (!c[0] || !c[1]) return;
         out.push({ user: c[0], piece: c[1], timestamp: (c[2] !== undefined && c[2] !== "") ? (parseInt(c[2], 10) || 0) : 0 });
     });
@@ -7047,7 +10210,7 @@ function realPropRow(r, i) {
     const del = document.createElement("button");
     del.className = "piece-del";
     del.textContent = "✕";
-    del.title = "Delete record";
+    setTooltip(del, "js-delete-record");
     del.addEventListener("click", () => {
         if (!confirmPiecesChange()) return;
         state.diffusion.realPropagated.splice(i, 1);
@@ -7107,21 +10270,20 @@ function uploadInfoFeaturesFile(file) {
     if (!state.diffusion.pieces.length) { setStatus("Add or generate information pieces before uploading their features.", "error"); return; }
     if (!confirmPiecesChange()) return;
     const reader = new FileReader();
-    reader.onload = () => applyInfoFeaturesText(String(reader.result), file.name);
+    reader.onload = () => applyInfoFeaturesText(String(reader.result), file.name, selectedDelimiter("diff-feature-separator"), $("diff-feature-header").checked);
     reader.onerror = () => setStatus("Could not read " + file.name + ".", "error");
     reader.readAsText(file);
 }
 
-function applyInfoFeaturesText(text, filename) {
+function applyInfoFeaturesText(text, filename, delimiter = "\t", hasHeader = true) {
     const lines = text.split(/\r?\n/).filter((l) => l.trim().length);
     if (!lines.length) { setStatus("The features file is empty.", "error"); return; }
 
-    // Split on tab (fall back to any whitespace if a line has no tab).
-    const cells = (line) => (line.includes("\t") ? line.split("\t") : line.split(/\s+/)).map((c) => c.trim());
+    const cells = (line) => splitDelimitedRow(line, delimiter).map((c) => c.trim());
     let param = "";
     let start = 0;
     const first = cells(lines[0]);
-    if (["infoid", "id", "info", "piece"].includes((first[0] || "").toLowerCase())) {
+    if (hasHeader && ["infoid", "id", "info", "piece"].includes((first[0] || "").toLowerCase())) {
         if (first[1]) param = first[1];   // header names the feature parameter
         start = 1;
     }
@@ -7159,13 +10321,30 @@ function applyInfoFeaturesText(text, filename) {
         (unmatched ? " (" + unmatched + " unknown info id(s) skipped)" : "") + " from " + filename + ".");
 }
 
-// Parses an information-pieces file. Columns: id, creator, timestamp, features. Tab-separated (so the features
-// field can freely use ",", ";", "=", ":"); a comma-only line (no tab) is still accepted for legacy 3-column files.
-// A leading header row (first cell "id") is skipped.
-function parsePiecesText(text) {
+// Splits one CSV-style row, honoring quoted separators and doubled quote escapes.
+function splitDelimitedRow(line, delimiter) {
+    if (!delimiter || delimiter.length !== 1) return line.split(delimiter || "\t");
+    const fields = [];
+    let field = "", quoted = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+            if (quoted && line[i + 1] === '"') { field += '"'; i++; }
+            else quoted = !quoted;
+        } else if (ch === delimiter && !quoted) { fields.push(field); field = ""; }
+        else field += ch;
+    }
+    fields.push(field);
+    if (fields[0] && fields[0].charCodeAt(0) === 0xFEFF) fields[0] = fields[0].slice(1);
+    return fields;
+}
+
+// Parses an information-pieces file. Columns: id, creator, timestamp, features. The chosen separator and optional
+// header are controlled by import settings.
+function parsePiecesText(text, delimiter = "\t", hasHeader = true) {
     const lines = text.split(/\r?\n/).filter((l) => l.trim().length);
     if (!lines.length) return [];
-    const cells = (line) => (line.includes("\t") ? line.split("\t") : line.split(",")).map((c) => c.trim());
+    const cells = (line) => splitDelimitedRow(line, delimiter).map((c) => c.trim());
 
     // A header row (first cell "id") decides how the columns from the 4th on are read. Two layouts are accepted:
     //   · a single packed "features" column ("param=value:weight; …") — what Download writes; and/or
@@ -7174,7 +10353,7 @@ function parsePiecesText(text) {
     let start = 0, packedCol = 3;
     const featureCols = {};   // column index -> parameter name
     const first = cells(lines[0]);
-    if ((first[0] || "").toLowerCase() === "id") {
+    if (hasHeader && (first[0] || "").toLowerCase() === "id") {
         start = 1;
         packedCol = null;
         for (let c = 3; c < first.length; c++) {
@@ -7211,730 +10390,80 @@ function downloadPiecesCsv() {
     download("information-pieces.tsv", lines.join("\n"), "text/tab-separated-values");
 }
 
-/* --------------------------- diffusion metrics --------------------------- */
-
-// The union of metrics computed across all accumulated runs, in first-seen order.
-function diffMetricUnion() {
-    const seen = new Map();
-    for (const run of state.diffusion.runs) {
-        for (const m of run.metrics) if (!seen.has(m.id)) seen.set(m.id, m.label);
-    }
-    return Array.from(seen, ([id, label]) => ({ id, label }));
-}
-
-function populateDiffMetricSelect() {
-    const items = diffMetricUnion();
-    const sel = $("diffmetric-select");
-    const prev = sel.value;
-    sel.innerHTML = "";
-    items.forEach((m) => sel.appendChild(option(m.id, m.label)));
-    if (prev && items.some((m) => m.id === prev)) sel.value = prev;
-}
-
-function renderDiffMetrics() {
-    const container = $("diffmetrics-charts");
-    if (!container) return;
-    container.innerHTML = "";
-    const runs = state.diffusion.runs;
-    if (!runs.length) {
-        $("diffmetrics-hint").textContent = "Run a simulation (with metrics selected) to see plots over iterations.";
-        renderDiffRuns();
-        return;
-    }
-    $("diffmetrics-hint").textContent = "";
-    renderDiffRuns();
-    const sel = $("diffmetric-select");
-    const union = diffMetricUnion();
-    const chosen = union.find((m) => m.id === sel.value) || union[0];
-    if (!chosen) return;
-
-    // One line per run that computed the chosen metric, coloured by run and labelled with its protocol.
-    const series = [];
-    runs.forEach((run, idx) => {
-        const m = run.metrics.find((x) => x.id === chosen.id);
-        if (m) series.push({ name: run.label, values: m.values, color: SERIES_COLORS[idx % SERIES_COLORS.length] });
-    });
-    if (!series.length) return;
-
-    const title = document.createElement("h2");
-    title.textContent = chosen.label;
-    const area = document.createElement("div");
-    area.className = "chart-area";
-    area.style.height = "320px";
-    const canvas = document.createElement("canvas");
-    canvas.id = "diff-metrics-chart";   // stable id so the report groups it under Diffusion (keyed by the metric label)
-    area.appendChild(canvas);
-    container.appendChild(title);
-    container.appendChild(area);
-    drawMultiLineChart(canvas, series, chosen.label, false);   // legend omitted — see the runs list below
-}
-
-// The accumulated runs, each with its plot colour, label and (on hover) full configuration; ✕ removes a run from
-// the overlaid plots. Colours match drawMultiLineChart's per-run assignment (run index into SERIES_COLORS).
-function renderDiffRuns() {
-    const host = $("diffmetrics-runs");
-    if (!host) return;
-    host.innerHTML = "";
-    const runs = state.diffusion.runs;
-    if (!runs.length) return;
-    const title = document.createElement("div");
-    title.className = "diff-runs-title sublabel";
-    title.textContent = "Runs (hover for the full configuration)";
-    host.appendChild(title);
-    runs.forEach((run, idx) => {
-        const row = document.createElement("div");
-        row.className = "diff-run-row";
-        if (run.detail) row.title = run.detail;
-        const sw = document.createElement("span");
-        sw.className = "legend-swatch";
-        sw.style.background = SERIES_COLORS[idx % SERIES_COLORS.length];
-        const lab = document.createElement("span");
-        lab.className = "diff-run-label";
-        lab.textContent = run.label;
-        const del = document.createElement("button");
-        del.className = "diff-run-del";
-        del.textContent = "✕";
-        del.title = "Remove this run from the plots";
-        del.addEventListener("click", () => { state.diffusion.runs.splice(idx, 1); renderDiffMetrics(); });
-        row.appendChild(sw);
-        row.appendChild(lab);
-        row.appendChild(del);
-        host.appendChild(row);
-    });
-}
-
-// Draws one or more metric series (each {name, values, color}) as lines over iteration index, with an
-// "iteration" x axis (labelled ticks) and the metric name as the y-axis title. The in-chart legend is optional
-// (off for the diffusion metric plot, whose series are listed in the runs list below the chart).
-function drawMultiLineChart(canvas, series, label, showLegend = true) {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-
-    // Overall value range and iteration count across all series.
-    let min = Infinity, max = -Infinity, n = 0;
-    for (const s of series) {
-        n = Math.max(n, (s.values || []).length);
-        for (const v of s.values || []) if (Number.isFinite(v)) { if (v < min) min = v; if (v > max) max = v; }
-    }
-    if (!Number.isFinite(min) || !Number.isFinite(max)) return;
-    if (max === min) { max = min + 1; min = min - 1; }
-
-    const padL = 66, padR = 16, padT = 16, padB = 50;
-    const plotW = W - padL - padR, plotH = H - padT - padB;
-    const xOf = (i) => padL + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
-    const yOf = (v) => padT + plotH - ((v - min) / (max - min)) * plotH;
-
-    const colText = cssVar("--text", "#e6e6e6"), colMuted = cssVar("--muted", "#9aa0a6");
-    const colBorder = cssVar("--border", "#333");
-
-    // Axis lines + y grid/labels.
-    ctx.strokeStyle = colMuted;
-    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
-    ctx.font = AXIS_LABEL_FONT; ctx.fillStyle = colMuted; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (let gIdx = 0; gIdx <= 4; gIdx++) {
-        const val = min + ((max - min) * gIdx) / 4, y = yOf(val);
-        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), padL - 6, y);
-        ctx.strokeStyle = colBorder; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
-    }
-    // x tick labels (iteration indices, thinned so they don't overlap).
-    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = colMuted;
-    const step = Math.max(1, Math.ceil(n / 8));
-    for (let i = 0; i < n; i += step) ctx.fillText(String(i), xOf(i), padT + plotH + 15);
-    if (n > 1 && (n - 1) % step !== 0) ctx.fillText(String(n - 1), xOf(n - 1), padT + plotH + 15);
-
-    // Axis titles.
-    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT; ctx.textAlign = "center";
-    ctx.fillText("iteration", padL + plotW / 2, H - 6);
-    ctx.save(); ctx.translate(14, padT + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(label || "value", 0, 0); ctx.restore();
-    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
-
-    // Series lines.
-    for (const s of series) {
-        ctx.strokeStyle = s.color || cssVar("--accent", "#4f9dff"); ctx.lineWidth = 1.8; ctx.beginPath();
-        let started = false;
-        const vals = s.values || [];
-        for (let i = 0; i < vals.length; i++) {
-            const v = vals[i];
-            if (!Number.isFinite(v)) { started = false; continue; }
-            const x = xOf(i), y = yOf(v);
-            if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-    }
-    ctx.lineWidth = 1;
-
-    // Legend (top-right): one swatch + protocol label per series. Skipped for the diffusion metric plot, where the
-    // runs list below the chart already provides the labels (and their full configuration on hover).
-    if (showLegend) {
-        ctx.font = AXIS_LABEL_FONT; ctx.textBaseline = "middle";
-        const lh = 15, sw = 12, gap = 5;
-        let widest = 0;
-        for (const s of series) widest = Math.max(widest, ctx.measureText(s.name).width);
-        const boxW = sw + gap + widest + 12, boxH = series.length * lh + 8;
-        const bx = padL + plotW - boxW, by = padT + 4;
-        ctx.fillStyle = cssVar("--panel", "#26272b"); ctx.globalAlpha = 0.9;
-        ctx.fillRect(bx, by, boxW, boxH);
-        ctx.globalAlpha = 1; ctx.strokeStyle = colBorder; ctx.strokeRect(bx, by, boxW, boxH);
-        series.forEach((s, i) => {
-            const cy = by + 4 + i * lh + lh / 2;
-            ctx.fillStyle = s.color; ctx.fillRect(bx + 6, cy - sw / 2, sw, sw);
-            ctx.fillStyle = colText; ctx.textAlign = "start"; ctx.fillText(s.name, bx + 6 + sw + gap, cy);
-        });
-        ctx.textBaseline = "alphabetic";
-    }
-    capturePlot(canvas, label);
-}
-
-/* ------------------------- node timeline (subtab) ------------------- */
-
-// Keeps the Node-timeline feature selector in sync. The first option, "Information pieces" (value "pieces"), is the
-// base view (piece counts per category, no feature breakdown); the rest are info-piece features and user features
-// (node attrs + communities), tagged so the request knows which kind. Value form: "info:<name>" | "user:<name>".
-function syncTrajFeatureSelect() {
-    const sel = $("diff-traj-feature");
-    const { info, user } = knownFeatureParams();
-    const sig = "base|i:" + info.join("") + "|u:" + user.join("");
-    if (sel.dataset.sig === sig) return;
-    const prev = sel.value;
-    sel.innerHTML = "";
-    sel.appendChild(option("pieces", "Information pieces"));
-    info.forEach((n) => sel.appendChild(option("info:" + n, n)));
-    user.forEach((n) => sel.appendChild(option("user:" + n, n + " (user)")));
-    sel.dataset.sig = sig;
-    sel.value = [...sel.options].some((o) => o.value === prev) ? prev : "pieces";
-}
-
-// Enables/disables the controls that only apply to the feature views (category, aggregation) — the base
-// "Information pieces" view always shows all four categories as counts.
-function updateTrajControls() {
-    const base = $("diff-traj-feature").value === "pieces";
-    $("diff-traj-category").disabled = base;
-    $("diff-traj-agg").disabled = base;
-}
-
-// Entry point for the Node subtab: validates prerequisites, otherwise fetches and draws the timeline.
-function renderNodeTimeline() {
-    const hint = $("diff-traj-hint");
-    if (!state.diffusion.result) {
-        hint.textContent = "Run a simulation and select a node to see how its information exposure evolves.";
-        hint.hidden = false; clearTrajCanvas(); return;
-    }
-    syncTrajFeatureSelect();
-    updateTrajControls();
-    const node = state.diffusion.selectedNode;
-    if (node) $("diff-traj-node").value = node;
-    if (!node) {
-        hint.textContent = "Select a node (click it on the Graph subtab or type it above).";
-        hint.hidden = false; clearTrajCanvas(); return;
-    }
-    hint.hidden = true;
-    fetchTrajectory();
-}
-
-async function fetchTrajectory() {
-    const node = state.diffusion.selectedNode;
-    if (!node || !state.diffusion.result) return;
-    const fv = $("diff-traj-feature").value;
-    if (!fv) return;
-    const body = { graphId: state.graphId, node, mode: $("diff-traj-mode").value };
-    if (fv === "pieces") {
-        body.pieces = true;   // base view: piece counts per category, no feature breakdown
-    } else {
-        body.userFeature = fv.startsWith("user:");
-        body.feature = fv.slice(fv.indexOf(":") + 1);
-        body.category = $("diff-traj-category").value;
-        body.aggregation = $("diff-traj-agg").value;
-    }
-    setChartLoading("diff-traj-area", true);
-    try {
-        const res = await api("/api/diffusion/trajectory", jsonBody(body));
-        state.diffusion.traj = res;
-        drawTrajectoryChart();
-    } catch (e) { setStatus("Node timeline failed: " + e.message, "error"); }
-    finally { setChartLoading("diff-traj-area", false); }
-}
-
-function clearTrajCanvas() {
-    const canvas = $("diff-traj-canvas");
-    if (!canvas || !canvas.getContext) return;
-    const ctx = canvas.getContext("2d");
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-// Shared renderer for the Node and Piece timeline charts: turns a {values, series, iterations} response into coloured
-// series and draws them (stacked or lines) with the slider playhead.
-function drawTrajectoryInto(canvasId, res, stacked, label) {
-    const canvas = $(canvasId);
-    if (!canvas || !res) return;
-    const values = res.values || [];
-    if (!values.length) { const c = canvas.getContext("2d"); if (c) c.clearRect(0, 0, canvas.width, canvas.height); return; }
-    const series = values.map((v) => ({
-        name: v,
-        values: (res.series && res.series[v]) || [],
-        color: v === "other" ? cssVar("--muted", "#888") : featureValueColor(v),
-    }));
-    if (stacked) drawStackedAreaChart(canvas, series, label);
-    else drawMultiLineChart(canvas, series, label);
-    drawTrajPlayhead(canvas, res.iterations);
-}
-
-function drawTrajectoryChart() {
-    const res = state.diffusion.traj;
-    if (!res) return;
-    const label = res.base
-        ? "Information pieces — count" + (res.mode === "cumulative" ? " (cumulative)" : " (per iteration)")
-        : (res.category + " · " + res.feature + (res.userFeature ? " (user)" : "")
-            + " — " + (res.aggregation === "weight" ? "weight" : "count"));
-    drawTrajectoryInto("diff-traj-canvas", res, $("diff-traj-stack").value === "stacked", label);
-}
-
-// A dashed vertical marker at the slider's current iteration, keeping the timeline coupled to the Graph subtab.
-function drawTrajPlayhead(canvas, n) {
-    if (!n || n <= 1) return;
-    const iter = Math.max(0, Math.min(state.diffusion.iteration || 0, n - 1));
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    const ctx = canvas.getContext("2d");   // transform already set to dpr by the chart drawer
-    const padL = 66, padR = 16, padT = 16, padB = 50;
-    const plotW = W - padL - padR, plotH = H - padT - padB;
-    const x = padL + (iter / (n - 1)) * plotW;
-    ctx.save();
-    ctx.strokeStyle = cssVar("--text", "#e6e6e6"); ctx.globalAlpha = 0.5;
-    ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
-    ctx.restore();
-}
-
-/* ------------------------- piece timeline (subtab) ------------------ */
-
-// The Piece-timeline break-down selector: "Users" (base — user counts per category) plus the user features
-// (node attributes + communities) to break the users of one category down by.
-function syncPtrajFeatureSelect() {
-    const sel = $("diff-ptraj-feature");
-    const { user } = knownFeatureParams();
-    const sig = "base|u:" + user.join("");
-    if (sel.dataset.sig !== sig) {
-        const prev = sel.value;
-        sel.innerHTML = "";
-        sel.appendChild(option("users", "Users (all categories)"));
-        user.forEach((n) => sel.appendChild(option(n, n)));
-        sel.dataset.sig = sig;
-        sel.value = [...sel.options].some((o) => o.value === prev) ? prev : "users";
-    }
-    // The category selector only applies when breaking down by a feature (the base view shows every category).
-    $("diff-ptraj-category").disabled = sel.value === "users";
-}
-
-// Keeps the piece autocomplete list in sync with the current pieces.
-function syncPieceDatalist() {
-    const dl = $("diff-piece-datalist");
-    if (!dl) return;
-    dl.innerHTML = "";
-    (state.diffusion.pieces || []).forEach((p) => { if (p.id != null && p.id !== "") dl.appendChild(option(String(p.id), "")); });
-}
-
-function renderPieceTimeline() {
-    const hint = $("diff-ptraj-hint");
-    if (!state.diffusion.result) {
-        hint.textContent = "Run a simulation and choose an information piece to see how many users receive / read / propagate / discard it over the iterations.";
-        hint.hidden = false; clearCanvasById("diff-ptraj-canvas"); return;
-    }
-    syncPtrajFeatureSelect();
-    syncPieceDatalist();
-    if (state.diffusion.selectedPiece) $("diff-ptraj-piece").value = state.diffusion.selectedPiece;
-    if (!state.diffusion.selectedPiece) {
-        hint.textContent = "Type or pick an information piece id above.";
-        hint.hidden = false; clearCanvasById("diff-ptraj-canvas"); return;
-    }
-    hint.hidden = true;
-    fetchPieceTrajectory();
-}
-
-async function fetchPieceTrajectory() {
-    const piece = state.diffusion.selectedPiece;
-    if (!piece || !state.diffusion.result) return;
-    const fv = $("diff-ptraj-feature").value;
-    const body = { graphId: state.graphId, piece, mode: $("diff-ptraj-mode").value };
-    if (fv && fv !== "users") { body.feature = fv; body.category = $("diff-ptraj-category").value; }
-    setChartLoading("diff-ptraj-area", true);
-    try {
-        const res = await api("/api/diffusion/piece-trajectory", jsonBody(body));
-        state.diffusion.ptraj = res;
-        drawPieceTimeline();
-    } catch (e) { setStatus("Piece timeline failed: " + e.message, "error"); }
-    finally { setChartLoading("diff-ptraj-area", false); }
-}
-
-function drawPieceTimeline() {
-    const res = state.diffusion.ptraj;
-    if (!res) return;
-    const label = res.base
-        ? "Users — count" + (res.mode === "cumulative" ? " (cumulative)" : " (per iteration)")
-        : (res.category + " users · " + res.feature + " — count" + (res.mode === "cumulative" ? " (cumulative)" : " (per iteration)"));
-    drawTrajectoryInto("diff-ptraj-canvas", res, $("diff-ptraj-stack").value === "stacked", label);
-}
-
-/* ------------------------ feature timeline (subtab) ----------------- */
-
-// The Feature-timeline selector: which feature's values to track over time (info-piece features + user features).
-function syncFtrajFeatureSelect() {
-    const sel = $("diff-ftraj-feature");
-    const { info, user } = knownFeatureParams();
-    const sig = "i:" + info.join("") + "|u:" + user.join("");
-    if (sel.dataset.sig === sig) return;
-    const prev = sel.value;
-    sel.innerHTML = "";
-    info.forEach((n) => sel.appendChild(option("info:" + n, n)));
-    user.forEach((n) => sel.appendChild(option("user:" + n, n + " (user)")));
-    sel.dataset.sig = sig;
-    if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
-}
-
-// The distinct values of a tagged feature ("info:<name>" | "user:<name>"), derived client-side from the pieces
-// (info features) or node attributes / communities (user features).
-function featureValueOptions(fv) {
-    if (!fv) return [];
-    const userFeature = fv.startsWith("user:");
-    const name = fv.slice(fv.indexOf(":") + 1);
-    const set = new Set();
-    if (!userFeature) {
-        (state.diffusion.pieces || []).forEach((p) => (p.features || []).forEach((f) => {
-            if (f.param === name && f.value != null && f.value !== "") set.add(String(f.value));
-        }));
-    } else if (state.communityData && state.communityData[name]) {
-        Object.values(state.communityData[name]).forEach((v) => { if (v != null) set.add(String(v)); });
-    } else if (state.graph) {
-        state.graph.forEachNode((n) => { const v = nodeAttrVal(n, name); if (v != null && v !== "") set.add(String(v)); });
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-}
-
-// Repopulates the value selector for the current feature ("All values" + each distinct value).
-function syncFtrajValueSelect() {
-    const sel = $("diff-ftraj-value");
-    const prev = sel.value;
-    sel.innerHTML = "";
-    sel.appendChild(option("__all__", "All values"));
-    featureValueOptions($("diff-ftraj-feature").value).forEach((v) => sel.appendChild(option(v, v)));
-    sel.value = [...sel.options].some((o) => o.value === prev) ? prev : "__all__";
-    updateFtrajControls();
-}
-
-// The category selector only applies to the "all values" view (a specific value shows all four categories).
-function updateFtrajControls() {
-    $("diff-ftraj-category").disabled = $("diff-ftraj-value").value !== "__all__";
-}
-
-function renderFeatureTimeline() {
-    const hint = $("diff-ftraj-hint");
-    if (!state.diffusion.result) {
-        hint.textContent = "Run a simulation and choose a feature to see how its values spread across the network over the iterations.";
-        hint.hidden = false; clearCanvasById("diff-ftraj-canvas"); return;
-    }
-    syncFtrajFeatureSelect();
-    syncFtrajValueSelect();
-    if (!$("diff-ftraj-feature").value) {
-        hint.textContent = "No features available. Add info-piece features, node attributes or communities.";
-        hint.hidden = false; clearCanvasById("diff-ftraj-canvas"); return;
-    }
-    hint.hidden = true;
-    fetchFeatureTrajectory();
-}
-
-async function fetchFeatureTrajectory() {
-    if (!state.diffusion.result) return;
-    const fv = $("diff-ftraj-feature").value;
-    if (!fv) return;
-    const body = {
-        graphId: state.graphId,
-        feature: fv.slice(fv.indexOf(":") + 1),
-        userFeature: fv.startsWith("user:"),
-        value: $("diff-ftraj-value").value,
-        category: $("diff-ftraj-category").value,
-        mode: $("diff-ftraj-mode").value,
-        entity: $("diff-ftraj-entity").value,
-    };
-    setChartLoading("diff-ftraj-area", true);
-    try {
-        const res = await api("/api/diffusion/feature-trajectory", jsonBody(body));
-        state.diffusion.ftraj = res;
-        drawFeatureTimeline();
-    } catch (e) { setStatus("Feature timeline failed: " + e.message, "error"); }
-    finally { setChartLoading("diff-ftraj-area", false); }
-}
-
-function drawFeatureTimeline() {
-    const res = state.diffusion.ftraj;
-    if (!res) return;
-    const entity = res.entity === "users" ? "users" : "pieces";
-    const modeSuffix = res.mode === "cumulative" ? " (cumulative)" : " (per iteration)";
-    const label = res.value
-        ? res.feature + (res.userFeature ? " (user)" : "") + "=" + res.value + " — " + entity + modeSuffix
-        : res.category + " · " + res.feature + (res.userFeature ? " (user)" : "") + " — " + entity + modeSuffix;
-    drawTrajectoryInto("diff-ftraj-canvas", res, $("diff-ftraj-stack").value === "stacked", label);
-}
-
-function clearCanvasById(id) {
-    const canvas = $(id);
-    if (!canvas || !canvas.getContext) return;
-    const ctx = canvas.getContext("2d");
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-// Shows/hides a spinner overlay on a chart area while its data is being fetched (the diffusion plots stream the
-// simulation back from disk, which can take a moment on large runs).
-function setChartLoading(areaId, on) {
-    const area = $(areaId);
-    if (!area) return;
-    let el = area.querySelector(".chart-loading");
-    if (on) {
-        if (!el) {
-            el = document.createElement("div");
-            el.className = "chart-loading";
-            el.innerHTML = '<span class="spinner"></span>Loading…';
-            area.appendChild(el);
-        }
-        el.hidden = false;
-    } else if (el) {
-        el.hidden = true;
-    }
-}
-
-/* ------------------- feature distributions (subtab) ----------------- */
-// Uses RELISON's diffusion distribution classes (InformationFeatureDistribution / UserFeatureDistribution /
-// MixedFeatureDistribution) computed server-side over the whole simulation.
-
-// Shows the right feature selector(s) for the chosen distribution type and fills them from the schema.
-function updateDistFields() {
-    const type = $("diff-dist-type").value;
-    const { info, user } = knownFeatureParams();
-    toggleHidden("diff-dist-feat-field", type === "mixed");
-    toggleHidden("diff-dist-info-field", type !== "mixed");
-    toggleHidden("diff-dist-user-field", type !== "mixed");
-    if (type === "info") fillSelectKeep("diff-dist-feature", info);
-    else if (type === "user") fillSelectKeep("diff-dist-feature", user);
-    else { fillSelectKeep("diff-dist-info", info); fillSelectKeep("diff-dist-user", user); }
-}
-
-function fillSelectKeep(id, names) {
-    const sel = $(id);
-    const prev = sel.value;
-    sel.innerHTML = "";
-    names.forEach((n) => sel.appendChild(option(n, n)));
-    if (names.includes(prev)) sel.value = prev;
-}
-
-function renderDiffDistribution() {
-    const hint = $("diff-dist-hint");
-    if (!state.diffusion.result) {
-        hint.textContent = "Run a simulation to see how received information distributes across feature values.";
-        hint.hidden = false; clearCanvasById("diff-dist-canvas"); return;
-    }
-    updateDistFields();
-    const type = $("diff-dist-type").value;
-    const ok = type === "mixed" ? ($("diff-dist-info").value && $("diff-dist-user").value) : $("diff-dist-feature").value;
-    if (!ok) {
-        hint.textContent = "No suitable features available. Add info-piece features, node attributes or communities.";
-        hint.hidden = false; clearCanvasById("diff-dist-canvas"); return;
-    }
-    hint.hidden = true;
-    fetchDistribution();
-}
-
-async function fetchDistribution() {
-    if (!state.diffusion.result) return;
-    const type = $("diff-dist-type").value;
-    const body = { graphId: state.graphId, type };
-    if (type === "mixed") { body.infoFeature = $("diff-dist-info").value; body.userFeature = $("diff-dist-user").value; }
-    else body.feature = $("diff-dist-feature").value;
-    setChartLoading("diff-dist-area", true);
-    try {
-        const res = await api("/api/diffusion/distribution", jsonBody(body));
-        state.diffusion.dist = res;
-        drawDistribution();
-        if (res.error) { $("diff-dist-hint").textContent = res.error; $("diff-dist-hint").hidden = false; }
-    } catch (e) { setStatus("Distribution failed: " + e.message, "error"); }
-    finally { setChartLoading("diff-dist-area", false); }
-}
-
-function drawDistribution() {
-    const res = state.diffusion.dist;
-    if (!res) return;
-    if (res.type === "mixed") { drawHeatmap("diff-dist-canvas", res); return; }
-    const items = (res.values || []).map((v) => ({ label: v.value, value: v.count }));
-    if (!items.length) { clearCanvasById("diff-dist-canvas"); return; }
-    drawBarChart("diff-dist-canvas", "diff-dist-tip", items, res.feature + " — received pieces", res.feature, "count");
-}
-
-// A cross-tab heatmap: info-feature values down the rows, user-feature values across the columns, cell = joint count.
-function drawHeatmap(canvasId, res) {
-    const canvas = $(canvasId);
-    if (!canvas) return;
-    const infoVals = res.infoValues || [], userVals = res.userValues || [], matrix = res.matrix || [];
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    if (!infoVals.length || !userVals.length) return;
-
-    let max = 0;
-    matrix.forEach((row) => row.forEach((v) => { if (v > max) max = v; }));
-    if (max <= 0) max = 1;
-
-    const padL = 96, padR = 14, padT = 12, padB = 78;
-    const gw = (W - padL - padR) / userVals.length, gh = (H - padT - padB) / infoVals.length;
-    const colText = cssVar("--text", "#e6e6e6"), colMuted = cssVar("--muted", "#9aa0a6");
-    const rgb = hexToRgb(cssVar("--accent", "#4f9dff")) || { r: 79, g: 157, b: 255 };
-
-    for (let r = 0; r < infoVals.length; r++) {
-        for (let c = 0; c < userVals.length; c++) {
-            const v = (matrix[r] && matrix[r][c]) || 0;
-            const a = 0.08 + 0.92 * (v / max);
-            ctx.fillStyle = "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + "," + a + ")";
-            ctx.fillRect(padL + c * gw, padT + r * gh, Math.max(1, gw - 1), Math.max(1, gh - 1));
-        }
-    }
-
-    ctx.font = AXIS_LABEL_FONT; ctx.fillStyle = colMuted; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (let r = 0; r < infoVals.length; r++) ctx.fillText(clipText(infoVals[r], 14), padL - 6, padT + r * gh + gh / 2);
-    ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (let c = 0; c < userVals.length; c++) {
-        ctx.save();
-        ctx.translate(padL + c * gw + gw / 2, padT + infoVals.length * gh + 6);
-        ctx.rotate(-Math.PI / 4);
-        ctx.fillText(clipText(userVals[c], 14), 0, 0);
-        ctx.restore();
-    }
-
-    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-    ctx.save(); ctx.translate(12, padT + infoVals.length * gh / 2); ctx.rotate(-Math.PI / 2);
-    ctx.fillText(res.infoFeature || "info feature", 0, 0); ctx.restore();
-    ctx.fillText(res.userFeature || "user feature", padL + userVals.length * gw / 2, H - 4);
-    capturePlot(canvas, (res.infoFeature || "info") + " × " + (res.userFeature || "user") + " distribution");
-}
-
-function hexToRgb(hex) {
-    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
-    return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : null;
-}
-
-function clipText(s, n) {
-    s = String(s);
-    return s.length > n ? s.slice(0, n - 1) + "…" : s;
-}
-
-// Stacked-area variant of drawMultiLineChart: each series is a band, stacked to show composition over iterations.
-function drawStackedAreaChart(canvas, series, label) {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const W = Math.max(1, Math.floor(rect.width)), H = Math.max(1, Math.floor(rect.height));
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-
-    let n = 0;
-    for (const s of series) n = Math.max(n, (s.values || []).length);
-    if (!n) return;
-    let max = 0;
-    for (let i = 0; i < n; i++) {
-        let sum = 0;
-        for (const s of series) { const v = (s.values || [])[i]; if (Number.isFinite(v)) sum += v; }
-        if (sum > max) max = sum;
-    }
-    if (max <= 0) max = 1;
-    const min = 0;
-
-    const padL = 66, padR = 16, padT = 16, padB = 50;
-    const plotW = W - padL - padR, plotH = H - padT - padB;
-    const xOf = (i) => padL + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
-    const yOf = (v) => padT + plotH - ((v - min) / (max - min)) * plotH;
-
-    const colText = cssVar("--text", "#e6e6e6"), colMuted = cssVar("--muted", "#9aa0a6");
-    const colBorder = cssVar("--border", "#333");
-
-    ctx.strokeStyle = colMuted;
-    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + plotH); ctx.lineTo(padL + plotW, padT + plotH); ctx.stroke();
-    ctx.font = AXIS_LABEL_FONT; ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (let g = 0; g <= 4; g++) {
-        const val = min + ((max - min) * g) / 4, y = yOf(val);
-        ctx.fillStyle = colMuted; ctx.fillText(fmt(val), padL - 6, y);
-        ctx.strokeStyle = colBorder; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
-    }
-    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = colMuted;
-    const step = Math.max(1, Math.ceil(n / 8));
-    for (let i = 0; i < n; i += step) ctx.fillText(String(i), xOf(i), padT + plotH + 15);
-    if (n > 1 && (n - 1) % step !== 0) ctx.fillText(String(n - 1), xOf(n - 1), padT + plotH + 15);
-
-    ctx.fillStyle = colText; ctx.font = AXIS_TITLE_FONT; ctx.textAlign = "center";
-    ctx.fillText("iteration", padL + plotW / 2, H - 6);
-    ctx.save(); ctx.translate(14, padT + plotH / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(label || "value", 0, 0); ctx.restore();
-
-    // Bands, bottom-up: each series fills between the running baseline and baseline+value.
-    const baseline = new Array(n).fill(0);
-    for (const s of series) {
-        ctx.fillStyle = s.color; ctx.globalAlpha = 0.85; ctx.beginPath();
-        for (let i = 0; i < n; i++) {
-            const v = (s.values || [])[i], top = baseline[i] + (Number.isFinite(v) ? v : 0);
-            const x = xOf(i), y = yOf(top);
-            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        for (let i = n - 1; i >= 0; i--) ctx.lineTo(xOf(i), yOf(baseline[i]));
-        ctx.closePath(); ctx.fill();
-        for (let i = 0; i < n; i++) { const v = (s.values || [])[i]; baseline[i] += Number.isFinite(v) ? v : 0; }
-    }
-    ctx.globalAlpha = 1;
-
-    // Legend (top-left, since the stack tends to be tallest on the right).
-    ctx.font = AXIS_LABEL_FONT; ctx.textBaseline = "middle";
-    const lh = 15, sw = 12, gap = 5;
-    let widest = 0;
-    for (const s of series) widest = Math.max(widest, ctx.measureText(s.name).width);
-    const boxW = sw + gap + widest + 12, boxH = series.length * lh + 8;
-    const bx = padL + 6, by = padT + 4;
-    ctx.fillStyle = cssVar("--panel", "#26272b"); ctx.globalAlpha = 0.9; ctx.fillRect(bx, by, boxW, boxH);
-    ctx.globalAlpha = 1; ctx.strokeStyle = colBorder; ctx.strokeRect(bx, by, boxW, boxH);
-    series.forEach((s, i) => {
-        const cy = by + 4 + i * lh + lh / 2;
-        ctx.fillStyle = s.color; ctx.fillRect(bx + 6, cy - sw / 2, sw, sw);
-        ctx.fillStyle = colText; ctx.textAlign = "start"; ctx.fillText(s.name, bx + 6 + sw + gap, cy);
-    });
-    ctx.textBaseline = "alphabetic";
-    capturePlot(canvas, label);
-}
-
 /* ------------------------------- wiring ----------------------------- */
 
 $("btn-load").addEventListener("click", loadGraph);
 $("file-input").addEventListener("change", updateImportFormatHint);
 $("opt-format").addEventListener("change", updateImportFormatHint);
+[
+    "opt-separator", "rec-test-separator", "node-attr-separator", "edge-attr-separator",
+    "diff-piece-separator", "diff-feature-separator", "diff-realprop-separator",
+].forEach((id) => $(id).addEventListener("change", () => { $(id).dataset.manual = "1"; }));
+$("rec-test-file").addEventListener("change", () => setDefaultEdgeSeparator("rec-test-file", "rec-test-separator"));
 $("btn-generate").addEventListener("click", generateGraph);
 $("gen-type").addEventListener("change", onGenTypeChange);
 // Graph timeline controls.
-$("tl-node-attr").addEventListener("change", (e) => { state.timeline.nodeAttr = e.target.value; state.timeline.t = null; updateTimelineUI(); });
-$("tl-edge-attr").addEventListener("change", (e) => { state.timeline.edgeAttr = e.target.value; state.timeline.t = null; updateTimelineUI(); });
+$("tl-node-attr").addEventListener("change", (e) => { state.timeline.nodeAttr = e.target.value; state.timeline.t = state.timeline.rangeStart = null; updateTimelineUI(); });
+$("tl-edge-attr").addEventListener("change", (e) => { state.timeline.edgeAttr = e.target.value; state.timeline.t = state.timeline.rangeStart = null; updateTimelineUI(); });
+$("tl-mode").addEventListener("change", (e) => setTimelineMode(e.target.value));
 $("tl-slider").addEventListener("input", (e) => { stopTimeline(); setTimelineT(parseInt(e.target.value, 10) || 0); });
 $("tl-time").addEventListener("change", (e) => { stopTimeline(); setTimelineT(parseInt(e.target.value, 10) || 0); });
+$("tl-range-start").addEventListener("change", (e) => { stopTimeline(); setTimelineRangeStart(parseInt(e.target.value, 10) || 0); });
 $("tl-play").addEventListener("click", playTimeline);
 $("tl-step-back").addEventListener("click", () => stepTimeline(-1));
 $("tl-step-fwd").addEventListener("click", () => stepTimeline(1));
 $("btn-tl-gif").addEventListener("click", downloadTimelineGif);
 $("btn-tl-webm").addEventListener("click", downloadTimelineWebm);
+async function focusH3(origin = false) {
+    try {
+        if (!usingCosmograph() || window.relisonCosmograph?.getDimensions() !== 3) throw new Error("Select Cosmograph 3D to navigate H3.");
+        const positions = window.relisonH3.focus(state.graph, origin ? null : state.selectedNode);
+        if (!origin && !state.selectedNode) throw new Error("Select a node first.");
+        await window.relisonCosmograph.setNodePositions(positions); window.relisonCosmograph.fitView();
+        setStatus(origin ? "Restored H3 origin." : "Hyperbolic focus: " + state.selectedNode);
+    } catch (error) { setStatus(error.message, "error"); }
+}
+$("btn-h3-focus").addEventListener("click", () => focusH3());
+$("btn-h3-origin").addEventListener("click", () => focusH3(true));
+$("layout-h3-nontree").addEventListener("change", queueCosmographAppearanceRefresh);
 $("btn-layout").addEventListener("click", onLayoutButton);
+$("btn-save-layout").addEventListener("click", saveLayoutPositions);
+$("layout-pack-components").addEventListener("change", updateLayoutTypeUI);
+$("layout-fr-bounded").addEventListener("change", updateLayoutTypeUI);
 $("btn-noverlap").addEventListener("click", removeOverlaps);
 $("btn-reset-layout").addEventListener("click", resetLayout);
-$("layout-type").addEventListener("change", () => { if (state.fa2Running) stopLayout(); updateLayoutButton(); updateLayoutTypeUI(); });
-$("drag-nodes").addEventListener("change", (e) => { state.dragNodes = e.target.checked; });
-updateLayoutButton();
-updateLayoutTypeUI();
+$("layout-type").addEventListener("change", () => { stopLayout(); updateLayoutButton(); updateLayoutTypeUI(); });
+$("drag-nodes").addEventListener("change", (e) => {
+    state.dragNodes = e.target.checked;
+    $("network-drag-hint").hidden = !state.dragNodes;
+    $("multi-node-select").disabled = !state.dragNodes;
+    $("btn-area-select-nodes").disabled = !state.dragNodes || !state.multiNodeSelect;
+    if (!state.dragNodes) {
+        $("multi-node-select").checked = false;
+        state.multiNodeSelect = false;
+        state.multiSelectedNodes.clear();
+        setAreaNodeSelection(false);
+        syncMultiNodeSelection();
+    }
+    if (usingCosmograph() && window.relisonCosmograph?.setDragEnabled) {
+        window.relisonCosmograph.setDragEnabled(state.dragNodes)
+            .catch((error) => setStatus("Could not update Cosmograph node dragging: " + error.message, "error"));
+    }
+});
+$("multi-node-select").addEventListener("change", (event) => {
+    state.multiNodeSelect = event.target.checked && state.dragNodes;
+    $("btn-area-select-nodes").disabled = !state.multiNodeSelect;
+    if (!state.multiNodeSelect) {
+        state.multiSelectedNodes.clear();
+        setAreaNodeSelection(false);
+    }
+    syncMultiNodeSelection();
+});
+$("btn-area-select-nodes").addEventListener("click", () => {
+    if (!state.areaSelectingNodes) setAreaNodeSelection(true);
+    else setAreaNodeSelection(false);
+});
+syncLayoutOptionsForRenderer();
 
 // Make the left/right panel blocks collapsible by clicking their headings.
 document.querySelectorAll(".panel .block > h2").forEach((h) => {
@@ -7964,6 +10493,8 @@ $("diff-node-input").addEventListener("change", () => {
 });
 $("diffmetric-select").addEventListener("change", renderDiffMetrics);
 $("diff-feature-view").addEventListener("change", () => { if (state.diffusion.lastState) renderDiffState(state.diffusion.lastState); });
+$("diff-renderer").addEventListener("change", (event) => setDiffRenderer(event.target.value));
+$("diff-playback-run").addEventListener("change", (event) => selectDiffPlaybackRun(event.target.value));
 // Node timeline subtab controls.
 $("diff-traj-node").addEventListener("change", () => {
     const v = $("diff-traj-node").value.trim();
@@ -8006,13 +10537,13 @@ $("btn-diff-piece-download").addEventListener("click", downloadPiecesCsv);
 setupMenu("btn-diff-upload-menu", "diff-upload-menu", (act) => {
     $(act === "features" ? "diff-feature-file" : "diff-piece-file").click();
 });
-$("diff-piece-file").addEventListener("change", (e) => { uploadPiecesCsv(e.target.files[0]); e.target.value = ""; });
-$("diff-feature-file").addEventListener("change", (e) => { uploadInfoFeaturesFile(e.target.files[0]); e.target.value = ""; });
+$("diff-piece-file").addEventListener("change", (e) => { setDefaultEdgeSeparator("diff-piece-file", "diff-piece-separator"); uploadPiecesCsv(e.target.files[0]); e.target.value = ""; });
+$("diff-feature-file").addEventListener("change", (e) => { setDefaultEdgeSeparator("diff-feature-file", "diff-feature-separator"); uploadInfoFeaturesFile(e.target.files[0]); e.target.value = ""; });
 $("btn-diff-feature-add").addEventListener("click", addFeatureColumn);
 document.querySelectorAll(".diffpiecesmode").forEach((b) => b.addEventListener("click", () => switchPiecesMode(b.dataset.piecesmode)));
 $("btn-diff-realprop-add").addEventListener("click", addRealPropRecord);
 $("btn-diff-realprop-upload").addEventListener("click", () => $("diff-realprop-file").click());
-$("diff-realprop-file").addEventListener("change", (e) => { uploadRealPropagatedFile(e.target.files[0]); e.target.value = ""; });
+$("diff-realprop-file").addEventListener("change", (e) => { setDefaultEdgeSeparator("diff-realprop-file", "diff-realprop-separator"); uploadRealPropagatedFile(e.target.files[0]); e.target.value = ""; });
 $("btn-diff-realprop-download").addEventListener("click", downloadRealPropagatedTsv);
 $("btn-diff-realprop-clear-filters").addEventListener("click", clearRpFilters);
 $("btn-diff-realprop-clear").addEventListener("click", clearRealPropagated);
@@ -8020,45 +10551,143 @@ updateRealPropSummary();
 $("btn-diff-piece-clear-filters").addEventListener("click", clearPieceFilters);
 $("diff-apply-filters").addEventListener("change", (e) => { state.diffusion.applyFiltersToSim = e.target.checked; });
 updateDiffRunEnabled();   // starts disabled until at least one piece exists
-$("size-by").addEventListener("change", applyAppearance);
-$("color-by").addEventListener("change", applyAppearance);
-$("node-color-low").addEventListener("input", applyAppearance);
-$("node-color-high").addEventListener("input", applyAppearance);
-$("edge-size-by").addEventListener("change", applyAppearance);
-$("edge-color-mode").addEventListener("change", (e) => {
-    $("edge-color-single-field").hidden = e.target.value !== "single";
+$("size-by").addEventListener("change", () => { syncSizeControlVisibility(); applyAppearance(); });
+$("node-color-mode").addEventListener("change", () => { syncNodeColorControls(); applyAppearance(); });
+for (const id of ["network-node-legend", "network-edge-legend"]) $(id).addEventListener("change", () => { buildNodeLegend(); buildEdgeLegend(); });
+$("node-color-single").addEventListener("input", applyAppearance);
+$("color-by").addEventListener("change", () => {
+    $("node-color-mode").value = "attribute";
+    syncNodeColorControls();
     applyAppearance();
 });
+$("node-color-low").addEventListener("input", applyAppearance);
+$("node-color-high").addEventListener("input", applyAppearance);
+$("edge-size-by").addEventListener("change", () => { syncSizeControlVisibility(); applyAppearance(); });
+$("edge-color-mode").addEventListener("change", (e) => {
+    syncEdgeColorControls();
+    if (e.target.value === "partition") applyEdgePartitionColorSelection();
+    else applyAppearance();
+});
 $("edge-color-single").addEventListener("input", applyAppearance);
-["node-size-min", "node-size-max", "edge-size-min", "edge-size-max"].forEach((id) => $(id).addEventListener("input", applyAppearance));
+$("edge-color-by").addEventListener("change", () => { syncEdgeColorControls(); applyAppearance(); });
+$("edge-color-partition").addEventListener("change", applyEdgePartitionColorSelection);
+$("edge-color-low").addEventListener("input", applyAppearance);
+$("edge-color-high").addEventListener("input", applyAppearance);
+["node-size-uniform", "node-size-min", "node-size-max", "edge-size-uniform", "edge-size-min", "edge-size-max"].forEach((id) => $(id).addEventListener("input", applyAppearance));
+["node-size-scale", "edge-size-scale", "node-size-reverse", "edge-size-reverse"].forEach((id) => $(id).addEventListener("change", applyAppearance));
 
-// Node borders (drawn on the display overlay).
+// Sigma draws node borders on its display overlay. Cosmograph maps the same
+// option to its native circular point-outline ring (its API has no ring-width
+// setting), so refresh its configuration whenever the shared setting changes.
 $("node-border-on").addEventListener("change", (e) => {
     state.nodeBorder.on = e.target.checked;
     toggleHidden("node-border-params", !e.target.checked);
     drawRecOverlay();
+    queueCosmographAppearanceRefresh();
 });
-$("node-border-color").addEventListener("input", (e) => { state.nodeBorder.color = e.target.value; drawRecOverlay(); });
-$("node-border-width").addEventListener("input", () => { state.nodeBorder.width = numInput("node-border-width", 1.5); drawRecOverlay(); });
+$("node-border-color").addEventListener("input", (e) => {
+    state.nodeBorder.color = e.target.value;
+    drawRecOverlay();
+    queueCosmographAppearanceRefresh();
+});
+$("node-border-width").addEventListener("input", () => {
+    state.nodeBorder.width = numInput("node-border-width", 1.5);
+    drawRecOverlay();
+});
 ["node-label-show", "node-label-size", "node-label-prop", "node-label-color", "node-label-font",
- "edge-label-show", "edge-label-size", "edge-label-prop", "edge-label-color", "edge-label-font"]
+ "edge-label-show", "edge-label-size", "edge-label-prop", "edge-label-color", "edge-label-font",
+ "node-label-attribute", "edge-label-attribute"]
     .forEach((id) => $(id).addEventListener("input", syncLabelOpts));
+$("node-label-color-mode").addEventListener("change", syncLabelOpts);
+$("edge-label-color-mode").addEventListener("change", syncLabelOpts);
 $("btn-zoom-in").addEventListener("click", zoomIn);
 $("btn-zoom-out").addEventListener("click", zoomOut);
 $("btn-zoom-fit").addEventListener("click", zoomFit);
+$("network-renderer").addEventListener("change", (e) => setNetworkRenderer(e.target.value));
+$("network-dimensions").addEventListener("change", async (event) => {
+    const select = event.target, previous = window.relisonCosmograph?.getDimensions?.() || 2;
+    stopLayout();
+    window.relisonCosmograph?.stopForceLayout();
+    state.cosmographLayoutRunning = false;
+    select.disabled = true;
+    try {
+        if (!window.relisonCosmograph) throw new Error("Cosmograph is still loading.");
+        await window.relisonCosmograph.setDimensions(select.value);
+        toggleHidden("cosmograph-sphere-shading-field", select.value !== "3" || !usingCosmograph());
+        window.relisonCosmograph.refreshOrientationGizmo?.();
+        if (typeof syncRotationExportControls === "function") syncRotationExportControls();
+        toggleHidden("network-3d-help", select.value !== "3");
+        syncLayoutOptionsForRenderer();
+        if (state.diffusion.graph) syncDiffAppearance();
+        setStatus(select.value === "3" ? "3D view ready. Start the Cosmograph force layout to spread nodes in three dimensions." : "2D view restored.");
+    } catch (error) {
+        select.value = String(previous);
+        setStatus("Could not change dimensions: " + error.message, "error");
+    } finally { select.disabled = false; }
+});
+$("cosmograph-sphere-shading").addEventListener("change", async () => {
+    if (!usingCosmograph() || window.relisonCosmograph?.getDimensions() !== 3 || !state.graph) return;
+    try {
+        await window.relisonCosmograph.render(state.graph, { ...cosmographInteractionCallbacks() });
+        state.cosmographDirty = false;
+    } catch (error) {
+        setStatus("Could not update Cosmograph sphere shading: " + error.message, "error");
+    }
+});
+$("btn-project-network-2d").addEventListener("click", async () => {
+    const button = $("btn-project-network-2d"), dimensions = $("network-dimensions");
+    stopLayout();
+    button.disabled = true;
+    dimensions.disabled = true;
+    try {
+        const count = await window.relisonCosmograph.projectTo2D();
+        dimensions.value = "2";
+        state.cosmographDirty = false;
+        state.renderer?.refresh();
+        drawRecOverlay();
+        setStatus("Projected " + count + " nodes to 2D. The 3D layout is retained.");
+    } catch (error) {
+        setStatus("Could not project to 2D: " + error.message, "error");
+    } finally {
+        dimensions.value = String(window.relisonCosmograph.getDimensions());
+        toggleHidden("network-3d-help", dimensions.value !== "3");
+        syncLayoutOptionsForRenderer();
+        if (state.diffusion.graph) syncDiffAppearance();
+        button.disabled = false;
+        dimensions.disabled = false;
+    }
+});
+$("edge-shape").addEventListener("change", applyEdgeShape);
+$("network-renderer").addEventListener("change", () => setTimeout(syncCosmographLabelColorControls, 0));
 $("btn-vertex").addEventListener("click", runVertexMetric);
+$("network-renderer").addEventListener("change", (e) => {
+    // Renderer changes can implicitly replace the selected layout and should
+    // not leave an animation from the previous renderer running in the background.
+    stopLayout();
+    if (e.target.value !== "cosmograph" && state.cosmographLayoutRunning) {
+        window.relisonCosmograph?.stopForceLayout();
+        state.cosmographLayoutRunning = false;
+    }
+    setTimeout(syncLayoutOptionsForRenderer, 0);
+});
 $("btn-graph").addEventListener("click", runGraphMetric);
 $("btn-pair").addEventListener("click", runPairMetric);
 $("btn-community").addEventListener("click", detectCommunity);
 $("btn-global-comm").addEventListener("click", runGlobalCommMetric);
 $("btn-indiv-comm").addEventListener("click", runIndividualCommMetric);
+$("btn-attribute-global-comm").addEventListener("click", runAttributeGlobalCommMetric);
+$("btn-attribute-indiv-comm").addEventListener("click", runAttributeIndividualCommMetric);
+$("btn-edge-attribute-global").addEventListener("click", () => runEdgeAttributeMetric($("edge-attribute-global-metric").value, true));
+$("btn-edge-attribute-indiv").addEventListener("click", () => runEdgeAttributeMetric($("edge-attribute-indiv-metric").value, false));
 
 $("vertex-metric").addEventListener("change", (e) => renderParams("vertex-params", "vertex", e.target.value));
 $("graph-metric").addEventListener("change", (e) => renderParams("graph-params", "graph", e.target.value));
 $("pair-metric").addEventListener("change", (e) => renderParams("pair-params", "pair", e.target.value));
 $("community-algo").addEventListener("change", (e) => renderParams("community-params", "community", e.target.value));
-$("indiv-comm-metric").addEventListener("change", (e) => renderParams("indiv-comm-params", "communityIndividual", e.target.value));
+$("indiv-comm-metric").addEventListener("change", (e) => renderIndividualCommunityParams("indiv-comm-params", e.target.value, false));
 $("global-comm-metric").addEventListener("change", (e) => renderParams("global-comm-params", "communityGlobal", e.target.value));
+$("attribute-indiv-comm-metric").addEventListener("change", (e) => renderIndividualCommunityParams("attribute-indiv-comm-params", e.target.value, true));
+$("attribute-global-comm-metric").addEventListener("change", (e) => renderParams("attribute-global-comm-params", "communityGlobal", e.target.value));
 $("edit-mode").addEventListener("change", (e) => setEditMode(e.target.checked));
 $("theme-toggle").addEventListener("click", toggleTheme);
 setupMenu("btn-report", "report-menu", (act) => (act === "pdf" ? exportReportPdf() : exportReportHtml()));
@@ -8066,6 +10695,32 @@ setupMenu("btn-report", "report-menu", (act) => (act === "pdf" ? exportReportPdf
 //$("inspector-toggle").addEventListener("click", toggleInspector);
 //$("style-selector").addEventListener("change", (e) => applyVisualStyle(e.target.value));
 $("style-selector").addEventListener("change", (e) => applyExtendedVisualStyle(e.target.value));
+setupSettingsMenu();
+(function initChartStyle() {
+    let saved = "quiet-scientific";
+    try { saved = localStorage.getItem("relison-chart-style") || "quiet-scientific"; } catch (e) { /* ignore */ }
+    applyChartStyle(saved);
+})();
+$("chart-style-selector").addEventListener("change", (e) => applyChartStyle(e.target.value));
+(function initChartPalette() {
+    let saved;
+    try {
+        saved = localStorage.getItem("relison-chart-palette");
+        if (!saved) {
+            const previousStyle = localStorage.getItem("relison-chart-style");
+            saved = ({ "vibrant-dashboard": "vibrant", editorial: "editorial", "glass-panel": "glass",
+                "monochrome-accent": "monochrome" })[previousStyle] || "balanced";
+        }
+    } catch (e) { saved = "balanced"; }
+    applyChartPalette(saved);
+})();
+$("chart-palette-selector").addEventListener("change", (e) => applyChartPalette(e.target.value));
+(function initChartLabels() {
+    let saved = "automatic";
+    try { saved = localStorage.getItem("relison-chart-labels") || "automatic"; } catch (e) { /* ignore */ }
+    applyChartLabels(saved);
+})();
+$("chart-labels-selector").addEventListener("change", (e) => applyChartLabels(e.target.value));
 setupMenu("btn-session", "session-menu", (act) => (act === "save" ? saveSession() : $("session-file").click()));
 $("session-file").addEventListener("change", (e) => {
     const file = e.target.files && e.target.files[0];
@@ -8075,9 +10730,12 @@ $("session-file").addEventListener("change", (e) => {
 
 $("btn-undo").addEventListener("click", historyUndo);
 $("btn-redo").addEventListener("click", historyRedo);
+$("btn-network-undo").addEventListener("click", historyUndo);
+$("btn-network-redo").addEventListener("click", historyRedo);
 // Keyboard: Ctrl/Cmd+Z undo, Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z redo. Ignored while typing so native field undo still works.
 document.addEventListener("keydown", (e) => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    if (e.target?.closest?.(".filter-builder")) return;
     const t = e.target;
     if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
     const k = e.key.toLowerCase();
@@ -8086,18 +10744,50 @@ document.addEventListener("keydown", (e) => {
 });
 
 $("select-node-input").addEventListener("change", selectFromInput);
+$("select-type").addEventListener("change", (e) => setSelectionType(e.target.value));
+$("select-edge-input").addEventListener("change", (e) => { if (e.target.value) selectEdge(e.target.value); else clearSelection(); });
 initNodeCombos();
 $("select-mode").addEventListener("change", (e) => setSelectionMode(e.target.value));
 $("select-partition").addEventListener("change", (e) => setSelectionPartition(e.target.value));
-$("btn-clear-selection").addEventListener("click", clearSelection);
+$("select-edge-attribute").addEventListener("change", (e) => setSelectionEdgeAttribute(e.target.value));
+$("btn-clear-selection").addEventListener("click", () => clearSelection());
 $("select-mode").value = state.selection.mode;
+updateSelectionTargetUI();
 
-$("btn-find-paths").addEventListener("click", findPaths);
-$("btn-highlight-all-paths").addEventListener("click", () => highlightPaths(state.lastPaths));
-$("btn-clear-path-hl").addEventListener("click", clearPathHighlight);
-$("path-display").addEventListener("change", () => {
-    if (state.pathFocus) { state.pathFocus.only = $("path-display").value === "only"; applyReducers(); }
+$("btn-select-paths").addEventListener("click", findSelectedPaths);
+$("path-enlarge-nodes").addEventListener("change", (event) => {
+    state.pathAppearance.enlargeNodes = event.target.checked;
+    toggleHidden("path-node-scale-field", !event.target.checked);
+    applyReducers();
+    drawRecOverlay();
 });
+for (const [id, key] of [["path-node-scale", "nodeScale"], ["path-edge-scale", "edgeScale"]]) {
+    $(id).addEventListener("input", (event) => {
+        const value = Number(event.target.value);
+        if (!Number.isFinite(value) || value < 0.1) return;
+        state.pathAppearance[key] = value;
+        applyReducers();
+        drawRecOverlay();
+    });
+}
+$("path-edge-color-mode").addEventListener("change", (event) => {
+    state.pathEdgeHighlight.mode = event.target.value;
+    toggleHidden("path-edge-highlight-color-field", event.target.value !== "single");
+    renderPathsTable(state.lastPaths);
+    applyReducers();
+    drawRecOverlay();
+});
+$("path-edge-highlight-color").addEventListener("input", (event) => {
+    state.pathEdgeHighlight.color = event.target.value;
+    applyReducers();
+    drawRecOverlay();
+});
+for (const id of ["select-path-source", "select-path-target"]) {
+    const changed = () => { invalidatePathResults(); state.pathEndpointFocusActive = true; refreshNetworkView(); };
+    $(id).addEventListener("input", changed);
+    $(id).addEventListener("change", changed);
+}
+$("select-path-scope").addEventListener("change", () => { invalidatePathResults(); refreshNetworkView(); });
 
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 document.querySelectorAll(".subtab").forEach((b) => b.addEventListener("click", () => switchSubtab(b.dataset.subtab)));
@@ -8106,18 +10796,23 @@ document.querySelectorAll(".diffsubtab").forEach((b) => b.addEventListener("clic
 document.querySelectorAll(".diffstatsview").forEach((b) => b.addEventListener("click", () => switchStatsView(b.dataset.statsview)));
 
 // Structural metric chart download buttons (delegated by data-canvas / data-file).
+setupChartPngExport();
+setupNetworkSvgExport();
 document.querySelectorAll(".chart-dl[data-canvas]").forEach((b) =>
     b.addEventListener("click", () => downloadChartPng(b.dataset.canvas, b.dataset.file)));
-// Diffusion metric chart: the canvas is created dynamically inside #diffmetrics-charts.
+// Diffusion metric chart: the chart container is created dynamically inside #diffmetrics-charts.
 $("btn-diffmetric-png").addEventListener("click", () => {
-    const canvas = $("diffmetrics-charts").querySelector("canvas");
+    const chart = ECHARTS.get("diff-metrics-chart");
     const sel = $("diffmetric-select");
     const name = (sel && sel.value ? sel.value : "diffusion-metric").replace(/[^\w.-]+/g, "_");
-    downloadChartPng(canvas, name + ".png");
+    downloadChartPng(chart, name + ".png");
 });
 $("btn-diffmetric-csv").addEventListener("click", downloadDiffMetricsCsv);
 
 $("btn-export-png").addEventListener("click", exportPng);
+$("btn-export-svg").addEventListener("click", exportSvg);
+$("btn-export-rotation-gif").addEventListener("click", exportRotationGif);
+$("btn-export-rotation-webm").addEventListener("click", exportRotationWebm);
 $("btn-export-gexf").addEventListener("click", exportGexf);
 $("btn-export-nodes").addEventListener("click", exportNodesCsv);
 $("btn-export-edges").addEventListener("click", exportEdgesCsv);
@@ -8126,6 +10821,8 @@ $("btn-export-node-averages").addEventListener("click", () => exportAveragesCsv(
 $("btn-export-edge-averages").addEventListener("click", () => exportAveragesCsv("edge-averages.csv", state.pairOrder, state.pairData));
 $("btn-export-pair-averages").addEventListener("click", exportPairAveragesCsv);
 $("btn-export-comm-averages").addEventListener("click", () => exportCommAveragesCsv());
+$("btn-export-attrcomm-averages").addEventListener("click", exportAttributeCommAveragesCsv);
+$("btn-export-edgeattr-averages").addEventListener("click", exportEdgeAttributeAveragesCsv);
 $("btn-add-node").addEventListener("click", addNodeFromTable);
 $("btn-add-edge").addEventListener("click", addEdgeFromTable);
 $("btn-add-node-attr").addEventListener("click", () => addAttrColumn("node"));
@@ -8140,18 +10837,45 @@ $("btn-edge-col-toggle").addEventListener("click", () => toggleAddGroup("edges",
 // Import CSV from the table toolbars (reuses the attribute upload).
 $("btn-import-nodes-csv").addEventListener("click", () => $("node-csv-file").click());
 $("btn-import-edges-csv").addEventListener("click", () => $("edge-csv-file").click());
-$("node-csv-file").addEventListener("change", (e) => { uploadAttributeFile("nodes", e.target.files[0]); e.target.value = ""; });
-$("edge-csv-file").addEventListener("change", (e) => { uploadAttributeFile("edges", e.target.files[0]); e.target.value = ""; });
+$("node-csv-file").addEventListener("change", (e) => { setDefaultEdgeSeparator("node-csv-file", "node-attr-separator"); uploadAttributeFile("nodes", e.target.files[0]); e.target.value = ""; });
+$("edge-csv-file").addEventListener("change", (e) => { setDefaultEdgeSeparator("edge-csv-file", "edge-attr-separator"); uploadAttributeFile("edges", e.target.files[0]); e.target.value = ""; });
 
 $("btn-clear-nodes-filters").addEventListener("click", () => clearFilters("nodes"));
 $("btn-clear-edges-filters").addEventListener("click", () => clearFilters("edges"));
+for (const key of ["nodes", "edges"]) $("filter-mode-" + key).addEventListener("change", event => setNetworkFilterMode(key, event.target.value));
+for (const key of ["nodes", "edges"]) {
+    $("btn-filter-builder-" + key).addEventListener("click", () => {
+        if (!$("filter-builder-" + key).open) openNetworkFilterBuilder(key); else cancelNetworkFilterBuilder(key);
+    });
+    $("filter-builder-apply-" + key).addEventListener("click", () => applyNetworkFilterBuilder(key));
+    $("filter-builder-cancel-" + key).addEventListener("click", () => cancelNetworkFilterBuilder(key));
+    $("filter-builder-dismiss-" + key).addEventListener("click", () => cancelNetworkFilterBuilder(key));
+    const dialog = $("filter-builder-" + key);
+    dialog.addEventListener("cancel", event => { event.preventDefault(); cancelNetworkFilterBuilder(key); });
+    dialog.addEventListener("close", () => { if (!dialog.open && state.tables[key].filterDraft) cancelNetworkFilterBuilder(key); });
+    dialog.addEventListener("click", event => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) cancelNetworkFilterBuilder(key);
+    });
+}
+$("btn-node-columns").addEventListener("click", () => toggleColumnVisibilityMenu("nodes"));
+$("btn-edge-columns").addEventListener("click", () => toggleColumnVisibilityMenu("edges"));
 
 ["node-chart-metric", "node-chart-sort"].forEach((id) => $(id).addEventListener("change", drawNodeChart));
+$("node-topk-metric").addEventListener("change", renderNodeTopK);
+$("node-topk-k").addEventListener("input", renderNodeTopK);
 ["edge-chart-metric", "edge-chart-sort"].forEach((id) => $(id).addEventListener("change", drawEdgeChart));
 $("pair-chart-metric").addEventListener("change", drawPairChart);
 ["comm-chart-metric", "comm-chart-sort"].forEach((id) => $(id).addEventListener("change", drawCommChart));
+["attrcomm-chart-metric", "attrcomm-chart-sort"].forEach((id) => $(id).addEventListener("change", drawAttributeCommChart));
+["edgeattr-chart-metric", "edgeattr-chart-sort"].forEach((id) => $(id).addEventListener("change", drawEdgeAttributeChart));
+setupMetricBarControls();
+setupAttributeRelationships();
+initEdgePartitionUI();
 
 // Recommendation tab + overlay controls.
+$("rec-computed").addEventListener("change", (e) => selectComputedRecommendation(e.target.value));
 $("btn-rec-apply").addEventListener("click", applyRecommendation);
 $("btn-rec-reset").addEventListener("click", resetRecommendationResults);
 $("rec-mode").addEventListener("change", onRecModeChange);
@@ -8167,7 +10891,9 @@ $("btn-rec-test-upload").addEventListener("click", uploadRecTestSet);
 $("btn-rec-evaluate").addEventListener("click", runRecEvaluation);
 $("btn-rec-eval-export").addEventListener("click", exportRecEvalCsv);
 loadRecEvalCatalog();
-$("rec-edge-show").addEventListener("change", (e) => { state.rec.show = e.target.checked; drawRecOverlay(); });
+$("rec-edge-mode").addEventListener("change", (e) => setRecommendationDisplay(e.target.value));
+$("rec-edge-model").addEventListener("change", (e) => selectComputedRecommendation(e.target.value));
+$("rec-edge-show").addEventListener("change", (e) => setRecommendationDisplay(e.target.checked ? "highlight" : "none"));
 $("rec-edge-diff").addEventListener("change", (e) => { state.rec.diff = e.target.checked; applyReducers(); drawRecOverlay(); });
 $("rec-edge-color").addEventListener("input", (e) => { state.rec.color = e.target.value; applyAppearance(); drawRecOverlay(); });
 
@@ -8181,21 +10907,21 @@ $("comm-scatter-rec").addEventListener("change", drawCommScatter);
 
 window.addEventListener("resize", () => {
     if (state.activeTab === "network") { scheduleRecOverlay(); return; }
+    ECHARTS.forEach((chart) => {
+        const el = chart.getDom();
+        if (!chart.isDisposed() && el && el.getBoundingClientRect().width > 0) resizeEChartLayout(chart);
+    });
     if (state.activeTab === "diffusion") {
-        if (state.diffusion.subview === "metrics") { renderDiffMetrics(); return; }
+        if (state.diffusion.subview === "metrics") return;
         if (state.diffusion.renderer) state.diffusion.renderer.refresh();
         drawDiffOverlay();
         return;
     }
-    if (state.activeTab !== "metrics") return;
-    if (state.activeSubtab === "nodes") { drawNodeChart(); drawNodeScatter(); }
-    if (state.activeSubtab === "edges") { drawEdgeChart(); drawEdgeScatter(); }
-    if (state.activeSubtab === "pairs") drawPairChart();
-    if (state.activeSubtab === "comm") { drawCommChart(); drawCommScatter(); }
 });
 
 document.addEventListener("keydown", (e) => {
-    if (!$("edit-mode").checked) return;
+    if (e.target?.closest?.(".filter-builder") || !$("edit-mode").checked) return;
+    if (state.activeTab !== "network" || e.target?.closest?.("input, textarea, select, [contenteditable]")) return;
     if ((e.key === "Delete" || e.key === "Backspace") && state.selectedNode != null) {
         const node = state.selectedNode;
         if (!window.confirm('Delete node "' + node + '" and its edges?' + pendingClearsSuffix())) return;
@@ -8204,6 +10930,9 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
+loadTooltipText();
+setupMetricWorkspace();
+DiffusionWorkspace.setup();
 switchTab(state.activeTab); // start on the Import tab with the side panels hidden
 loadCatalog();
 initDebugConsole();

@@ -68,11 +68,15 @@ public class GuiServer
         // Shared manager for long-running, cancellable computations (metrics, community detection, recommendation,
         // diffusion). Handlers run their heavy work through it so the Stop buttons can interrupt them.
         JobManager jobs = new JobManager();
+        ProcessController processes = new ProcessController(jobs);
         GraphController graphController = new GraphController(store);
         MetricController metricController = new MetricController(store, jobs);
         CommunityController communityController = new CommunityController(store, jobs);
+        EdgePartitionController edgePartitionController = new EdgePartitionController(store, jobs);
         EditController editController = new EditController(store);
         PathController pathController = new PathController(store);
+        LayoutController layoutController = new LayoutController(store);
+        AnimatedLayoutController animatedLayoutController = new AnimatedLayoutController(store);
         AttributeController attributeController = new AttributeController(store);
         RecommendationController recommendationController = new RecommendationController(store, jobs);
         DiffusionController diffusionController = new DiffusionController(store, jobs);
@@ -80,6 +84,7 @@ public class GuiServer
 
         Javalin app = Javalin.create(config ->
         {
+            config.events.serverStopping(jobs::close);
             config.staticFiles.add(staticFiles ->
             {
                 staticFiles.directory = "/public";
@@ -94,7 +99,7 @@ public class GuiServer
             config.requestLogger.http((ctx, ms) ->
             {
                 String path = ctx.path();
-                if ("/api/logs".equals(path) || "/api/config".equals(path)) return;
+                if ("/api/jobs".equals(path) || "/api/logs".equals(path) || "/api/config".equals(path)) return;
                 String qs = ctx.queryString();
                 String url = (qs == null || qs.isEmpty()) ? path : path + "?" + qs;
                 String reqArgs = requestArgs(ctx);
@@ -128,41 +133,57 @@ public class GuiServer
             config.routes.post("/api/graph/load", graphController::load);
             config.routes.post("/api/graph/generate", graphController::generate);
             config.routes.get("/api/graph/{id}", graphController::get);
+            config.routes.post("/api/layout", processes.track("layout", layoutController::apply));
+            config.routes.post("/api/layout/session", animatedLayoutController::start);
+            config.routes.post("/api/layout/session/{id}/step", animatedLayoutController::step);
+            config.routes.delete("/api/layout/session/{id}", animatedLayoutController::cancel);
 
             // Metrics.
             config.routes.get("/api/metrics", metricController::catalog);
-            config.routes.post("/api/metrics/vertex", metricController::vertex);
-            config.routes.post("/api/metrics/graph", metricController::graph);
-            config.routes.post("/api/metrics/pair", metricController::pair);
+            config.routes.post("/api/metrics/vertex", processes.track("vertex", metricController::vertex));
+            config.routes.post("/api/metrics/graph", processes.track("graph", metricController::graph));
+            config.routes.post("/api/metrics/pair", processes.track("pair", metricController::pair));
+            config.routes.post("/api/metrics/edge-attributes", processes.track("edgeAttribute", metricController::edgeAttribute));
 
             // Communities.
-            config.routes.post("/api/communities", communityController::detect);
-            config.routes.post("/api/communities/global", communityController::globalMetric);
-            config.routes.post("/api/communities/individual", communityController::individual);
+            config.routes.post("/api/communities", processes.track("community", communityController::detect));
+            config.routes.post("/api/communities/attribute-bins", processes.track("community", communityController::detectAttributeBins));
+            config.routes.post("/api/communities/graph", communityController::graph);
+            config.routes.post("/api/communities/global", processes.track("commGlobal", communityController::globalMetric));
+            config.routes.post("/api/communities/individual", processes.track("commIndividual", communityController::individual));
+            config.routes.post("/api/edge-partitions", processes.track("edgePartition", edgePartitionController::detect));
+            config.routes.post("/api/edge-partitions/attribute-label", processes.mutation(edgePartitionController::renameAttributeLabel));
+            config.routes.post("/api/edge-partitions/global", processes.track("edgePartitionGlobal", edgePartitionController::globalMetric));
+            config.routes.post("/api/edge-partitions/individual", processes.track("edgePartitionIndividual", edgePartitionController::individualMetric));
 
             // Recommendation / link prediction.
             config.routes.get("/api/recommendation/catalog", recommendationController::catalog);
-            config.routes.post("/api/recommendation/run", recommendationController::run);
-            config.routes.post("/api/recommendation/clear", recommendationController::clear);
+            config.routes.post("/api/recommendation/run", processes.track("recommendation", recommendationController::run));
+            config.routes.post("/api/recommendation/select", processes.mutation(recommendationController::select));
+            config.routes.post("/api/recommendation/clear", processes.mutation(recommendationController::clear));
             // Evaluation against an uploaded held-out test set.
             config.routes.get("/api/recommendation/eval-catalog", recommendationController::evalCatalog);
-            config.routes.post("/api/graph/{id}/recommendation/test", recommendationController::uploadTest);
-            config.routes.post("/api/recommendation/evaluate", recommendationController::evaluate);
+            config.routes.post("/api/graph/{id}/recommendation/test", processes.mutation(recommendationController::uploadTest));
+            config.routes.post("/api/recommendation/evaluate", processes.track("evaluation", recommendationController::evaluate));
 
             // Information diffusion.
             config.routes.get("/api/diffusion/catalog", diffusionController::catalog);
-            config.routes.post("/api/diffusion/run", diffusionController::run);
+            config.routes.post("/api/diffusion/run", processes.track("diffusion", diffusionController::run));
             config.routes.post("/api/diffusion/state", diffusionController::state);
-            config.routes.post("/api/diffusion/trajectory", diffusionController::trajectory);
-            config.routes.post("/api/diffusion/piece-trajectory", diffusionController::pieceTrajectory);
-            config.routes.post("/api/diffusion/feature-trajectory", diffusionController::featureTrajectory);
-            config.routes.post("/api/diffusion/distribution", diffusionController::distribution);
-            config.routes.post("/api/diffusion/clear", diffusionController::clear);
-            config.routes.post("/api/diffusion/pieces", diffusionController::savePieces);
+            config.routes.post("/api/diffusion/result", diffusionController::result);
+            config.routes.post("/api/diffusion/trajectory", processes.track("diffusionAnalysis", diffusionController::trajectory));
+            config.routes.post("/api/diffusion/piece-trajectory", processes.track("diffusionAnalysis", diffusionController::pieceTrajectory));
+            config.routes.post("/api/diffusion/feature-trajectory", processes.track("diffusionAnalysis", diffusionController::featureTrajectory));
+            config.routes.post("/api/diffusion/distribution", processes.track("diffusionAnalysis", diffusionController::distribution));
+            config.routes.post("/api/diffusion/rankings", processes.track("diffusionAnalysis", diffusionController::rankings));
+            config.routes.post("/api/diffusion/clear", processes.mutation(diffusionController::clear));
+            config.routes.post("/api/diffusion/pieces", processes.mutation(diffusionController::savePieces));
             config.routes.post("/api/diffusion/pieces/get", diffusionController::getPieces);
-            config.routes.post("/api/diffusion/seed", diffusionController::seed);
-            config.routes.post("/api/diffusion/real-propagated", diffusionController::saveRealPropagated);
+            config.routes.post("/api/diffusion/seed", processes.mutation(diffusionController::seed));
+            config.routes.post("/api/diffusion/real-propagated", processes.mutation(diffusionController::saveRealPropagated));
             config.routes.post("/api/diffusion/real-propagated/get", diffusionController::getRealPropagated);
+
+            config.routes.get("/api/jobs", ctx -> ctx.json(java.util.Map.of("jobs", jobs.snapshots())));
 
             // Cancel a running computation (metrics / communities / recommendation / diffusion). Served on a separate
             // request thread from the one blocked in the computation, so it can interrupt it.
@@ -171,7 +192,10 @@ public class GuiServer
                 java.util.Map<?, ?> body = ctx.bodyAsClass(java.util.Map.class);
                 Object graphId = body.get("graphId");
                 Object kind = body.get("kind");
-                boolean cancelled = graphId != null && kind != null && jobs.cancel(graphId + ":" + kind);
+                Object id = body.get("jobId");
+                boolean cancelled = graphId != null && (id != null
+                        ? jobs.cancel(String.valueOf(id), String.valueOf(graphId))
+                        : kind != null && jobs.cancel(graphId + ":" + kind));
                 ctx.json(java.util.Map.of("cancelled", cancelled));
             });
 
@@ -179,22 +203,24 @@ public class GuiServer
             config.routes.post("/api/paths", pathController::shortestPaths);
 
             // Graph editing.
-            config.routes.post("/api/graph/{id}/node", editController::addNode);
-            config.routes.post("/api/graph/{id}/node/rename", editController::renameNode);
-            config.routes.delete("/api/graph/{id}/node/{node}", editController::removeNode);
-            config.routes.post("/api/graph/{id}/edge", editController::addEdge);
-            config.routes.delete("/api/graph/{id}/edge", editController::removeEdge);
+            config.routes.post("/api/graph/{id}/node", processes.mutation(editController::addNode));
+            config.routes.post("/api/graph/{id}/node/rename", processes.mutation(editController::renameNode));
+            config.routes.delete("/api/graph/{id}/node/{node}", processes.mutation(editController::removeNode));
+            config.routes.post("/api/graph/{id}/edge", processes.mutation(editController::addEdge));
+            config.routes.delete("/api/graph/{id}/edge", processes.mutation(editController::removeEdge));
             // Bulk variants (one request for many edges), backing "add all recommended links" and its undo.
-            config.routes.post("/api/graph/{id}/edges", editController::addEdges);
-            config.routes.delete("/api/graph/{id}/edges", editController::removeEdges);
+            config.routes.post("/api/graph/{id}/edges", processes.mutation(editController::addEdges));
+            config.routes.delete("/api/graph/{id}/edges", processes.mutation(editController::removeEdges));
 
             // Node / edge attributes.
-            config.routes.post("/api/graph/{id}/attributes/nodes", attributeController::uploadNodes);
-            config.routes.post("/api/graph/{id}/attributes/edges", attributeController::uploadEdges);
-            config.routes.post("/api/graph/{id}/attributes/define", attributeController::define);
-            config.routes.post("/api/graph/{id}/attributes/remove", attributeController::remove);
-            config.routes.post("/api/graph/{id}/attributes/node", attributeController::setNode);
-            config.routes.post("/api/graph/{id}/attributes/edge", attributeController::setEdge);
+            config.routes.post("/api/graph/{id}/attributes/nodes", processes.mutation(attributeController::uploadNodes));
+            config.routes.post("/api/graph/{id}/attributes/edges", processes.mutation(attributeController::uploadEdges));
+            config.routes.post("/api/graph/{id}/attributes/define", processes.mutation(attributeController::define));
+            config.routes.post("/api/graph/{id}/attributes/remove", processes.mutation(attributeController::remove));
+            config.routes.post("/api/graph/{id}/attributes/rename", processes.mutation(attributeController::rename));
+            config.routes.post("/api/graph/{id}/attributes/node", processes.mutation(attributeController::setNode));
+            config.routes.post("/api/graph/{id}/attributes/nodes/value", processes.mutation(attributeController::setNodes));
+            config.routes.post("/api/graph/{id}/attributes/edge", processes.mutation(attributeController::setEdge));
             config.routes.exception(Exception.class, (e, ctx) ->
             {
                 e.printStackTrace();

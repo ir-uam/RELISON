@@ -1,0 +1,31 @@
+{
+  "name": "relison-gui-assets",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Reproducible local browser dependencies for the RELISON GUI",
+  "scripts": {
+    "build:vendor": "node scripts/build-vendor.mjs",
+    "test": "node --test src/test/js/*.test.cjs"
+  },
+  "devDependencies": {
+    "@cosmograph/cosmograph": "2.5.1",
+    "@fontsource-variable/material-symbols-outlined": "5.3.9",
+    "@sigma/edge-curve": "3.1.0",
+    "d3": "7.9.0",
+    "echarts": "6.1.0",
+    "esbuild": "0.28.2",
+    "gifenc": "1.0.3",
+    "globe.gl": "2.46.2",
+    "graphology": "0.25.4",
+    "graphology-library": "0.8.0",
+    "leaflet": "1.9.4",
+    "sigma": "3.0.3",
+    "three": "0.180.0",
+    "topojson-client": "3.1.0",
+    "world-atlas": "2.0.2"
+  },
+  "overrides": {
+    "three": "0.180.0"
+  }
+}

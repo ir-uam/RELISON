@@ -93,6 +93,7 @@
 
     <modules>
         <module>RELISON-core</module>
+        <module>RELISON-viz</module>
         <module>RELISON-content</module>
         <module>RELISON-sna</module>
         <module>RELISON-linkpred</module>
