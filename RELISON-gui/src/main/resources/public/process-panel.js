@@ -5,7 +5,8 @@ const ProcessPanel = (() => {
     const routes = new Set(["/api/layout", "/api/metrics/vertex", "/api/metrics/graph", "/api/metrics/pair", "/api/metrics/edge-attributes",
         "/api/communities", "/api/communities/attribute-bins", "/api/communities/global", "/api/communities/individual",
         "/api/edge-partitions", "/api/edge-partitions/global", "/api/edge-partitions/individual",
-        "/api/recommendation/run", "/api/recommendation/evaluate", "/api/diffusion/run"]);
+        "/api/recommendation/run", "/api/recommendation/evaluate", "/api/diffusion/run", "/api/diffusion/trajectory", "/api/diffusion/piece-trajectory",
+        "/api/diffusion/feature-trajectory", "/api/diffusion/distribution", "/api/diffusion/rankings"]);
     let jobs = [], serverJobs = [], received = 0, polling = false, pending = 0, timer = null;
     const localJobs = new Map();
     const active = job => !job.endedAt;
@@ -40,9 +41,10 @@ const ProcessPanel = (() => {
     function processType(job) {
         const kind = String(job.kind || "").toLowerCase();
         if (kind === "layout") return "Layout";
+        if (kind === "metricbatch") return "Metric";
         if (kind === "recommendation") return job.parameters?.mode === "prediction" ? "Prediction" : "Recommendation";
         if (kind === "evaluation") return "Evaluation";
-        if (kind === "diffusion") return "Diffusion";
+        if (kind === "diffusion" || kind === "diffusionanalysis") return "Diffusion";
         if (kind === "community" || kind === "edgepartition") return "Method";
         if (["vertex", "graph", "pair", "edgeattribute", "commglobal", "commindividual",
             "edgepartitionglobal", "edgepartitionindividual"].includes(kind)) return "Metric";
@@ -65,7 +67,7 @@ const ProcessPanel = (() => {
     }
     function localSnapshot(job) {
         const now = performance.now();
-        return { id: job.id, graphId: job.graphId, kind: "layout", label: job.label, parameters: {}, state: job.state,
+        return { id: job.id, graphId: job.graphId, kind: job.kind, label: job.label, parameters: job.parameters, state: job.state,
             phase: job.phase, completed: job.completed, total: job.total, unit: job.unit,
             progresses: job.progresses, createdAt: job.createdAt, startedAt: job.startedAt, endedAt: job.endedAt,
             elapsedMillis: job.endedAt ? job.elapsedMillis : Math.max(0, now - job.startedPerf), queueMillis: 0,
@@ -229,17 +231,18 @@ const ProcessPanel = (() => {
         panel.addEventListener("keydown", event => { if (event.key === "Escape") show(false); });
         setInterval(tick, 1000); refresh();
     }
-    function registerLocal(label, graphId, cancel) {
-        const now = Date.now(), job = { id: "local-" + crypto.randomUUID(), graphId, label, state: "running",
+    function registerLocal(label, graphId, cancel, kind = "layout", parameters = {}) {
+        const now = Date.now(), job = { id: "local-" + crypto.randomUUID(), graphId, label, kind, parameters, state: "running",
             phase: "Starting layout", completed: 0, total: -1, unit: "", progresses: [], createdAt: now,
             startedAt: now, startedPerf: performance.now(), endedAt: 0, elapsedMillis: 0, error: null, cancel };
         localJobs.set(job.id, job); trimLocalJobs(); mergeJobs();
         return job.id;
     }
-    function updateLocal(id, phase, completed, total, unit) {
+    function updateLocal(id, phase, completed, total, unit, state) {
         const job = localJobs.get(id);
         if (!job || job.endedAt) return;
         job.phase = phase; job.completed = completed; job.total = total; job.unit = unit;
+        if (state) job.state = state;
         if (total >= 0 || unit) job.progresses = [{ phase, completed, total, unit, done: false }];
         mergeJobs();
     }

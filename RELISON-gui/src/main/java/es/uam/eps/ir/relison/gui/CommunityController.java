@@ -420,6 +420,6 @@ public class CommunityController
             ctx.status(404).json(Map.of("error", "Unknown graph id."));
             return null;
         }
-        return session;
+        return MetricController.metricSession(ctx, body, session);
     }
 }

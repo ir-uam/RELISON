@@ -420,6 +420,9 @@ button.btn-stop:hover { background: #a93226; border-color: #a93226; filter: none
 .diff-cat .scroll-table { max-height: 92px; margin: 0; }
 .piece-row { display: flex; gap: 5px; align-items: center; }
 .piece-row .piece-id { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.diff-cat .piece-row { width: max-content; min-width: 100%; box-sizing: border-box; }
+.diff-cat .piece-row .piece-id { flex: none; overflow: visible; white-space: nowrap; position: sticky; left: 0; z-index: 1; background: var(--panel); padding-right: 4px; }
+.diff-cat .piece-row .piece-chips { flex: none; }
 .piece-chips { display: flex; gap: 3px; flex-wrap: wrap; align-items: center; }
 .feat-chip { font-size: 10px; line-height: 1.5; padding: 0 4px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); white-space: nowrap; }
 .dist-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 4px 0 2px; border: 1px solid var(--border); }
@@ -791,6 +794,64 @@ table.data thead tr.filter-row .col-remove:hover { color: #fff; background: #c03
 .subpane.active { display: block; }
 .subpane h2 { font-size: 13px; color: var(--text); margin: 4px 0 8px; }
 .subpane > .scroll-table { margin-bottom: 12px; }
+
+/* Metric family selection and the shared analysis rail. */
+.metric-workspace-header { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px; padding: 0 12px 0 0; border-bottom: 1px solid var(--border); flex: 0 0 auto; }
+.metric-workspace-header > .metric-export-action { flex: 0 0 auto; margin-top: 5px !important; }
+.metric-series-picker { display: flex; flex-wrap: wrap; gap: 8px 16px; flex: 1 1 100%; min-width: 0; margin: 0 0 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px; }
+.metric-series-picker legend { padding: 0 4px; color: var(--muted); font-size: 12px; }
+.metric-analysis-panel .metric-series-choice, .metric-series-choice { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; min-width: 0; margin: 0; color: var(--text); }
+.metric-series-choice input[type="checkbox"] { width: auto; margin: 0; flex: 0 0 auto; }
+.metric-series-choice:has(input:disabled) { opacity: .5; }
+.metric-series-choice span { overflow-wrap: anywhere; }
+.metric-recompute-dialog { width: min(720px, calc(100vw - 32px)); max-height: 85vh; overflow: auto; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+.metric-recompute-dialog h2 { margin-top: 0; font-size: 17px; font-weight: 500; }
+.metric-recompute-dialog .metric-series-picker { margin: 16px 0; }
+.metric-recompute-dialog button { width: auto; margin: 0; }
+.metric-recompute-dialog #metric-recompute-note { white-space: pre-wrap; overflow-wrap: anywhere; }
+.metric-workspace-header #subtabbar { height: auto; min-width: 0; flex: 1; flex-wrap: wrap; overflow: visible; border: 0; background: transparent; }
+.metric-workspace-header .subtab { min-height: 38px; padding: 8px 12px; }
+#metric-compute-toggle { width: auto; flex: 0 0 auto; margin: 5px 0 5px auto; }
+#metric-compute-toggle[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.metric-analysis-workspace { display: grid; grid-template-columns: 140px minmax(0, 1fr); min-height: 420px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; }
+.metric-analysis-rail { display: flex; flex-direction: column; gap: 5px; padding: 12px 8px; border-right: 1px solid var(--border); }
+.metric-analysis-rail button { width: 100%; margin: 0; text-align: left; background: transparent; border-color: transparent; padding: 8px 12px; }
+.metric-analysis-rail button[aria-selected="true"] { background: var(--panel-2); border-color: var(--accent); color: var(--accent); }
+.metric-analysis-rail button:disabled { opacity: .45; }
+.metric-analysis-stage { padding: 18px; min-width: 0; }
+.metric-analysis-panel { min-width: 0; }
+.metric-panel-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; margin: 0 0 12px; }
+.metric-panel-actions:empty { display: none; }
+#pane-metrics .metric-export-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: auto; max-width: 100%; margin: 0; padding: 5px 9px; font-size: 12px; }
+.metric-export-action .material-symbols-outlined { font-size: 18px; }
+.metric-summary-statistics .metric-panel-actions { margin-top: 6px; }
+.metric-family-global { margin-bottom: 20px; }
+.metric-analysis-panel > h2 { font-size: 15px; font-weight: 500; margin: 0 0 12px; overflow-wrap: anywhere; }
+.metric-analysis-panel > .scroll-table { margin-bottom: 14px; }
+.metric-analysis-panel .chart-area { background: var(--panel); border: 0; height: clamp(340px, 52vh, 520px); }
+.metric-analysis-panel .chart-controls { align-items: end; }
+.metric-analysis-panel .chart-controls select { min-width: min(150px, 100%); width: auto; max-width: min(380px, 100%); margin-bottom: 0; }
+.metric-analysis-panel .chart-controls button { width: auto; margin: 0; }
+.metric-analysis-controls { margin-bottom: 18px; }
+.metric-analysis-controls label { flex: 0 1 auto; }
+.metric-analysis-note { overflow-wrap: anywhere; }
+.metric-analysis-empty { padding: 32px 12px; color: var(--muted); text-align: center; }
+.metric-display-options { margin: 0 0 12px; color: var(--muted); }
+.metric-display-options summary, .metric-ranking-table summary { padding: 6px 0; cursor: pointer; }
+.metric-display-options .chart-controls { margin-top: 8px; }
+.metric-ranking-table { margin-top: 16px; }
+@media (max-width: 850px) {
+    .metric-analysis-workspace { grid-template-columns: minmax(0, 1fr); }
+    .metric-analysis-rail { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--border); }
+    .metric-analysis-rail button { width: auto; }
+    .metric-workspace-header { padding-right: 8px; gap: 6px; }
+    .metric-analysis-stage { padding: 12px; }
+    .metric-analysis-panel .chart-controls label { flex: 1 1 150px; }
+    .metric-analysis-panel .chart-controls select { width: 100%; }
+}
+@media (pointer: coarse) {
+    .metric-analysis-rail button, .metric-workspace-header button, .metric-analysis-panel select, .metric-export-action { min-height: 44px; }
+}
 table.data.metric-summary-table td.metric-text-cell { text-align: left; white-space: normal; overflow-wrap: anywhere; }
 table.data.metric-summary-table td.metric-value-cell { text-align: right; }
 .metric-sort-button { width: 100%; margin: 0; padding: 0; border: none; border-radius: 0; background: transparent; color: inherit; font: inherit; text-align: inherit; }
@@ -920,6 +981,8 @@ body.quiet-light { --bg: #f6f7f4; --panel: #ffffff; --panel-2: #eef0ec; --border
 #diff-view-graph.cosmograph-active #diff-overlay { visibility:hidden; }
 .diff-renderer-picker { position:absolute; z-index:7; top:10px; left:10px; display:flex; align-items:center; gap:6px; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--panel); color:var(--muted); font-size:11px; }
 .diff-renderer-picker select { width:auto; margin:0; padding:3px 5px; font-size:11px; }
+.diff-run-picker { position: absolute; z-index: 7; top: 10px; right: 10px; display: flex; align-items: center; gap: 6px; max-width: 45%; min-width: 0; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--muted); font-size: 11px; }
+.diff-run-picker select { width: auto; min-width: 0; max-width: 100%; margin: 0; padding: 3px 5px; font-size: 11px; }
 #pane-network.cosmograph-active #rec-overlay { display: none !important; }
 #pane-network.cosmograph-active #sigma-container { visibility: hidden; }
 #geographic-container { position: absolute; inset: 0; z-index: 2; background: #e2e8f0; }
@@ -1053,3 +1116,57 @@ body:not(.light) .process-cancel:hover:not(:disabled) { color: #fff; background:
 #processes-panel.processes-compact .process-card progress { height: 5px; }
 #processes-panel.processes-compact .process-footer { gap: 8px; }
 #processes-panel.processes-compact .process-elapsed { margin: 3px 0; }
+
+/* Diffusion uses the same analysis rail, panels, controls and data tables as metrics. */
+.diff-analysis-ready .diff-stats-pane { padding: 14px; display: block; height: auto; min-height: 100%; }
+.diff-analysis-ready .diff-stats-view:not([hidden]), .diff-analysis-ready .diff-node-pane { display: block; height: auto; }
+.diff-analysis-ready .diff-node-pane, .diff-analysis-ready .diffmetrics-pane { padding: 0; overflow: visible; }
+.diff-analysis-ready .diff-analysis-tabs { display: flex; flex-wrap: wrap; gap: 0; margin: 0 0 14px; border-bottom: 1px solid var(--border); }
+.diff-analysis-ready .diff-analysis-tabs button { width: auto; min-width: 0; margin: 0; padding: 8px 12px; font-size: 13px; text-align: center; background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0; }
+.diff-analysis-ready .diff-analysis-tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.diff-analysis-stage { min-width: 0; }
+#diff-stats-view-overview { padding: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; }
+.diff-analysis-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.diff-analysis-header h2 { margin: 0; font-size: 15px; font-weight: 500; }
+.diff-analysis-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-left: auto; }
+.diff-analysis-ready .metric-export-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: auto; margin: 0; padding: 5px 9px; font-size: 12px; }
+.diff-analysis-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 10px 16px; }
+.diff-analysis-controls:empty { display: none; }
+.diff-analysis-controls label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--muted); }
+.diff-analysis-controls input, .diff-analysis-controls select { width: auto; max-width: min(380px, 100%); min-width: 150px; margin: 0; color: var(--text); }
+.diff-analysis-controls input[type=number] { width: 110px; min-width: 110px; }
+.diff-analysis-runs { padding: 0; margin: 0 0 18px; }
+.diff-analysis-runs .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.diff-analysis-selection-actions { display: flex; gap: 8px; align-items: center; margin: 6px 0 12px; }
+.diff-analysis-selection-actions button { width: auto; margin: 0; padding: 4px 8px; font-size: 12px; }
+.diff-analysis-metric-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 12px; }
+.diff-analysis-metric-tabs button { width: auto; margin: 0; padding: 5px 10px; font-size: 12px; }
+.diff-analysis-metric-tabs button.active { color: var(--accent); border-color: var(--accent); background: var(--panel-2); }
+.diff-analysis-ready .chart-area { min-height: 340px; height: clamp(340px, 52vh, 520px); background: var(--panel); border: 0; }
+.diff-analysis-ready .echarts-chart { min-height: 340px; height: 100%; width: 100%; }
+.diff-analysis-note:empty { display: none; }
+.diff-analysis-note { overflow-wrap: anywhere; }
+.diff-analysis-summary { margin: 14px 0; }
+.diff-analysis-summary > .diff-analysis-actions { justify-content: flex-end; margin-bottom: 8px; }
+.diff-analysis-table-wrap { width: 100%; max-height: 460px; }
+.diff-runs-table-wrap { max-height: 65vh; }
+.diff-runs-table { font-size: 12px; }
+.diff-runs-table thead tr:first-child th { height: 28px; box-sizing: border-box; }
+.diff-runs-table thead tr:nth-child(2) th { top: 28px; text-align: center; }
+.diff-runs-table tbody td { vertical-align: top; }
+.diff-runs-table .diff-run-select, .diff-runs-table .diff-run-colour { text-align: center; }
+.diff-runs-table input[type=checkbox] { width: auto; margin: 3px 0; }
+.diff-runs-table input[type=color] { width: 32px; min-width: 32px; height: 24px; padding: 1px; margin: 0; cursor: pointer; background: transparent; border: 1px solid var(--border); border-radius: 3px; }
+.diff-runs-table .diff-run-name { min-width: 130px; max-width: 220px; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.diff-runs-table .diff-run-name input { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; padding: 3px 4px; font: inherit; color: inherit; background: transparent; border: 1px solid transparent; border-radius: 3px; }
+.diff-runs-table .diff-run-name input:hover, .diff-runs-table .diff-run-name input:focus { border-color: var(--accent); }
+.diff-runs-table .diff-run-config { min-width: 140px; max-width: 320px; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.diff-run-mechanism { display: grid; grid-template-columns: 78px minmax(160px, 1fr); gap: 8px; padding: 2px 0; }
+.diff-analysis-badge { display: block; font-size: 10px; color: var(--muted); margin-top: 4px; }
+.diff-runs-table .row-remove { padding: 3px 6px; font-size: 11px; }
+.diff-runs-table .row-remove .material-symbols-outlined { font-size: 16px; }
+@media (max-width: 850px) {
+    .diff-analysis-ready .diff-stats-pane { padding: 12px; }
+    .diff-analysis-ready .diff-analysis-tabs { border-bottom: 1px solid var(--border); }
+    .diff-analysis-actions { margin-left: 0; }
+}

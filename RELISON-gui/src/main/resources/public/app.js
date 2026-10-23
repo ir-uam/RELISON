@@ -147,9 +147,11 @@ const state = {
     metricOrder: [],       // vertex metric labels, in computation order
     pairData: {},          // edge: label -> { "s|t": value }  (computed over links)
     pairOrder: [],         // edge/pair metric labels, in computation order
-    nodePairAgg: {},       // node-pair: label -> { average, min, max, estimated, totalPairs, evaluated, infinite, histogram[] }
+    nodePairAgg: {},       // node-pair: label -> aggregate stats, histogram[], and distinct valueCounts[]
     nodePairOrder: [],     // node-pair metric labels, in computation order
     graphMetrics: {},      // global: label -> value (graph + community metrics)
+    globalMetricScopes: {}, // label -> { family, scope }, retained with saved results
+    metricComputations: {}, // submitted metric requests, for recommendation batch recomputation
     communityData: {},     // algo -> { node(string): communityId }
     commMetricData: {},    // per-community: label -> { algorithm, values: { comm(string): value } }
     commMetricOrder: [],   // per-community metric labels, in computation order
@@ -171,6 +173,7 @@ const state = {
         models: {},        // key -> { label, mode, cutoff, edges:[{source,target,score}] }
         diff: true,        // differentiate recommended edges (dashed) in the visualization
         show: true,        // show the overlay (can be toggled off without removing the model)
+        only: false,       // hide the original edges while displaying recommended links
         color: "#28c76f",  // colour of the recommended edges
         tableEdges: [],    // edges shown in the recommendation table (kept for study even after the overlay is cleared)
     },
@@ -728,6 +731,7 @@ async function api(url, options) {
         if (tracked && requestGraph !== state.graphId) {
             const error = new Error("The graph changed during this process."); error.name = "AbortError"; throw error;
         }
+        if (typeof rememberMetricComputation === "function") rememberMetricComputation(url, options?.body, data);
         return data;
     } finally { if (tracked) ProcessPanel.finished(); }
 }
@@ -947,6 +951,7 @@ function applyLoadedGraph(data, multigraph) {
     if (state.graphId !== data.graphId) state.savedLayoutPositions3D = null;
     state.graphId = data.graphId;
     state.directed = data.stats.directed;
+    syncMetricOrientations();
     state.weighted = data.stats.weighted;
     state.stats = data.stats;   // kept for the report export
     state.reportPlots.clear();  // the previous graph's captured plots no longer apply
@@ -1062,6 +1067,8 @@ function resetResults() {
     state.nodePairAgg = {};
     state.nodePairOrder = [];
     state.graphMetrics = {};
+    state.globalMetricScopes = {};
+    state.metricComputations = {};
     state.communityData = {};
     state.commMetricData = {};
     state.commMetricOrder = [];
@@ -2877,7 +2884,8 @@ async function applyGeographicLayout() {
             legend: () => networkLegendData(),
             coordinates: () => geographicCoordinates(graph, latitude, longitude, projection),
             nodeDisplay: (node, data) => state.renderer?.getSetting("nodeReducer")?.(node, { ...data }) || data,
-            edgeDisplay: (edge, data) => state.renderer?.getSetting("edgeReducer")?.(edge, { ...data }) || data,
+            edgeDisplay: (edge, data) => window.relisonNetworkViewSnapshot?.edgeVerdicts.get(edge) === "hidden" ? { ...data, hidden: true }
+                : state.renderer?.getSetting("edgeReducer")?.(edge, { ...data }) || data,
             selectedNode: () => networkView().emphasis?.selected ?? null, labels: () => state.labelOpts,
             onNodeClick: handleNetworkPointClick, onEdgeClick: selectEdge, onClearSelection: clearSelection,
             onError: message => setStatus(message, "error"),
@@ -3932,6 +3940,18 @@ function syncEdgeAttributeMetricControls() {
     $("btn-edge-attribute-global").disabled = attributes.length === 0;
     $("btn-edge-attribute-indiv").disabled = attributes.length === 0;
 }
+function syncMetricOrientations(container = document) {
+    for (const input of container.querySelectorAll("[data-metric-orientation]")) {
+        if (state.directed === false) {
+            if (!input.dataset.undirectedOrientation) input.dataset.directedOrientation = input.value;
+            input.value = "UND"; input.disabled = true; input.dataset.undirectedOrientation = "true";
+        } else if (input.dataset.undirectedOrientation) {
+            input.value = input.dataset.directedOrientation; input.disabled = false;
+            delete input.dataset.undirectedOrientation;
+        }
+    }
+}
+
 // Renders the parameter controls for the currently-selected metric/algorithm into a container.
 function renderParams(containerId, family, metricId) {
     const container = $(containerId);
@@ -3949,6 +3969,10 @@ function renderParams(containerId, family, metricId) {
             input = document.createElement("select");
             p.options.forEach((o) => input.appendChild(option(o, o)));
             input.value = p.default;
+        } else if (p.type === "bool" && p.name === "mode" && (/(?:^|:)HITS$/i.test(metricId) || /\bauthorit(?:y|ies)\b/i.test(p.label || ""))) {
+            input = document.createElement("select"); span.textContent = "Mode";
+            input.append(option("false", "Hubs"), option("true", "Authorities"));
+            input.value = String(!!p.default);
         } else if (p.type === "bool") {
             input = document.createElement("input");
             input.type = "checkbox";
@@ -3965,19 +3989,23 @@ function renderParams(containerId, family, metricId) {
         }
         input.dataset.param = p.name;
         input.dataset.ptype = p.type;
+        const metricFamily = ["vertex", "graph", "pair", "communityGlobal", "communityIndividual", "intraCommunityIndividual", "intraAttributeIndividual", "edgePartitionGlobal", "edgePartitionIndividual", "intraEdgePartitionIndividual"].includes(family);
+        if (metricFamily && p.options?.includes("UND") && (p.type === "orientation" || p.options.includes("IN") && p.options.includes("OUT"))) input.dataset.metricOrientation = "true";
         label.appendChild(input);
         container.appendChild(label);
     }
+    syncMetricOrientations(container);
 }
 
 // Collects the current parameter values from a container into a plain object.
 function collectParams(containerId) {
     const container = $(containerId);
+    syncMetricOrientations(container);
     const params = {};
     container.querySelectorAll("[data-param]").forEach((input) => {
         const name = input.dataset.param;
         const type = input.dataset.ptype;
-        if (type === "bool") params[name] = input.checked;
+        if (type === "bool") params[name] = input.tagName === "SELECT" ? input.value === "true" : input.checked;
         else if (type === "double") params[name] = parseFloat(input.value);
         else if (type === "int") params[name] = parseInt(input.value, 10);
         else params[name] = input.value;
@@ -3997,8 +4025,7 @@ async function runVertexMetric() {
         const res = await api("/api/metrics/vertex",
             { ...jsonBody({ graphId: state.graphId, metric, params: collectParams("vertex-params") }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
-        const values = {};
-        for (const k of Object.keys(res.values)) values[k] = Number(res.values[k]);
+        const values = numericMap(res.values);
         if (!state.metricOrder.includes(res.label)) state.metricOrder.push(res.label);
         state.metricData[res.label] = values;
         rebuildAppearanceOptions();
@@ -4036,6 +4063,7 @@ async function runGraphMetric() {
             { ...jsonBody({ graphId: state.graphId, metric, params: collectParams("graph-params") }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
         state.graphMetrics[res.label] = res.value;
+        (state.globalMetricScopes ||= {})[res.label] = { family: "global", scope: "graph" };
         if (state.rec.active && $("graph-rec").checked) {
             try {
                 const r2 = await api("/api/metrics/graph", { ...jsonBody(
@@ -4057,7 +4085,7 @@ async function runPairMetric() {
     if (jobBusy("btn-pair")) return cancelJob("btn-pair");
     if (!requireGraph()) return;
     const metric = $("pair-metric").value;
-    const allPairs = $("pair-allpairs").checked;
+    const allPairs = state.activeSubtab === "pairs";
     const onlyLinks = !allPairs;
     setStatus("Computing " + metric + (allPairs ? " over all node pairs" : "") + "…", "busy");
     const signal = beginJob("btn-pair", "pair");
@@ -4074,8 +4102,9 @@ async function runPairMetric() {
         } else {
             const map = {};
             res.values.forEach((e) => {
-                map[pairKey(e.source, e.target)] = Number(e.value);
-                if (!state.directed) map[pairKey(e.target, e.source)] = Number(e.value);
+                const value = e.value == null ? NaN : Number(e.value);
+                map[pairKey(e.source, e.target)] = value;
+                if (!state.directed) map[pairKey(e.target, e.source)] = value;
             });
             if (!state.pairOrder.includes(res.label)) state.pairOrder.push(res.label);
             state.pairData[res.label] = map;
@@ -4092,8 +4121,9 @@ async function runPairMetric() {
                 } else {
                     const map = {};
                     r2.values.forEach((e) => {
-                        map[pairKey(e.source, e.target)] = Number(e.value);
-                        if (!state.directed) map[pairKey(e.target, e.source)] = Number(e.value);
+                        const value = e.value == null ? NaN : Number(e.value);
+                        map[pairKey(e.source, e.target)] = value;
+                        if (!state.directed) map[pairKey(e.target, e.source)] = value;
                     });
                     storeRecMetric("pair", res.label, map);
                 }
@@ -4173,6 +4203,7 @@ async function runGlobalCommMetric() {
         if (graphId !== state.graphId || partition !== state.communityData[algorithm]) return;
         const label = res.label + " (" + algorithm + ")";
         state.graphMetrics[label] = res.value;
+        (state.globalMetricScopes ||= {})[label] = { family: isAttributeCommunityPartition(algorithm) ? "attrcomm" : "comm", scope: algorithm };
         if (state.rec.active && $("global-comm-rec").checked) {
             try {
                 const r2 = await api("/api/communities/global", { ...jsonBody(
@@ -4238,6 +4269,7 @@ async function runAttributeGlobalCommMetric() {
         if (res.cancelled) { setStatus("Stopped."); return; }
         const label = res.label + " (" + res.algorithm + ")";
         state.graphMetrics[label] = res.value;
+        (state.globalMetricScopes ||= {})[label] = { family: "attrcomm", scope: attribute };
         if (state.rec.active && $("attribute-global-comm-rec").checked) {
             try {
                 const r2 = await api("/api/communities/global", { ...jsonBody({ ...body, withRecommendation: true }), signal });
@@ -4299,6 +4331,7 @@ async function runEdgeAttributeMetric(metric, global) {
         if (graphId !== state.graphId || graph !== state.graph || revision !== state.networkRevision) return;
         if (global) {
             state.graphMetrics[res.label] = res.value;
+            (state.globalMetricScopes ||= {})[res.label] = { family: "edgeattr", scope: attribute };
             setStatus("Computed " + res.label + " = " + fmt(res.value));
         } else {
             const label = res.label;
@@ -4824,6 +4857,7 @@ function switchTab(tab) {
 
 // Switches between the subtabs in the Diffusion tab's center panel.
 function switchDiffSubtab(sub) {
+    if (sub === "metrics" && DiffusionWorkspace.ready) { state.diffusion.statsView = "metrics"; sub = "stats"; }
     state.diffusion.subview = sub;
     document.querySelectorAll(".diffsubtab").forEach((b) => b.classList.toggle("active", b.dataset.diffsubtab === sub));
     $("diff-view-graph").classList.toggle("active", sub === "graph");
@@ -4849,15 +4883,19 @@ function switchDiffSubtab(sub) {
 // Switches the inner Node / Piece / Feature / Distributions view of the "Statistics" subtab.
 function switchStatsView(view) {
     state.diffusion.statsView = view;
-    document.querySelectorAll(".diffstatsview").forEach((b) => b.classList.toggle("active", b.dataset.statsview === view));
-    ["node", "piece", "feat", "dist"].forEach((v) => toggleHidden("diff-stats-view-" + v, v !== view));
+    document.querySelectorAll(".diffstatsview").forEach((b) => { b.classList.toggle("active", b.dataset.statsview === view); b.setAttribute("aria-selected", String(b.dataset.statsview === view)); });
+    ["overview", "metrics", "node", "piece", "feat", "dist", "compare"].forEach((v) => toggleHidden("diff-stats-view-" + v, v !== view));
     renderActiveStatsView();
 }
 
 // Renders whichever view of the Statistics subtab is currently active.
 function renderActiveStatsView() {
     const view = state.diffusion.statsView;
-    if (view === "piece") renderPieceTimeline();
+    if (DiffusionWorkspace.ready) DiffusionWorkspace.sync();
+    if (view === "overview") DiffusionWorkspace.renderOverview();
+    else if (view === "metrics") renderDiffMetrics();
+    else if (view === "compare") DiffusionWorkspace.renderCompare();
+    else if (view === "piece") renderPieceTimeline();
     else if (view === "feat") renderFeatureTimeline();
     else if (view === "dist") renderDiffDistribution();
     else renderNodeTimeline();
@@ -4871,7 +4909,7 @@ function statsActive(view) {
 // Shows/hides the side panels per tab and resizes the layout grid accordingly:
 // Network has layout/selection panels, Communities has detection, and Metrics has metric runners.
 function updatePanels(tab) {
-    const showLeft = tab === "network" || tab === "metrics" || tab === "communities" || tab === "edge-partitions";
+    const showLeft = tab === "network" || (tab === "metrics" && metricWorkspaceComputeOpen && state.activeSubtab !== "relationships") || tab === "communities" || tab === "edge-partitions";
     const showRight = tab === "network";
     $("left").style.display = showLeft ? "" : "none";
     $("right").style.display = showRight ? "" : "none";
@@ -4909,14 +4947,8 @@ function switchSubtab(sub) {
     $("subpane-edgeattr").classList.toggle("active", sub === "edgeattr");
     $("subpane-edgepartitions").classList.toggle("active", sub === "edgepartitions");
     $("subpane-relationships").classList.toggle("active", sub === "relationships");
-    if (sub === "nodes") { drawNodeChart(); drawNodeScatter(); }
-    if (sub === "edges") { drawEdgeChart(); drawEdgeScatter(); }
-    if (sub === "pairs") drawPairChart();
-    if (sub === "comm") { drawCommChart(); drawCommScatter(); }
-    if (sub === "attrcomm") drawAttributeCommChart();
-    if (sub === "edgeattr") drawEdgeAttributeChart();
-    if (sub === "edgepartitions") renderEdgePartitionMetricResults();
-    if (sub === "relationships") renderAttributeRelationships();
+    if (state.activeTab === "metrics") updatePanels("metrics");
+    renderMetricsDashboard();
 }
 
 function switchTableSubtab(sub) {
@@ -5924,7 +5956,8 @@ function applyReducers() {
     const presentNodes = tlNode ? new Set(g.nodes().filter(node => timelineMatches(nodeAttrVal(node, tl.nodeAttr)))) : null;
     const presentEdges = tlEdge ? new Set(g.edges().filter(edge => timelineMatches(edgeAttrVal(edge, tl.edgeAttr)))) : null;
     const nodeVerdicts = new Map(g.nodes().map(node => [node, presentNodes && !presentNodes.has(node) ? "hidden" : view.nodeVerdict(node)]));
-    const edgeVerdicts = new Map(g.edges().map(edge => [edge, (presentNodes && (!presentNodes.has(g.source(edge)) || !presentNodes.has(g.target(edge))) ||
+    const onlyRecommended = !!(state.rec?.show && state.rec.only && state.rec.models[state.rec.active]);
+    const edgeVerdicts = new Map(g.edges().map(edge => [edge, (onlyRecommended || presentNodes && (!presentNodes.has(g.source(edge)) || !presentNodes.has(g.target(edge))) ||
         presentEdges && !presentEdges.has(edge)) ? "hidden" : view.edgeVerdict(edge)]));
     const endpointNodes = new Set();
     if (state.selection.type === "path" && state.selection.mode !== "none" && state.pathEndpointFocusActive && !state.activePaths.length) {
@@ -6004,12 +6037,7 @@ function renderMetricsDashboard() {
     syncChartSelectors();
     renderNodeTopK();
     updateScatterBlocks();
-    if (state.activeSubtab === "nodes") { drawNodeChart(); drawNodeScatter(); }
-    if (state.activeSubtab === "edges") { drawEdgeChart(); drawEdgeScatter(); }
-    if (state.activeSubtab === "pairs") drawPairChart();
-    if (state.activeSubtab === "comm") { drawCommChart(); drawCommScatter(); }
-    if (state.activeSubtab === "attrcomm") drawAttributeCommChart();
-    if (state.activeSubtab === "edgeattr") drawEdgeAttributeChart();
+    refreshMetricWorkspace();
     if (state.activeSubtab === "relationships") renderAttributeRelationships();
 }
 
@@ -6035,8 +6063,10 @@ function renderAttributeCommAverages() {
     buildAverageTable("attrcomm-averages-table", rows, recKeys);
 }
 function renderEdgeAttributeAverages() {
-    const rows = state.edgeAttributeMetricOrder.map((label) => ({ label, original: average(state.edgeAttributeMetricData[label].values), rec: [] }));
-    buildAverageTable("edgeattr-averages-table", rows, []);
+    const keys = recColumnKeys("edgeattr");
+    const rows = state.edgeAttributeMetricOrder.map((label) => ({ label, original: average(state.edgeAttributeMetricData[label].values),
+        rec: keys.map(key => { const values = state.recMetricData.edgeattr?.[label]?.[key]; return values ? average(values) : undefined; }) }));
+    buildAverageTable("edgeattr-averages-table", rows, keys);
 }
 // Node-pair averages come from the streamed aggregate (one summary object per metric), not a per-pair map.
 function renderPairAverages() {
@@ -6083,7 +6113,9 @@ function tdText(text) { const td = document.createElement("td"); td.textContent 
 
 function renderNodeTopK() {
     const metric = $("node-topk-metric").value;
-    const values = state.metricData[metric];
+    const metricEntry = typeof metricResultSources === "function" ? metricAnalysisEntries("nodes").find(entry => entry.key === metric) : null;
+    const resultSource = metricEntry ? metricResultSources(metricEntry).find(source => source.id === (METRIC_WORKSPACE_VIEWS.get("nodes")?.rankingSource || "original")) : null;
+    const values = metricEntry ? resultSource?.map : state.metricData[metric];
     const table = $("node-topk-table");
     const note = $("node-topk-note");
     table.replaceChildren();
@@ -6125,7 +6157,12 @@ function recColumnKeys(family) {
 }
 
 function recLabel(key) {
-    return (state.rec.models[key] && state.rec.models[key].label) || key;
+    const model = state.rec.models[key], label = model?.label || key;
+    const same = Object.keys(state.rec.models).filter(id => (state.rec.models[id].label || id) === label);
+    if (!model || same.length < 2) return label;
+    const detail = [model.mode, model.cutoff == null ? "" : "k=" + model.cutoff].filter(Boolean).join(", ");
+    const duplicate = same.filter(id => state.rec.models[id].mode === model.mode && state.rec.models[id].cutoff === model.cutoff);
+    return label + " (" + [detail, duplicate.length > 1 ? "result " + (same.indexOf(key) + 1) : ""].filter(Boolean).join("; ") + ")";
 }
 
 function syncChartSelectors() {
@@ -6633,14 +6670,15 @@ function collectSessionClientState() {
             metricData: state.metricData, metricOrder: state.metricOrder,
             pairData: state.pairData, pairOrder: state.pairOrder,
             nodePairAgg: state.nodePairAgg, nodePairOrder: state.nodePairOrder,
-            graphMetrics: state.graphMetrics,
+            graphMetrics: state.graphMetrics, globalMetricScopes: state.globalMetricScopes,
+            metricComputations: state.metricComputations, recMetricData: state.recMetricData,
             communityData: state.communityData,
             commMetricData: state.commMetricData, commMetricOrder: state.commMetricOrder,
             attributeMetricData: state.attributeMetricData, attributeMetricOrder: state.attributeMetricOrder,
             edgeAttributeMetricData: state.edgeAttributeMetricData, edgeAttributeMetricOrder: state.edgeAttributeMetricOrder,
         },
         rec: { models: state.rec.models, active: state.rec.active, tableEdges: state.rec.tableEdges,
-               show: state.rec.show, diff: state.rec.diff, color: state.rec.color },
+               show: state.rec.show, only: state.rec.only, diff: state.rec.diff, color: state.rec.color },
         recEval: { result: state.recEval.result, test: state.recEval.test },
         diffusion: { pieces: state.diffusion.pieces, realPropagated: state.diffusion.realPropagated,
                      featureParams: state.diffusion.featureParams, runs: state.diffusion.runs },
@@ -6669,6 +6707,9 @@ function applySessionClientState(c) {
     if (m.pairData) { state.pairData = m.pairData; state.pairOrder = m.pairOrder || []; }
     if (m.nodePairAgg) { state.nodePairAgg = m.nodePairAgg; state.nodePairOrder = m.nodePairOrder || []; }
     if (m.graphMetrics) state.graphMetrics = m.graphMetrics;
+    state.globalMetricScopes = m.globalMetricScopes || {};
+    state.metricComputations = m.metricComputations || {};
+    if (m.recMetricData) state.recMetricData = { vertex: {}, graph: {}, pair: {}, nodePair: {}, comm: {}, ...m.recMetricData };
     if (m.communityData) state.communityData = m.communityData;
     restoreCommunityExplorer(c.communityExplorer);
     if (m.commMetricData) { state.commMetricData = m.commMetricData; state.commMetricOrder = m.commMetricOrder || []; }
@@ -6680,6 +6721,7 @@ function applySessionClientState(c) {
         state.rec.active = c.rec.active || null;
         state.rec.tableEdges = c.rec.tableEdges || [];
         if (c.rec.show != null) state.rec.show = c.rec.show;
+        state.rec.only = !!c.rec.only;
         if (c.rec.diff != null) state.rec.diff = c.rec.diff;
         if (c.rec.color) state.rec.color = c.rec.color;
     }
@@ -6690,6 +6732,7 @@ function applySessionClientState(c) {
         state.diffusion.realPropagated = c.diffusion.realPropagated || [];
         state.diffusion.featureParams = c.diffusion.featureParams || [];
         state.diffusion.runs = c.diffusion.runs || [];
+        if (typeof DiffusionWorkspace !== "undefined") DiffusionWorkspace.restoreRuns();
         state.diffusion.piecesHeaderSig = null;
         state.diffusion.piecesPage = 0;
     }
@@ -7392,18 +7435,15 @@ function applyTheme(theme) {
 
 function redrawVisibleCharts() {
     if (state.activeTab === "metrics") {
-        if (state.activeSubtab === "nodes") { drawNodeChart(); drawNodeScatter(); }
-        if (state.activeSubtab === "edges") { drawEdgeChart(); drawEdgeScatter(); }
-        if (state.activeSubtab === "pairs") drawPairChart();
-        if (state.activeSubtab === "comm") { drawCommChart(); drawCommScatter(); }
-        if (state.activeSubtab === "edgepartitions") drawEdgePartitionChart();
-    if (state.activeSubtab === "attrcomm") drawAttributeCommChart();
-    if (state.activeSubtab === "edgeattr") drawEdgeAttributeChart();
-    if (state.activeSubtab === "relationships") renderAttributeRelationships();
+        refreshMetricWorkspace();
+        if (state.activeSubtab === "relationships") renderAttributeRelationships();
     }
     if (state.activeTab === "diffusion") {
         if (state.diffusion.subview === "metrics") renderDiffMetrics();
         else if (state.diffusion.subview === "stats") {
+            if (state.diffusion.statsView === "metrics") renderDiffMetrics();
+            if (state.diffusion.statsView === "compare") DiffusionWorkspace.renderCompare();
+            if (state.diffusion.statsView === "overview") DiffusionWorkspace.renderOverview();
             if (state.diffusion.statsView === "node" && state.diffusion.traj) drawTrajectoryChart();
             if (state.diffusion.statsView === "piece" && state.diffusion.ptraj) drawPieceTimeline();
             if (state.diffusion.statsView === "feat" && state.diffusion.ftraj) drawFeatureTimeline();
@@ -7523,29 +7563,42 @@ function onRecModeChange() {
 
 // Every completed run is selectable independently of the configuration for the next run.
 function renderComputedRecommendations() {
-    const select = $("rec-computed");
-    select.replaceChildren();
     const entries = Object.entries(state.rec.models);
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = entries.length ? "Select a computed result" : "No computed results";
-    placeholder.disabled = true;
-    select.appendChild(placeholder);
-    for (const [mode, label] of [["recommendation", "Recommendations"], ["prediction", "Predictions"]]) {
-        const models = entries.filter(([, model]) => model.mode === mode);
-        if (!models.length) continue;
-        const group = document.createElement("optgroup");
-        group.label = label;
-        for (const [key] of models) {
-            const option = document.createElement("option");
-            option.value = key;
-            option.textContent = key;   // includes parameters, cutoff and reciprocal setting
-            group.appendChild(option);
+    for (const id of ["rec-computed", "rec-edge-model"]) {
+        const select = $(id);
+        select.replaceChildren();
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = entries.length ? "Select a computed result" : "No computed results";
+        placeholder.disabled = true;
+        select.appendChild(placeholder);
+        for (const [mode, label] of [["recommendation", "Recommendations"], ["prediction", "Predictions"]]) {
+            const models = entries.filter(([, model]) => model.mode === mode);
+            if (!models.length) continue;
+            const group = document.createElement("optgroup");
+            group.label = label;
+            for (const [key] of models) {
+                const option = document.createElement("option");
+                option.value = key;
+                option.textContent = key;   // includes parameters, cutoff and reciprocal setting
+                group.appendChild(option);
+            }
+            select.appendChild(group);
         }
-        select.appendChild(group);
+        select.value = state.rec.active || "";
+        select.disabled = !entries.length || state.rec.selecting;
     }
-    select.value = state.rec.active || "";
-    select.disabled = !entries.length || state.rec.selecting;
+    const active = !!state.rec.models[state.rec.active];
+    $("rec-edge-mode").value = active && state.rec.show ? state.rec.only ? "only" : "highlight" : "none";
+    $("rec-edge-mode").disabled = !active;
+    $("rec-edge-show").checked = !!state.rec.show;
+}
+
+function setRecommendationDisplay(mode) {
+    state.rec.show = mode !== "none";
+    state.rec.only = mode === "only";
+    renderComputedRecommendations();
+    applyReducers(); drawRecOverlay();
 }
 
 // Both a newly computed run and a cached selection activate the same table and overlay.
@@ -7559,6 +7612,7 @@ function activateRecommendation(key) {
     state.tables.rec.page = 0;
     state.tables.rec.headerSig = null;
     $("rec-edge-show").checked = true;
+    applyReducers();
     drawRecOverlay();
     renderTable("rec");
     updateRecUI();
@@ -7776,6 +7830,7 @@ function resetRecommendation() {
     state.rec.active = null;
     state.rec.models = {};
     state.rec.tableEdges = [];
+    state.rec.only = false;
     state.recMetricData = { vertex: {}, graph: {}, pair: {}, nodePair: {}, comm: {} };
     state.tables.rec.filters = {};
     state.tables.rec.page = 0;
@@ -7789,7 +7844,7 @@ function resetRecommendation() {
 function updateRecUI() {
     renderComputedRecommendations();
     const active = !!state.rec.active;
-    toggleHidden("rec-edge-block", !active);
+    toggleHidden("rec-edge-block", false);
     document.querySelectorAll(".rec-include-field").forEach((el) => { el.hidden = !active; });
     const addAll = $("btn-rec-add-all");
     if (addAll) addAll.disabled = !(state.rec.tableEdges && state.rec.tableEdges.length);
@@ -8282,6 +8337,7 @@ function onDiffProtocolType() {
 
 function enterDiffusionTab() {
     loadDiffusionCatalog();
+    syncDiffPlaybackRuns();
     if (!state.graph) return;
     if (!state.diffusion.graph) initDiffGraph();
     else syncDiffAppearance();   // mirror any appearance changes made on the Network tab while we were away
@@ -8292,6 +8348,7 @@ function enterDiffusionTab() {
     if (state.diffusion.result && state.diffusion.rendererType !== "cosmograph") setDiffIteration(state.diffusion.iteration);
     if (state.diffusion.subview === "metrics") renderDiffMetrics();
     if (state.diffusion.subview === "pieces") renderActivePiecesMode();
+    if (state.diffusion.subview === "stats") renderActiveStatsView();
 }
 
 // Builds a sigma renderer over a copy of the loaded graph (sharing its node positions).
@@ -8338,11 +8395,7 @@ function initDiffGraph() {
 function restoreDiffCosmograph() {
     requestAnimationFrame(() => requestAnimationFrame(() => {
         if (state.activeTab !== "diffusion" || state.diffusion.subview !== "graph" || state.diffusion.rendererType !== "cosmograph") return;
-        if (!state.diffusion.cosmograph || state.diffusion.cosmograph.getDimensions?.() !== mainNetworkDimensions()) {
-            initDiffCosmograph();
-            return;
-        }
-        state.diffusion.cosmograph.resize();
+        initDiffCosmograph();
     }));
 }
 
@@ -8350,39 +8403,60 @@ function mainNetworkDimensions() {
     return Number($("network-dimensions")?.value) === 3 ? 3 : 2;
 }
 
-async function initDiffCosmograph() {
-    if (state.diffusion.rendererType !== "cosmograph" || !state.diffusion.graph || !window.relisonDiffusionCosmograph) return;
-    try {
-        if (state.diffusion.cosmograph) state.diffusion.cosmograph.destroy();
-        state.diffusion.cosmograph = null;
-        const graph = state.diffusion.graph;
-        const recModel = state.diffusion.recKey && state.rec.models[state.diffusion.recKey];
-        window.relisonDiffusionRecModel = recModel || null;
-        window.relisonDiffusionRecColor = state.rec.color;
-        window.relisonDiffusionRecDashed = state.rec.diff;
-        window.relisonDiffusionDirected = state.directed;
-        const dimensions = mainNetworkDimensions();
-        const positions = dimensions === 3 ? (window.relisonCosmograph?.getSpatialNodePositions?.(state.graph) || {}) : {};
-        const cosmograph = await window.relisonDiffusionCosmograph.create(
-            graph,
-            $("diff-cosmograph-container"),
-            (node) => selectDiffNode(node),
-            { dimensions, positions },
-        );
-        // The user may have switched renderers or loaded another graph while the
-        // asynchronous Cosmograph upload was in flight. Never publish a stale instance.
-        if (state.diffusion.rendererType !== "cosmograph" || state.diffusion.graph !== graph) {
-            cosmograph.destroy();
-            return;
-        }
-        state.diffusion.cosmograph = cosmograph;
-        await cosmograph.setIteration(state.diffusion.iteration || 0, state.diffusion.result, DIFF_COL);
-    } catch (error) {
-        console.error("Could not initialize diffusion Cosmograph.", error);
-        setStatus("Cosmograph could not render the diffusion graph: " + error.message, "error");
-        $("diff-renderer").value = "sigma";
-        setDiffRenderer("sigma");
+// Serialize uploads: Cosmograph owns its container until initialization finishes.
+// Initializing while the graph pane is hidden can fit a zero-sized viewport.
+let diffusionCosmographPending = null;
+function initDiffCosmograph() {
+    const diffusion = state.diffusion;
+    if (diffusion.rendererType !== "cosmograph" || !diffusion.graph || !window.relisonDiffusionCosmograph
+        || state.activeTab !== "diffusion" || diffusion.subview !== "graph") return Promise.resolve();
+    const graph = diffusion.graph, result = diffusion.result, recKey = diffusion.recKey, dimensions = mainNetworkDimensions();
+    const matches = context => context && context.graph === graph && context.result === result
+        && context.recKey === recKey && context.dimensions === dimensions;
+    if (diffusionCosmographPending) {
+        if (matches(diffusionCosmographPending)) return diffusionCosmographPending.promise;
+        return diffusionCosmographPending.promise.then(() => initDiffCosmograph());
     }
+    if (diffusion.cosmograph && matches(diffusion.cosmographContext)) {
+        diffusion.cosmograph.resize();
+        return Promise.resolve(diffusion.cosmograph);
+    }
+    const request = { graph, result, recKey, dimensions };
+    diffusionCosmographPending = request;
+    request.promise = (async () => {
+        try {
+            diffusion.cosmograph?.destroy(); diffusion.cosmograph = null; diffusion.cosmographContext = null;
+            window.relisonDiffusionRecModel = recKey && state.rec.models[recKey] || null;
+            window.relisonDiffusionRecColor = state.rec.color;
+            window.relisonDiffusionRecDashed = state.rec.diff;
+            window.relisonDiffusionDirected = state.directed;
+            const positions = dimensions === 3 ? (window.relisonCosmograph?.getSpatialNodePositions?.(state.graph) || {}) : {};
+            const cosmograph = await window.relisonDiffusionCosmograph.create(
+                graph, $("diff-cosmograph-container"), node => selectDiffNode(node), { dimensions, positions });
+            // Another run, graph or renderer may have been selected during upload.
+            if (diffusion.rendererType !== "cosmograph" || diffusion.graph !== graph || diffusion.result !== result
+                || diffusion.recKey !== recKey || mainNetworkDimensions() !== dimensions) {
+                cosmograph.destroy(); return;
+            }
+            diffusion.cosmograph = cosmograph; diffusion.cosmographContext = request;
+            await cosmograph.setIteration(diffusion.iteration || 0, result, DIFF_COL);
+            if (diffusion.cosmograph === cosmograph) cosmograph.resize();
+            return cosmograph;
+        } catch (error) {
+            // A stale upload must not switch the user's newer renderer selection.
+            if (diffusion.rendererType !== "cosmograph" || diffusion.graph !== graph || diffusion.result !== result
+                || diffusion.recKey !== recKey || mainNetworkDimensions() !== dimensions) return;
+            if (diffusion.cosmographContext === request) {
+                diffusion.cosmograph?.destroy(); diffusion.cosmograph = null; diffusion.cosmographContext = null;
+            }
+            console.error("Could not initialize diffusion Cosmograph.", error);
+            setStatus("Cosmograph could not render the diffusion graph: " + error.message, "error");
+            $("diff-renderer").value = "sigma"; setDiffRenderer("sigma");
+        } finally {
+            if (diffusionCosmographPending === request) diffusionCosmographPending = null;
+        }
+    })();
+    return request.promise;
 }
 
 function mainDiffRendererType() {
@@ -8404,9 +8478,7 @@ function setDiffRenderer(type) {
     if (geographic) {
         initDiffGeographic(type);
     } else if (state.diffusion.rendererType === "cosmograph") {
-        if (!state.diffusion.cosmograph || state.diffusion.cosmograph.getDimensions?.() !== mainNetworkDimensions()) initDiffCosmograph();
-        else state.diffusion.cosmograph.resize();
-        if (state.diffusion.result) state.diffusion.cosmograph?.setIteration(state.diffusion.iteration, state.diffusion.result, DIFF_COL);
+        restoreDiffCosmograph();
     } else {
         if (state.diffusion.renderer) state.diffusion.renderer.refresh();
         drawDiffOverlay();
@@ -8651,6 +8723,7 @@ function buildDiffMetricsRequest() {
 async function runDiffusion() {
     if (jobBusy("btn-diff-run")) return cancelJob("btn-diff-run");
     if (!requireGraph()) return;
+    const runGraphId = state.graphId, runGraph = state.graph;
     if (!state.diffusion.pieces.length) { setStatus("Add at least one information piece to run a simulation.", "error"); return; }
     // When "apply filters to simulation" is on, only the pieces passing the table filters are simulated.
     let simPieces = null;
@@ -8675,7 +8748,8 @@ async function runDiffusion() {
     // Optionally run over the graph augmented with the selected recommendation; when so, tag the run's plot label
     // with the recommendation model name: "Protocol (Model)".
     const withRec = !!(state.rec.active && $("diff-rec") && $("diff-rec").checked);
-    const recSuffix = withRec ? " (" + recLabel(state.rec.active) + ")" : "";
+    const runRecKey = withRec ? state.rec.active : null, runNetwork = withRec ? recLabel(runRecKey) : "Original";
+    const recSuffix = withRec ? " (" + runNetwork + ")" : "";
     // Legend/CSV label for this run. A user-typed label wins; otherwise it is generated: preset protocols get
     // "Name [params]" (so runs of the same protocol with different settings are distinguishable), custom protocols a
     // short "Custom X" tag. The full configuration is always kept in runDetail and shown on demand in the runs list.
@@ -8698,19 +8772,19 @@ async function runDiffusion() {
     const signal = beginJob("btn-diff-run", "diffusion");
     try {
         await persistPiecesNow();   // ensure the session has the latest pieces; the run reads them from there
-        const body = { graphId: state.graphId, protocol, stop, metrics, filters: [] };
-        if (withRec) body.withRecommendation = true;   // run over the recommendation-augmented graph
+        if (state.graphId !== runGraphId || state.graph !== runGraph) return;
+        const body = { graphId: runGraphId, protocol, stop, metrics, filters: [] };
+        if (withRec) { body.withRecommendation = true; body.recommendationKey = runRecKey; }   // freeze the selected recommendation for queued runs
         if (simPieces) body.pieces = simPieces;   // filtered subset overrides the persisted (full) set for this run
         const res = await api("/api/diffusion/run", { ...jsonBody(body), signal });
         if (res.cancelled) { $("diff-status").textContent = "Stopped."; setStatus("Stopped."); return; }
         state.diffusion.result = res;
-        state.diffusion.recKey = withRec ? state.rec.active : null;   // remember which recommendation to overlay
+        state.diffusion.recKey = runRecKey;   // remember which recommendation to overlay
         buildDiffLegend();
         state.diffusion.iteration = 0;
         // Accumulate this run's metric series (tagged with a unique protocol label) for overlaid plotting.
-        if (res.metrics && res.metrics.length) {
-            state.diffusion.runs.push({ label: uniqueRunLabel(baseLabel), detail: runDetail, numIterations: res.numIterations, metrics: res.metrics });
-        }
+        state.diffusion.runs.push({ id: res.runId, label: uniqueRunLabel(baseLabel), detail: runDetail, config: { type, protocol, stop, metrics }, recKey: runRecKey, network: runNetwork, numIterations: res.numIterations, metrics: res.metrics || [] });
+        DiffusionWorkspace.addRun(res.runId);
         $("diff-empty-hint").style.display = "none";
         if (state.diffusion.rendererType === "cosmograph") await initDiffCosmograph();
         toggleHidden("diff-timebar", res.numIterations <= 0);
@@ -8727,6 +8801,7 @@ async function runDiffusion() {
         if (statsActive("piece")) renderPieceTimeline();
         if (statsActive("feat")) renderFeatureTimeline();
         if (statsActive("dist")) renderDiffDistribution();
+        if (state.diffusion.subview === "stats" && ["overview", "compare"].includes(state.diffusion.statsView)) renderActiveStatsView();
         $("diff-status").textContent = "Done — " + res.numIterations + " iteration(s).";
         if (res.skippedMetrics && res.skippedMetrics.length) {
             const msg = "Skipped " + res.skippedMetrics.length + " metric(s) — out of memory: " + res.skippedMetrics.join(", ");
@@ -8810,7 +8885,7 @@ function drawDiffOverlay() {
             ctx.setLineDash([]);
         }
 
-        if (res) {
+        if (res?.iterations?.[state.diffusion.iteration]) {
             const prop = res.iterations[state.diffusion.iteration].propagating;
             ctx.strokeStyle = DIFF_COL.prop; ctx.lineWidth = 1.4; ctx.setLineDash([5, 4]);
             let drawn = 0;
@@ -8885,9 +8960,11 @@ const DIFF_CATS = [
 async function fetchDiffState() {
     const node = state.diffusion.selectedNode;
     if (!node || !state.diffusion.result) return;
+    const graphId = state.graphId, result = state.diffusion.result, iteration = state.diffusion.iteration;
     try {
         const res = await api("/api/diffusion/state", jsonBody(
-            { graphId: state.graphId, iteration: state.diffusion.iteration, node }));
+            { graphId, runId: result.runId, iteration, node }));
+        if (state.graphId !== graphId || state.diffusion.result !== result || state.diffusion.iteration !== iteration || state.diffusion.selectedNode !== node) return;
         renderDiffState(res);
     } catch (e) { /* ignore transient state errors */ }
 }
@@ -9091,8 +9168,8 @@ function diffCatColumn(title, items, param, byId) {
 // Exports every computed diffusion metric across all runs as a wide CSV: one row per iteration, one column
 // per (metric, run) named "Metric (diffusion protocol)".
 function downloadDiffMetricsCsv() {
-    const runs = state.diffusion.runs;
-    if (!runs.length) { setStatus("Run a simulation with metrics first.", "error"); return; }
+    const runs = DiffusionWorkspace.ready ? DiffusionWorkspace.selectedRuns() : state.diffusion.runs;
+    if (!runs.length) { setStatus("Select a simulation with metrics first.", "error"); return; }
     // One column per (run, metric); track the longest series for the row count.
     const cols = [];
     let maxIters = 0;
@@ -9128,14 +9205,66 @@ function diffStop() {
     const p = $("diff-play"); if (p) p.textContent = "▶";
 }
 
+function syncDiffPlaybackRuns() {
+    const select = $("diff-playback-run"); if (!select) return;
+    const runs = state.diffusion.runs, active = state.diffusion.result?.runId;
+    select.replaceChildren();
+    if (!active) select.append(option("", runs.some(run => !run.archived) ? "Select a run" : "No simulation available for playback"));
+    for (const run of runs) {
+        const entry = option(run.id, run.label + (run.archived ? " (metrics only)" : ""));
+        entry.disabled = !!run.archived; select.append(entry);
+    }
+    select.value = active || ""; select.disabled = !runs.some(run => !run.archived);
+}
+
+async function selectDiffPlaybackRun(runId) {
+    const diffusion = state.diffusion, run = diffusion.runs.find(run => run.id === runId && !run.archived);
+    const ticket = diffusion.playbackRequest = (diffusion.playbackRequest || 0) + 1;
+    if (!run || runId === diffusion.result?.runId) { syncDiffPlaybackRuns(); return; }
+    const graphId = state.graphId, previous = diffusion.result;
+    diffStop();
+    try {
+        const result = await api("/api/diffusion/result", jsonBody({ graphId, runId }));
+        if (diffusion.playbackRequest !== ticket || state.graphId !== graphId || diffusion.result !== previous || !diffusion.runs.includes(run)) return;
+        if (result.error) throw new Error(result.error);
+        activateDiffusionAnalysisRun(result);
+    } catch (error) {
+        if (diffusion.playbackRequest === ticket && state.graphId === graphId && diffusion.result === previous) { syncDiffPlaybackRuns(); setStatus(error.message, "error"); }
+    }
+}
+
+// Switch playback to a retained simulation, including after deleting the displayed run.
+function activateDiffusionAnalysisRun(result) {
+    diffStop();
+    const diffusion = state.diffusion;
+    diffusion.result = result; diffusion.iteration = 0;
+    diffusion.playbackRequest = (diffusion.playbackRequest || 0) + 1;
+    diffusion.recKey = result ? diffusion.runs.find(run => run.id === result.runId)?.recKey || null : null;
+    diffusion.lastState = diffusion.traj = diffusion.ptraj = diffusion.ftraj = diffusion.dist = null;
+    $("diff-cats").replaceChildren();
+    $("diff-empty-hint").style.display = result ? "none" : "";
+    syncDiffPlaybackRuns();
+    diffusion.cosmograph?.destroy(); diffusion.cosmograph = null; diffusion.cosmographContext = null;
+    $("diff-slider").max = Math.max(0, (result?.numIterations || 0) - 1); $("diff-slider").value = 0;
+    $("diff-iter-label").textContent = "iteration 0";
+    toggleHidden("diff-timebar", !result?.numIterations);
+    diffusion.graph?.forEachNode(node => diffusion.graph.setNodeAttribute(node, "color", DIFF_COL.base));
+    buildDiffLegend();
+    if (result?.numIterations) setDiffIteration(0);
+    else { diffusion.renderer?.refresh(); drawDiffOverlay(); }
+    if (diffusion.rendererType === "cosmograph") restoreDiffCosmograph();
+    $("diff-status").textContent = diffusion.runs.length ? diffusion.runs.length + " retained simulation run(s)." : "No simulation run yet.";
+}
+
 async function clearDiffusion() {
-    if (state.graphId) { try { await api("/api/diffusion/clear", jsonBody({ graphId: state.graphId })); } catch (e) { /* best effort */ } }
+    if (state.graphId) { try { await api("/api/diffusion/clear", jsonBody({ graphId: state.graphId })); } catch (e) { setStatus(e.message, "error"); return; } }
     resetDiffusion();
 }
 
 function resetDiffusion() {
     diffStop();
     if (state.diffusion.cosmograph) { state.diffusion.cosmograph.destroy(); state.diffusion.cosmograph = null; }
+    state.diffusion.cosmographContext = null;
     state.diffusion.rendererType = "sigma";
     state.diffusion.rendererPreference = "network";
     const rendererSelect = $("diff-renderer"); if (rendererSelect) rendererSelect.value = "network";
@@ -9147,6 +9276,7 @@ function resetDiffusion() {
     state.diffusion.result = null;
     state.diffusion.recKey = null;
     state.diffusion.runs = [];
+    if (typeof DiffusionWorkspace !== "undefined") DiffusionWorkspace.reset();
     state.diffusion.iteration = 0;
     state.diffusion.selectedNode = null;
     state.diffusion.hoverNode = null;
@@ -9181,6 +9311,7 @@ function invalidateDiffusionResults() {
     state.diffusion.result = null;
     state.diffusion.recKey = null;
     state.diffusion.runs = [];
+    if (typeof DiffusionWorkspace !== "undefined") DiffusionWorkspace.reset();
     state.diffusion.iteration = 0;
     toggleHidden("diff-timebar", true);
     toggleHidden("diff-legend", true);
@@ -10363,6 +10494,7 @@ $("diff-node-input").addEventListener("change", () => {
 $("diffmetric-select").addEventListener("change", renderDiffMetrics);
 $("diff-feature-view").addEventListener("change", () => { if (state.diffusion.lastState) renderDiffState(state.diffusion.lastState); });
 $("diff-renderer").addEventListener("change", (event) => setDiffRenderer(event.target.value));
+$("diff-playback-run").addEventListener("change", (event) => selectDiffPlaybackRun(event.target.value));
 // Node timeline subtab controls.
 $("diff-traj-node").addEventListener("change", () => {
     const v = $("diff-traj-node").value.trim();
@@ -10759,7 +10891,9 @@ $("btn-rec-test-upload").addEventListener("click", uploadRecTestSet);
 $("btn-rec-evaluate").addEventListener("click", runRecEvaluation);
 $("btn-rec-eval-export").addEventListener("click", exportRecEvalCsv);
 loadRecEvalCatalog();
-$("rec-edge-show").addEventListener("change", (e) => { state.rec.show = e.target.checked; drawRecOverlay(); });
+$("rec-edge-mode").addEventListener("change", (e) => setRecommendationDisplay(e.target.value));
+$("rec-edge-model").addEventListener("change", (e) => selectComputedRecommendation(e.target.value));
+$("rec-edge-show").addEventListener("change", (e) => setRecommendationDisplay(e.target.checked ? "highlight" : "none"));
 $("rec-edge-diff").addEventListener("change", (e) => { state.rec.diff = e.target.checked; applyReducers(); drawRecOverlay(); });
 $("rec-edge-color").addEventListener("input", (e) => { state.rec.color = e.target.value; applyAppearance(); drawRecOverlay(); });
 
@@ -10797,6 +10931,8 @@ document.addEventListener("keydown", (e) => {
 });
 
 loadTooltipText();
+setupMetricWorkspace();
+DiffusionWorkspace.setup();
 switchTab(state.activeTab); // start on the Import tab with the side panels hidden
 loadCatalog();
 initDebugConsole();

@@ -231,6 +231,7 @@ function showEChart(id, option, title) {
 }
 
 function drawNodeChart() {
+    if (typeof metricWorkspaceReady !== "undefined" && metricWorkspaceReady) return drawMetricWorkspaceRanking("nodes");
     const metric = $("node-chart-metric").value;
     if (!state.graph || !metric || !state.metricData[metric]) { clearChart("node-chart"); return; }
     const sortBy = $("node-chart-sort").value;
@@ -241,18 +242,19 @@ function drawNodeChart() {
         const sv = state.metricData[sortBy] || values;
         nodes.sort((a, b) => (sv[b] ?? 0) - (sv[a] ?? 0));
     }
-    const items = nodes.map((n) => ({ label: n, value: values[n] ?? 0 }));
+    const items = nodes.map((n) => ({ label: n, value: values[n] ?? NaN }));
     drawBarChart("node-chart", "node-chart-tip", items, metric, "nodes", metric);
 }
 
 function drawEdgeChart() {
+    if (typeof metricWorkspaceReady !== "undefined" && metricWorkspaceReady) return drawMetricWorkspaceRanking("edges");
     const metric = $("edge-chart-metric").value;
     if (!state.graph || !metric || !state.pairData[metric]) { clearChart("edge-chart"); return; }
     const sortBy = $("edge-chart-sort").value;
     const data = state.pairData[metric];
     const g = state.graph;
     let edges = g.edges().slice().filter((e) => data[pairKey(g.source(e), g.target(e))] !== undefined);
-    const valOf = (e) => data[pairKey(g.source(e), g.target(e))] ?? 0;
+    const valOf = (e) => data[pairKey(g.source(e), g.target(e))] ?? NaN;
     if (sortBy === "pair") {
         edges.sort((a, b) => Number(g.source(a)) - Number(g.source(b)) || Number(g.target(a)) - Number(g.target(b)));
     } else {
@@ -281,6 +283,7 @@ function drawPairChart() {
 }
 
 function drawCommChart() {
+    if (typeof metricWorkspaceReady !== "undefined" && metricWorkspaceReady) return drawMetricWorkspaceRanking("comm");
     const metric = $("comm-chart-metric").value;
     const entry = state.commMetricData[metric];
     if (!metric || !entry) { clearChart("comm-chart"); return; }
@@ -293,11 +296,12 @@ function drawCommChart() {
         const sv = state.commMetricData[sortBy]?.values || values;
         comms.sort((a, b) => (sv[b] ?? 0) - (sv[a] ?? 0));
     }
-    const items = comms.map((c) => ({ label: communityLabel(c, entry.algorithm), value: values[c] ?? 0 }));
+    const items = comms.map((c) => ({ label: communityLabel(c, entry.algorithm), value: values[c] ?? NaN }));
     drawBarChart("comm-chart", "comm-chart-tip", items, metric, "", communityMetricAxisTitle(entry, metric));
 }
 
 function drawAttributeCommChart() {
+    if (typeof metricWorkspaceReady !== "undefined" && metricWorkspaceReady) return drawMetricWorkspaceRanking("attrcomm");
     const metric = $("attrcomm-chart-metric").value;
     const entry = state.attributeMetricData[metric];
     if (!metric || !entry) { clearChart("attrcomm-chart"); return; }
@@ -311,7 +315,7 @@ function drawAttributeCommChart() {
         const compared = state.attributeMetricData[sortBy]?.values || values;
         ids.sort((a, b) => (compared[b] ?? 0) - (compared[a] ?? 0));
     }
-    const items = ids.map((id) => ({ label: String(labels[id] ?? id), value: values[id] ?? 0 }));
+    const items = ids.map((id) => ({ label: String(labels[id] ?? id), value: values[id] ?? NaN }));
     drawBarChart("attrcomm-chart", "attrcomm-chart-tip", items, metric, "", communityMetricAxisTitle(entry, metric));
 }
 
@@ -328,6 +332,7 @@ function communityMetricAxisTitle(entry, fullLabel) {
     return catalogLabels.find(label => metricLabel === label || metricLabel.startsWith(label + " ")) || metricLabel;
 }
 function drawEdgeAttributeChart() {
+    if (typeof metricWorkspaceReady !== "undefined" && metricWorkspaceReady) return drawMetricWorkspaceRanking("edgeattr");
     const metric = $("edgeattr-chart-metric").value;
     const entry = state.edgeAttributeMetricData[metric];
     if (!metric || !entry) { clearChart("edgeattr-chart"); return; }
@@ -336,7 +341,7 @@ function drawEdgeAttributeChart() {
     const ids = Object.keys(values);
     if (sortBy === "attribute") ids.sort((a, b) => String(labels[a] ?? a).localeCompare(String(labels[b] ?? b), undefined, { numeric: true }));
     else { const compared = state.edgeAttributeMetricData[sortBy]?.values || values; ids.sort((a, b) => (compared[b] ?? 0) - (compared[a] ?? 0)); }
-    drawBarChart("edgeattr-chart", "edgeattr-chart-tip", ids.map((id) => ({ label: String(labels[id] ?? id), value: values[id] ?? 0 })), metric, "edge attribute values", metric);
+    drawBarChart("edgeattr-chart", "edgeattr-chart-tip", ids.map((id) => ({ label: String(labels[id] ?? id), value: values[id] ?? NaN })), metric, "edge attribute values", metric);
 }
 function clearChart(canvasId) {
     const note = $(canvasId + "-view-note");
@@ -361,7 +366,7 @@ function metricBarView(canvasId, items) {
     const ranked = mode === "top" || mode === "bottom";
     const reversed = $(canvasId + "-order")?.value === "reverse";
     const k = Math.max(1, Math.floor(Number($(canvasId + "-k")?.value) || 10));
-    let displayed = ranked ? items.filter((item) => Number.isFinite(Number(item.value)))
+    let displayed = ranked ? items.filter((item) => Number.isFinite(item.value))
         .slice().sort((a, b) => mode === "bottom" ? Number(a.value) - Number(b.value) : Number(b.value) - Number(a.value)).slice(0, k) : items;
     if (reversed) displayed = displayed.slice().reverse();
     const note = $(canvasId + "-view-note");

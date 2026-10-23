@@ -54,6 +54,38 @@ interactive visualization.
   retain chart styling and legend selections while excluding zoom controls.
   SVG supports complete charts beyond the PNG pixel-size limit without allocating
   a full-size raster canvas.
+- **Recommendation metric batches**: **Compute for recommendations** reruns the
+  saved metric configurations for any checked recommendations, with progress,
+  cancellation and per-result failure reporting. The visible network overlay
+  stays unchanged. New metric requests retain their exact submitted parameters;
+  older results recover configurations from their catalog labels where possible,
+  and the dialog identifies any originals that must be computed once again.
+  Saved sessions retain these configurations and recommendation metric results.
+  Distribution statistics and rankings each have an Original/recommendation
+  result selector. Distributions and metric-versus-metric comparisons offer
+  independent result checkboxes, including Original. Comparisons also support
+  Original versus multiple recommendations, or a reference recommendation
+  versus other checked recommendations. Every comparison matches entity IDs;
+  node/edge groups keep their existing partition. Recommendation rankings and
+  distributions include newly recommended links when their metric values exist.
+- **Metric analysis workspace**: choose a metric type tab, then use the Summary,
+  Rankings, Distributions and Compare rail. **Compute metrics** opens or hides
+  the existing runner panel. Rankings retain top/bottom-k, sorting and display
+  options. Compact icon exports sit at the top right of each panel. Summaries for
+  communities, edge partitions and node/edge attributes include their related
+  global results. Distributions include histograms configured by bin size with
+  shared boundaries for recommendation overlays, exact value frequency charts,
+  cumulative curves and box plots (whiskers show min/max). Frequency and cumulative
+  charts support points, lines, or both. Stored all-pair bins can be merged using
+  whole multiples of their original width. Comparisons
+  match finite values by entity ID within the same partition or attribute, using
+  independent scales for different metrics and equal scales for original versus
+  recommendation results. Recommendation changes also have a distribution view.
+  Chart data and distribution statistics export to CSV. All-pairs results retain
+  every node pair exactly. Distinct-value counts support a selectable minimum
+  histogram bin size, exact value-frequency charts, exact cumulative curves and
+  distribution statistics without storing one record per pair. Individual
+  rankings/comparisons still require raw pair values.
 
 ## Tracking background processes
 
@@ -66,12 +98,12 @@ saved in `.relison` files or retained across server restarts.
 
 Progress counts completed node values, existing-link endpoint pairs, individual
 communities/edge groups and diffusion turns. Shortest-path preprocessing reports
-completed source nodes. All-pairs statistics and histogram construction have
-separate phases; sampled computations report sample draws rather than claiming
-to enumerate all pairs. Native matrix operations and algorithms without a known
-total show their phase and elapsed time. Percentages describe work units, not
-remaining time. Diffusion starts at iteration zero, so an upper iteration index
-of 50 produces 51 completed turns under the existing stop-condition semantics.
+completed source nodes. All-pairs metrics report each evaluated pair while
+collecting statistics and distinct-value counts in one pass. Native matrix
+operations and algorithms without a known total show their phase and elapsed
+time. Percentages describe work units, not remaining time. Diffusion starts at
+iteration zero, so an upper iteration index of 50 produces 51 completed turns
+under the existing stop-condition semantics.
 
 **Cancel** in this panel and the existing **Stop** buttons target the same run.
 An accepted request remains **Cancelling** until the worker and its cleanup have
@@ -487,3 +519,13 @@ elements; Equal Earth SVG files keep the background and graph as vectors.
 Exports are standalone and do not fetch additional tiles. Mercator export waits
 for visible tiles and reports missing tiles or CORS errors rather than omitting
 the background. Diffusion map views have their own PNG/SVG export buttons.
+
+### Diffusion analysis workspace
+
+Diffusion charts share an Analysis workspace with Overview, Metrics, Nodes, Pieces, Features, Distributions and Compare tabs. Select or hide runs independently of deletion; run colours remain stable. The latest run drives graph playback. Older runs retain their disk-backed simulation files until deleted, cleared, input changes or the graph session is removed. Saved `.relison` sessions retain metric curves and configuration, but not simulation files; imported runs are labelled Metrics only.
+
+Line charts offer points, lines, or both, independent numeric log axes and CSV/image exports. Analysis titles are arranged across the top; each tab except Overview has a left rail for chart types, using the same panel styling as metrics. Overview lists every run in a nodes/edges-style table with selection checkboxes, editable chart colours, preset/custom mechanism settings, stop condition, iteration count, metrics, network and deletion. Deleting the playback run activates the most recent remaining simulation. Log scales omit nonpositive points only in the display. Metrics can be compared at matching iterations, and runs can be compared against a chosen baseline over their shared iteration range, using paired values, absolute differences or percentage changes (undefined for a zero baseline).
+
+Node and piece rankings count unique memberships over the whole simulation. Numeric feature distributions support weighted histograms with an explicit bin width, cumulative shares and exact numeric value counts; categorical features use counts/shares and mixed features use complete heatmaps. Detailed analysis is queued in Processes, cancellable, and cached by graph/run/configuration in the current browser session. Display changes reuse cached data.
+
+Node and information-piece timelines show all four categories for a single base run. Single-run feature views select a category and label curves by feature value. Multiple-run views select one category, and feature comparisons also select one exact feature value shared across runs; legends contain run/protocol names only. Node and piece rankings offer Show all, Top k and Bottom k without repeating the computation.

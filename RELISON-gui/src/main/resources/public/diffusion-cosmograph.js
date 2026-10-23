@@ -56,7 +56,7 @@ async function create(graph, container, onPointClick, options = {}) {
         pointColorStrategy: "direct", pointSizeStrategy: "direct", linkColorStrategy: "direct", linkWidthStrategy: "direct",
         linkWidthByFn: (value) => Number(value), linkDefaultArrows: Boolean(window.relisonDiffusionDirected),
         linkDefaultStyle: 0, linkDashLength: 5, linkDashGap: 4, linkArrowsSizeScale: 1.5,
-        enableSimulation: false, rescalePositions: false, fitViewOnInit: true, fitViewDelay: 0,
+        enableSimulation: false, rescalePositions: false, fitViewOnInit: false, fitViewDelay: 0,
         transitionDuration: 0, showLabels: Boolean(labels.nodeShow), showHoveredPointLabel: true,
         pointLabelColor: labels.nodeColorMode === "single" ? (labels.nodeColor || "#ffffff") : "#ffffff",
         pointLabelClassName: (_text, index) => {
@@ -72,12 +72,14 @@ async function create(graph, container, onPointClick, options = {}) {
         onPointClick: (index) => { const point = points[index]; if (point && onPointClick) onPointClick(point.id); },
     };
     const instance = new Cosmograph(container, config);
-    await instance.dataUploaded();
     instance.stop();
+    try { await instance.dataUploaded(); }
+    catch (error) { instance.destroy(); throw error; }
     const baseLinkColors = links.map((link) => rgb(link.color)).flat();
     const linkWidths = links.map((link) => link.width);
     const linkStyles = links.map((link) => link.style);
     const graphApi = findGraphApi(instance);
+    let fittedVisibleViewport = false;
     let activeLinkColors = links.map((link) => link.color);
     let activeLinkStyles = links.map((link) => link.style);
     let pointSizes = points.map((point) => point.size);
@@ -123,7 +125,7 @@ async function create(graph, container, onPointClick, options = {}) {
             width: activeLinkWidths[index],
             style: activeLinkStyles[index],
         }));
-        instance.setConfig({ ...config, points: framePoints, links: frameLinks });
+        await instance.setConfig({ ...config, points: framePoints, links: frameLinks });
         await instance.dataUploaded();
         instance.stop();
         if (camera) instance.setCameraState?.(camera);
@@ -194,8 +196,14 @@ async function create(graph, container, onPointClick, options = {}) {
                 .catch((error) => console.warn("Diffusion Cosmograph appearance sync failed.", error));
         },
         resize() {
-            instance.resize?.();
-            graphApi?.render?.();
+            if (!(container.clientWidth > 0 && container.clientHeight > 0)) return;
+            // Cosmograph 2.5 has no wrapper resize(). Cosmos.render() refreshes
+            // the canvas viewport; fit only once, after it has a real size.
+            graphApi?.render?.(undefined, 0);
+            if (!fittedVisibleViewport) {
+                instance.fitView?.(0, 0.1);
+                fittedVisibleViewport = true;
+            }
         },
         async captureFrame(targetWidth) {
             let source = instance.getCanvas?.() || container.querySelector("canvas");
@@ -232,6 +240,7 @@ async function create(graph, container, onPointClick, options = {}) {
         getDimensions() { return dimensions; },
         destroy() { instance.stop(); instance.destroy(); container.replaceChildren(); },
     };
+    api.resize();
     return api;
 }
 

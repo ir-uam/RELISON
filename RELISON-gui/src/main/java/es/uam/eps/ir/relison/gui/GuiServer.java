@@ -170,10 +170,12 @@ public class GuiServer
             config.routes.get("/api/diffusion/catalog", diffusionController::catalog);
             config.routes.post("/api/diffusion/run", processes.track("diffusion", diffusionController::run));
             config.routes.post("/api/diffusion/state", diffusionController::state);
-            config.routes.post("/api/diffusion/trajectory", diffusionController::trajectory);
-            config.routes.post("/api/diffusion/piece-trajectory", diffusionController::pieceTrajectory);
-            config.routes.post("/api/diffusion/feature-trajectory", diffusionController::featureTrajectory);
-            config.routes.post("/api/diffusion/distribution", diffusionController::distribution);
+            config.routes.post("/api/diffusion/result", diffusionController::result);
+            config.routes.post("/api/diffusion/trajectory", processes.track("diffusionAnalysis", diffusionController::trajectory));
+            config.routes.post("/api/diffusion/piece-trajectory", processes.track("diffusionAnalysis", diffusionController::pieceTrajectory));
+            config.routes.post("/api/diffusion/feature-trajectory", processes.track("diffusionAnalysis", diffusionController::featureTrajectory));
+            config.routes.post("/api/diffusion/distribution", processes.track("diffusionAnalysis", diffusionController::distribution));
+            config.routes.post("/api/diffusion/rankings", processes.track("diffusionAnalysis", diffusionController::rankings));
             config.routes.post("/api/diffusion/clear", processes.mutation(diffusionController::clear));
             config.routes.post("/api/diffusion/pieces", processes.mutation(diffusionController::savePieces));
             config.routes.post("/api/diffusion/pieces/get", diffusionController::getPieces);

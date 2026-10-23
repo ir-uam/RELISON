@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "../../main/resources/public/metric-charts.js"), "utf8");
 const section = source.slice(source.indexOf("function clearChart("), source.indexOf("/* ------------------------------ scatterplots"));
-const ids = ["node-chart", "edge-chart", "comm-chart", "attrcomm-chart", "edgeattr-chart"];
+const ids = ["node-chart", "edge-chart", "comm-chart", "attrcomm-chart", "edgeattr-chart", "ep-chart"];
 const plain = value => JSON.parse(JSON.stringify(value));
 
 function setup() {
@@ -28,7 +28,7 @@ function setup() {
         echarts: { graphic: { LinearGradient: class { constructor(...args) { this.args = args; } } } },
         ECHARTS: new Map(), ECHART_PENDING: new Map(), ECHART_RESIZE_OBSERVERS: new Map(),
         drawNodeChart() { redraws++; }, drawEdgeChart() { redraws++; }, drawCommChart() { redraws++; },
-        drawAttributeCommChart() { redraws++; }, drawEdgeAttributeChart() { redraws++; },
+        drawAttributeCommChart() { redraws++; }, drawEdgeAttributeChart() { redraws++; }, drawEdgePartitionChart() { redraws++; },
     });
     vm.runInContext(section, context);
     return { context, controls, colors, draw(id, items) {

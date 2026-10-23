@@ -708,14 +708,17 @@ function renderEdgePartitionGlobalSummary() {
 
 function renderEdgePartitionMetricResults() {
     const globalRows = [], averageRows = [], entries = edgePartitionChartEntries();
+    const globalKeys = recColumnKeys("edgePartitionGlobal"), individualKeys = recColumnKeys("edgePartition");
     for (const data of computedEdgePartitions()) {
-        for (const metric of Object.values(data.globalMetrics || {}))
-            globalRows.push({ label: metric.label + " · " + data.label, original: metric.value });
-        for (const metric of Object.values(data.individualMetrics || {}))
-            averageRows.push({ label: metric.label + " · " + data.label, original: metric.average });
+        for (const [key, metric] of Object.entries(data.globalMetrics || {}))
+            globalRows.push({ label: metric.label + " · " + data.label, original: metric.value,
+                rec: globalKeys.map(rec => state.recMetricData.edgePartitionGlobal?.[JSON.stringify([data.partitionId, key])]?.[rec]) });
+        for (const [key, metric] of Object.entries(data.individualMetrics || {}))
+            averageRows.push({ label: metric.label + " · " + data.label, original: metric.average,
+                rec: individualKeys.map(rec => { const values = state.recMetricData.edgePartition?.[JSON.stringify([data.partitionId, key])]?.[rec]; return values ? average(values) : undefined; }) });
     }
-    buildAverageTable("ep-global-results", globalRows, []);
-    buildAverageTable("ep-average-results", averageRows, []);
+    buildAverageTable("ep-global-results", globalRows, globalKeys);
+    buildAverageTable("ep-average-results", averageRows, individualKeys);
     setSelectOptions("ep-chart-metric", entries.map(entry => entry.key), entries.map(entry => entry.metric.label + " · " + entry.data.label));
     syncEdgePartitionChartSort();
     drawEdgePartitionChart();
@@ -733,6 +736,7 @@ function syncEdgePartitionChartSort() {
 }
 
 function drawEdgePartitionChart() {
+    if (typeof metricWorkspaceReady !== "undefined" && metricWorkspaceReady) return drawMetricWorkspaceRanking("edgepartitions");
     const entries = edgePartitionChartEntries(), entry = entries.find(item => item.key === $("ep-chart-metric").value);
     if (!entry) { clearChart("ep-chart"); return; }
     const sort = $("ep-chart-sort").value, compared = entries.find(item => item.key === sort && item.data === entry.data)?.metric || entry.metric;

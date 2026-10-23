@@ -46,7 +46,7 @@ public class ProcessAdapterTest
         return manager.snapshots().stream().filter(job -> request.id.equals(job.get("id"))).findFirst().orElseThrow();
     }
 
-    @Test public void metricRequestsExposeResultsMetadataAndTheTwoPairPasses() throws Exception {
+    @Test public void metricRequestsExposeResultsMetadataAndAggregatePairsInOnePass() throws Exception {
         try (JobManager manager = new JobManager()) {
             GraphStore store = new GraphStore(); graph(store);
             ProcessController adapter = new ProcessController(manager); MetricController controller = new MetricController(store, manager);
@@ -58,8 +58,10 @@ public class ProcessAdapterTest
             Request pairs = new Request(Map.of("graphId", "graph", "metric", PairMetricIdentifiers.WEIGHT, "onlyLinks", false));
             adapter.track("pair", controller::pair).handle(pairs.ctx);
             assertEquals(200, pairs.status); assertEquals(6L, ((Map<?, ?>) pairs.response).get("evaluated"));
-            assertEquals("Computing pairs: histogram", row(manager, pairs).get("phase"));
+            assertEquals("Computing pairs: statistics", row(manager, pairs).get("phase"));
             assertEquals(6L, row(manager, pairs).get("completed")); assertEquals(6L, row(manager, pairs).get("total"));
+            List<?> valueCounts = (List<?>) ((Map<?, ?>) pairs.response).get("valueCounts");
+            assertEquals(6L, valueCounts.stream().mapToLong(value -> ((Number) ((Map<?, ?>) value).get("count")).longValue()).sum());
         }
     }
     @Test public void processMetadataPreservesRecommendationModeForTypeBadges() throws Exception {

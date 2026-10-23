@@ -5,8 +5,12 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const viewModel = require("../../main/resources/public/network-view.js");
-const filterBuilder = require("../../main/resources/public/filter-builder.js");
+function loadBrowserHelper(file) {
+    const source = fs.readFileSync(path.join(__dirname, "../../main/resources/public", file), "utf8");
+    return vm.runInThisContext("(function(module) {\n" + source + "\nreturn module.exports;\n})")({ exports: {} });
+}
+const viewModel = loadBrowserHelper("network-view.js");
+const filterBuilder = loadBrowserHelper("filter-builder.js");
 const appSource = fs.readFileSync(path.join(__dirname, "../../main/resources/public/app.js"), "utf8");
 const cosmographSource = fs.readFileSync(path.join(__dirname, "../../main/resources/public/cosmograph-spike.js"), "utf8");
 function extract(source, name) {
@@ -258,6 +262,26 @@ test("transient recommendations use the same dim and hide rules in Cosmograph an
     h.handlers.selectEdge("ab"); h.state.selection.edgeAttribute = "color"; h.handlers.setSelectionMode("edge-attribute-only");
     assert.equal(h.project().links.some(edge => edge.recommendation), false);
     assert.equal(h.handlers.overlayEdgeVerdict("A", "D", h.handlers.focusContext()), "hidden");
+});
+
+test("recommended-only mode hides base edges in Sigma and both Cosmograph dimensions without filtering the network", () => {
+    const h = setup(), model = { edges: [{ source: "A", target: "D" }] };
+    h.state.rec = { active: "model", models: { model }, show: true, only: true };
+    h.window.relisonCosmographRecommendation = { show: true, directed: true, color: "rec", edges: model.edges };
+    h.handlers.applyReducers();
+    assert.equal(h.settings.edgeReducer("ab", { color: "edge", size: 1 }).hidden, true);
+    assert.ok([...h.window.relisonNetworkViewSnapshot.edgeVerdicts.values()].every(verdict => verdict === "hidden"));
+    assert.equal(h.handlers.networkView().tableEdges.size, h.graph.edges().length);
+    for (const dimensions of [2, 3]) {
+        const projected = h.project(dimensions);
+        assert.equal(projected.links.length, 1); assert.equal(projected.links[0].recommendation, true);
+        assert.equal(projected.points.length, h.graph.nodes().length);
+    }
+    h.state.rec.only = false; h.handlers.applyReducers();
+    assert.equal(!!h.settings.edgeReducer("ab", { color: "edge", size: 1 }).hidden, false);
+    assert.equal(h.project().links.length, h.graph.edges().length + 1);
+    h.state.rec.only = true; h.state.rec.show = false; h.window.relisonCosmographRecommendation.show = false; h.handlers.applyReducers();
+    assert.equal(h.project().links.length, h.graph.edges().length);
 });
 
 test("removed fields drop their filters and missing or invalid numeric values never pass ranges", () => {

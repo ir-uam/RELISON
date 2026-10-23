@@ -21,6 +21,7 @@ function populateDiffMetricSelect() {
 }
 
 function renderDiffMetrics() {
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) { DiffusionWorkspace.renderMetrics(); return; }
     const container = $("diffmetrics-charts");
     if (!container) return;
     disposeEChart("diff-metrics-chart");
@@ -159,8 +160,7 @@ function syncTrajFeatureSelect() {
     sel.value = [...sel.options].some((o) => o.value === prev) ? prev : "pieces";
 }
 
-// Enables/disables the controls that only apply to the feature views (category, aggregation) — the base
-// "Information pieces" view always shows all four categories as counts.
+// Single-run base views show all four categories; comparisons select one category.
 function updateTrajControls() {
     const base = $("diff-traj-feature").value === "pieces";
     $("diff-traj-category").disabled = base;
@@ -169,6 +169,7 @@ function updateTrajControls() {
 
 // Entry point for the Node subtab: validates prerequisites, otherwise fetches and draws the timeline.
 function renderNodeTimeline() {
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready && DiffusionWorkspace.isRanking("node")) { DiffusionWorkspace.rankings("node"); return; }
     const hint = $("diff-traj-hint");
     if (!state.diffusion.result) {
         hint.textContent = "Run a simulation and select a node to see how its information exposure evolves.";
@@ -194,12 +195,14 @@ async function fetchTrajectory() {
     const body = { graphId: state.graphId, node, mode: $("diff-traj-mode").value };
     if (fv === "pieces") {
         body.pieces = true;   // base view: piece counts per category, no feature breakdown
+        body.category = $("diff-traj-category").value;
     } else {
         body.userFeature = fv.startsWith("user:");
         body.feature = fv.slice(fv.indexOf(":") + 1);
         body.category = $("diff-traj-category").value;
         body.aggregation = $("diff-traj-agg").value;
     }
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) { await DiffusionWorkspace.load("node", "/api/diffusion/trajectory", body); return; }
     setChartLoading("diff-traj-area", true);
     try {
         const res = await api("/api/diffusion/trajectory", jsonBody(body));
@@ -231,6 +234,7 @@ function drawTrajectoryInto(canvasId, res, stacked, label) {
 }
 
 function drawTrajectoryChart() {
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) { DiffusionWorkspace.draw("node"); return; }
     const res = state.diffusion.traj;
     if (!res) return;
     const label = res.base
@@ -262,13 +266,15 @@ function syncPtrajFeatureSelect() {
     if (sel.dataset.sig !== sig) {
         const prev = sel.value;
         sel.innerHTML = "";
-        sel.appendChild(option("users", "Users (all categories)"));
+        sel.appendChild(option("users", "Users"));
         user.forEach((n) => sel.appendChild(option(n, n)));
         sel.dataset.sig = sig;
         sel.value = [...sel.options].some((o) => o.value === prev) ? prev : "users";
     }
-    // The category selector only applies when breaking down by a feature (the base view shows every category).
-    $("diff-ptraj-category").disabled = sel.value === "users";
+    // Base views show every category for a single run, or one chosen category across runs.
+    const multiple = typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready && DiffusionWorkspace.selectedRuns().length > 1;
+    $("diff-ptraj-category").disabled = sel.value === "users" && !multiple;
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) DiffusionWorkspace.timelineControls("piece");
 }
 
 // Keeps the piece autocomplete list in sync with the current pieces.
@@ -280,6 +286,7 @@ function syncPieceDatalist() {
 }
 
 function renderPieceTimeline() {
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready && DiffusionWorkspace.isRanking("piece")) { DiffusionWorkspace.rankings("piece"); return; }
     const hint = $("diff-ptraj-hint");
     if (!state.diffusion.result) {
         hint.textContent = "Run a simulation and choose an information piece to see how many users receive / read / propagate / discard it over the iterations.";
@@ -300,8 +307,9 @@ async function fetchPieceTrajectory() {
     const piece = state.diffusion.selectedPiece;
     if (!piece || !state.diffusion.result) return;
     const fv = $("diff-ptraj-feature").value;
-    const body = { graphId: state.graphId, piece, mode: $("diff-ptraj-mode").value };
+    const body = { graphId: state.graphId, piece, mode: $("diff-ptraj-mode").value, category: $("diff-ptraj-category").value };
     if (fv && fv !== "users") { body.feature = fv; body.category = $("diff-ptraj-category").value; }
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) { await DiffusionWorkspace.load("piece", "/api/diffusion/piece-trajectory", body); return; }
     setChartLoading("diff-ptraj-area", true);
     try {
         const res = await api("/api/diffusion/piece-trajectory", jsonBody(body));
@@ -312,6 +320,7 @@ async function fetchPieceTrajectory() {
 }
 
 function drawPieceTimeline() {
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) { DiffusionWorkspace.draw("piece"); return; }
     const res = state.diffusion.ptraj;
     if (!res) return;
     const label = res.base
@@ -368,6 +377,7 @@ function syncFtrajValueSelect() {
 
 // The category selector only applies to the "all values" view (a specific value shows all four categories).
 function updateFtrajControls() {
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) { DiffusionWorkspace.featureControls(); return; }
     $("diff-ftraj-category").disabled = $("diff-ftraj-value").value !== "__all__";
 }
 
@@ -400,6 +410,7 @@ async function fetchFeatureTrajectory() {
         mode: $("diff-ftraj-mode").value,
         entity: $("diff-ftraj-entity").value,
     };
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) { await DiffusionWorkspace.load("feat", "/api/diffusion/feature-trajectory", body); return; }
     setChartLoading("diff-ftraj-area", true);
     try {
         const res = await api("/api/diffusion/feature-trajectory", jsonBody(body));
@@ -410,6 +421,7 @@ async function fetchFeatureTrajectory() {
 }
 
 function drawFeatureTimeline() {
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) { DiffusionWorkspace.draw("feat"); return; }
     const res = state.diffusion.ftraj;
     if (!res) return;
     const entity = res.entity === "users" ? "users" : "pieces";
@@ -449,6 +461,7 @@ function setChartLoading(areaId, on) {
 
 // Shows the right feature selector(s) for the chosen distribution type and fills them from the schema.
 function updateDistFields() {
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) { DiffusionWorkspace.distributionControls(); return; }
     const type = $("diff-dist-type").value;
     const { info, user } = knownFeatureParams();
     toggleHidden("diff-dist-feat-field", type === "mixed");
@@ -468,6 +481,7 @@ function fillSelectKeep(id, names) {
 }
 
 function renderDiffDistribution() {
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) return DiffusionWorkspace.renderDistribution();
     const hint = $("diff-dist-hint");
     if (!state.diffusion.result) {
         hint.textContent = "Run a simulation to see how received information distributes across feature values.";
@@ -485,11 +499,13 @@ function renderDiffDistribution() {
 }
 
 async function fetchDistribution() {
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) return DiffusionWorkspace.renderDistribution();
     if (!state.diffusion.result) return;
     const type = $("diff-dist-type").value;
     const body = { graphId: state.graphId, type };
     if (type === "mixed") { body.infoFeature = $("diff-dist-info").value; body.userFeature = $("diff-dist-user").value; }
     else body.feature = $("diff-dist-feature").value;
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) { await DiffusionWorkspace.load("dist", "/api/diffusion/distribution", body); return; }
     setChartLoading("diff-dist-area", true);
     try {
         const res = await api("/api/diffusion/distribution", jsonBody(body));
@@ -501,6 +517,7 @@ async function fetchDistribution() {
 }
 
 function drawDistribution() {
+    if (typeof DiffusionWorkspace !== "undefined" && DiffusionWorkspace.ready) { DiffusionWorkspace.draw("dist"); return; }
     const res = state.diffusion.dist;
     if (!res) return;
     if (res.type === "mixed") { drawHeatmap("diff-dist-canvas", res); return; }
@@ -510,17 +527,18 @@ function drawDistribution() {
 }
 
 // A cross-tab heatmap: info-feature values down the rows, user-feature values across the columns, cell = joint count.
-function drawHeatmap(chartId, res) {
+function drawHeatmap(chartId, res, runColor) {
     const infoVals = res.infoValues || [], userVals = res.userValues || [], matrix = res.matrix || [];
     if (!infoVals.length || !userVals.length) { clearChart(chartId); return; }
-    const colors = echartColors();
-    const points = [];
+    const colors = { ...echartColors(), ...(runColor ? { accent: runColor } : {}) };
+    const points = res.points ? res.points.map(point => point.map(Number)) : [];
     let max = 0;
-    for (let r = 0; r < infoVals.length; r++) for (let c = 0; c < userVals.length; c++) {
+    for (let r = 0; !res.points && r < infoVals.length; r++) for (let c = 0; c < userVals.length; c++) {
         const value = Number((matrix[r] && matrix[r][c]) || 0);
         points.push([c, r, value]);
         if (value > max) max = value;
     }
+    if (res.points) for (const point of points) max = Math.max(max, point[2]);
     const option = chartBase(colors, "");
     option.grid = { left: 112, right: 72, top: 18, bottom: 94, containLabel: true };
     option.tooltip = { ...option.tooltip, trigger: "item", formatter: (p) =>
@@ -536,6 +554,10 @@ function drawHeatmap(chartId, res) {
         axisLine: { lineStyle: { color: colors.border } }, axisTick: { show: true, inside: false, length: 6, lineStyle: { color: colors.border } }, splitArea: { show: true, areaStyle: { color: ["transparent", colors.background + "33"] } } };
     option.visualMap = { min: 0, max: Math.max(1, max), calculable: true, orient: "vertical", right: 4, top: "middle",
         inRange: { color: [colors.background, colors.accent] }, textStyle: { color: colors.muted } };
+    if (userVals.length > 12 || infoVals.length > 12) option.dataZoom = [
+        { type: "slider", xAxisIndex: 0, bottom: 6, height: 16, filterMode: "none" },
+        { type: "slider", yAxisIndex: 0, right: 58, width: 12, filterMode: "none" },
+    ];
     option.series = [{ type: "heatmap", data: points, progressive: 4000,
         itemStyle: { borderWidth: 1, borderColor: colors.background }, emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,0,0,0.35)" } } }];
     showEChart(chartId, option, (res.infoFeature || "info") + " × " + (res.userFeature || "user") + " distribution");

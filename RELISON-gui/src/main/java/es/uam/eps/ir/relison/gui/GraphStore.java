@@ -58,6 +58,7 @@ public class GraphStore
      */
     public void remove(String id)
     {
-        sessions.remove(id);
+        GraphSession session = sessions.remove(id);
+        if (session != null) session.setDiffusion(null);
     }
 }

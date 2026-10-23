@@ -235,8 +235,10 @@ public class EdgePartitionController
     private void metric(Context ctx, boolean individual)
     {
         Map<?, ?> body = ctx.bodyAsClass(Map.class);
-        GraphSession session = store.get(String.valueOf(body.get("graphId")));
+        GraphSession session = MetricController.metricSession(ctx, body, store.get(String.valueOf(body.get("graphId"))));
+        if (session == null && body.get("recommendationKey") != null) return;
         if (session == null) { ctx.status(404).json(Map.of("error", "Unknown graph id.")); return; }
+        Graph<String> metricGraph = MetricController.useRecommendation(body, session) ? session.getAugmentedGraph() : session.getGraph();
         String partitionId = String.valueOf(body.get("partitionId"));
         EdgePartition<String> partition = session.getEdgePartitions().get(partitionId);
         if (partition == null) { ctx.status(400).json(Map.of("error", "Detect an edge partition first; it may have been invalidated by a graph edit.")); return; }
@@ -250,6 +252,7 @@ public class EdgePartitionController
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("metric", id);
         response.put("partitionId", partitionId);
+        response.put("recommendation", MetricController.useRecommendation(body, session) ? session.getActiveRecommendationKey() : null);
         response.put("label", (intra ? "Intra-partition " : "") + def.label
                 + Grids.suffix(def.params, MetricController.paramsOf(body)));
         try
@@ -271,7 +274,7 @@ public class EdgePartitionController
                 }
                 else metric = EdgePartitionMetricCatalog.individual(id);
                 Map<Integer, Double> values = jobs.run(MetricController.jobKey(body, "edgePartitionIndividual"),
-                        () -> metric.compute(session.getGraph(), partition));
+                        () -> metric.compute(metricGraph, partition));
                 Map<String, Object> out = new LinkedHashMap<>();
                 values.forEach((group, value) -> out.put(group.toString(), finite(value)));
                 response.put("values", out);
@@ -282,7 +285,7 @@ public class EdgePartitionController
             else
             {
                 double value = jobs.run(MetricController.jobKey(body, "edgePartitionGlobal"),
-                        () -> EdgePartitionMetricCatalog.<String>global(id).compute(session.getGraph(), partition));
+                        () -> EdgePartitionMetricCatalog.<String>global(id).compute(metricGraph, partition));
                 response.put("value", finite(value));
             }
             if (session.getEdgePartitions().get(partitionId) != partition)

@@ -17,7 +17,7 @@ final class ProcessController
             String requested = ctx.header("X-Relison-Job-ID");
             String id = requested == null ? UUID.randomUUID().toString() : UUID.fromString(requested).toString();
             Map<String, Object> details = new LinkedHashMap<>();
-            for (String key : List.of("metric", "algorithm", "partitionId", "attribute", "params", "type", "mode", "withRecommendation", "onlyLinks"))
+            for (String key : List.of("metric", "algorithm", "partitionId", "attribute", "params", "type", "mode", "withRecommendation", "recommendationKey", "onlyLinks", "runId", "node", "piece", "feature", "category", "entity"))
                 if (body.get(key) != null) details.put(key, body.get(key));
             String label = String.valueOf(body.containsKey("metric") ? body.get("metric")
                     : body.containsKey("algorithm") ? body.get("algorithm") : kind);

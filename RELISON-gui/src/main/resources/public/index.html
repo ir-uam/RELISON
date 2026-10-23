@@ -435,10 +435,12 @@
                 <span>Edge partition</span>
                 <select id="edge-color-partition" aria-label="Edge colouring partition"></select>
             </label>
-            <div id="rec-edge-block" hidden>
+            <div id="rec-edge-block">
                 <hr class="sep"/>
                 <span class="sublabel">Recommended edges</span>
-                <label class="inline-check"><input type="checkbox" id="rec-edge-show" checked/> Show recommended links</label>
+                <label class="field"><span>Display</span><select id="rec-edge-mode"><option value="none">No recommendation</option><option value="only">Show only recommended links</option><option value="highlight">Highlight recommended links</option></select></label>
+                <label class="field"><span>Recommendation</span><select id="rec-edge-model" disabled><option value="">No computed results</option></select></label>
+                <input type="checkbox" id="rec-edge-show" checked hidden/>
                 <label class="inline-check"><input type="checkbox" id="rec-edge-diff" checked/> Differentiate (dashed)</label>
                 <label class="field">
                     <span>Colour</span>
@@ -573,8 +575,8 @@
 
         <!-- All metric computation stays on the Metrics tab. -->
         <div id="left-metrics" hidden>
-        <section class="block">
-            <h2>Vertex metrics</h2>
+        <section class="block" data-metric-family="nodes">
+            <h2>Node metrics</h2>
             <select id="vertex-metric"></select>
             <div class="params" id="vertex-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="vertex-rec"/> Include active recommendation</label>
@@ -582,7 +584,7 @@
             <p class="muted" id="vertex-result"></p>
         </section>
 
-        <section class="block">
+        <section class="block" data-metric-family="global">
             <h2>Graph metrics</h2>
             <select id="graph-metric"></select>
             <div class="params" id="graph-params"></div>
@@ -590,17 +592,17 @@
             <button id="btn-graph" class="primary">Run</button>
         </section>
 
-        <section class="block">
-            <h2>Pair metrics</h2>
+        <section class="block" data-metric-family="edges pairs">
+            <h2 id="pair-metric-heading">Edge metrics</h2>
             <select id="pair-metric"></select>
             <div class="params" id="pair-params"></div>
-            <label class="inline-check"><input type="checkbox" id="pair-allpairs"/> All node pairs (not just edges)</label>
+            <label class="inline-check" hidden><input type="checkbox" id="pair-allpairs" disabled/> All node pairs (not just edges)</label>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="pair-rec"/> Include active recommendation</label>
             <button id="btn-pair" class="primary">Run</button>
             <p class="muted" id="pair-result"></p>
         </section>
 
-        <section class="block">
+        <section class="block" data-metric-family="comm">
             <h2>Community metrics</h2>
             <span class="sublabel">Global community metric</span>
             <label class="field">
@@ -623,7 +625,7 @@
             <button id="btn-indiv-comm" disabled class="primary">Run per-community metric</button>
             <p class="muted">Boundary metrics also work for attribute partitions. UND combines incoming and outgoing connections. Weighted variants require nonnegative weights. Newman contributions use standard modularity, rather than the existing global Modularity normalization. Undefined ratios appear as — and are excluded from averages.</p>
         </section>
-        <section class="block">
+        <section class="block" data-metric-family="edgepartitions">
             <h2>Edge partition metrics</h2>
             <label class="field"><span>Global partition</span><select id="ep-global-partition"></select></label>
             <select id="ep-global-metric"></select>
@@ -636,7 +638,7 @@
             <button id="btn-ep-individual" disabled class="primary">Run per-group metric</button>
             <p class="muted">Detect a partition in Edge partitions first. Connectivity uses weak components. Weight Gini requires nonnegative weights. Entropy is measured in bits.</p>
         </section>
-        <section class="block">
+        <section class="block" data-metric-family="attrcomm">
             <h2>Attribute-based metrics</h2>
             <p class="muted">Treat each distinct node-attribute value as a community.</p>
             <label class="field">
@@ -655,7 +657,7 @@
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="attribute-comm-rec"/> Include active recommendation</label>
             <button id="btn-attribute-indiv-comm" disabled class="primary">Run per-value metric</button>
         </section>
-        <section class="block">
+        <section class="block" data-metric-family="edgeattr">
             <h2>Edge attribute metrics</h2>
             <p class="muted">Compute metrics over values assigned to edges.</p>
             <label class="field"><span>Edge attribute</span><select id="edge-attribute-metric-attribute"></select></label>
@@ -1495,7 +1497,7 @@
                     <section class="block">
                         <h2>Metrics</h2>
                         <select id="diff-metrics" multiple size="6"></select>
-                        <p class="muted">Selected metrics are plotted in the "Metrics" subtab of the canvas.</p>
+                        <p class="muted">Selected metrics appear under Analysis → Metrics.</p>
                     </section>
                     <section class="block">
                         <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="diff-rec"/> Run on selected recommendation</label>
@@ -1516,6 +1518,7 @@
                     </nav>
                     <div class="diff-views">
                         <div class="diff-view" id="diff-view-graph">
+                            <label class="diff-run-picker"><span>Run</span><select id="diff-playback-run" aria-label="Simulation run for graph playback" disabled><option value="">No simulation run yet</option></select></label>
                             <label class="diff-renderer-picker"><span>Renderer</span><select id="diff-renderer"><option value="network" selected>Follow network renderer</option><option value="sigma">Sigma</option><option value="cosmograph">Cosmograph</option><option value="mercator">Geographic: Mercator</option><option value="equal-earth">Geographic: Equal Earth</option><option value="globe">Geographic: Globe</option></select></label>
                             <div id="diff-sigma-container"></div>
                             <div id="diff-cosmograph-container" hidden></div>
@@ -1651,7 +1654,6 @@
                                     <label>Distribution <select id="diff-dist-type">
                                         <option value="info">Information feature</option>
                                         <option value="user">User feature</option>
-                                        <option value="mixed">Mixed (info × user)</option>
                                     </select></label>
                                     <label id="diff-dist-feat-field">Feature <select id="diff-dist-feature"></select></label>
                                     <label id="diff-dist-info-field" hidden>Info feature <select id="diff-dist-info"></select></label>
@@ -1960,10 +1962,14 @@
 <script src="network-svg-export.js"></script>
 <script src="animation-export.js"></script>
 <script src="metric-charts.js"></script>
+<script src="metric-series.js"></script>
+<script src="metric-workspace.js"></script>
+<script src="metric-recommendations.js"></script>
 <script src="chart-labels.js"></script>
 <script src="chart-export.js"></script>
 <script src="metric-tables.js"></script>
 <script src="diffusion-charts.js"></script>
+<script src="diffusion-workspace.js"></script>
 <script src="attribute-relationships.js"></script>
 <script src="chart-settings.js"></script>
 <script src="offline-maps.js"></script>
