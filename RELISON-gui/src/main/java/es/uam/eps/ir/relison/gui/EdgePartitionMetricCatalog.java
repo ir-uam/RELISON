@@ -1,6 +1,10 @@
 package es.uam.eps.ir.relison.gui;
 
 import es.uam.eps.ir.relison.graph.edges.EdgeOrientation;
+import es.uam.eps.ir.relison.grid.Grid;
+import es.uam.eps.ir.relison.grid.sna.graph.GraphMetricSelector;
+import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
+import es.uam.eps.ir.relison.sna.metrics.distance.CompleteDistanceCalculator;
 import es.uam.eps.ir.relison.sna.metrics.EdgePartitionMetric;
 import es.uam.eps.ir.relison.sna.metrics.IndividualEdgePartitionMetric;
 import es.uam.eps.ir.relison.sna.metrics.edgepartition.indiv.*;
@@ -65,6 +69,23 @@ public final class EdgePartitionMetricCatalog
             case "largest-component-share": return new LargestComponentShare<>();
             default: throw new IllegalArgumentException("Unknown individual edge partition metric: " + id);
         }
+    }
+
+    /** Configures the same per-group engine for detected partitions and direct edge attributes. */
+    public static <U> IndividualEdgePartitionMetric<U> individual(String id, Map<?, ?> params)
+    {
+        if (!id.startsWith(INTRA_PREFIX)) return individual(id);
+        String graphMetricId = id.substring(INTRA_PREFIX.length());
+        MetricCatalog.MetricDef def = MetricCatalog.graphMetrics().get(graphMetricId);
+        if (def == null) throw new IllegalArgumentException("Unknown intra-partition graph metric: " + graphMetricId);
+        Grid grid = Grids.build(def.params, params);
+        return new IndividualEdgePartitionGraphMetric<>(() -> {
+            Map<String, java.util.function.Supplier<GraphMetric<U>>> available = new GraphMetricSelector<U>()
+                    .getMetrics(graphMetricId, grid, new CompleteDistanceCalculator<>());
+            if (available == null || available.isEmpty())
+                throw new IllegalArgumentException("Graph metric could not be configured: " + graphMetricId);
+            return available.values().iterator().next().get();
+        });
     }
 
     public static <U> EdgePartitionMetric<U> global(String id)

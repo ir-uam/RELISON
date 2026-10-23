@@ -664,14 +664,16 @@
         </section>
         <section class="block" data-metric-family="edgeattr">
             <h2>Edge attribute metrics</h2>
-            <p class="muted">Compute metrics over values assigned to edges.</p>
+            <p class="muted">Categorical, string and boolean edge attributes support all edge partition metrics. Intra-attribute metrics use each value's edges and their endpoints.</p>
             <label class="field"><span>Edge attribute</span><select id="edge-attribute-metric-attribute"></select></label>
             <span class="sublabel">Global metric</span>
             <select id="edge-attribute-global-metric"><option value="num-attributes">Number of attribute values</option></select>
+            <div class="params" id="edge-attribute-global-params"></div>
             <button id="btn-edge-attribute-global" disabled class="primary">Run global metric</button>
             <hr class="sep"/>
             <span class="sublabel">Per-value metric</span>
             <select id="edge-attribute-indiv-metric"><option value="count">Edge count</option></select>
+            <div class="params" id="edge-attribute-indiv-params"></div>
             <button id="btn-edge-attribute-indiv" disabled class="primary">Run per-value metric</button>
         </section>
         </div>

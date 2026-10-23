@@ -172,6 +172,29 @@ function communityMetricColumns() {
     return [...communityMetrics, ...attributeMetrics];
 }
 
+function updateNodeAttributeMetricLabels(attribute, previousValue, value, merged) {
+    const keys = attributeMetricResultKeys("node", attribute);
+    if (merged) {
+        for (const key of keys.individual) { delete state.attributeMetricData[key]; delete state.recMetricData.comm[key]; }
+        state.attributeMetricOrder = state.attributeMetricOrder.filter(key => state.attributeMetricData[key]);
+        for (const key of keys.community) { delete state.commMetricData[key]; delete state.recMetricData.comm[key]; }
+        state.commMetricOrder = state.commMetricOrder.filter(key => state.commMetricData[key]);
+        for (const key of keys.global) { delete state.graphMetrics[key]; delete state.globalMetricScopes?.[key]; delete state.recMetricData.graph[key]; }
+        for (const [key, recipe] of Object.entries(state.metricComputations || {}))
+            if (recipe.family === "attrcomm" && recipe.body.attribute === attribute) delete state.metricComputations[key];
+        return;
+    }
+    const oldLabel = previousValue == null ? "(missing)" : String(previousValue), label = value == null ? "(missing)" : String(value);
+    for (const key of keys.individual) {
+        const entry = state.attributeMetricData[key];
+        for (const id of Object.keys(entry.valueLabels || {})) if (entry.valueLabels[id] === oldLabel) entry.valueLabels[id] = label;
+    }
+    if (previousValue == null) {
+        for (const key of [...keys.individual, ...keys.community]) delete state.recMetricData.comm[key];
+        for (const key of keys.global) delete state.recMetricData.graph[key];
+    }
+}
+
 function communityValue(row, key) {
     if (key.startsWith("metric:")) return state.commMetricData[key.slice(7)]?.values[row.id];
     if (key.startsWith("attribute-metric:")) {
@@ -890,6 +913,14 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!label) { setStatus("An attribute value cannot be empty.", "error"); return; }
             const row = communityRows().find(item => String(item.id) === String(id));
             if (!row) return;
+            const previousValue = nodeAttrVal(row.members[0], metadata.attribute);
+            const proposed = {};
+            applyLocalAttr(proposed, metadata.attribute, label, nodeAttrDefs());
+            const value = proposed[metadata.attribute];
+            const members = new Set(row.members);
+            const merged = state.graph.nodes().some(node => !members.has(node) && nodeAttrVal(node, metadata.attribute) === value);
+            if (merged && !confirmAttributeMetricRemoval("node", metadata.attribute, "Merging these node attribute groups")) return;
+            if (!merged && previousValue == null && !confirmAttributeMetricRemoval("node", metadata.attribute, "Renaming missing node attribute values", true)) return;
             const graphId = state.graphId, partition = e.partition;
             try {
                 await api("/api/graph/" + graphId + "/attributes/nodes/value", jsonBody({
@@ -903,6 +934,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     state.graph.setNodeAttribute(node, "attrs", attrs);
                 });
                 state.networkRevision++;
+                updateNodeAttributeMetricLabels(metadata.attribute, previousValue, value, merged);
                 delete e.labels[partition];
                 delete state.communityData[partition];
                 delete e.metadata[partition];

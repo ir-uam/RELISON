@@ -86,6 +86,7 @@ function refreshEdgePartitionExplorer() {
 }
 
 function invalidateEdgeAttributePartitions(attribute) {
+    clearEdgeAttributeMetricResults(attribute);
     const e = EDGE_PARTITION_VIEW, colorChoice = $("edge-color-partition").value;
     let removedColorPartition = false;
     for (const data of Object.values(e.partitions)) {
@@ -168,6 +169,7 @@ function initEdgePartitionUI() {
         if (!data) return;
         if (isDirectEdgeAttributePartition(data)) {
             $("edge-attribute-metric-attribute").value = data.configuration.attribute;
+            syncEdgeAttributeMetricControls();
             switchTab("metrics"); switchSubtab("edgeattr"); return;
         }
         const id = edgePartitionChoice(data);
@@ -236,6 +238,8 @@ async function detectNumericAttributeCommunities() {
         setStatus("Choose a numeric node attribute and a positive bin width.", "error");
         return;
     }
+    const existing = findCommunityPartition("attribute-bins", { attribute, binWidth });
+    if (existing) { selectCommunityPartition(existing); setStatus("Selected existing numeric attribute communities."); return; }
     const graphId = state.graphId, graph = state.graph, revision = state.networkRevision;
     setStatus("Detecting numeric attribute communities…", "busy");
     const signal = beginJob("btn-community-bins", "community");
@@ -321,6 +325,7 @@ async function detectEdgePartition() {
         const edgeCount = result.edges.length;
         setEdgePartitionStatus("Found " + result.groups.length + " groups across " + edgeCount + " edges.");
         syncEdgePartitionControls();
+        refreshAfterCompute();
     } catch (error) {
         setEdgePartitionStatus(error.message, "error");
     } finally {
@@ -332,16 +337,18 @@ function edgePartitionColumns() {
     const data = EDGE_PARTITION_VIEW.data;
     return [{ key: "id", label: "ID" }, { key: "label", label: "Label" }, { key: "size", label: "Edges" },
         { key: "share", label: "Network share (%)" }, { key: "notes", label: "Notes" },
-        ...Object.entries(data?.individualMetrics || {}).map(([key, metric]) => ({ key: "metric:" + key, label: metric.label }))];
+        ...Object.entries(data?.individualMetrics || {}).map(([key, metric]) => ({ key: "metric:" + key, label: metric.label })),
+        ...(isDirectEdgeAttributePartition(data) ? state.edgeAttributeMetricOrder
+            .filter(key => state.edgeAttributeMetricData[key]?.attribute === data.configuration.attribute)
+            .map(key => ({ key: "attribute-metric:" + key, label: key.replace(" · Edge attribute: " + data.configuration.attribute, "") })) : [])];
 }
 
 function edgePartitionColor(group, data = EDGE_PARTITION_VIEW.data) {
     return /^#[\da-f]{6}$/i.test(group.color) ? group.color : categoricalHex(Math.max(0, group.id));
 }
 
-function edgePartitionNetworkColors(partitionId) {
-    const data = EDGE_PARTITION_VIEW.partitions[partitionId], result = new Map();
-    if (!isComputedEdgePartition(data) || !state.graph) return result;
+function edgePartitionMembership(data) {
+    if (!isComputedEdgePartition(data) || !state.graph) return new Map();
     if (!data.networkGroups) {
         data.networkGroups = new Map();
         for (const edge of data.edges) {
@@ -349,8 +356,19 @@ function edgePartitionNetworkColors(partitionId) {
             if (key != null) data.networkGroups.set(key, edge.partition);
         }
     }
+    return data.networkGroups;
+}
+
+function edgePartitionEdgeGroup(edge, partitionId) {
+    const group = edgePartitionMembership(EDGE_PARTITION_VIEW.partitions[partitionId]).get(edge);
+    return group != null && group >= 0 ? group : undefined;
+}
+
+function edgePartitionNetworkColors(partitionId) {
+    const data = EDGE_PARTITION_VIEW.partitions[partitionId], result = new Map();
+    if (!isComputedEdgePartition(data) || !state.graph) return result;
     const colors = new Map(data.groups.map(group => [group.id, edgePartitionColor(group, data)]));
-    for (const [edge, group] of data.networkGroups) result.set(edge, colors.get(group));
+    for (const [edge, group] of edgePartitionMembership(data)) result.set(edge, colors.get(group));
     return result;
 }
 
@@ -358,6 +376,20 @@ function edgePartitionGroupValue(group, key) {
     if (key === "color") return edgePartitionColor(group);
     if (key === "share") return state.graph?.size ? 100 * group.size / state.graph.size : 0;
     if (key.startsWith("metric:")) return EDGE_PARTITION_VIEW.data.individualMetrics[key.slice(7)]?.values[group.id];
+    if (key.startsWith("attribute-metric:")) {
+        const entry = state.edgeAttributeMetricData[key.slice("attribute-metric:".length)];
+        if (!entry) return undefined;
+        // Category IDs belong to each calculation; match the underlying value,
+        // including its type and missing values, rather than assuming IDs agree.
+        const edge = edgePartitionGroupEdges(group.id)[0];
+        const edgeKey = edge && edgePartitionEdgeKey(edge);
+        const value = edgeKey == null ? null : edgeAttrVal(edgeKey, entry.attribute);
+        const categoryKey = JSON.stringify(value ?? null), canonicalId = "attribute-value:" + categoryKey;
+        const id = Object.hasOwn(entry.values, canonicalId) ? canonicalId : entry.categoryValues
+            ? Object.keys(entry.categoryValues).find(id => JSON.stringify(entry.categoryValues[id] ?? null) === categoryKey)
+            : Object.keys(entry.valueLabels).find(id => entry.valueLabels[id] === (value == null ? "(missing)" : String(value)));
+        return entry.values[id];
+    }
     return group[key];
 }
 
@@ -424,9 +456,15 @@ async function saveEdgePartitionLabel() {
     }
     button.disabled = true;
     try {
-        const result = await api("/api/edge-partitions/attribute-label", jsonBody({
-            graphId, partitionId: data.partitionId, group: group.id, attribute, label,
-        }));
+        const body = { graphId, partitionId: data.partitionId, group: group.id, attribute, label };
+        const revision = state.networkRevision;
+        const preview = await api("/api/edge-partitions/attribute-label", jsonBody({ ...body, preview: true }));
+        if (graphId !== state.graphId || graph !== state.graph || revision !== state.networkRevision) return;
+        if (preview.membershipChanged) {
+            if (!confirmAttributeMetricRemoval("edge", attribute, "Merging these edge attribute groups")) return;
+        } else if (preview.previousValue == null && !confirmAttributeMetricRemoval("edge", attribute,
+            "Renaming missing edge attribute values", true)) return;
+        const result = await api("/api/edge-partitions/attribute-label", jsonBody({ ...body, allowMembershipChange: preview.membershipChanged }));
         if (graphId !== state.graphId || graph !== state.graph) return;
         for (const key of keys) {
             if (!graph.hasEdge(key)) continue;
@@ -436,8 +474,7 @@ async function saveEdgePartitionLabel() {
         }
         state.networkRevision++;
         result.configuration = data.configuration;
-        // Renaming to an existing category merges the groups and can renumber
-        // every group. Reuse presentation settings by value and discard old metrics.
+        // Reuse presentation settings even when a category merge renumbers groups.
         result.globalMetrics = {}; result.individualMetrics = {};
         for (const next of result.groups) {
             const previous = data.groups.find(item => item !== group && item.label === next.label)
@@ -452,10 +489,9 @@ async function saveEdgePartitionLabel() {
             EDGE_PARTITION_VIEW.partitions[data.partitionId] = result;
             if (EDGE_PARTITION_VIEW.data === data) selectEdgePartitionResult(result.partitionId);
         }
-        for (const metric of state.edgeAttributeMetricOrder.filter(name => state.edgeAttributeMetricData[name]?.attribute === attribute))
-            delete state.edgeAttributeMetricData[metric];
-        state.edgeAttributeMetricOrder = state.edgeAttributeMetricOrder.filter(name => state.edgeAttributeMetricData[name]);
-        delete state.graphMetrics["Number of attribute values (" + attribute + ")"];
+        if (result.membershipChanged !== false) clearEdgeAttributeMetricResults(attribute);
+        else relabelEdgeAttributeMetricResults(attribute, result.previousValue, label);
+        renderEdgePartitionGroups(); renderEdgePartitionMembers();
         syncEdgePartitionControls();
         applyAppearance(); // Rebuilds displayed edge labels from the updated attribute.
         if (state.selectedEdge && graph.hasEdge(state.selectedEdge)) renderEdgeInfo(state.selectedEdge);
@@ -649,6 +685,7 @@ function loadEdgePartitionMetricCatalog(catalog) {
     state.defs.edgePartitionGlobal = indexById(catalog.edgePartitionGlobal);
     state.defs.edgePartitionIndividual = indexById(catalog.edgePartitionIndividual);
     state.defs.intraEdgePartitionIndividual = indexById(catalog.intraEdgePartitionIndividual);
+    syncEdgeAttributeMetricControls();
     fillSelect("ep-global-metric", catalog.edgePartitionGlobal || []);
     fillSelect("ep-individual-metric", [...(catalog.edgePartitionIndividual || []), ...(catalog.intraEdgePartitionIndividual || [])]);
     renderParams("ep-global-params", "edgePartitionGlobal", $("ep-global-metric").value);
@@ -702,6 +739,12 @@ function edgePartitionMetricValue(value) {
 
 function renderEdgePartitionGlobalSummary() {
     const metrics = Object.values(EDGE_PARTITION_VIEW.data?.globalMetrics || {});
+    const data = EDGE_PARTITION_VIEW.data;
+    if (isDirectEdgeAttributePartition(data)) {
+        for (const [label, scope] of Object.entries(state.globalMetricScopes || {}))
+            if (scope.family === "edgeattr" && scope.scope === data.configuration.attribute)
+                metrics.push({ label, value: state.graphMetrics[label] });
+    }
     $("edge-partition-globals").hidden = !metrics.length;
     $("edge-partition-globals").textContent = metrics.map(metric => metric.label + ": " + (metric.value == null ? "—" : fmt(metric.value))).join(" · ");
 }

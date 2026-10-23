@@ -11,7 +11,7 @@ function metricTableDetails(label) {
     const grouping = divider < 0 ? "" : text.slice(divider + 3);
     if (divider >= 0) text = text.slice(0, divider);
     const definitions = ["vertex", "graph", "pair", "communityIndividual", "communityGlobal",
-        "edgePartitionGlobal", "edgePartitionIndividual", "intraEdgePartitionIndividual"]
+        "edgePartitionGlobal", "edgePartitionIndividual", "intraEdgePartitionIndividual", "edgeAttributeGlobal", "edgeAttributeIndividual"]
         .flatMap(family => Object.values(state.defs?.[family] || {}));
     const definition = definitions.filter(def => text === def.label || text.startsWith(def.label + " ("))
         .sort((a, b) => b.label.length - a.label.length)[0];

@@ -341,7 +341,7 @@ function drawEdgeAttributeChart() {
     const ids = Object.keys(values);
     if (sortBy === "attribute") ids.sort((a, b) => String(labels[a] ?? a).localeCompare(String(labels[b] ?? b), undefined, { numeric: true }));
     else { const compared = state.edgeAttributeMetricData[sortBy]?.values || values; ids.sort((a, b) => (compared[b] ?? 0) - (compared[a] ?? 0)); }
-    drawBarChart("edgeattr-chart", "edgeattr-chart-tip", ids.map((id) => ({ label: String(labels[id] ?? id), value: values[id] ?? NaN })), metric, "edge attribute values", metric);
+    drawBarChart("edgeattr-chart", "edgeattr-chart-tip", ids.map((id) => ({ label: String(labels[id] ?? id), value: values[id] ?? NaN })), metric, "edge attribute values", entry.axisLabel || metricTableDetails(metric).metric);
 }
 function clearChart(canvasId) {
     const note = $(canvasId + "-view-note");

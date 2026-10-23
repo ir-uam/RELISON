@@ -8,7 +8,10 @@ function metricResultSources(entry) {
         const labels = { ...entry.labels };
         if (!entry.aggregate) for (const id of Object.keys(value)) {
             if (!Object.hasOwn(entry.values, id) && entry.pairKeys && id.startsWith("recommendation-edge:")) labels[id] = JSON.parse(id.slice("recommendation-edge:".length)).join("→");
-            else if (!Object.hasOwn(entry.values, id) && id.startsWith("attribute-value:")) labels[id] = JSON.parse(id.slice("attribute-value:".length));
+            else if (!Object.hasOwn(entry.values, id) && id.startsWith("attribute-value:")) {
+                const category = JSON.parse(id.slice("attribute-value:".length));
+                labels[id] = category == null ? "(missing)" : String(category);
+            }
         }
         return { id: "rec:" + key, key, name: recLabel(key), labels,
             map: entry.aggregate ? {} : value, values: entry.aggregate ? [] : Object.values(value), aggregate: entry.aggregate ? value : null,
@@ -77,7 +80,7 @@ function metricAnalysisAggregateDistribution(entry, type, binSize, sources, mark
         const valueCounts = (aggregate?.valueCounts || []).filter(item => Number.isFinite(item.value) && Number.isFinite(item.count) && item.count > 0).sort((a, b) => a.value - b.value);
         return { ...source, bins, valueCounts };
     });
-    option.xAxis = metricAnalysisAxis(entry.label, colors); option.yAxis = metricAnalysisAxis(type === "histogram" || type === "frequency" ? "Number of values" : "Cumulative share (%)", colors);
+    option.xAxis = metricAnalysisAxis(entry.axisLabel || entry.label, colors); option.yAxis = metricAnalysisAxis(type === "histogram" || type === "frequency" ? "Number of values" : "Cumulative share (%)", colors);
     option.legend = { data: sources.map(source => source.name), selectedMode: false, textStyle: { color: colors.text } };
     option.dataZoom = [{ type: "inside", xAxisIndex: 0, filterMode: "none" }];
     if (type === "histogram") {
@@ -85,7 +88,7 @@ function metricAnalysisAggregateDistribution(entry, type, binSize, sources, mark
         const intervals = [...new Map(prepared.flatMap(source => source.bins.map(bin => [intervalKey(bin), bin]))).values()]
             .sort((a, b) => a.x0 - b.x0 || a.x1 - b.x1);
         const labels = intervals.map(bin => fmt(bin.x0) + "–" + fmt(bin.x1));
-        option.xAxis = metricAnalysisHistogramAxis(entry.label + " (value intervals)", labels, colors);
+        option.xAxis = metricAnalysisHistogramAxis((entry.axisLabel || entry.label) + " (value intervals)", labels, colors);
         option.yAxis.min = 0;
         option.series = prepared.map(source => {
             const counts = new Map(source.bins.map(bin => [intervalKey(bin), bin.count]));
@@ -230,6 +233,6 @@ function drawMetricWorkspaceRanking(family) {
     });
     else ids.sort((a, b) => String(source.labels[a] ?? a).localeCompare(String(source.labels[b] ?? b), undefined, { numeric: true }));
     const items = ids.map(key => ({ label: metricAnalysisLabel(source.labels, key), value: source.map[key] }));
-    drawBarChart(id, "", items, entry.label + " — " + source.name, config.noun, entry.label);
+    drawBarChart(id, "", items, entry.label + " — " + source.name, config.noun, entry.axisLabel || entry.label);
     $(id + "-view-note").textContent += " Result: " + source.name + ".";
 }

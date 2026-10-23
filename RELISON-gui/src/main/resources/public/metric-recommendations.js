@@ -82,13 +82,16 @@ function metricComputationInventory() {
                 "/api/communities/individual", family === "comm" ? { algorithm: entry.algorithm } : { attribute: entry.attribute }, "comm", "map", core));
         }
     for (const label of state.edgeAttributeMetricOrder || []) add("edgeattr", label, "edgeattr", () => ({ family: "edgeattr", label, recFamily: "edgeattr", shape: "map",
-        url: "/api/metrics/edge-attributes", body: { attribute: state.edgeAttributeMetricData[label].attribute, metric: "count" } }));
+        url: "/api/metrics/edge-attributes", body: { attribute: state.edgeAttributeMetricData[label].attribute,
+            metric: state.edgeAttributeMetricData[label].metric || "count", scope: "individual", params: state.edgeAttributeMetricData[label].params || {} } }));
     for (const label of Object.keys(state.graphMetrics || {})) add("global", label, "graph", () => {
         for (const family of ["comm", "attrcomm", "edgeattr"]) {
             if (!metricAnalysisGlobalRows(family).some(row => row.label === label)) continue;
             if (family === "edgeattr") {
                 const attribute = state.globalMetricScopes?.[label]?.scope || label.slice("Number of attribute values (".length, -1);
-                return { family, label, recFamily: "graph", shape: "scalar", url: "/api/metrics/edge-attributes", body: { attribute, metric: "num-attributes" } };
+                const scope = state.globalMetricScopes?.[label];
+                return { family, label, recFamily: "graph", shape: "scalar", url: "/api/metrics/edge-attributes",
+                    body: { attribute, metric: scope?.metric || "num-attributes", scope: "global", params: scope?.params || {} } };
             }
             const scope = state.globalMetricScopes?.[label]?.scope;
             const algorithm = family === "comm" ? scope || Object.keys(state.communityData || {}).find(id => label.endsWith(" (" + id + ")")) : null;
@@ -123,6 +126,11 @@ function metricRecommendationValue(recipe, response) {
     const values = numericMap(response.values || {});
     if (recipe.family === "attrcomm" || recipe.family === "edgeattr") {
         const original = recipe.family === "attrcomm" ? state.attributeMetricData[recipe.label] : state.edgeAttributeMetricData[recipe.label];
+        if (recipe.family === "edgeattr" && original.categoryValues && response.categoryValues) {
+            const normalized = edgeAttributeMetricValues(response).values;
+            return Object.fromEntries([...new Set([...Object.keys(original.values), ...Object.keys(normalized)])]
+                .map(id => [id, normalized[id] ?? NaN]));
+        }
         const lookup = new Map();
         for (const [id, label] of Object.entries(response.valueLabels || {})) {
             if (!lookup.has(label)) lookup.set(label, id); else lookup.set(label, null);

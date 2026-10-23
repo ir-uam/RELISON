@@ -25,6 +25,10 @@ function harness(extra = {}) {
         recLabel: key => key === "model" ? "Model A" : key,
         numericMap: values => Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value == null ? NaN : Number(value)])),
         communityLabel: (id, algorithm) => algorithm + ":" + id, edgePartitionChartEntries: () => [], ...extra });
+    for (const [file, name] of [["app.js", "formatAuthorityMode"], ["metric-tables.js", "metricTableDetails"]]) {
+        const source = read(file), start = source.indexOf("function " + name + "(");
+        vm.runInContext(source.slice(start, source.indexOf("\n}", start) + 2), context);
+    }
     vm.runInContext(read("metric-series.js"), context);
     vm.runInContext(read("metric-workspace.js"), context);
     vm.runInContext(read("metric-recommendations.js"), context);

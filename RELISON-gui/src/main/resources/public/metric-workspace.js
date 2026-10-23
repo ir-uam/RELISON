@@ -164,7 +164,8 @@ function metricAnalysisEntries(family) {
         const node = family === "attrcomm", data = node ? state.attributeMetricData : state.edgeAttributeMetricData;
         return (node ? state.attributeMetricOrder : state.edgeAttributeMetricOrder).map(key => {
             const entry = data[key];
-            return wrap(key, entry.values, family + ":" + entry.attribute, entry.valueLabels || {}, node ? "comm" : "edgeattr");
+            return wrap(key, entry.values, family + ":" + entry.attribute, entry.valueLabels || {}, node ? "comm" : "edgeattr",
+                { axisLabel: entry.axisLabel || metricTableDetails(key).metric });
         });
     }
     if (family === "edgepartitions") return edgePartitionChartEntries().map(({ key, data, metric }) =>

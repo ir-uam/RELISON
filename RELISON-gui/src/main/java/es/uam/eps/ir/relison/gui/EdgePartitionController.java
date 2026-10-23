@@ -15,13 +15,7 @@ import es.uam.eps.ir.relison.sna.edge.detection.community.CommunityInternalExter
 import es.uam.eps.ir.relison.sna.edge.detection.community.CommunityRelationEdgePartitionDetector;
 import es.uam.eps.ir.relison.sna.edge.detection.EdgePartitionSupport;
 import io.javalin.http.Context;
-import es.uam.eps.ir.relison.grid.Grid;
-import es.uam.eps.ir.relison.grid.sna.graph.GraphMetricSelector;
-import es.uam.eps.ir.relison.sna.metrics.GraphMetric;
 import es.uam.eps.ir.relison.sna.metrics.IndividualEdgePartitionMetric;
-import es.uam.eps.ir.relison.sna.metrics.edgepartition.indiv.IndividualEdgePartitionGraphMetric;
-import es.uam.eps.ir.relison.sna.metrics.distance.CompleteDistanceCalculator;
-import java.util.function.Supplier;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -196,6 +190,27 @@ public class EdgePartitionController
             });
             if (selected.size() != partition.getPartitionSize(group))
                 throw new IllegalArgumentException("The graph changed. Detect the partition again before renaming it.");
+            // Compare proposed memberships before writing, so the UI can warn and cancel.
+            Map<Integer, Object> oldToValue = new LinkedHashMap<>();
+            Map<Object, Integer> valueToOld = new LinkedHashMap<>();
+            boolean[] membershipChanged = { false };
+            EdgePartitionSupport.forEachEdge(graph, edge -> {
+                int before = partition.getPartition(edge);
+                Object current = multi == null ? graph.getEdgeAttribute(edge.getSource(), edge.getTarget(), attribute)
+                        : multi.getEdgeAttribute(edge.getSource(), edge.getTarget(), edge.getIndex(), attribute);
+                Object after = before == group ? label : current;
+                if (before < 0 || oldToValue.containsKey(before) && !java.util.Objects.equals(oldToValue.get(before), after)
+                        || valueToOld.containsKey(after) && valueToOld.get(after) != before) membershipChanged[0] = true;
+                oldToValue.put(before, after); valueToOld.put(after, before);
+            });
+            if (Boolean.TRUE.equals(body.get("preview")))
+            {
+                Map<String, Object> preview = new LinkedHashMap<>();
+                preview.put("membershipChanged", membershipChanged[0]); preview.put("previousValue", oldValue);
+                ctx.json(preview); return;
+            }
+            if (membershipChanged[0] && Boolean.FALSE.equals(body.get("allowMembershipChange")))
+                throw new IllegalArgumentException("Category membership changed. Try renaming again to review the affected metrics.");
             int written = 0;
             try
             {
@@ -212,6 +227,8 @@ public class EdgePartitionController
                 Map<String, Object> response = partitionResponse(session, graph, updated, labels, "edge-attribute",
                         Map.of("attribute", attribute), partitionId);
                 response.put("selectedGroup", updated.getPartition(label));
+                response.put("membershipChanged", membershipChanged[0]);
+                response.put("previousValue", oldValue);
                 ctx.json(response);
             }
             catch (RuntimeException error)
@@ -259,20 +276,7 @@ public class EdgePartitionController
         {
             if (individual)
             {
-                IndividualEdgePartitionMetric<String> metric;
-                if (intra)
-                {
-                    Grid grid = Grids.build(def.params, MetricController.paramsOf(body));
-                    Supplier<GraphMetric<String>> supplier = () -> {
-                        Map<String, Supplier<GraphMetric<String>>> available = new GraphMetricSelector<String>()
-                                .getMetrics(graphMetricId, grid, new CompleteDistanceCalculator<>());
-                        if (available == null || available.isEmpty())
-                            throw new IllegalArgumentException("Graph metric could not be configured: " + graphMetricId);
-                        return available.values().iterator().next().get();
-                    };
-                    metric = new IndividualEdgePartitionGraphMetric<>(supplier);
-                }
-                else metric = EdgePartitionMetricCatalog.individual(id);
+                IndividualEdgePartitionMetric<String> metric = EdgePartitionMetricCatalog.individual(id, MetricController.paramsOf(body));
                 Map<Integer, Double> values = jobs.run(MetricController.jobKey(body, "edgePartitionIndividual"),
                         () -> metric.compute(metricGraph, partition));
                 Map<String, Object> out = new LinkedHashMap<>();

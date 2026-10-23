@@ -19,6 +19,8 @@ import es.uam.eps.ir.relison.sna.metrics.PairMetric;
 import es.uam.eps.ir.relison.sna.metrics.VertexMetric;
 import es.uam.eps.ir.relison.sna.metrics.EdgeAttributeMetric;
 import es.uam.eps.ir.relison.sna.metrics.IndividualEdgeAttributeMetric;
+import es.uam.eps.ir.relison.sna.edge.EdgeAttributePartition;
+import es.uam.eps.ir.relison.sna.edge.detection.attributes.EdgeAttributePartitionDetector;
 import es.uam.eps.ir.relison.sna.metrics.attributes.edges.graph.NumAttributes;
 import es.uam.eps.ir.relison.sna.metrics.attributes.edges.indiv.Count;
 import es.uam.eps.ir.relison.sna.metrics.distance.DistanceCalculator;
@@ -197,22 +199,70 @@ public class MetricController
                 Map<Object, Double> values = jobs.run(jobKey(body, "edgeAttributeIndividual"), () -> metric.compute(graph, attribute));
                 Map<String, Double> out = new LinkedHashMap<>();
                 Map<String, String> valueLabels = new LinkedHashMap<>();
+                Map<String, Object> categoryValues = new LinkedHashMap<>();
                 int index = 0;
                 for (Map.Entry<Object, Double> entry : values.entrySet())
                 {
                     String id = Integer.toString(index++);
                     out.put(id, entry.getValue());
                     valueLabels.put(id, entry.getKey() == null ? "(missing)" : String.valueOf(entry.getKey()));
+                    categoryValues.put(id, entry.getKey());
                 }
                 response.put("label", "Edge count by attribute value (" + attribute + ")");
                 response.put("values", out);
                 response.put("valueLabels", valueLabels);
+                response.put("categoryValues", categoryValues);
                 response.put("average", out.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
             }
             else
             {
-                ctx.status(400).json(Map.of("error", "Unknown edge attribute metric: " + metricId));
-                return;
+                if (graph.getEdgeAttributeType(attribute).isNumeric()
+                        || graph.getEdgeAttributeType(attribute) == es.uam.eps.ir.relison.graph.attributes.AttributeType.TIME)
+                {
+                    ctx.status(400).json(Map.of("error", "Partition metrics require a categorical, string or boolean edge attribute. Use numeric attribute bins for numeric values; time attributes are not supported."));
+                    return;
+                }
+                boolean global = "global".equals(String.valueOf(body.get("scope")));
+                boolean intra = !global && metricId.startsWith(EdgePartitionMetricCatalog.INTRA_PREFIX);
+                MetricCatalog.MetricDef def = intra ? MetricCatalog.graphMetrics().get(metricId.substring(EdgePartitionMetricCatalog.INTRA_PREFIX.length()))
+                        : global ? EdgePartitionMetricCatalog.globalMetrics().get(metricId) : EdgePartitionMetricCatalog.individualMetrics().get(metricId);
+                if (def == null)
+                {
+                    ctx.status(400).json(Map.of("error", "Unknown edge attribute metric: " + metricId)); return;
+                }
+                String metricName = (intra ? "Intra-attribute " : "") + def.label;
+                response.put("axisLabel", metricName);
+                response.put("label", metricName + Grids.suffix(def.params, paramsOf(body)) + " · Edge attribute: " + attribute);
+                // Group by attribute values locally to this computation. No detected
+                // partition is registered in the session or exposed in partition selectors.
+                response.putAll(jobs.run(jobKey(body, global ? "edgeAttributeGlobal" : "edgeAttributeIndividual"), () -> {
+                    EdgeAttributePartition<String, Object> partition = new EdgeAttributePartitionDetector<String>(attribute).detectEdgePartition(graph);
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    if (global)
+                    {
+                        double value = EdgePartitionMetricCatalog.<String>global(metricId).compute(graph, partition);
+                        result.put("value", Double.isFinite(value) ? value : null);
+                    }
+                    else
+                    {
+                        Map<Integer, Double> values = EdgePartitionMetricCatalog.<String>individual(metricId, paramsOf(body)).compute(graph, partition);
+                        Map<String, Object> out = new LinkedHashMap<>();
+                        Map<String, String> labels = new LinkedHashMap<>();
+                        Map<String, Object> categories = new LinkedHashMap<>();
+                        values.forEach((group, value) -> {
+                            out.put(group.toString(), value != null && Double.isFinite(value) ? value : null);
+                            Object category = partition.getAttributeValue(group);
+                            categories.put(group.toString(), category);
+                            labels.put(group.toString(), category == null ? "(missing)" : String.valueOf(category));
+                        });
+                        result.put("values", out); result.put("valueLabels", labels);
+                        result.put("categoryValues", categories);
+                        double average = values.values().stream().filter(java.util.Objects::nonNull).mapToDouble(Double::doubleValue)
+                                .filter(Double::isFinite).average().orElse(Double.NaN);
+                        result.put("average", Double.isFinite(average) ? average : null);
+                    }
+                    return result;
+                }));
             }
             response.put("metric", metricId);
             ctx.json(response);

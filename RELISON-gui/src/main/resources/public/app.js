@@ -927,6 +927,7 @@ async function loadGraph() {
         await openSession(file);
         return;
     }
+    if (!confirmClears("Loading a network")) return;
 
     const form = new FormData();
     form.append("file", file);
@@ -1056,6 +1057,7 @@ async function generateGraph() {
         setStatus("Barabási–Albert: edges per iteration must not exceed the initial nodes.", "error");
         return;
     }
+    if (!confirmClears("Generating a network")) return;
     setStatus("Generating network…", "busy");
     $("btn-generate").disabled = true;
     try {
@@ -2720,7 +2722,7 @@ function networkColumnType(key, col) {
         const definition = defs.find(def => def.name === col.slice(key === "nodes" ? 2 : 3));
         return definition?.numeric ? "number" : definition?.type || "string";
     }
-    return col.startsWith("c:") ? "categorical" : "number";
+    return col.startsWith("c:") || col.startsWith("ep:") ? "categorical" : "number";
 }
 
 function networkWorkingSet(overrides = {}) {
@@ -4170,8 +4172,112 @@ function syncEdgeAttributeMetricControls() {
     const attributes = edgeAttrDefs().map((def) => def.name);
     setSelectOptions("edge-attribute-metric-attribute", attributes, attributes);
     if (attributes.includes(current)) select.value = current;
-    $("btn-edge-attribute-global").disabled = attributes.length === 0;
-    $("btn-edge-attribute-indiv").disabled = attributes.length === 0;
+    const categorical = edgeAttrDefs().some(def => def.name === select.value && !def.numeric && def.type !== "time");
+    const catalog = state.catalog || {};
+    state.defs ||= {};
+    state.defs.edgeAttributeGlobal = indexById([{ id: "num-attributes", label: "Number of attribute values", params: [] },
+        ...(catalog.edgePartitionGlobal || [])]);
+    state.defs.edgeAttributeIndividual = indexById([{ id: "count", label: "Edge count", params: [] },
+        ...(catalog.edgePartitionIndividual || []),
+        ...(catalog.intraEdgePartitionIndividual || []).map(def => ({ ...def,
+            label: def.label.replace(/^Intra-partition /, "Intra-attribute ") }))]);
+    for (const global of [true, false]) {
+        const prefix = "edge-attribute-" + (global ? "global" : "indiv");
+        const defs = Object.values(state.defs[global ? "edgeAttributeGlobal" : "edgeAttributeIndividual"])
+            .filter(def => categorical || def.id === (global ? "num-attributes" : "count"));
+        setSelectOptions(prefix + "-metric", defs.map(def => def.id), defs.map(def => def.label));
+        renderEdgeAttributeMetricParams(global);
+        $(global ? "btn-edge-attribute-global" : "btn-edge-attribute-indiv").disabled = !attributes.length && !jobBusy(global ? "btn-edge-attribute-global" : "btn-edge-attribute-indiv");
+    }
+}
+function renderEdgeAttributeMetricParams(global, force = false) {
+    const prefix = "edge-attribute-" + (global ? "global" : "indiv"), metric = $(prefix + "-metric").value;
+    const container = $(prefix + "-params");
+    if (!force && container.dataset.metric === metric) return;
+    renderParams(prefix + "-params", global ? "edgeAttributeGlobal" : "edgeAttributeIndividual", metric);
+    container.dataset.metric = metric;
+}
+
+function attributeMetricResultKeys(target, attribute) {
+    const edge = target === "edge", family = edge ? "edgeattr" : "attrcomm";
+    const data = edge ? state.edgeAttributeMetricData : state.attributeMetricData;
+    const individual = Object.keys(data || {}).filter(key => data[key]?.attribute === attribute);
+    const global = Object.keys(state.graphMetrics || {}).filter(key => {
+        const scope = state.globalMetricScopes?.[key];
+        return scope?.family === family && scope.scope === attribute
+            || (edge ? key === "Number of attribute values (" + attribute + ")" : key.endsWith(" (Attribute: " + attribute + ")"));
+    });
+    const community = edge ? [] : Object.keys(state.commMetricData || {})
+        .filter(key => state.commMetricData[key]?.algorithm === "attribute:" + encodeURIComponent(attribute));
+    return { individual, global, community };
+}
+
+function confirmAttributeMetricRemoval(target, attribute, action, recommendationsOnly = false) {
+    const keys = attributeMetricResultKeys(target, attribute), family = target === "edge" ? "edgeattr" : "comm";
+    const count = recommendationsOnly ? keys.individual.filter(key => Object.keys(state.recMetricData[family]?.[key] || {}).length).length
+        + keys.global.filter(key => Object.keys(state.recMetricData.graph?.[key] || {}).length).length
+        + keys.community.filter(key => Object.keys(state.recMetricData.comm?.[key] || {}).length).length
+        : keys.individual.length + keys.global.length + keys.community.length;
+    if (!count) return true;
+    return window.confirm(action + ' will remove ' + count + (recommendationsOnly ? ' recommendation metric result(s)' : ' computed metric result(s)')
+        + ' for ' + (target === "edge" ? 'edge' : 'node') + ' attribute "' + attribute + '". Continue?');
+}
+
+function clearEdgeAttributeMetricResults(attribute) {
+    for (const key of state.edgeAttributeMetricOrder.filter(key => state.edgeAttributeMetricData[key]?.attribute === attribute)) {
+        delete state.edgeAttributeMetricData[key];
+        if (state.recMetricData.edgeattr) delete state.recMetricData.edgeattr[key];
+    }
+    state.edgeAttributeMetricOrder = state.edgeAttributeMetricOrder.filter(key => state.edgeAttributeMetricData[key]);
+    for (const [key, scope] of Object.entries(state.globalMetricScopes || {})) {
+        if (scope.family !== "edgeattr" || scope.scope !== attribute) continue;
+        delete state.graphMetrics[key]; delete state.globalMetricScopes[key];
+        if (state.recMetricData.graph) delete state.recMetricData.graph[key];
+    }
+    delete state.graphMetrics["Number of attribute values (" + attribute + ")"];
+    for (const [key, recipe] of Object.entries(state.metricComputations || {}))
+        if (recipe.family === "edgeattr" && recipe.body.attribute === attribute) delete state.metricComputations[key];
+}
+
+function relabelEdgeAttributeMetricResults(attribute, previousValue, label) {
+    const oldCategory = JSON.stringify(previousValue ?? null), newId = "attribute-value:" + JSON.stringify(label);
+    const oldId = "attribute-value:" + oldCategory;
+    for (const key of state.edgeAttributeMetricOrder) {
+        const entry = state.edgeAttributeMetricData[key];
+        if (entry?.attribute !== attribute) continue;
+        for (const id of Object.keys(entry.values)) {
+            const matches = entry.categoryValues ? JSON.stringify(entry.categoryValues[id] ?? null) === oldCategory
+                : entry.valueLabels?.[id] === (previousValue == null ? "(missing)" : String(previousValue));
+            if (!matches) continue;
+            const next = id === oldId ? newId : id;
+            const value = entry.values[id];
+            delete entry.values[id]; entry.values[next] = value;
+            entry.valueLabels ||= {};
+            delete entry.valueLabels[id]; entry.valueLabels[next] = label;
+            if (entry.categoryValues) { delete entry.categoryValues[id]; entry.categoryValues[next] = label; }
+            for (const values of Object.values(state.recMetricData.edgeattr?.[key] || {})) {
+                if (next !== id && Object.hasOwn(values, id)) { values[next] = values[id]; delete values[id]; }
+            }
+        }
+        // Renaming missing values can split augmented groups: recommended edges
+        // may still have no attribute even after all original edges are renamed.
+        if (previousValue == null && state.recMetricData.edgeattr) delete state.recMetricData.edgeattr[key];
+    }
+    if (previousValue == null) for (const [key, scope] of Object.entries(state.globalMetricScopes || {}))
+        if (scope.family === "edgeattr" && scope.scope === attribute && state.recMetricData.graph)
+            delete state.recMetricData.graph[key];
+}
+
+function edgeAttributeMetricValues(response) {
+    const values = {}, valueLabels = {}, categoryValues = {};
+    for (const [id, value] of Object.entries(response.values || {})) {
+        const category = response.categoryValues?.[id];
+        const key = response.categoryValues ? "attribute-value:" + JSON.stringify(category ?? null) : id;
+        values[key] = value == null ? NaN : Number(value);
+        valueLabels[key] = response.valueLabels?.[id] ?? id;
+        if (response.categoryValues) categoryValues[key] = category;
+    }
+    return { values, valueLabels, categoryValues: response.categoryValues ? categoryValues : undefined };
 }
 function syncMetricOrientations(container = document) {
     for (const input of container.querySelectorAll("[data-metric-orientation]")) {
@@ -4222,7 +4328,7 @@ function renderParams(containerId, family, metricId) {
         }
         input.dataset.param = p.name;
         input.dataset.ptype = p.type;
-        const metricFamily = ["vertex", "graph", "pair", "communityGlobal", "communityIndividual", "intraCommunityIndividual", "intraAttributeIndividual", "edgePartitionGlobal", "edgePartitionIndividual", "intraEdgePartitionIndividual"].includes(family);
+        const metricFamily = ["vertex", "graph", "pair", "communityGlobal", "communityIndividual", "intraCommunityIndividual", "intraAttributeIndividual", "edgePartitionGlobal", "edgePartitionIndividual", "intraEdgePartitionIndividual", "edgeAttributeGlobal", "edgeAttributeIndividual"].includes(family);
         if (metricFamily && p.options?.includes("UND") && (p.type === "orientation" || p.options.includes("IN") && p.options.includes("OUT"))) input.dataset.metricOrientation = "true";
         label.appendChild(input);
         container.appendChild(label);
@@ -4559,20 +4665,22 @@ async function runEdgeAttributeMetric(metric, global) {
     setStatus("Computing edge attribute metric by " + attribute + "…", "busy");
     const signal = beginJob(button, global ? "edgeAttributeGlobal" : "edgeAttributeIndividual");
     try {
-        const res = await api("/api/metrics/edge-attributes", { ...jsonBody({ graphId: state.graphId, attribute, metric }), signal });
+        const params = collectParams("edge-attribute-" + (global ? "global" : "indiv") + "-params");
+        const res = await api("/api/metrics/edge-attributes", { ...jsonBody({ graphId, attribute, metric, scope: global ? "global" : "individual", params }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
         if (graphId !== state.graphId || graph !== state.graph || revision !== state.networkRevision) return;
         if (global) {
             state.graphMetrics[res.label] = res.value;
-            (state.globalMetricScopes ||= {})[res.label] = { family: "edgeattr", scope: attribute };
+            (state.globalMetricScopes ||= {})[res.label] = { family: "edgeattr", scope: attribute, metric, params };
             setStatus("Computed " + res.label + " = " + fmt(res.value));
         } else {
             const label = res.label;
             if (!state.edgeAttributeMetricOrder.includes(label)) state.edgeAttributeMetricOrder.push(label);
-            state.edgeAttributeMetricData[label] = { attribute, values: numericMap(res.values), valueLabels: res.valueLabels || {} };
+            state.edgeAttributeMetricData[label] = { attribute, metric, params, axisLabel: res.axisLabel, ...edgeAttributeMetricValues(res) };
             setStatus("Computed " + res.label + " — avg " + fmt(res.average) + ".");
         }
         refreshAfterCompute();
+        if (state.activeTab === "edge-partitions") refreshEdgePartitionExplorer();
     } catch (e) {
         if (!isAbort(e)) setStatus(e.message, "error");
     } finally {
@@ -4846,7 +4954,10 @@ function removeEdgeFromTable(edgeId) {
 // recommended links clears exactly this much — it leaves the recommendation itself and any diffusion results alone.
 function computedResultsList() {
     const bits = [];
-    if (state.metricOrder.length || state.pairOrder.length || state.commMetricOrder.length || Object.keys(state.graphMetrics).length) bits.push("computed metrics");
+    const partitionMetrics = typeof EDGE_PARTITION_VIEW !== "undefined" && Object.values(EDGE_PARTITION_VIEW.partitions || {})
+        .some(data => Object.keys(data.globalMetrics || {}).length || Object.keys(data.individualMetrics || {}).length);
+    if (state.metricOrder.length || state.pairOrder.length || state.commMetricOrder.length || Object.keys(state.graphMetrics).length
+        || state.nodePairOrder?.length || state.attributeMetricOrder?.length || state.edgeAttributeMetricOrder?.length || partitionMetrics) bits.push("computed metrics");
     if (Object.keys(state.communityData).length) bits.push("detected communities");
     return bits;
 }
@@ -4922,9 +5033,9 @@ function historyReset() {
     updateHistoryUI();
 }
 
-function historyPush(label, undo, redo) {
+function historyPush(label, undo, redo, { clearsGraphResults = true } = {}) {
     if (state.history.applying) return;
-    state.history.undo.push({ label, undo, redo });
+    state.history.undo.push({ label, undo, redo, clearsGraphResults });
     state.history.redo = [];   // a fresh action invalidates the redo branch
     updateHistoryUI();
 }
@@ -4932,6 +5043,7 @@ function historyPush(label, undo, redo) {
 async function historyUndo() {
     const h = state.history;
     if (h.applying || !h.undo.length) return;
+    if (h.undo.at(-1).clearsGraphResults !== false && !confirmClears("Undoing this graph edit")) return;
     const entry = h.undo.pop();
     h.applying = true;
     try { await entry.undo(); h.redo.push(entry); setStatus("Undid: " + entry.label + "."); }
@@ -4942,6 +5054,7 @@ async function historyUndo() {
 async function historyRedo() {
     const h = state.history;
     if (h.applying || !h.redo.length) return;
+    if (h.redo.at(-1).clearsGraphResults !== false && !confirmClears("Redoing this graph edit")) return;
     const entry = h.redo.pop();
     h.applying = true;
     try { await entry.redo(); h.undo.push(entry); setStatus("Redid: " + entry.label + "."); }
@@ -5250,6 +5363,7 @@ function edgeColumns() {
     // Attribute columns come before the computed pair-metric columns.
     edgeAttrDefs().forEach((d) => cols.push({ key: "ea:" + d.name, label: d.name }));
     state.pairOrder.forEach((m) => cols.push({ key: "p:" + m, label: m }));
+    computedEdgePartitions().forEach(data => cols.push({ key: "ep:" + data.partitionId, label: "partition:" + data.label }));
     cols.push({ key: "_act", label: "" });   // trailing remove-row column
     return cols;
 }
@@ -5263,6 +5377,7 @@ function edgeRowValue(edge, key) {
     if (key === "weight") return g.getEdgeAttribute(edge, "weight");
     if (key.startsWith("p:")) return state.pairData[key.slice(2)]?.[pairKey(s, t)];
     if (key.startsWith("ea:")) return edgeAttrVal(edge, key.slice(3));
+    if (key.startsWith("ep:")) return edgePartitionEdgeGroup(edge, key.slice(3));
     return undefined;
 }
 
@@ -5311,6 +5426,7 @@ function tableColumnGroup(key, column) {
     if (key === "edges") {
         if (column.key.startsWith("ea:")) return "attribute";
         if (column.key.startsWith("p:")) return "metric";
+        if (column.key.startsWith("ep:")) return "partition";
     }
     return null;
 }
@@ -5322,7 +5438,7 @@ function renderColumnVisibilityMenu(key) {
     const groups = [
         { key: "attribute", label: "Attributes" },
         { key: "metric", label: "Metrics" },
-        ...(key === "nodes" ? [{ key: "community", label: "Communities" }] : []),
+        ...(key === "nodes" ? [{ key: "community", label: "Communities" }] : [{ key: "partition", label: "Edge partitions" }]),
         { key: null, label: "Other columns" },
     ];
     for (const group of groups) {
@@ -5601,7 +5717,7 @@ function buildHeader(key, cols) {
             const tag = document.createElement("span");
             tag.className = "column-type-tag";
             tag.textContent = columnGroup === "attribute" ? "ATTR"
-                : columnGroup === "community" ? "COMMUNITY" : "METRIC";
+                : columnGroup === "community" ? "COMMUNITY" : columnGroup === "partition" ? "PARTITION" : "METRIC";
             th.insertBefore(tag, th.firstChild);
         }
         if ((key === "nodes" && c.key === "id") || (key === "edges" && (c.key === "source" || c.key === "target"))) th.classList.add("identity-col", "identity-col-" + index);
@@ -6133,6 +6249,9 @@ async function commitAttrEdit(kind, id, name, td) {
     if (td.dataset.orig !== undefined && raw === td.dataset.orig.trim()) return; // unchanged
     const g = state.graph;
     const value = raw === "" ? null : raw;
+    if (kind === "edges" && !confirmAttributeMetricRemoval("edge", name, "Changing this edge attribute value")) {
+        td.textContent = td.dataset.orig || ""; return;
+    }
     try {
         if (kind === "nodes") {
             await api("/api/graph/" + state.graphId + "/attributes/node", jsonBody({ node: id, name, value }));
@@ -7049,6 +7168,7 @@ async function saveSession() {
 
 async function openSession(file) {
     if (!file) return;
+    if (!confirmClears("Opening a session")) return;
     setStatus("Opening session…", "busy");
     try {
         // The file is already JSON, so it goes straight through as the request body.
@@ -9890,7 +10010,7 @@ function pieceRow(p, i) {
         if (!confirmPiecesChange()) return;
         const removed = JSON.parse(JSON.stringify(state.diffusion.pieces[i]));
         applyPieceRemove(i);
-        historyPush("remove piece " + (removed.id || ""), () => applyPieceInsert(removed, i), () => applyPieceRemove(i));
+        historyPush("remove piece " + (removed.id || ""), () => applyPieceInsert(removed, i), () => applyPieceRemove(i), { clearsGraphResults: false });
     });
     td.appendChild(del);
     tr.appendChild(td);
@@ -10057,7 +10177,7 @@ function addDiffPiece() {
     applyPieceInsert(piece, index);
     d.piecesPage = Math.floor(index / d.piecesPageSize);   // jump to the page holding the new row
     renderPiecesTable();
-    historyPush("add piece " + piece.id, () => applyPieceRemove(index), () => applyPieceInsert(piece, index));
+    historyPush("add piece " + piece.id, () => applyPieceRemove(index), () => applyPieceInsert(piece, index), { clearsGraphResults: false });
 }
 
 /* --------------------------- seeder-driven piece generation --------------------------- */
@@ -10959,6 +11079,9 @@ $("btn-indiv-comm").addEventListener("click", runIndividualCommMetric);
 $("btn-attribute-global-comm").addEventListener("click", runAttributeGlobalCommMetric);
 $("btn-attribute-indiv-comm").addEventListener("click", runAttributeIndividualCommMetric);
 $("btn-edge-attribute-global").addEventListener("click", () => runEdgeAttributeMetric($("edge-attribute-global-metric").value, true));
+$("edge-attribute-metric-attribute").addEventListener("change", syncEdgeAttributeMetricControls);
+$("edge-attribute-global-metric").addEventListener("change", () => renderEdgeAttributeMetricParams(true, true));
+$("edge-attribute-indiv-metric").addEventListener("change", () => renderEdgeAttributeMetricParams(false, true));
 $("btn-edge-attribute-indiv").addEventListener("click", () => runEdgeAttributeMetric($("edge-attribute-indiv-metric").value, false));
 
 $("vertex-metric").addEventListener("change", (e) => renderParams("vertex-params", "vertex", e.target.value));
