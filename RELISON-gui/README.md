@@ -6,6 +6,52 @@ interactive visualization.
 
 ## Features
 
+- **Report notebook (cell configuration)**: the report button opens **New report**
+  and a disabled **Load report** option. The notebook has an outline and editable
+  options for text, graph snapshots, top-k node tables and metric charts. Cells
+  can be reordered with drag handles (drop into the document or its outline) or
+  the arrow buttons, duplicated, deleted and previewed.
+  The full-height contents and cell-options panels can be collapsed independently
+  and resized by dragging their inner edges or using arrow keys on the dividers.
+  The selection screen lists every open report, so creating a new one preserves
+  the others. Drafts remain in memory while the page is open, independently of
+  `.relison` sessions. Report loading,
+  saving and metric cell execution are not connected yet.
+  **Export PDF** downloads the current report directly as a PDF, with A3, A4,
+  A5, Letter and Legal page sizes and portrait or landscape orientation. Text,
+  caption references, snapshots and captions are included; unfinished cells are
+  identified as such. PDF text uses the bundled Roboto family, including bold and
+  italic variants. Images that cannot be loaded for export are noted in the PDF.
+  Graph snapshot cells offer **Capture from network**, which opens Network with
+  **Capture for report** and **Cancel and return to report** buttons. Adjust the
+  current renderer, camera, layout, filters and appearance there, then capture
+  a still image into the original report cell. Sigma, Cosmograph (2D/3D) and
+  geographic maps/globe use their existing image capture paths; the network's
+  **Include visible legends** export option also applies. **Replace snapshot**
+  updates only that image, retaining the caption. Captures stay in the report's
+  in-memory draft when the network changes, independently of `.relison` sessions.
+  Text cells support Markdown headings, lists, links, code, quotations and tables.
+  A shared toolbar at the top of the editor formats the active text cell with
+  bold, italic, underline, strikethrough, colour, font family/size, headings,
+  lists, quotations, code and links. Click a text cell or **Edit text** to edit
+  its rendered content normally. **Visual / Markdown** switches between visual
+  editing and source; no formatting toolbar is placed inside cells or side panels.
+  Direct edits are retained in the draft; **Done** or Ctrl/Cmd+Enter returns to
+  reading. Switching cells/reports or previewing retains edits. Cells have no
+  titles; numbered type labels identify them in the editor. Tables, graph snapshots
+  and charts support optional captions beneath their output, including in preview.
+  Captioned tables and figures are numbered in separate sequences in report order;
+  graph snapshots and charts share the figure sequence. Uncaptioned cells are not
+  numbered. In a text cell, use **Insert reference** in the top toolbar to link
+  to a captioned cell. References follow that cell as numbering changes; clicking
+  one in reading or preview mode navigates to it. Removing its caption or deleting
+  its cell displays “Missing reference”; restoring the caption restores the link.
+  Markdown stores these as `[reference](#relison-report-cell-ID)` links, with the
+  current label resolved when rendered.
+  Local Marked, DOMPurify and
+  Turndown bundles render, sanitize and convert the two representations,
+  preserving underline, colour/font spans, tables, lists, code and links.
+
 - **Sphere packing 3D** mirrors circle packing: one filled ball without
   grouping, or one compact ball per community/attribute arranged around a
   sphere. Cluster envelopes stay separated even with unequal group sizes.

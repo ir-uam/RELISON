@@ -37,6 +37,12 @@
             save(png, filename); return true;
         } finally { URL.revokeObjectURL(url); }
     }
+    async function captureImage(build) {
+        const svg = await build();
+        if (!svg) return null;
+        return window.relisonAnimationExport.svgFrame(new XMLSerializer().serializeToString(svg),
+            Number(svg.getAttribute("width")), Number(svg.getAttribute("height")));
+    }
     function legend(svg, width, height, data, placement = null) {
         if (!data || data.type === "none") return 0;
         if (data.type === "group") {
@@ -122,5 +128,5 @@
             canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
         } finally { URL.revokeObjectURL(url); }
     }
-    window.relisonGeographicExport = { element, root, credit, legend, withLegend, canvasLegend, exportImage };
+    window.relisonGeographicExport = { element, root, credit, legend, withLegend, canvasLegend, exportImage, captureImage };
 })();

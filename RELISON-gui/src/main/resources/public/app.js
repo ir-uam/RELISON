@@ -5197,6 +5197,9 @@ function switchTab(tab) {
     $("pane-metrics").classList.toggle("active", tab === "metrics");
     $("pane-recommend").classList.toggle("active", tab === "recommend");
     $("pane-diffusion").classList.toggle("active", tab === "diffusion");
+    $("pane-reports").classList.toggle("active", tab === "reports");
+    $("btn-report").setAttribute("aria-pressed", String(tab === "reports"));
+    if (typeof reportGraphCapture !== "undefined") reportGraphCapture?.sync();
 
     window.relisonCosmograph?.refreshOrientationGizmo?.();
     if (typeof syncRotationExportControls === "function") syncRotationExportControls();
@@ -11094,7 +11097,54 @@ $("attribute-indiv-comm-metric").addEventListener("change", (e) => renderIndivid
 $("attribute-global-comm-metric").addEventListener("change", (e) => renderParams("attribute-global-comm-params", "communityGlobal", e.target.value));
 $("edit-mode").addEventListener("change", (e) => setEditMode(e.target.checked));
 $("theme-toggle").addEventListener("click", toggleTheme);
-setupMenu("btn-report", "report-menu", (act) => (act === "pdf" ? exportReportPdf() : exportReportHtml()));
+let reportPreviousTab = "import";
+var reportGraphCapture = null;
+
+async function captureReportNetworkView() {
+    if (!state.graph || state.activeTab !== "network") throw new Error("Load and show a network first.");
+    const includeLegend = $("export-include-legend").checked;
+    let canvas, renderer;
+    if (usingGeographic()) {
+        renderer = "geographic:" + geographicActiveProjection;
+        canvas = await window.relisonGeographic?.captureFrame({ includeLegend });
+    } else if (usingCosmograph()) {
+        renderer = "cosmograph:" + $("network-dimensions").value;
+        canvas = await window.relisonCosmograph?.captureRotationFrame(includeLegend ? networkLegendData() : null);
+    } else {
+        renderer = "sigma";
+        canvas = await ReportGraphCapture.sigmaFrame({ renderer: state.renderer,
+            container: $("sigma-container"), overlay: $("rec-overlay"), drawOverlay: drawRecOverlay,
+            background: cssVar("--canvas-bg", "#18191c") });
+        if (includeLegend) await window.relisonGeographicExport.canvasLegend(canvas, networkLegendData(),
+            canvas.width / Math.max(1, $("sigma-container").clientWidth));
+    }
+    if (!canvas?.width || !canvas.height) throw new Error("The network renderer is not ready. Wait for it to appear and try again.");
+    return { dataUrl: canvas.toDataURL("image/png"), width: canvas.width, height: canvas.height,
+        renderer, capturedAt: new Date().toISOString() };
+}
+
+ReportNotebook.init($("pane-reports"), {
+    onExit: () => switchTab(reportPreviousTab),
+    onCaptureGraph: target => reportGraphCapture.start(target),
+});
+reportGraphCapture = ReportGraphCapture.create({
+    bar: $("report-network-capture"), captureButton: $("btn-report-network-capture"),
+    cancelButton: $("btn-report-network-cancel"), message: $("report-network-capture-message"),
+    getGraph: () => state.graph,
+    getViewKey: () => $("network-renderer").value + ":" + geographicActiveProjection + ":" + $("network-dimensions").value,
+    isNetworkActive: () => state.activeTab === "network",
+    openNetwork: () => { reportPreviousTab = "network"; switchTab("network"); },
+    openReport: target => { switchTab("reports"); ReportNotebook.returnToCell(target); },
+    captureView: captureReportNetworkView,
+    complete: (target, snapshot) => ReportNotebook.setGraphSnapshot(target, snapshot),
+});
+$("btn-report").addEventListener("click", () => {
+    if (reportGraphCapture.resume()) return;
+    if (state.activeTab !== "reports") reportPreviousTab = state.activeTab;
+    ReportNotebook.showSelection();
+    switchTab("reports");
+    $("pane-reports").querySelector("h1")?.focus();
+});
 //$("focus-toggle").addEventListener("click", toggleFocusMode);
 //$("inspector-toggle").addEventListener("click", toggleInspector);
 //$("style-selector").addEventListener("change", (e) => applyVisualStyle(e.target.value));
@@ -11139,6 +11189,7 @@ $("btn-network-redo").addEventListener("click", historyRedo);
 // Keyboard: Ctrl/Cmd+Z undo, Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z redo. Ignored while typing so native field undo still works.
 document.addEventListener("keydown", (e) => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    if (state.activeTab === "reports") return;
     if (e.target?.closest?.(".filter-builder")) return;
     const t = e.target;
     if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;

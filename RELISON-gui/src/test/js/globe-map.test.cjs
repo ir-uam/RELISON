@@ -173,6 +173,22 @@ test('the shared geographic adapter dispatches globe camera/export/refresh and r
     assert.deepEqual(calls,['globe.ensureLoaded']);
 });
 
+test('geographic report capture follows the active globe or Mercator renderer', async()=>{
+    const calls=[];
+    const mercator={destroy(){},ensureLoaded(){},render(){},captureFrame:settings=>{calls.push(['mercator',settings]);return 'map frame';}};
+    const globe={destroy(){},ensureLoaded(){},render(){},captureRotationFrame:(legend,settings)=>{calls.push(['globe',legend,settings]);return 'globe frame';}};
+    const context=vm.createContext({window:{createRelisonMercator:()=>mercator,createRelisonGlobe:()=>globe,
+        relisonMapSettings:{useOnlineTiles:()=>true,subscribe:()=>()=>{}}}});
+    vm.runInContext(source('equal-earth-map.js'),context);
+    const map=context.window.relisonGeographic;
+    await map.render({}, {projection:'globe',isCurrent:()=>true});
+    assert.equal(await map.captureFrame({includeLegend:false}),'globe frame');
+    assert.equal(calls[0][0],'globe');assert.equal(calls[0][1],null);assert.equal(calls[0][2].includeLegend,false);
+    await map.render({}, {projection:'mercator',isCurrent:()=>true});
+    assert.equal(await map.captureFrame({includeLegend:true}),'map frame');
+    assert.equal(calls[1][0],'mercator');assert.equal(calls[1][1].includeLegend,true);
+});
+
 function appHarness() {
     const inputs=new Map(),positions=new Map([['a',{x:10,y:20,z:30,latitude:51,longitude:-3}]]),requests=[],renders=[];
     const $=id=>{

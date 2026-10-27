@@ -201,6 +201,7 @@
         return svg;
     }
     return { ensureLoaded, readCoordinates, render, refresh: scheduleRefresh, destroy, fitView,
+        captureFrame: (settings = {}) => window.relisonGeographicExport.captureImage(() => buildExportSvg(settings.includeLegend !== false)),
         exportPng: (filename = "network.png", settings = {}) => window.relisonGeographicExport.exportImage(() => buildExportSvg(settings.includeLegend !== false), "png", filename),
         exportSvg: (filename = "network.svg", settings = {}) => window.relisonGeographicExport.exportImage(() => buildExportSvg(settings.includeLegend !== false), "svg", filename),
         zoomIn: () => map?.zoomIn(), zoomOut: () => map?.zoomOut() };

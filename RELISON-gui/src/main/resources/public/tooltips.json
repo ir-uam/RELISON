@@ -44,7 +44,7 @@
     "ui-btn-undo": "Nothing to undo",
     "ui-btn-redo": "Nothing to redo",
     "ui-btn-session": "Save or open a RELISON session (.relison)",
-    "ui-btn-report": "Export a report (HTML or PDF)",
+    "ui-btn-report": "Open reports and the notebook editor",
     "ui-docs-link": "Documentation",
     "ui-debug-terminal": "Debug console (standard output / error)",
     "ui-theme-toggle": "Toggle light/dark",

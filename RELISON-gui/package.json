@@ -13,6 +13,7 @@
     "@fontsource-variable/material-symbols-outlined": "5.3.9",
     "@sigma/edge-curve": "3.1.0",
     "d3": "7.9.0",
+    "dompurify": "3.4.17",
     "echarts": "6.1.0",
     "esbuild": "0.28.2",
     "gifenc": "1.0.3",
@@ -20,9 +21,13 @@
     "graphology": "0.25.4",
     "graphology-library": "0.8.0",
     "leaflet": "1.9.4",
+    "marked": "18.1.2",
+    "pdfmake": "0.2.20",
     "sigma": "3.0.3",
     "three": "0.180.0",
     "topojson-client": "3.1.0",
+    "turndown": "7.2.4",
+    "turndown-plugin-gfm": "1.0.2",
     "world-atlas": "2.0.2"
   },
   "overrides": {

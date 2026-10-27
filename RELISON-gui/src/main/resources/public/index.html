@@ -9,6 +9,7 @@
     <link rel="icon" type="image/png" sizes="any" href="img/relison-logo.png"/>
     <link rel="stylesheet" href="vendor/fonts/material-symbols.css"/>
     <link rel="stylesheet" href="style.css"/>
+    <link rel="stylesheet" href="report-notebook.css"/>
     <!-- graphology (graph model) + graphology-library (layouts/metrics helpers) + sigma (rendering). -->
     <script src="vendor/graphology.min.js"></script>
     <script src="vendor/graphology-library.min.js"></script>
@@ -31,13 +32,7 @@
         </ul>
     </span>
     <input type="file" id="session-file" accept=".relison,application/json" hidden/>
-    <span class="menu-wrap">
-        <button id="btn-report" class="icon-btn" data-tooltip="ui-btn-report" aria-label="Export report"><span class="material-symbols-outlined" aria-hidden="true">lab_profile</span></button>
-        <ul class="menu menu-right" id="report-menu" hidden>
-            <li><button type="button" data-act="html">Export as HTML…</button></li>
-            <li><button type="button" data-act="pdf">Export as PDF…</button></li>
-        </ul>
-    </span>
+    <button id="btn-report" class="icon-btn" type="button" data-tooltip="ui-btn-report" aria-label="Reports" aria-controls="pane-reports" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">lab_profile</span></button>
     <a id="docs-link" class="icon-btn" href="https://relison.readthedocs.io" target="_blank" rel="noopener" data-tooltip="ui-docs-link" aria-label="Help"><span class="material-symbols-outlined" aria-hidden="true">help</span></a>
     <button id="debug-terminal" class="icon-btn" data-tooltip="ui-debug-terminal" hidden>&gt;_</button>
     <button id="theme-toggle" class="icon-btn" data-tooltip="ui-theme-toggle" aria-label="Toggle light and dark mode"><span class="material-symbols-outlined" aria-hidden="true">dark_mode</span></button>
@@ -681,6 +676,7 @@
 
     <!-- CENTER: tabbed content -->
     <section id="content">
+        <div class="tabpane" id="pane-reports" aria-label="Reports"></div>
         <!-- TAB 0: import -->
         <div class="tabpane active" id="pane-import">
             <div class="import-card">
@@ -766,6 +762,11 @@
 
         <!-- TAB 1: network plot -->
         <div class="tabpane" id="pane-network">
+            <div id="report-network-capture" class="report-network-capture" aria-label="Report snapshot capture" hidden>
+                <span id="report-network-capture-message" role="status"></span>
+                <button type="button" id="btn-report-network-capture" class="primary">Capture for report</button>
+                <button type="button" id="btn-report-network-cancel">Cancel and return to report</button>
+            </div>
             <div id="network-toolbar" role="toolbar" aria-label="Network controls">
                 <label class="renderer-picker" data-tooltip="markup-0027">
                     <span>Renderer</span>
@@ -1996,6 +1997,17 @@
 <script src="community-explorer.js"></script>
 <script src="edge-partition-explorer.js"></script>
 <script src="process-panel.js"></script>
+<script src="vendor/marked.js"></script>
+<script src="vendor/dompurify.min.js"></script>
+<script src="vendor/turndown.js"></script>
+<script src="vendor/turndown-plugin-gfm.js"></script>
+<script src="vendor/pdfmake.min.js"></script>
+<script src="vendor/pdfmake-fonts.js"></script>
+<script src="report-markdown.js"></script>
+<script src="report-rich-text.js"></script>
+<script src="report-pdf.js"></script>
+<script src="report-notebook.js"></script>
+<script src="report-graph-capture.js"></script>
 <script src="app.js"></script>
 <script type="module" src="cosmograph-spike.js"></script>
 <script type="module" src="sigma-edge-curve.js"></script>

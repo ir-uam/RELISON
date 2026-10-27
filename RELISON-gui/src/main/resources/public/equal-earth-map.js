@@ -190,6 +190,8 @@
             destroyEarth(); mercator.destroy(); globe.destroy(); active = "mercator";
         },
         fitView: () => active === "globe" ? globe.fitView() : usingEarth() ? fit() : mercator.fitView(),
+        captureFrame: (settings = {}) => active === "globe" ? globe.captureRotationFrame(null, settings) : usingEarth()
+            ? window.relisonGeographicExport.captureImage(() => buildExportSvg(settings.includeLegend !== false)) : mercator.captureFrame(settings),
         exportPng: (filename = "network.png", settings = {}) => active === "globe" ? globe.exportPng(filename, settings) : usingEarth()
             ? window.relisonGeographicExport.exportImage(() => buildExportSvg(settings.includeLegend !== false), "png", filename) : mercator.exportPng(filename, settings),
         exportSvg: (filename = "network.svg", settings = {}) => active === "globe" ? globe.exportSvg(filename, settings) : usingEarth()
