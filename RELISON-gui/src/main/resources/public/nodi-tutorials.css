@@ -1,0 +1,105 @@
+/* Nodi inherits the application's light/dark and interface themes. */
+#nodi-button { display: inline-flex; align-items: center; justify-content: center; padding: 8px 10px; font-size: 12px; white-space: nowrap; }
+.nodi-welcome { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 24px; padding: 10px 12px; text-align: left; background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; }
+.nodi-welcome-copy { flex: 1; display: grid; gap: 5px; }
+.nodi-welcome strong { color: var(--text); font-size: 15px; }
+.nodi-welcome span span { color: var(--muted); font-size: 12px; }
+.nodi-welcome img { object-fit: contain; flex: none; }
+.nodi-avatar { display: inline-block; flex: none; width: 64px; height: 64px; vertical-align: middle; }
+.nodi-avatar img { display: block; width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 65%; }
+.nodi-library { width: min(780px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); padding: 0; border: 1px solid var(--border); border-radius: 18px; background: var(--panel); color: var(--text); box-shadow: 0 24px 80px #0005; }
+.nodi-library::backdrop { background: #0c182b99; backdrop-filter: blur(3px); }
+.nodi-library button, .nodi-guide button { width: auto; margin: 0; }
+.nodi-library :focus-visible, .nodi-guide :focus-visible, #nodi-button:focus-visible, .nodi-welcome:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.nodi-library-head { position: relative; display: flex; align-items: center; gap: 24px; padding: 28px 46px 24px 24px; background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 12%, var(--panel)), var(--panel)); }
+.nodi-library-head .nodi-avatar { width: 112px; height: 112px; }
+.nodi-library-head h1 { margin: 8px 0; font-size: 24px; line-height: 1.25; }
+.nodi-eyebrow { margin: 0; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; }
+.nodi-library-head p:last-child { margin: 0; line-height: 1.6; color: var(--muted); }
+.nodi-dismiss { align-self: flex-start; margin-left: auto !important; padding: 5px !important; background: transparent; border: 0; color: var(--muted); }
+.nodi-library-head > .nodi-dismiss { position: absolute; top: 10px; right: 10px; }
+.nodi-speech { --nodi-bubble-border: color-mix(in srgb, var(--accent) 38%, var(--border)); position: relative; min-width: 0; padding: 18px; background: var(--panel); border: 1px solid var(--nodi-bubble-border); border-radius: 22px; }
+.nodi-speech::before { content: ""; position: absolute; top: -9px; left: 32px; width: 16px; height: 16px; background: var(--panel); border-top: 1px solid var(--nodi-bubble-border); border-left: 1px solid var(--nodi-bubble-border); transform: rotate(45deg); pointer-events: none; }
+.nodi-library-head .nodi-speech { flex: 1; }
+.nodi-library-head .nodi-speech::before { top: calc(50% - 8px); left: -9px; transform: rotate(-45deg); }
+.nodi-library-body { padding: 18px 28px 24px; }
+.nodi-library-context { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; color: var(--muted); line-height: 1.5; }
+.nodi-library-context p { margin: 0; flex: 1; }
+.nodi-library-context button { flex: none; }
+.nodi-motion-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 5px 8px; font-size: 11px; white-space: nowrap; }
+.nodi-motion-toggle .material-symbols-outlined { font-size: 18px; }
+.nodi-courses { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.nodi-course { display: grid; grid-template-columns: 1fr auto; gap: 9px 12px; padding: 15px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); }
+.nodi-course[data-suggested="true"] { border-color: var(--accent); }
+.nodi-course h2 { margin: 0; font-size: 14px; line-height: 1.3; }
+.nodi-course p { grid-column: 1 / -1; margin: 0; color: var(--muted); line-height: 1.5; font-size: 12px; }
+.nodi-course-meta { font-size: 11px; color: var(--muted); align-self: center; }
+.nodi-course button { grid-column: 2; grid-row: 3; padding: 5px 12px; font-size: 12px; }
+.nodi-course-status { color: var(--accent); font-size: 11px; white-space: nowrap; }
+.nodi-library-note { margin: 18px 0 0; font-size: 11px; line-height: 1.5; color: var(--muted); }
+.nodi-guide { position: fixed; z-index: 1602; width: min(390px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 12px; background: transparent; color: var(--text); filter: drop-shadow(0 8px 16px #0003); }
+.nodi-guide-head { display: flex; gap: 10px; align-items: center; margin-bottom: 13px; padding-right: 3px; }
+.nodi-guide-head .nodi-avatar { width: 96px; height: 96px; }
+.nodi-speaker { display: grid; gap: 3px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); }
+.nodi-speaker strong { font-size: 18px; }
+.nodi-speaker span { font-size: 12px; color: var(--muted); }
+.nodi-guide-head .nodi-dismiss { align-self: center; border: 1px solid var(--border); border-radius: 50%; background: var(--panel); }
+.nodi-guide .nodi-speech { border-radius: 22px 22px 22px 8px; }
+.nodi-guide .nodi-eyebrow { font-size: 10px; letter-spacing: .65px; line-height: 1.5; }
+.nodi-guide h2 { margin: 8px 0 0; font-size: 17px; line-height: 1.35; }
+.nodi-guide h2:focus { outline: none; }
+.nodi-guide-body { font-size: 13px; line-height: 1.7; margin: 12px 0 0; }
+.nodi-guide-note { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.nodi-guide progress { width: 100%; height: 5px; display: block; accent-color: var(--accent); margin: 16px 0 13px; }
+.nodi-guide-footer { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.nodi-guide-navigation { display: flex; gap: 7px; margin-left: auto; }
+.nodi-guide-footer button { padding: 6px 9px; font-size: 12px; border-radius: 16px; }
+.nodi-guide-footer .nodi-motion-toggle { padding: 5px; }
+.nodi-guide-footer .nodi-all { margin-right: auto; padding-left: 0; padding-right: 0; border: 0; background: transparent; color: var(--muted); }
+.nodi-highlight { position: fixed; z-index: 1601; pointer-events: none; border: 2px solid var(--accent); border-radius: 7px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent); }
+@media (max-width: 600px) {
+    .nodi-library-head { padding: 30px 16px 18px; gap: 14px; }
+    .nodi-library-head .nodi-avatar { width: 76px; height: 76px; }
+    .nodi-library-head h1 { font-size: 21px; }
+    .nodi-library-head .nodi-speech { padding: 14px; }
+    .nodi-library-head .nodi-eyebrow { font-size: 10px; letter-spacing: .4px; }
+    .nodi-library-body { padding: 16px; }
+    .nodi-courses { grid-template-columns: 1fr; }
+    .nodi-library-context { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .nodi-guide[data-nodi-motion="on"] { animation: nodi-appear 160ms ease-out; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="welcome"] img { animation: nodi-wave 4.8s ease-in-out infinite; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="curious"] img { animation: nodi-think 5.2s ease-in-out infinite; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="explain"] img { animation: nodi-nod 4.4s ease-in-out infinite; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="suggest"] img { animation: nodi-idea 4.6s ease-in-out infinite; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="celebrate"] img { animation: nodi-cheer 1.2s ease-in-out 2; }
+    /* The import greeting finishes by itself; the toolbar stays still while working. */
+    #nodi-welcome[data-nodi-motion="on"] .nodi-avatar img { animation: nodi-wave 2.4s ease-in-out 1; }
+    @keyframes nodi-appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes nodi-wave {
+        0%, 55%, 100% { transform: translateY(0) rotate(0); }
+        12%, 32% { transform: translateY(-3px) rotate(-5deg); }
+        22%, 42% { transform: translateY(-2px) rotate(4deg); }
+    }
+    @keyframes nodi-think {
+        0%, 15%, 85%, 100% { transform: translateY(0) rotate(0); }
+        40%, 60% { transform: translateY(-3px) rotate(-7deg); }
+    }
+    @keyframes nodi-nod {
+        0%, 18%, 56%, 100% { transform: translateY(0) rotate(0); }
+        30%, 46% { transform: translateY(3px) rotate(3deg); }
+        38% { transform: translateY(-2px) rotate(-2deg); }
+    }
+    @keyframes nodi-idea {
+        0%, 20%, 70%, 100% { transform: translateY(0) scale(1); }
+        40%, 50% { transform: translateY(-4px) scale(1.04); }
+    }
+    @keyframes nodi-cheer {
+        0%, 100% { transform: translateY(0) rotate(0) scale(1); }
+        18% { transform: translateY(2px) scale(1.02, .98); }
+        45% { transform: translateY(-8px) rotate(-6deg); }
+        68% { transform: translateY(-3px) rotate(5deg); }
+        85% { transform: translateY(1px) scale(1.02, .98); }
+    }
+}

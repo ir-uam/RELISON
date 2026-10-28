@@ -6,6 +6,35 @@ interactive visualization.
 
 ## Features
 
+- **Tutorials with Nodi**: open **Tutorials** in the top bar or Nodi's welcome
+  card on Import. Ten short tours cover the interface, importing, Network,
+  Nodes & Edges, Communities, Edge partitions, Metrics, Recommendation, Diffusion
+  and Reports. Nodi highlights the relevant controls and changes expression
+  between welcoming, curious, explaining, suggesting and celebrating.
+  Tutorial steps appear as speech bubbles from Nodi, with the character and
+  speaker label above the bubble. The library opens with a matching conversational
+  greeting; Back/Next, progress and motion controls remain inside each step.
+  Each expression has a subtle CSS animation: a greeting sway, curious tilt,
+  explaining nod, idea pulse or brief completion bounce. **Pause Nodi** in the
+  library or guide stops motion without leaving the current step; **Animate Nodi**
+  enables it again. This preference is remembered in the browser, and the system's
+  reduced-motion setting always takes precedence, including changes made while
+  the page is open. The Import greeting stops by itself and the toolbar stays still.
+  Back/Next and Finish advance at your pace; Escape or Close pauses the tour.
+  Continue resumes the saved step, and completed tours can be replayed.
+  Progress stays in this browser independently of `.relison` sessions; blocked
+  browser storage falls back to memory. Network-dependent tours unlock after
+  loading a graph, and the recommendation tour is unavailable for multigraphs.
+  Tours navigate views without importing, editing or computing data for you.
+  Arrow keys navigate steps only while focus is inside the guide; normal page
+  controls remain usable. The guide follows interface themes and reduced-motion
+  preferences. All tutorial text and five transparent 2D Nodi illustrations are
+  bundled for offline use. The earlier 3D images are retained separately.
+  The active artwork and generation prompts are in
+  `src/main/resources/public/img/nodi-2d/`; original 3D provenance remains in
+  `src/main/resources/public/img/nodi-assets.json`.
+  Regression checks: `node --test src/test/js/nodi-tutorials.test.cjs`.
+
 - **Report notebook (cell configuration)**: the report button opens **New report**
   and a disabled **Load report** option. The notebook has an outline and editable
   options for text, graph snapshots, top-k node tables and metric charts. Cells

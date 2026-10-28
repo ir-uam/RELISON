@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="vendor/fonts/material-symbols.css"/>
     <link rel="stylesheet" href="style.css"/>
     <link rel="stylesheet" href="report-notebook.css"/>
+    <link rel="stylesheet" href="nodi-tutorials.css"/>
     <!-- graphology (graph model) + graphology-library (layouts/metrics helpers) + sigma (rendering). -->
     <script src="vendor/graphology.min.js"></script>
     <script src="vendor/graphology-library.min.js"></script>
@@ -33,6 +34,7 @@
     </span>
     <input type="file" id="session-file" accept=".relison,application/json" hidden/>
     <button id="btn-report" class="icon-btn" type="button" data-tooltip="ui-btn-report" aria-label="Reports" aria-controls="pane-reports" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">lab_profile</span></button>
+    <button id="nodi-button" class="icon-btn nodi-button" type="button" aria-haspopup="dialog" aria-controls="nodi-library" title="Tutorials with Nodi">Tutorials</button>
     <a id="docs-link" class="icon-btn" href="https://relison.readthedocs.io" target="_blank" rel="noopener" data-tooltip="ui-docs-link" aria-label="Help"><span class="material-symbols-outlined" aria-hidden="true">help</span></a>
     <button id="debug-terminal" class="icon-btn" data-tooltip="ui-debug-terminal" hidden>&gt;_</button>
     <button id="theme-toggle" class="icon-btn" data-tooltip="ui-theme-toggle" aria-label="Toggle light and dark mode"><span class="material-symbols-outlined" aria-hidden="true">dark_mode</span></button>
@@ -681,6 +683,7 @@
         <div class="tabpane active" id="pane-import">
             <div class="import-card">
                 <img class="import-logo" src="img/RELISON-full-logo.png" alt="RELISON Spectrum"/>
+                <button id="nodi-welcome" class="nodi-welcome" type="button" aria-haspopup="dialog" aria-controls="nodi-library"><span class="nodi-avatar" data-nodi-face="welcome"><img src="img/nodi-2d/nodi-welcome.png" alt="" width="64" height="64"/></span><span class="nodi-welcome-copy"><strong>Hi, I’m Nodi!</strong><span>New here? Let me show you around.</span></span><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>
                 <h2>Import network</h2>
                 <label class="field">
                     <span>Network or session file</span>
@@ -2008,6 +2011,7 @@
 <script src="report-pdf.js"></script>
 <script src="report-notebook.js"></script>
 <script src="report-graph-capture.js"></script>
+<script src="nodi-tutorials.js"></script>
 <script src="app.js"></script>
 <script type="module" src="cosmograph-spike.js"></script>
 <script type="module" src="sigma-edge-curve.js"></script>

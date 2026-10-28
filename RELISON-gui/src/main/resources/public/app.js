@@ -5222,6 +5222,7 @@ function switchTab(tab) {
     if (tab === "metrics") renderMetricsDashboard();
     if (tab === "recommend") { loadRecCatalog(); renderTable("rec"); }
     if (tab === "diffusion") enterDiffusionTab();
+    if (typeof NodiTutorials !== "undefined") NodiTutorials.contextChanged();
 }
 
 // Switches between the subtabs in the Diffusion tab's center panel.
@@ -11392,3 +11393,25 @@ DiffusionWorkspace.setup();
 switchTab(state.activeTab); // start on the Import tab with the side panels hidden
 loadCatalog();
 initDebugConsole();
+let nodiStorage;
+try { nodiStorage = localStorage; } catch (_) { /* Tutorials also work without browser storage. */ }
+NodiTutorials.init({
+    storage: nodiStorage,
+    getContext: () => ({ tab: state.activeTab, hasGraph: !!state.graph, multigraph: state.multigraph }),
+    navigate: step => {
+        if (debugConsole.on) toggleDebugView();
+        if (step.tab && step.tab !== state.activeTab) {
+            if (step.tab === "reports") $("btn-report").click();
+            else switchTab(step.tab);
+        }
+        if (step.view === "nodes") {
+            if (step.tab === "tables") switchTableSubtab("nodes");
+            if (step.tab === "metrics") switchSubtab("nodes");
+        }
+        if (step.view === "compute-nodes") {
+            switchSubtab("nodes");
+            if (!metricWorkspaceComputeOpen) $("metric-compute-toggle").click();
+        }
+        if (step.tab === "diffusion" && step.view) switchDiffSubtab(step.view);
+    },
+});

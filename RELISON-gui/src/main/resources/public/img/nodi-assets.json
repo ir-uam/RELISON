@@ -1,0 +1,26 @@
+{
+  "tool": "Built-in image_gen",
+  "reference": "Nodi_ Your Friendly Network Guide.png (user-provided character reference)",
+  "assets": [
+    {
+      "file": "nodi-welcome.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent mascot illustration for the Nodi in-app tutorial guide in RELISON Spectrum. Input image 1 is the character identity reference. Create one isolated full-body Nodi, closely matching the large character on the left of the reference: glossy pearly-white spherical friendly robot, large expressive blue eyes, open warm smile, dark navy connecting rods ending in glossy network-node spheres in blue, turquoise, violet and amber; large blue antenna sphere on top. Cheerful welcoming wave with one blue sphere arm slightly raised. Soft polished 3D rendering, readable at small sizes, centered in a square with comfortable padding, whole body visible. Truly transparent background. No text, letters, panel, speech bubble, background, shadow floor, or extra characters."
+    },
+    {
+      "file": "nodi-curious.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent in-app tutorial mascot for RELISON Spectrum. Reference image 1 establishes Nodi's exact identity. One isolated full-body Nodi matching the large character on the left: pearly white spherical friendly robot, large expressive blue eyes, dark navy rods ending in glossy network spheres in blue, turquoise, violet and amber, blue antenna sphere. Polished soft 3D illustration. Centered square composition with generous padding, all spheres visible, legible at small sizes. Actual transparent background. No text, panels, scenery, floor or other characters. Keep all character features consistent with the reference. Expression and pose: Curious and thoughtful, head tilted slightly, mouth small and inquisitive, eyebrows gently raised, one small blue hand resting by the chin. No punctuation or symbols."
+    },
+    {
+      "file": "nodi-explain.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent in-app tutorial mascot for RELISON Spectrum. Reference image 1 establishes Nodi's exact identity. One isolated full-body Nodi matching the large character on the left: pearly white spherical friendly robot, large expressive blue eyes, dark navy rods ending in glossy network spheres in blue, turquoise, violet and amber, blue antenna sphere. Polished soft 3D illustration. Centered square composition with generous padding, all spheres visible, legible at small sizes. Actual transparent background. No text, panels, scenery, floor or other characters. Keep all character features consistent with the reference. Expression and pose: Patient and encouraging explanation, warm small open smile, blue eyes looking at the viewer, one small blue hand pointing toward the viewer's right as if showing a control."
+    },
+    {
+      "file": "nodi-suggest.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent in-app tutorial mascot for RELISON Spectrum. Reference image 1 establishes Nodi's exact identity. One isolated full-body Nodi matching the large character on the left: pearly white spherical friendly robot, large expressive blue eyes, dark navy rods ending in glossy network spheres in blue, turquoise, violet and amber, blue antenna sphere. Polished soft 3D illustration. Centered square composition with generous padding, all spheres visible, legible at small sizes. Actual transparent background. No text, panels, scenery, floor or other characters. Keep all character features consistent with the reference. Expression and pose: Bright helpful idea, delighted blue eyes and smile, one little blue hand raised with a softly glowing amber lightbulb floating above it."
+    },
+    {
+      "file": "nodi-celebrate.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent in-app tutorial mascot for RELISON Spectrum. Reference image 1 establishes Nodi's exact identity. One isolated full-body Nodi matching the large character on the left: pearly white spherical friendly robot, large expressive blue eyes, dark navy rods ending in glossy network spheres in blue, turquoise, violet and amber, blue antenna sphere. Polished soft 3D illustration. Centered square composition with generous padding, all spheres visible, legible at small sizes. Actual transparent background. No text, panels, scenery, floor or other characters. Keep all character features consistent with the reference. Expression and pose: Happy celebration on completing a tutorial, eyes curved joyfully closed, wide smile, both arms lifted in a cheerful hooray. No confetti or extra objects."
+    }
+  ]
+}
