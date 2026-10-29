@@ -1,0 +1,60 @@
+{
+  "source": {
+    "path": "docs/source/diffusion/protocols/update.rst",
+    "sha256": "b4b8fb9849bcae70e88e4e0d4289d05db42d8e6f6b98ef45c2c1bf20e82e0376",
+    "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/update.html",
+    "page": "diffusion-update.html"
+  },
+  "metrics": {
+    "Newest": {
+      "label": "Newest",
+      "section": "diffusion-update:Newest"
+    },
+    "Oldest": {
+      "label": "Oldest",
+      "section": "diffusion-update:Oldest"
+    },
+    "Merger": {
+      "label": "Merger",
+      "section": "diffusion-update:Merger"
+    }
+  },
+  "sections": {
+    "diffusion-update:Merger": {
+      "title": "Merger",
+      "anchor": "merger",
+      "text": "In this case, all the information pieces are merged into one: the user can access all the people who sent him the information piece during the diffusion process. The timestamp of the reception is the timestamp of the last iteration he/she received the piece.\n\n.. code:: yaml\n\n    update:\n      name: Merger",
+      "html": "<p>In this case, all the information pieces are merged into one: the user can access all the people who sent him the information piece during the diffusion process. The timestamp of the reception is the timestamp of the last iteration he/she received the piece.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/update.rst",
+        "sha256": "b4b8fb9849bcae70e88e4e0d4289d05db42d8e6f6b98ef45c2c1bf20e82e0376",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/update.html",
+        "page": "diffusion-update.html"
+      }
+    },
+    "diffusion-update:Newest": {
+      "title": "Newest",
+      "anchor": "newest",
+      "text": "In this case, the user only knows information about the newest received information piece (i.e. it can access the people who have sent this information piece in the last iteration, and the timestamp of reception is the one of this last iteration).\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  update:\n    name: Newest",
+      "html": "<p>In this case, the user only knows information about the newest received information piece (i.e. it can access the people who have sent this information piece in the last iteration, and the timestamp of reception is the one of this last iteration).</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/update.rst",
+        "sha256": "b4b8fb9849bcae70e88e4e0d4289d05db42d8e6f6b98ef45c2c1bf20e82e0376",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/update.html",
+        "page": "diffusion-update.html"
+      }
+    },
+    "diffusion-update:Oldest": {
+      "title": "Oldest",
+      "anchor": "oldest",
+      "text": "In this case, the user only knows information about the oldest received information piece (i.e. it can access the people who have sent this information piece first, and the timestamp of reception is the one of the first time he/she received it).\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  update:\n    name: Oldest",
+      "html": "<p>In this case, the user only knows information about the oldest received information piece (i.e. it can access the people who have sent this information piece first, and the timestamp of reception is the one of the first time he/she received it).</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/update.rst",
+        "sha256": "b4b8fb9849bcae70e88e4e0d4289d05db42d8e6f6b98ef45c2c1bf20e82e0376",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/update.html",
+        "page": "diffusion-update.html"
+      }
+    }
+  }
+}

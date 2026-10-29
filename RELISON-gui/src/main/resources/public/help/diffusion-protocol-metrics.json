@@ -1,0 +1,132 @@
+{
+  "source": {
+    "path": "docs/source/diffusion/protocols/protocols.rst",
+    "sha256": "795664fc4a4e906be838bba14e981396c4865ad270c73c2cc2bebdd8ee3f228c",
+    "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/protocols.html",
+    "page": "diffusion-protocols.html"
+  },
+  "metrics": {
+    "Simple": {
+      "label": "Simple",
+      "section": "diffusion-protocol:Simple"
+    },
+    "Independent cascade model": {
+      "label": "Independent cascade model",
+      "section": "diffusion-protocol:Independent cascade model"
+    },
+    "Push": {
+      "label": "Push",
+      "section": "diffusion-protocol:Push"
+    },
+    "Pull": {
+      "label": "Pull",
+      "section": "diffusion-protocol:Pull"
+    },
+    "Rumor spreading": {
+      "label": "Rumor spreading",
+      "section": "diffusion-protocol:Rumor spreading"
+    },
+    "Bidirectional rumor spreading": {
+      "label": "Bidirectional rumor spreading",
+      "section": "diffusion-protocol:Rumor spreading"
+    },
+    "Proportion threshold": {
+      "label": "Proportion threshold",
+      "section": "diffusion-protocol:Threshold"
+    },
+    "Count threshold": {
+      "label": "Count threshold",
+      "section": "diffusion-protocol:Threshold"
+    },
+    "Temporal": {
+      "label": "Temporal",
+      "section": "diffusion-protocol:Temporal"
+    }
+  },
+  "sections": {
+    "diffusion-protocol:Independent cascade model": {
+      "title": "Independent cascade model",
+      "anchor": "independent-cascade-model",
+      "text": "When diffusion works under this protocol, each time a user receives an information piece, he/she propagates this content to their followers according to a given probability. This probability depends only on the previous user who propagated the information. If the information is not repropagated, then\nit is discarded.\n\n**Reference:** J. Goldenberg, B. Libai, and E. Muller. Talk of the Network: A Complex Systems Look at the Underlying Process of Word-of-Mouth, Marketing Letters, 12(3), pp. 211–223 (2001).\n\nParameters\n^^^^^^^^^^\n* :code:`numOwn`: the number of contents created by the user to propagate each iteration.\n* :code:`prob`: the probability of sharing a received piece of information (the same for all the users).\n\nNote: when used in code, there is another option, which takes as input a graph containing the probabilities. However, this option is not (at the moment) available from a configuration file.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  Independent cascade model:\n    prob:\n      type: double\n      value: value\n    numOwn:\n      type: int\n      value: value",
+      "html": "<p>When diffusion works under this protocol, each time a user receives an information piece, he/she propagates this content to their followers according to a given probability. This probability depends only on the previous user who propagated the information. If the information is not repropagated, then it is discarded.</p><p><strong>Reference:</strong> J. Goldenberg, B. Libai, and E. Muller. Talk of the Network: A Complex Systems Look at the Underlying Process of Word-of-Mouth, Marketing Letters, 12(3), pp. 211–223 (2001).</p><h3>Parameters</h3><ul><li><code>numOwn</code>: the number of contents created by the user to propagate each iteration.</li><li><code>prob</code>: the probability of sharing a received piece of information (the same for all the users).</li></ul><p>Note: when used in code, there is another option, which takes as input a graph containing the probabilities. However, this option is not (at the moment) available from a configuration file.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/protocols.rst",
+        "sha256": "795664fc4a4e906be838bba14e981396c4865ad270c73c2cc2bebdd8ee3f228c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/protocols.html",
+        "page": "diffusion-protocols.html"
+      }
+    },
+    "diffusion-protocol:Pull": {
+      "title": "Pull",
+      "anchor": "pull",
+      "text": "Under this protocol, each iteration, the user selects one of his followees, and obtains the information from that user. The neighbor just propagates a fixed number of their created contents and a fixed number of the received contents.\n\n**Reference:** A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987).\n\nParameters\n^^^^^^^^^^\n* :code:`numOwn`: the number of contents created by the user to propagate each iteration.\n* :code:`numRec`: the number of received contents to propagate each iteration.\n* :code:`numWait`: number of iterations that the user has to wait before selecting the same neighbor again. \n\nNote: when used in code, there is another option, which takes as input a graph containing the probabilities. However, this option is not (at the moment) available from a configuration file.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  Pull:\n    numOwn:\n      type: int\n      value: value\n    numRec:\n      type: int\n      value: value\n    numWait:\n      type: int\n      value: value",
+      "html": "<p>Under this protocol, each iteration, the user selects one of his followees, and obtains the information from that user. The neighbor just propagates a fixed number of their created contents and a fixed number of the received contents.</p><p><strong>Reference:</strong> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987).</p><h3>Parameters</h3><ul><li><code>numOwn</code>: the number of contents created by the user to propagate each iteration.</li><li><code>numRec</code>: the number of received contents to propagate each iteration.</li><li><code>numWait</code>: number of iterations that the user has to wait before selecting the same neighbor again. </li></ul><p>Note: when used in code, there is another option, which takes as input a graph containing the probabilities. However, this option is not (at the moment) available from a configuration file.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/protocols.rst",
+        "sha256": "795664fc4a4e906be838bba14e981396c4865ad270c73c2cc2bebdd8ee3f228c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/protocols.html",
+        "page": "diffusion-protocols.html"
+      }
+    },
+    "diffusion-protocol:Push": {
+      "title": "Push",
+      "anchor": "push",
+      "text": "Under this protocol, each iteration, the user selects one of his followers, and propagates him/her information. He/she just propagates a fixed number of their created contents and a fixed number of the received contents.\n\n**Reference:** A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987).\n\nParameters\n^^^^^^^^^^\n* :code:`numOwn`: the number of contents created by the user to propagate each iteration.\n* :code:`numRec`: the number of received contents to propagate each iteration.\n* :code:`numWait`: number of iterations that the user has to wait before selecting the same neighbor again. \n\nNote: when used in code, there is another option, which takes as input a graph containing the probabilities. However, this option is not (at the moment) available from a configuration file.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  Push:\n    numOwn:\n      type: int\n      value: value\n    numRec:\n      type: int\n      value: value\n    numWait:\n      type: int\n      value: value",
+      "html": "<p>Under this protocol, each iteration, the user selects one of his followers, and propagates him/her information. He/she just propagates a fixed number of their created contents and a fixed number of the received contents.</p><p><strong>Reference:</strong> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987).</p><h3>Parameters</h3><ul><li><code>numOwn</code>: the number of contents created by the user to propagate each iteration.</li><li><code>numRec</code>: the number of received contents to propagate each iteration.</li><li><code>numWait</code>: number of iterations that the user has to wait before selecting the same neighbor again. </li></ul><p>Note: when used in code, there is another option, which takes as input a graph containing the probabilities. However, this option is not (at the moment) available from a configuration file.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/protocols.rst",
+        "sha256": "795664fc4a4e906be838bba14e981396c4865ad270c73c2cc2bebdd8ee3f228c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/protocols.html",
+        "page": "diffusion-protocols.html"
+      }
+    },
+    "diffusion-protocol:Rumor spreading": {
+      "title": "Rumor spreading",
+      "anchor": "rumor-spreading",
+      "text": "Also called push-pull protocol, this is a combination of the `Pull`_ and `Push`_ protocols, where each user selects a neighbors, and he/she just propagates a fixed number of their created contents and a fixed number of the received contents to the neighbor, and the neighbor sends it to him.\n\nWe consider a second version, named *bidirectional rumor-spreading model*, which does not consider the orientation of the edges for selecting the nodes from which receive information and towards whom propagate information.\n\n**Reference:** A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987).\n\nParameters\n^^^^^^^^^^\n* :code:`numOwn`: the number of contents created by the user to propagate each iteration.\n* :code:`numRec`: the number of received contents to propagate each iteration.\n* :code:`numWait`: number of iterations that the user has to wait before selecting the same neighbor again. \n\nNote: when used in code, there is another option, which takes as input a graph containing the probabilities. However, this option is not (at the moment) available from a configuration file.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\nFor the basic rumor spreading model, the configuration is the following:\n\n.. code:: yaml\n\n  Rumor spreading model:\n    numOwn:\n      type: int\n      value: value\n    numRec:\n      type: int\n      value: value\n    numWait:\n      type: int\n      value: value   \n\nwhereas, for the bidirectional version, it is:\n\n.. code:: yaml\n\n  Bidirectional rumor spreading model:\n    numOwn:\n      type: int\n      value: value\n    numRec:\n      type: int\n      value: value\n    numWait:\n      type: int\n      value: value",
+      "html": "<p>Also called push-pull protocol, this is a combination of the <a href=\"help/diffusion-protocols.html#pull\" target=\"_blank\" rel=\"noopener\">Pull</a> and <a href=\"help/diffusion-protocols.html#push\" target=\"_blank\" rel=\"noopener\">Push</a> protocols, where each user selects a neighbors, and he/she just propagates a fixed number of their created contents and a fixed number of the received contents to the neighbor, and the neighbor sends it to him.</p><p>We consider a second version, named <em>bidirectional rumor-spreading model</em>, which does not consider the orientation of the edges for selecting the nodes from which receive information and towards whom propagate information.</p><p><strong>Reference:</strong> A. Demers, D. Greene, C. Hauser, W. Irish, J. Larson. Epidemic algorithms for replicated database maintenance. ACM PODC 1987, pp. 1-12 (1987).</p><h3>Parameters</h3><ul><li><code>numOwn</code>: the number of contents created by the user to propagate each iteration.</li><li><code>numRec</code>: the number of received contents to propagate each iteration.</li><li><code>numWait</code>: number of iterations that the user has to wait before selecting the same neighbor again. </li></ul><p>Note: when used in code, there is another option, which takes as input a graph containing the probabilities. However, this option is not (at the moment) available from a configuration file.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/protocols.rst",
+        "sha256": "795664fc4a4e906be838bba14e981396c4865ad270c73c2cc2bebdd8ee3f228c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/protocols.html",
+        "page": "diffusion-protocols.html"
+      }
+    },
+    "diffusion-protocol:Simple": {
+      "title": "Simple",
+      "anchor": "simple",
+      "text": "In the simple protocol, each iteration, the user propagates some of his own contents and (at most) a fixed number of the received contents (selected at random) to his followers.\n\nParameters\n^^^^^^^^^^\n* :code:`numOwn`: the number of contents created by the user to propagate each iteration.\n* :code:`numRec`: the number of received contents to propagate each iteration.\n\nNote: when used in code, there is another option, which takes as input a graph containing the probabilities. However, this option is not (at the moment) available from a configuration file.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  Simple:\n    numOwn:\n      type: int\n      value: value\n    numRec:\n      type: int\n      value: value",
+      "html": "<p>In the simple protocol, each iteration, the user propagates some of his own contents and (at most) a fixed number of the received contents (selected at random) to his followers.</p><h3>Parameters</h3><ul><li><code>numOwn</code>: the number of contents created by the user to propagate each iteration.</li><li><code>numRec</code>: the number of received contents to propagate each iteration.</li></ul><p>Note: when used in code, there is another option, which takes as input a graph containing the probabilities. However, this option is not (at the moment) available from a configuration file.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/protocols.rst",
+        "sha256": "795664fc4a4e906be838bba14e981396c4865ad270c73c2cc2bebdd8ee3f228c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/protocols.html",
+        "page": "diffusion-protocols.html"
+      }
+    },
+    "diffusion-protocol:Temporal": {
+      "title": "Temporal",
+      "anchor": "temporal",
+      "text": "The temporal protocol just runs, step by step, how information was propagated in an earlier diffusion: it only propagates a piece at the timestamp it was propagated during the previous diffusion and it only repropagates a piece if the user originally repropagated it.\n\nParameters\n^^^^^^^^^^\n* :code:`pure`: if true, the user-generated contents are only repropagated if they user received them before the date he repropagated it in the previous diffusion. If he receives it later, he does not propagate it.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  Temporal:\n    pure:\n      type: boolean\n      value: true/false",
+      "html": "<p>The temporal protocol just runs, step by step, how information was propagated in an earlier diffusion: it only propagates a piece at the timestamp it was propagated during the previous diffusion and it only repropagates a piece if the user originally repropagated it.</p><h3>Parameters</h3><ul><li><code>pure</code>: if true, the user-generated contents are only repropagated if they user received them before the date he repropagated it in the previous diffusion. If he receives it later, he does not propagate it.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/protocols.rst",
+        "sha256": "795664fc4a4e906be838bba14e981396c4865ad270c73c2cc2bebdd8ee3f228c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/protocols.html",
+        "page": "diffusion-protocols.html"
+      }
+    },
+    "diffusion-protocol:Threshold": {
+      "title": "Threshold",
+      "anchor": "threshold",
+      "text": "In the threshold model, the users decide to propagate a received piece of content only if a certain threshold of users has sent it to them.\nWe differentiate two variants:\n\n* **Proportion threshold:** the user decides to propagate a piece after more than a given proportion of the users have sent him the content.\n* **Count threshold:** the user decides to propagate a piece after more than a given number of the users have sent him the content.\n\n**Reference:** D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the spread of influence through a social network, KDD 2003, pp. 137–146 (2003).\n\nParameters\n^^^^^^^^^^\nFor the probability threshold version, the arguments are the following ones:\n\n* :code:`numOwn`: the number of contents created by the user to propagate each iteration.\n* :code:`threshold`: the minimum proportion of users who must send a user-generated content to the user before it can be propagated.\n\nand, for the count threshold version:\n\n* :code:`numOwn`: the number of contents created by the user to propagate each iteration.\n* :code:`threshold`: the minimum number of users who must send a user-generated content to the user before it can be propagated.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\nFor the proportion threshold version, the configuration is the following:\n\n.. code:: yaml\n\n  Proportion threshold:\n    numOwn:\n      type: int\n      value: value\n    numRec:\n      type: int\n      value: value\n    threshold:\n      type: double\n      value: value   \n\nwhereas, for the other version, it is:\n\n.. code:: yaml\n\n  Count threshold:\n    numOwn:\n      type: int\n      value: value\n    numRec:\n      type: int\n      value: value\n    threshold:\n      type: int\n      value: value",
+      "html": "<p>In the threshold model, the users decide to propagate a received piece of content only if a certain threshold of users has sent it to them. We differentiate two variants:</p><ul><li><strong>Proportion threshold:</strong> the user decides to propagate a piece after more than a given proportion of the users have sent him the content.</li><li><strong>Count threshold:</strong> the user decides to propagate a piece after more than a given number of the users have sent him the content.</li></ul><p><strong>Reference:</strong> D. Kempe, J. Kleinberg, and E. Tardos. Maximizing the spread of influence through a social network, KDD 2003, pp. 137–146 (2003).</p><h3>Parameters</h3><p>For the probability threshold version, the arguments are the following ones:</p><ul><li><code>numOwn</code>: the number of contents created by the user to propagate each iteration.</li><li><code>threshold</code>: the minimum proportion of users who must send a user-generated content to the user before it can be propagated.</li></ul><p>and, for the count threshold version:</p><ul><li><code>numOwn</code>: the number of contents created by the user to propagate each iteration.</li><li><code>threshold</code>: the minimum number of users who must send a user-generated content to the user before it can be propagated.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/protocols.rst",
+        "sha256": "795664fc4a4e906be838bba14e981396c4865ad270c73c2cc2bebdd8ee3f228c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/protocols.html",
+        "page": "diffusion-protocols.html"
+      }
+    }
+  }
+}

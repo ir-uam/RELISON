@@ -6,6 +6,92 @@ interactive visualization.
 
 ## Features
 
+- **Contextual help with Nodi**: the help buttons beside computation selectors
+  in **Metrics → Compute metrics**, **Recommendation → Algorithm**, and the
+  **Diffusion** protocol, mechanism, stop-condition and metric controls open a non-modal documentation
+  panel beside the left configuration column, up to 720px wide (within the
+  viewport on smaller screens). It follows the selected metric and shows the
+  project's descriptions, formulas, parameters and references, with Nodi and a
+  source link. All twenty selectors share the panel: node, graph, edge/node-pair,
+  global/individual community, edge-partition, node/edge-attribute metrics, and
+  link recommendation/prediction models. All 50 offered models have documented
+  descriptions, parameters and references. Help works in both task modes and
+  follows the selected model without changing its settings or running it.
+  Diffusion help covers all nine preset protocols, selection/expiration/propagation/
+  update/sight mechanisms, seven stop conditions, and sixteen metric definitions.
+  Its **Metric to explain** picker browses the available metrics independently of
+  the simulation's multiselect, including when no metrics have been selected.
+  Definitions come from `docs/source/sna/metrics/*.rst`,
+  `RELISON-sna/COMMUNITY_BOUNDARY_METRICS.md` and
+  `RELISON-sna/EDGE_PARTITION_METRICS.md`, `docs/source/link/algorithms/*.rst`, and
+  `docs/source/diffusion/{protocols,metrics}/*.rst`.
+  Restricted graph metrics link to their
+  underlying graph definitions; related variants use their shared section.
+  Undocumented metrics, including Free discovery, show **Not found in the project
+  documentation**; no implementation or AI-generated explanation is substituted.
+  This also applies to graph edge count, the undocumented size-normalized/Dice
+  community variants and the basic edge-attribute count selectors.
+  The content, readable documentation page, typeset equations and KaTeX fonts are bundled
+  for offline use. No metric computation runs when opening help. Escape/Close
+  dismisses the panel; opening a tour closes help, and opening help pauses a tour.
+  Nodi moves using the tutorial animations and changes illustration to suit the
+  topic: paths, comparisons, community discovery, model calculations and diffusion.
+  Loading uses the sleeping pose, missing documentation the concerned face, and
+  load failures the reassuring pose. The help header's motion control shares the
+  tutorials' saved pause preference and follows system reduced-motion changes.
+  Regenerate checked-in help with `npm run build:help` after editing the RST.
+  Source hashes, family mappings, shared-panel interaction and sanitized equation
+  output are checked by `node --test src/test/js/node-metric-help.test.cjs src/test/js/metric-help-families.test.cjs`.
+
+- **Tutorials with Nodi**: open **Tutorials** in the top bar or Nodi's welcome
+  card on Import. Ten short tours cover the interface, importing, Network,
+  Nodes & Edges, Communities, Edge partitions, Metrics, Recommendation, Diffusion
+  and Reports. Nodi highlights the relevant controls and changes expression
+  between welcoming, curious, explaining, suggesting and celebrating. Nine
+  contextual poses cover exploring, following a path, computing, discovering,
+  comparing, concern, waiting patiently, reassurance and watching diffusion.
+  These poses include small network motifs and use a larger display size to
+  keep the supporting details readable.
+  Tutorial steps appear as speech bubbles from Nodi, with the character and
+  speaker label above the bubble. The library opens with a matching conversational
+  greeting; Back/Next, progress and motion controls remain inside each step.
+  Each expression has a subtle CSS animation: a greeting sway, curious tilt,
+  explaining nod, idea pulse or brief completion bounce. The newer poses use
+  a gentle inspection tilt, focused float or comparison sway; the concerned
+  pose settles once and then stays still. **Pause Nodi** in the
+  library or guide stops motion without leaving the current step; **Animate Nodi**
+  enables it again. This preference is remembered in the browser, and the system's
+  reduced-motion setting always takes precedence, including changes made while
+  the page is open. The Import greeting stops by itself and the toolbar stays still.
+  Required-action steps disable Next until the user succeeds. **Load your first
+  network** requires a successful load, session import or generation during the
+  attempt; either route advances straight to the loaded network. **Measure and
+  compare** requires a successful node-metric computation, then highlights that
+  result's average-value row, ranking chart, expanded ranking table and
+  distribution chart, with the exact original-network result selected. Dynamic
+  highlights follow table redraws, sorting and chart resizing; tracking stops
+  when the tutorial closes. Community
+  detection, edge-group detection, recommendation/prediction and diffusion-run
+  steps also wait for success before showing results. Errors, cancellation and
+  stale responses from a replaced/edited graph do not satisfy these steps.
+  Escape or Close pauses the tour. Actions completed while paused are recognised
+  when the user chooses Continue, without navigating while the tour is closed.
+  Saved step numbers and pre-existing results cannot bypass required actions;
+  a reloaded page or an invalidated result returns to the missing action. Replays
+  start a fresh attempt. Informational steps still advance at the user's pace.
+  Progress stays in this browser independently of `.relison` sessions; blocked
+  browser storage falls back to memory. Network-dependent tours unlock after
+  loading a graph, and the recommendation tour is unavailable for multigraphs.
+  Tours navigate views without importing, editing or computing data for you.
+  Arrow keys navigate steps only while focus is inside the guide; normal page
+  controls remain usable. The guide follows interface themes and reduced-motion
+  preferences. All tutorial text and fourteen transparent 2D Nodi illustrations are
+  bundled for offline use. The earlier 3D images are retained separately.
+  The active artwork and generation prompts are in
+  `src/main/resources/public/img/nodi-2d/`; original 3D provenance remains in
+  `src/main/resources/public/img/nodi-assets.json`.
+  Regression checks: `node --test src/test/js/nodi-tutorials.test.cjs`.
+
 - **Report notebook (cell configuration)**: the report button opens **New report**
   and a disabled **Load report** option. The notebook has an outline and editable
   options for text, graph snapshots, top-k node tables and metric charts. Cells

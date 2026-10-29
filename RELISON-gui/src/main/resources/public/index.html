@@ -8,8 +8,11 @@
     <link rel="icon" type="image/svg+xml" href="img/relison-favicon.svg"/>
     <link rel="icon" type="image/png" sizes="any" href="img/relison-logo.png"/>
     <link rel="stylesheet" href="vendor/fonts/material-symbols.css"/>
+    <link rel="stylesheet" href="help/katex/katex.min.css"/>
     <link rel="stylesheet" href="style.css"/>
     <link rel="stylesheet" href="report-notebook.css"/>
+    <link rel="stylesheet" href="nodi-tutorials.css"/>
+    <link rel="stylesheet" href="node-metric-help.css"/>
     <!-- graphology (graph model) + graphology-library (layouts/metrics helpers) + sigma (rendering). -->
     <script src="vendor/graphology.min.js"></script>
     <script src="vendor/graphology-library.min.js"></script>
@@ -33,6 +36,7 @@
     </span>
     <input type="file" id="session-file" accept=".relison,application/json" hidden/>
     <button id="btn-report" class="icon-btn" type="button" data-tooltip="ui-btn-report" aria-label="Reports" aria-controls="pane-reports" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">lab_profile</span></button>
+    <button id="nodi-button" class="icon-btn nodi-button" type="button" aria-haspopup="dialog" aria-controls="nodi-library" title="Tutorials with Nodi">Tutorials</button>
     <a id="docs-link" class="icon-btn" href="https://relison.readthedocs.io" target="_blank" rel="noopener" data-tooltip="ui-docs-link" aria-label="Help"><span class="material-symbols-outlined" aria-hidden="true">help</span></a>
     <button id="debug-terminal" class="icon-btn" data-tooltip="ui-debug-terminal" hidden>&gt;_</button>
     <button id="theme-toggle" class="icon-btn" data-tooltip="ui-theme-toggle" aria-label="Toggle light and dark mode"><span class="material-symbols-outlined" aria-hidden="true">dark_mode</span></button>
@@ -85,7 +89,31 @@
     <div id="processes-list"></div>
 </aside>
 
-<!-- Debug console: replaces the tabs + content (everything below the top bar) when toggled on; only available with --debug. -->
+<!-- Contextual documentation stays beside the workspace while the metric selection remains usable. -->
+<aside id="node-metric-help" class="node-metric-help" data-nodi-motion="off" aria-labelledby="node-metric-help-title" hidden>
+    <header class="node-metric-help-header">
+        <span id="node-metric-help-avatar" class="nodi-avatar" data-nodi-face="explain"><img id="node-metric-help-portrait" src="img/nodi-2d/nodi-explain.png" alt="Nodi, your friendly network guide" width="112" height="112"/></span>
+        <div class="nodi-speaker"><strong>Nodi</strong><span id="node-metric-help-subtitle">Let’s understand this metric</span></div>
+        <div class="node-metric-help-actions">
+            <button class="nodi-motion-toggle" type="button" data-nodi="motion" data-compact="true" aria-label="Pause Nodi" title="Pause Nodi"><span class="material-symbols-outlined" aria-hidden="true">motion_photos_on</span></button>
+            <button id="node-metric-help-close" class="nodi-dismiss" type="button" aria-label="Close metric help"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+        </div>
+    </header>
+    <div class="nodi-speech">
+        <h2 id="node-metric-help-title" tabindex="-1">Metric help</h2>
+        <label id="node-metric-help-choice-wrap" class="field" hidden>
+            <span>Metric to explain</span>
+            <select id="node-metric-help-choice"></select>
+        </label>
+        <p id="node-metric-help-intro" class="node-metric-help-intro"></p>
+        <p id="node-metric-help-status" class="node-metric-help-status" role="status"></p>
+        <div id="node-metric-help-content"></div>
+        <button id="node-metric-help-retry" type="button" hidden>Try again</button>
+        <footer class="node-metric-help-footer"><a id="node-metric-help-source" target="_blank" rel="noopener" hidden></a></footer>
+    </div>
+</aside>
+
+<!-- Debug console: replaces the tabs + content when toggled on; only available with --debug. -->
 <div id="debug-view">
     <div class="terminal-toolbar">
         <span class="terminal-title">Standard output / error</span>
@@ -577,7 +605,10 @@
         <div id="left-metrics" hidden>
         <section class="block" data-metric-family="nodes">
             <h2>Node metrics</h2>
-            <select id="vertex-metric"></select>
+            <div class="node-metric-picker">
+                <select id="vertex-metric" aria-label="Node metric"></select>
+                <button id="node-metric-help-button" data-metric-help-for="vertex-metric" data-metric-help-family="node" class="icon-btn" type="button" aria-label="Help for the selected node metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+            </div>
             <div class="params" id="vertex-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="vertex-rec"/> Include active recommendation</label>
             <button id="btn-vertex" class="primary">Run</button>
@@ -586,7 +617,10 @@
 
         <section class="block" data-metric-family="global">
             <h2>Graph metrics</h2>
-            <select id="graph-metric"></select>
+            <div class="node-metric-picker">
+                <select aria-label="Metric" id="graph-metric"></select>
+                <button data-metric-help-for="graph-metric" data-metric-help-family="graph" class="icon-btn" type="button" aria-label="Help for the selected metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+            </div>
             <div class="params" id="graph-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="graph-rec"/> Include active recommendation</label>
             <button id="btn-graph" class="primary">Run</button>
@@ -594,7 +628,10 @@
 
         <section class="block" data-metric-family="edges pairs">
             <h2 id="pair-metric-heading">Edge metrics</h2>
-            <select id="pair-metric"></select>
+            <div class="node-metric-picker">
+                <select aria-label="Metric" id="pair-metric"></select>
+                <button data-metric-help-for="pair-metric" data-metric-help-family="pair" class="icon-btn" type="button" aria-label="Help for the selected metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+            </div>
             <div class="params" id="pair-params"></div>
             <label class="inline-check" hidden><input type="checkbox" id="pair-allpairs" disabled/> All node pairs (not just edges)</label>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="pair-rec"/> Include active recommendation</label>
@@ -609,7 +646,10 @@
                 <span>Partition</span>
                 <select id="global-comm-partition"></select>
             </label>
-            <select id="global-comm-metric"></select>
+            <div class="node-metric-picker">
+                <select aria-label="Metric" id="global-comm-metric"></select>
+                <button data-metric-help-for="global-comm-metric" data-metric-help-family="community-global" class="icon-btn" type="button" aria-label="Help for the selected metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+            </div>
             <div class="params" id="global-comm-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="global-comm-rec"/> Include active recommendation</label>
             <button id="btn-global-comm" disabled class="primary">Run global community metric</button>
@@ -619,7 +659,10 @@
                 <span>Partition</span>
                 <select id="indiv-comm-partition"></select>
             </label>
-            <select id="indiv-comm-metric"></select>
+            <div class="node-metric-picker">
+                <select aria-label="Metric" id="indiv-comm-metric"></select>
+                <button data-metric-help-for="indiv-comm-metric" data-metric-help-family="community" class="icon-btn" type="button" aria-label="Help for the selected metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+            </div>
             <div class="params" id="indiv-comm-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="comm-rec"/> Include active recommendation</label>
             <button id="btn-indiv-comm" disabled class="primary">Run per-community metric</button>
@@ -628,12 +671,18 @@
         <section class="block" data-metric-family="edgepartitions">
             <h2>Edge partition metrics</h2>
             <label class="field"><span>Global partition</span><select id="ep-global-partition"></select></label>
-            <select id="ep-global-metric"></select>
+            <div class="node-metric-picker">
+                <select aria-label="Metric" id="ep-global-metric"></select>
+                <button data-metric-help-for="ep-global-metric" data-metric-help-family="edge-partition-global" class="icon-btn" type="button" aria-label="Help for the selected metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+            </div>
             <div class="params" id="ep-global-params"></div>
             <button id="btn-ep-global" disabled class="primary">Run global partition metric</button>
             <hr class="sep"/>
             <label class="field"><span>Individual partition</span><select id="ep-individual-partition"></select></label>
-            <select id="ep-individual-metric"></select>
+            <div class="node-metric-picker">
+                <select aria-label="Metric" id="ep-individual-metric"></select>
+                <button data-metric-help-for="ep-individual-metric" data-metric-help-family="edge-partition" class="icon-btn" type="button" aria-label="Help for the selected metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+            </div>
             <div class="params" id="ep-individual-params"></div>
             <button id="btn-ep-individual" disabled class="primary">Run per-group metric</button>
             <p class="muted">Detect a partition in Edge partitions first. Connectivity uses weak components. Weight Gini requires nonnegative weights. Entropy is measured in bits.</p>
@@ -646,13 +695,19 @@
                 <select id="attribute-comm-attribute"></select>
             </label>
             <span class="sublabel">Global attribute-based metric</span>
-            <select id="attribute-global-comm-metric"></select>
+            <div class="node-metric-picker">
+                <select aria-label="Metric" id="attribute-global-comm-metric"></select>
+                <button data-metric-help-for="attribute-global-comm-metric" data-metric-help-family="community-global" class="icon-btn" type="button" aria-label="Help for the selected metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+            </div>
             <div class="params" id="attribute-global-comm-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="attribute-global-comm-rec"/> Include active recommendation</label>
             <button id="btn-attribute-global-comm" disabled class="primary">Run global metric</button>
             <hr class="sep"/>
             <span class="sublabel">Per-attribute-value metric</span>
-            <select id="attribute-indiv-comm-metric"></select>
+            <div class="node-metric-picker">
+                <select aria-label="Metric" id="attribute-indiv-comm-metric"></select>
+                <button data-metric-help-for="attribute-indiv-comm-metric" data-metric-help-family="community" class="icon-btn" type="button" aria-label="Help for the selected metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+            </div>
             <div class="params" id="attribute-indiv-comm-params"></div>
             <label class="inline-check rec-include-field" hidden><input type="checkbox" class="rec-include" id="attribute-comm-rec"/> Include active recommendation</label>
             <button id="btn-attribute-indiv-comm" disabled class="primary">Run per-value metric</button>
@@ -662,12 +717,18 @@
             <p class="muted">Categorical, string and boolean edge attributes support all edge partition metrics. Intra-attribute metrics use each value's edges and their endpoints.</p>
             <label class="field"><span>Edge attribute</span><select id="edge-attribute-metric-attribute"></select></label>
             <span class="sublabel">Global metric</span>
-            <select id="edge-attribute-global-metric"><option value="num-attributes">Number of attribute values</option></select>
+            <div class="node-metric-picker">
+                <select aria-label="Metric" id="edge-attribute-global-metric"><option value="num-attributes">Number of attribute values</option></select>
+                <button data-metric-help-for="edge-attribute-global-metric" data-metric-help-family="edge-partition-global" class="icon-btn" type="button" aria-label="Help for the selected metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+            </div>
             <div class="params" id="edge-attribute-global-params"></div>
             <button id="btn-edge-attribute-global" disabled class="primary">Run global metric</button>
             <hr class="sep"/>
             <span class="sublabel">Per-value metric</span>
-            <select id="edge-attribute-indiv-metric"><option value="count">Edge count</option></select>
+            <div class="node-metric-picker">
+                <select aria-label="Metric" id="edge-attribute-indiv-metric"><option value="count">Edge count</option></select>
+                <button data-metric-help-for="edge-attribute-indiv-metric" data-metric-help-family="edge-partition" class="icon-btn" type="button" aria-label="Help for the selected metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+            </div>
             <div class="params" id="edge-attribute-indiv-params"></div>
             <button id="btn-edge-attribute-indiv" disabled class="primary">Run per-value metric</button>
         </section>
@@ -681,6 +742,7 @@
         <div class="tabpane active" id="pane-import">
             <div class="import-card">
                 <img class="import-logo" src="img/RELISON-full-logo.png" alt="RELISON Spectrum"/>
+                <button id="nodi-welcome" class="nodi-welcome" type="button" aria-haspopup="dialog" aria-controls="nodi-library"><span class="nodi-avatar" data-nodi-face="welcome"><img src="img/nodi-2d/nodi-welcome.png" alt="" width="64" height="64"/></span><span class="nodi-welcome-copy"><strong>Hi, I’m Nodi!</strong><span>New here? Let me show you around.</span></span><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>
                 <h2>Import network</h2>
                 <label class="field">
                     <span>Network or session file</span>
@@ -1377,10 +1439,13 @@
                                 <option value="prediction">Link prediction (top-n total)</option>
                             </select>
                         </label>
-                        <label class="field">
-                            <span>Algorithm</span>
-                            <select id="rec-algo"></select>
-                        </label>
+                        <div class="field">
+                            <span id="rec-algo-label">Algorithm</span>
+                            <div class="node-metric-picker">
+                                <select id="rec-algo" aria-labelledby="rec-algo-label"></select>
+                                <button id="rec-model-help-button" data-metric-help-for="rec-algo" data-metric-help-family="recommendation" class="icon-btn" type="button" aria-label="Help for the selected model" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this model"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+                            </div>
+                        </div>
                         <div class="params" id="rec-params"></div>
                         <label class="field">
                             <span id="rec-cutoff-label">Links per node</span>
@@ -1486,30 +1551,54 @@
                             </select>
                         </label>
                         <div id="diff-preset-wrap">
-                            <select id="diff-protocol"></select>
+                            <div class="node-metric-picker">
+                            <select aria-label="Diffusion protocol" id="diff-protocol"></select>
+                            <button data-metric-help-for="diff-protocol" data-metric-help-family="diffusion-protocol" class="icon-btn" type="button" aria-label="Help for diffusion protocol" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this protocol"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+                        </div>
                             <div class="params" id="diff-protocol-params"></div>
                         </div>
                         <div id="diff-custom-wrap" hidden>
                             <span class="sublabel">Selection</span>
-                            <select id="diff-selection"></select><div class="params" id="diff-selection-params"></div>
+                            <div class="node-metric-picker">
+                            <select aria-label="Diffusion selection mechanism" id="diff-selection"></select>
+                            <button data-metric-help-for="diff-selection" data-metric-help-family="diffusion-selection" class="icon-btn" type="button" aria-label="Help for diffusion selection mechanism" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this selection mechanism"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+                        </div><div class="params" id="diff-selection-params"></div>
                             <span class="sublabel">Expiration</span>
-                            <select id="diff-expiration"></select><div class="params" id="diff-expiration-params"></div>
+                            <div class="node-metric-picker">
+                            <select aria-label="Diffusion expiration mechanism" id="diff-expiration"></select>
+                            <button data-metric-help-for="diff-expiration" data-metric-help-family="diffusion-expiration" class="icon-btn" type="button" aria-label="Help for diffusion expiration mechanism" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this expiration mechanism"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+                        </div><div class="params" id="diff-expiration-params"></div>
                             <span class="sublabel">Propagation</span>
-                            <select id="diff-propagation"></select><div class="params" id="diff-propagation-params"></div>
+                            <div class="node-metric-picker">
+                            <select aria-label="Diffusion propagation mechanism" id="diff-propagation"></select>
+                            <button data-metric-help-for="diff-propagation" data-metric-help-family="diffusion-propagation" class="icon-btn" type="button" aria-label="Help for diffusion propagation mechanism" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this propagation mechanism"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+                        </div><div class="params" id="diff-propagation-params"></div>
                             <span class="sublabel">Update</span>
-                            <select id="diff-update"></select><div class="params" id="diff-update-params"></div>
+                            <div class="node-metric-picker">
+                            <select aria-label="Diffusion update mechanism" id="diff-update"></select>
+                            <button data-metric-help-for="diff-update" data-metric-help-family="diffusion-update" class="icon-btn" type="button" aria-label="Help for diffusion update mechanism" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this update mechanism"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+                        </div><div class="params" id="diff-update-params"></div>
                             <span class="sublabel">Sight</span>
-                            <select id="diff-sight"></select><div class="params" id="diff-sight-params"></div>
+                            <div class="node-metric-picker">
+                            <select aria-label="Diffusion sight mechanism" id="diff-sight"></select>
+                            <button data-metric-help-for="diff-sight" data-metric-help-family="diffusion-sight" class="icon-btn" type="button" aria-label="Help for diffusion sight mechanism" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this sight mechanism"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+                        </div><div class="params" id="diff-sight-params"></div>
                         </div>
                     </section>
                     <section class="block">
                         <h2>Stop condition</h2>
-                        <select id="diff-stop"></select>
+                        <div class="node-metric-picker">
+                            <select aria-label="Diffusion stop condition" id="diff-stop"></select>
+                            <button data-metric-help-for="diff-stop" data-metric-help-family="diffusion-stop" class="icon-btn" type="button" aria-label="Help for diffusion stop condition" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this stop condition"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+                        </div>
                         <div class="params" id="diff-stop-params"></div>
                     </section>
                     <section class="block">
                         <h2>Metrics</h2>
-                        <select id="diff-metrics" multiple size="6"></select>
+                        <div class="node-metric-picker">
+                            <select aria-label="Diffusion metric" id="diff-metrics" multiple size="6"></select>
+                            <button data-metric-help-for="diff-metrics" data-metric-help-family="diffusion-metric" class="icon-btn" type="button" aria-label="Help for diffusion metric" aria-expanded="false" aria-controls="node-metric-help" disabled title="Explain this metric"><span class="material-symbols-outlined" aria-hidden="true">help</span></button>
+                        </div>
                         <p class="muted">Selected metrics appear under Analysis → Metrics.</p>
                     </section>
                     <section class="block">
@@ -2008,6 +2097,8 @@
 <script src="report-pdf.js"></script>
 <script src="report-notebook.js"></script>
 <script src="report-graph-capture.js"></script>
+<script src="nodi-tutorials.js"></script>
+<script src="node-metric-help.js"></script>
 <script src="app.js"></script>
 <script type="module" src="cosmograph-spike.js"></script>
 <script type="module" src="sigma-edge-curve.js"></script>

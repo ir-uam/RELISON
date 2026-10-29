@@ -1,0 +1,304 @@
+{
+  "source": {
+    "path": "docs/source/diffusion/metrics/infopiece.rst",
+    "sha256": "1c26707c9d85b9b22f7581f674157b4ce0574aa13f5e96b7755e38ae3c793fbe",
+    "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/infopiece.html",
+    "page": "diffusion-piece-metrics.html"
+  },
+  "metrics": {
+    "Speed": {
+      "label": "Speed",
+      "section": "diffusion-pieces:Speed"
+    },
+    "Information count": {
+      "label": "Information count",
+      "section": "diffusion-pieces:Information count"
+    },
+    "Information Gini complement": {
+      "label": "Information Gini complement",
+      "section": "diffusion-pieces:Information Gini complement"
+    },
+    "Creator recall": {
+      "label": "Creator recall",
+      "section": "diffusion-creators:Creator recall"
+    },
+    "Global creator Gini complement": {
+      "label": "Global creator Gini complement",
+      "section": "diffusion-creators:Creator Gini complement"
+    },
+    "Individual creator Gini complement": {
+      "label": "Individual creator Gini complement",
+      "section": "diffusion-creators:Creator Gini complement"
+    },
+    "Global creator entropy": {
+      "label": "Global creator entropy",
+      "section": "diffusion-creators:Creator entropy"
+    },
+    "Individual creator entropy": {
+      "label": "Individual creator entropy",
+      "section": "diffusion-creators:Creator entropy"
+    },
+    "Feature recall": {
+      "label": "Feature recall",
+      "section": "diffusion-features:Feature recall"
+    },
+    "Individual feature Gini complement": {
+      "label": "Individual feature Gini complement",
+      "section": "diffusion-features:Feature Gini complement"
+    },
+    "Global feature Gini complement": {
+      "label": "Global feature Gini complement",
+      "section": "diffusion-features:Feature Gini complement"
+    },
+    "Feature entropy": {
+      "label": "Feature entropy",
+      "section": "diffusion-features:Feature entropy"
+    },
+    "Global feature entropy": {
+      "label": "Global feature entropy",
+      "section": "diffusion-features:Feature entropy"
+    },
+    "Global feature KLD": {
+      "label": "Global feature KLD",
+      "section": "diffusion-features:Feature KL divergence"
+    },
+    "Individual real propagated recall": {
+      "label": "Individual real propagated recall",
+      "section": "diffusion-pieces:Real propagated recall"
+    },
+    "Global real propagated recall": {
+      "label": "Global real propagated recall",
+      "section": "diffusion-pieces:Real propagated recall"
+    }
+  },
+  "sections": {
+    "diffusion-pieces:Information count": {
+      "title": "Information count",
+      "anchor": "information-count",
+      "text": "This metric measures the average number of information pieces which the users have received over time.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n    Information count:",
+      "html": "<p>This metric measures the average number of information pieces which the users have received over time.</p>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/infopiece.rst",
+        "sha256": "1c26707c9d85b9b22f7581f674157b4ce0574aa13f5e96b7755e38ae3c793fbe",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/infopiece.html",
+        "page": "diffusion-piece-metrics.html"
+      }
+    },
+    "diffusion-pieces:Information Gini complement": {
+      "title": "Information Gini complement",
+      "anchor": "information-gini-complement",
+      "text": "This metric measures the number of times each information piece has been received, and it finds how balanced the distribution is, by computing the Gini complement.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n    Information Gini complement:",
+      "html": "<p>This metric measures the number of times each information piece has been received, and it finds how balanced the distribution is, by computing the Gini complement.</p>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/infopiece.rst",
+        "sha256": "1c26707c9d85b9b22f7581f674157b4ce0574aa13f5e96b7755e38ae3c793fbe",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/infopiece.html",
+        "page": "diffusion-piece-metrics.html"
+      }
+    },
+    "diffusion-pieces:Real propagated recall": {
+      "title": "Real propagated recall",
+      "anchor": "real-propagated-recall",
+      "text": "This metric measures the proportion of information pieces which have shared by other users in a previous diffusion process which have been received.\nWe differentiate two variants:\n\n* **Individual:** we measure the proportion of the information pieces propagated by each user in the previous process which have already been received by the user.\n* **Global:** we measure the global proportion of the information pieces propagated in the previous process which have already been received by the corresponding users.\n\nParameters\n^^^^^^^^^^\n* :code:`unique`: true if we only count the first time an information piece has been received by a user, false otherwise.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\nFor the individual version, the configuration file is the following:\n\n.. code:: yaml\n\n    Individual real propagated recall:\n\nwhereas, for the global version, it is:\n\n.. code:: yaml\n\n    Global real propagated recall:",
+      "html": "<p>This metric measures the proportion of information pieces which have shared by other users in a previous diffusion process which have been received. We differentiate two variants:</p><ul><li><strong>Individual:</strong> we measure the proportion of the information pieces propagated by each user in the previous process which have already been received by the user.</li><li><strong>Global:</strong> we measure the global proportion of the information pieces propagated in the previous process which have already been received by the corresponding users.</li></ul><h3>Parameters</h3><ul><li><code>unique</code>: true if we only count the first time an information piece has been received by a user, false otherwise.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/infopiece.rst",
+        "sha256": "1c26707c9d85b9b22f7581f674157b4ce0574aa13f5e96b7755e38ae3c793fbe",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/infopiece.html",
+        "page": "diffusion-piece-metrics.html"
+      }
+    },
+    "diffusion-pieces:Creator Gini complement": {
+      "title": "Creator Gini complement",
+      "anchor": "creator-gini-complement",
+      "text": "The creator Gini complement measures how balanced is the number of times that the information created by each user has been propagated. We differentiate two variants:\n\n* **Individual:** we measure the number of times each user has received information from each creator, and find the Gini complement of that distribution. The final result is the average over all the users in the network.\n* **Global:** for each creator, we count the number of times that one of his/her created contents has reached a user in the network. Then, the Gini complement is computed over that distribution. \n\nParameters\n^^^^^^^^^^\n* :code:`unique`: true if we only count the first time an information piece has been received by a user, false otherwise.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\nFor the individual version, the configuration file is the following:\n\n.. code:: yaml\n\n    Individual creator Gini:\n      unique:\n        type: boolean\n        value: true/false\n\nwhereas, for the global version, it is:\n\n.. code:: yaml\n\n    Global creator Gini:\n      unique:\n        type: boolean\n        value: true/false",
+      "html": "<p>The creator Gini complement measures how balanced is the number of times that the information created by each user has been propagated. We differentiate two variants:</p><ul><li><strong>Individual:</strong> we measure the number of times each user has received information from each creator, and find the Gini complement of that distribution. The final result is the average over all the users in the network.</li><li><strong>Global:</strong> for each creator, we count the number of times that one of his/her created contents has reached a user in the network. Then, the Gini complement is computed over that distribution. </li></ul><h3>Parameters</h3><ul><li><code>unique</code>: true if we only count the first time an information piece has been received by a user, false otherwise.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/infopiece.rst",
+        "sha256": "1c26707c9d85b9b22f7581f674157b4ce0574aa13f5e96b7755e38ae3c793fbe",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/infopiece.html",
+        "page": "diffusion-piece-metrics.html"
+      }
+    },
+    "diffusion-pieces:Speed": {
+      "title": "Speed",
+      "anchor": "speed",
+      "text": "The speed of a simulation measures the number of contents which have been propagated and seen during the simulation (considering that \neach information piece is received only once by a user).\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n    Speed:",
+      "html": "<p>The speed of a simulation measures the number of contents which have been propagated and seen during the simulation (considering that each information piece is received only once by a user).</p>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/infopiece.rst",
+        "sha256": "1c26707c9d85b9b22f7581f674157b4ce0574aa13f5e96b7755e38ae3c793fbe",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/infopiece.html",
+        "page": "diffusion-piece-metrics.html"
+      }
+    },
+    "diffusion-creators:Creator entropy": {
+      "title": "Creator entropy",
+      "anchor": "creator-entropy",
+      "text": "The creator entropy measures the entropy of the distribution that counts the times that information created by each user has been propagated. We differentiate two variants:\n\n* **Individual:** we measure the number of times each user has received information from each creator, and find the entropy of that distribution. The final result is the average over all the users in the network.\n* **Global:** for each creator, we count the number of times that one of his/her created contents has reached a user in the network. Then, the entropy is computed over that distribution. \n\nParameters\n^^^^^^^^^^\n* :code:`unique`: true if we only count the first time an information piece has been received by a user, false otherwise.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\nFor the individual version, the configuration file is the following:\n\n.. code:: yaml\n\n    Individual creator entropy:\n      unique:\n        type: boolean\n        value: true/false\n\nwhereas, for the global version, it is:\n\n.. code:: yaml\n\n    Global creator entropy:\n      unique:\n        type: boolean\n        value: true/false",
+      "html": "<p>The creator entropy measures the entropy of the distribution that counts the times that information created by each user has been propagated. We differentiate two variants:</p><ul><li><strong>Individual:</strong> we measure the number of times each user has received information from each creator, and find the entropy of that distribution. The final result is the average over all the users in the network.</li><li><strong>Global:</strong> for each creator, we count the number of times that one of his/her created contents has reached a user in the network. Then, the entropy is computed over that distribution. </li></ul><h3>Parameters</h3><ul><li><code>unique</code>: true if we only count the first time an information piece has been received by a user, false otherwise.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/user.rst",
+        "sha256": "0b738ab689dac9896af4e12c1f382e44c0667bee104b0e9c67d7adb8535db418",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/user.html",
+        "page": "diffusion-creator-metrics.html"
+      }
+    },
+    "diffusion-creators:Creator Gini complement": {
+      "title": "Creator Gini complement",
+      "anchor": "creator-gini-complement",
+      "text": "The creator Gini complement measures how balanced is the number of times that the information created by each user has been propagated. We differentiate two variants:\n\n* **Individual:** we measure the number of times each user has received information from each creator, and find the Gini complement of that distribution. The final result is the average over all the users in the network.\n* **Global:** for each creator, we count the number of times that one of his/her created contents has reached a user in the network. Then, the Gini complement is computed over that distribution. \n\nParameters\n^^^^^^^^^^\n* :code:`unique`: true if we only count the first time an information piece has been received by a user, false otherwise.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\nFor the individual version, the configuration file is the following:\n\n.. code:: yaml\n\n    Individual creator Gini complement:\n      unique:\n        type: boolean\n        value: true/false\n\nwhereas, for the global version, it is:\n\n.. code:: yaml\n\n    Global creator Gini complement:\n      unique:\n        type: boolean\n        value: true/false",
+      "html": "<p>The creator Gini complement measures how balanced is the number of times that the information created by each user has been propagated. We differentiate two variants:</p><ul><li><strong>Individual:</strong> we measure the number of times each user has received information from each creator, and find the Gini complement of that distribution. The final result is the average over all the users in the network.</li><li><strong>Global:</strong> for each creator, we count the number of times that one of his/her created contents has reached a user in the network. Then, the Gini complement is computed over that distribution. </li></ul><h3>Parameters</h3><ul><li><code>unique</code>: true if we only count the first time an information piece has been received by a user, false otherwise.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/user.rst",
+        "sha256": "0b738ab689dac9896af4e12c1f382e44c0667bee104b0e9c67d7adb8535db418",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/user.html",
+        "page": "diffusion-creator-metrics.html"
+      }
+    },
+    "diffusion-creators:Creator recall": {
+      "title": "Creator recall",
+      "anchor": "creator-recall",
+      "text": "For each user in the network, this metric computes the proportion of users in the network who have created \nan information piece which has been received by the user. This metric indicates the fraction of people in the\nnetwork that each user has discovered through user-generated contents. The value is then averaged over all the user.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n    Creator recall:",
+      "html": "<p>For each user in the network, this metric computes the proportion of users in the network who have created an information piece which has been received by the user. This metric indicates the fraction of people in the network that each user has discovered through user-generated contents. The value is then averaged over all the user.</p>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/user.rst",
+        "sha256": "0b738ab689dac9896af4e12c1f382e44c0667bee104b0e9c67d7adb8535db418",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/user.html",
+        "page": "diffusion-creator-metrics.html"
+      }
+    },
+    "diffusion-features:External feature rate": {
+      "title": "External feature rate",
+      "anchor": "external-feature-rate",
+      "text": "This metric considers the proportion of the received features which are unknown to the users. We differentiate two cases:\n\n* **Individual**: we consider the proportion of the received features which are unknown to the each user, and then, we average over the set of people in the network.\n* **Global**: we globally count the number of received feature unknown to the users.\n\nIn order to determine which features are unknown to the users, we do the following:\n* **Information features**: we consider that a feature is unknown to the user if it does not appear in any of the information pieces created by the user.\n* **User features**: we consider that a feature is unknown to the user if the user does not have that feature.\n\nParameters\n^^^^^^^^^^\nBoth metrics receive the same parameters:\n\n* :code:`feature`: the name of the features we are going to use.\n* :code:`userFeature`: true if the studied features are user features, false if they are information pieces features.\n* :code:`unique`: true if we just count each time a user receives a piece once, false otherwise.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\nFor the individual feature rate, we have the following configuration file:\n\n.. code:: yaml\n\n    Individual external feature rate:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false\n      unique:\n        type: boolean\n        value: true/false\n\nand, for the global version:\n\n.. code:: yaml\n\n    Global external feature rate:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false\n      unique:\n        type: boolean\n        value: true/false",
+      "html": "<p>This metric considers the proportion of the received features which are unknown to the users. We differentiate two cases:</p><ul><li><strong>Individual</strong>: we consider the proportion of the received features which are unknown to the each user, and then, we average over the set of people in the network.</li><li><strong>Global</strong>: we globally count the number of received feature unknown to the users.</li></ul><p>In order to determine which features are unknown to the users, we do the following:</p><ul><li><strong>Information features</strong>: we consider that a feature is unknown to the user if it does not appear in any of the information pieces created by the user.</li><li><strong>User features</strong>: we consider that a feature is unknown to the user if the user does not have that feature.</li></ul><h3>Parameters</h3><p>Both metrics receive the same parameters:</p><ul><li><code>feature</code>: the name of the features we are going to use.</li><li><code>userFeature</code>: true if the studied features are user features, false if they are information pieces features.</li><li><code>unique</code>: true if we just count each time a user receives a piece once, false otherwise.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/features.rst",
+        "sha256": "5e8dac6df55fa32f24901161f39b62bcbf0d566d3ff40486d5b42f7272f8e214",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/features.html",
+        "page": "diffusion-feature-metrics.html"
+      }
+    },
+    "diffusion-features:External feature recall": {
+      "title": "External feature recall",
+      "anchor": "external-feature-recall",
+      "text": "For each user in the network, this metric computes the proportion of unknown features in the network which have been received. Then, this values are averaged to obtain the metric.\n\nIn order to determine which features are unknown to the users, we do the following:\n* **Information features**: we consider that a feature is unknown to the user if it does not appear in any of the information pieces created by the user.\n* **User features**: we consider that a feature is unknown to the user if the user does not have that feature.\n\nParameters\n^^^^^^^^^^\nBoth metrics receive the same parameters:\n\n* :code:`feature`: the name of the features we are going to use.\n* :code:`userFeature`: true if the studied features are user features, false if they are information pieces features.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n    External feature recall:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false",
+      "html": "<p>For each user in the network, this metric computes the proportion of unknown features in the network which have been received. Then, this values are averaged to obtain the metric.</p><p>In order to determine which features are unknown to the users, we do the following:</p><ul><li><strong>Information features</strong>: we consider that a feature is unknown to the user if it does not appear in any of the information pieces created by the user.</li><li><strong>User features</strong>: we consider that a feature is unknown to the user if the user does not have that feature.</li></ul><h3>Parameters</h3><p>Both metrics receive the same parameters:</p><ul><li><code>feature</code>: the name of the features we are going to use.</li><li><code>userFeature</code>: true if the studied features are user features, false if they are information pieces features.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/features.rst",
+        "sha256": "5e8dac6df55fa32f24901161f39b62bcbf0d566d3ff40486d5b42f7272f8e214",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/features.html",
+        "page": "diffusion-feature-metrics.html"
+      }
+    },
+    "diffusion-features:External feature Gini complement": {
+      "title": "External feature Gini complement",
+      "anchor": "external-feature-gini-complement",
+      "text": "The external feature Gini complement measures how balanced is the number of times that each feature has been propagated. We also count the cases where the feature was unknown to the receiving user. We differentiate two variants:\n\n* **Individual:** we measure the number of times each user has received each feature, and find the Gini complement of that distribution. The final result is the average over all the users in the network.\n* **Global:** for each feature, we count the number of times that it has reached a user in the network. Then, the Gini complement is computed over that distribution. \n\nIn order to determine which features are unknown to the users, we do the following:\n* **Information features**: we consider that a feature is unknown to the user if it does not appear in any of the information pieces created by the user.\n* **User features**: we consider that a feature is unknown to the user if the user does not have that feature.\n\nParameters\n^^^^^^^^^^\nBoth metrics receive the same parameters:\n\n* :code:`feature`: the name of the features we are going to use.\n* :code:`userFeature`: true if the studied features are user features, false if they are information pieces features.\n* :code:`unique`: true if we just count each time a user receives a piece once, false otherwise.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\nFor the individual version, the configuration file is the following:\n\n.. code:: yaml\n\n    Individual external feature Gini complement:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false\n      unique:\n        type: boolean\n        value: true/false\n\nwhereas, for the global version, it is:\n\n    Global external feature Gini complement:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false\n      unique:\n        type: boolean\n        value: true/false",
+      "html": "<p>The external feature Gini complement measures how balanced is the number of times that each feature has been propagated. We also count the cases where the feature was unknown to the receiving user. We differentiate two variants:</p><ul><li><strong>Individual:</strong> we measure the number of times each user has received each feature, and find the Gini complement of that distribution. The final result is the average over all the users in the network.</li><li><strong>Global:</strong> for each feature, we count the number of times that it has reached a user in the network. Then, the Gini complement is computed over that distribution. </li></ul><p>In order to determine which features are unknown to the users, we do the following:</p><ul><li><strong>Information features</strong>: we consider that a feature is unknown to the user if it does not appear in any of the information pieces created by the user.</li><li><strong>User features</strong>: we consider that a feature is unknown to the user if the user does not have that feature.</li></ul><h3>Parameters</h3><p>Both metrics receive the same parameters:</p><ul><li><code>feature</code>: the name of the features we are going to use.</li><li><code>userFeature</code>: true if the studied features are user features, false if they are information pieces features.</li><li><code>unique</code>: true if we just count each time a user receives a piece once, false otherwise.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/features.rst",
+        "sha256": "5e8dac6df55fa32f24901161f39b62bcbf0d566d3ff40486d5b42f7272f8e214",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/features.html",
+        "page": "diffusion-feature-metrics.html"
+      }
+    },
+    "diffusion-features:Feature entropy": {
+      "title": "Feature entropy",
+      "anchor": "feature-entropy",
+      "text": "The feature entropy measures the entropy of the distribution that counts the times that each feature has been propagated. We differentiate two variants:\n\n* **Individual:** we measure the number of times each user has received each feature, and find the entropy of that distribution. The final result is the average over all the users in the network.\n* **Global:** for each creator, we count the number of times that each feature has reached a user in the network. Then, the entropy is computed over that distribution. \n\nParameters\n^^^^^^^^^^\nBoth metrics receive the same parameters:\n\n* :code:`feature`: the name of the features we are going to use.\n* :code:`userFeature`: true if the studied features are user features, false if they are information pieces features.\n* :code:`unique`: true if we just count each time a user receives a piece once, false otherwise.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\nFor the individual version, the configuration file is the following:\n\n.. code:: yaml\n\n    Individual feature entropy:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false\n      unique:\n        type: boolean\n        value: true/false\n\nwhereas, for the global version, it is:\n\n.. code:: yaml\n\n    Global feature entropy:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false\n      unique:\n        type: boolean\n        value: true/false",
+      "html": "<p>The feature entropy measures the entropy of the distribution that counts the times that each feature has been propagated. We differentiate two variants:</p><ul><li><strong>Individual:</strong> we measure the number of times each user has received each feature, and find the entropy of that distribution. The final result is the average over all the users in the network.</li><li><strong>Global:</strong> for each creator, we count the number of times that each feature has reached a user in the network. Then, the entropy is computed over that distribution. </li></ul><h3>Parameters</h3><p>Both metrics receive the same parameters:</p><ul><li><code>feature</code>: the name of the features we are going to use.</li><li><code>userFeature</code>: true if the studied features are user features, false if they are information pieces features.</li><li><code>unique</code>: true if we just count each time a user receives a piece once, false otherwise.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/features.rst",
+        "sha256": "5e8dac6df55fa32f24901161f39b62bcbf0d566d3ff40486d5b42f7272f8e214",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/features.html",
+        "page": "diffusion-feature-metrics.html"
+      }
+    },
+    "diffusion-features:Feature Gini complement": {
+      "title": "Feature Gini complement",
+      "anchor": "feature-gini-complement",
+      "text": "The feature Gini complement measures how balanced is the number of times that each feature has been propagated. We differentiate two variants:\n\n* **Individual:** we measure the number of times each user has received each feature, and find the Gini complement of that distribution (independently for each user). The final result is the average over all the users in the network.\n* **Global:** for each feature, we count the number of times that it has reached a user in the network. Then, the Gini complement is computed over that distribution. \n\nParameters\n^^^^^^^^^^\nBoth metrics receive the same parameters:\n\n* :code:`feature`: the name of the features we are going to use.\n* :code:`userFeature`: true if the studied features are user features, false if they are information pieces features.\n* :code:`unique`: true if we just count each time a user receives a piece once, false otherwise.\n\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\nFor the individual version, the configuration file is the following:\n\n.. code:: yaml\n\n    Individual feature Gini complement:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false\n      unique:\n        type: boolean\n        value: true/false\n\nwhereas, for the global version, it is:\n\n.. code:: yaml\n\n    Global feature Gini complement:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false\n      unique:\n        type: boolean\n        value: true/false",
+      "html": "<p>The feature Gini complement measures how balanced is the number of times that each feature has been propagated. We differentiate two variants:</p><ul><li><strong>Individual:</strong> we measure the number of times each user has received each feature, and find the Gini complement of that distribution (independently for each user). The final result is the average over all the users in the network.</li><li><strong>Global:</strong> for each feature, we count the number of times that it has reached a user in the network. Then, the Gini complement is computed over that distribution. </li></ul><h3>Parameters</h3><p>Both metrics receive the same parameters:</p><ul><li><code>feature</code>: the name of the features we are going to use.</li><li><code>userFeature</code>: true if the studied features are user features, false if they are information pieces features.</li><li><code>unique</code>: true if we just count each time a user receives a piece once, false otherwise.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/features.rst",
+        "sha256": "5e8dac6df55fa32f24901161f39b62bcbf0d566d3ff40486d5b42f7272f8e214",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/features.html",
+        "page": "diffusion-feature-metrics.html"
+      }
+    },
+    "diffusion-features:Feature KL divergence": {
+      "title": "Feature KL divergence",
+      "anchor": "feature-kl-divergence",
+      "text": "This metric uses the Kullback-Leibler divergence to compare a) the distribution of times each feature has been propagated during the simulation (the P distribution) and b) an approximation of the actual distribution of the features, estimated by counting the number of pieces created by each user and containing the corresponding features (the Q distribution):\n\n.. math::\n\n    KLD = - \\sum_{f \\in F} P(f) \\log \\left( \\frac{P(f)}{Q(f)}\\right)\n\nWe provide two different options:\n\n* **Individual:** we measure the KL-divergence for each user separately, and then we average.\n* **Global:** we measure the distributions for the whole network.\n\nThe metric measures the information gain achieved by the estimated distribution. \n\nParameters\n^^^^^^^^^^\nBoth metrics receive the same parameters:\n\n* :code:`feature`: the name of the features we are going to use.\n* :code:`userFeature`: true if the studied features are user features, false if they are information pieces features.\n* :code:`unique`: true if we just count each time a user receives a piece once, false otherwise.\n\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\nFor the individual version, the configuration file is the following:\n\n.. code:: yaml\n\n    Individual feature KLD:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false\n      unique:\n        type: boolean\n        value: true/false\n\nwhereas, for the global version, it is:\n\n.. code:: yaml\n\n    Global feature KLD:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false\n      unique:\n        type: boolean\n        value: true/false",
+      "html": "<p>This metric uses the Kullback-Leibler divergence to compare a) the distribution of times each feature has been propagated during the simulation (the P distribution) and b) an approximation of the actual distribution of the features, estimated by counting the number of pieces created by each user and containing the corresponding features (the Q distribution):</p><div class=\"metric-help-equation\" tabindex=\"0\" aria-label=\"Formula\"><span class=\"katex-display\"><span class=\"katex\"><span class=\"katex-mathml\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>K</mi><mi>L</mi><mi>D</mi><mo>=</mo><mo>−</mo><munder><mo>∑</mo><mrow><mi>f</mi><mo>∈</mo><mi>F</mi></mrow></munder><mi>P</mi><mo stretchy=\"false\">(</mo><mi>f</mi><mo stretchy=\"false\">)</mo><mi>log</mi><mo>⁡</mo><mrow><mo fence=\"true\">(</mo><mfrac><mrow><mi>P</mi><mo stretchy=\"false\">(</mo><mi>f</mi><mo stretchy=\"false\">)</mo></mrow><mrow><mi>Q</mi><mo stretchy=\"false\">(</mo><mi>f</mi><mo stretchy=\"false\">)</mo></mrow></mfrac><mo fence=\"true\">)</mo></mrow></mrow><annotation encoding=\"application/x-tex\">KLD = - \\sum_{f \\in F} P(f) \\log \\left( \\frac{P(f)}{Q(f)}\\right)</annotation></semantics></math></span><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"katex-base\"><span class=\"katex-strut\" style=\"height:0.6833em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.0715em;\">K</span><span class=\"mord mathnormal\">L</span><span class=\"mord mathnormal\" style=\"margin-right:0.0278em;\">D</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span><span class=\"mrel\">=</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span></span><span class=\"katex-base\"><span class=\"katex-strut\" style=\"height:2.8882em;vertical-align:-1.4382em;\"></span><span class=\"mord\">−</span><span class=\"mspace\" style=\"margin-right:0.1667em;\"></span><span class=\"mop op-limits\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:1.05em;\"><span style=\"top:-1.8479em;margin-left:0em;\"><span class=\"pstrut\" style=\"height:3.05em;\"></span><span class=\"katex-sizing reset-size6 size3 mtight\"><span class=\"mord mtight\"><span class=\"mord mathnormal mtight\" style=\"margin-right:0.1076em;\">f</span><span class=\"mrel mtight\">∈</span><span class=\"mord mathnormal mtight\" style=\"margin-right:0.1389em;\">F</span></span></span></span><span style=\"top:-3.05em;\"><span class=\"pstrut\" style=\"height:3.05em;\"></span><span><span class=\"mop op-symbol large-op\">∑</span></span></span></span><span class=\"vlist-s\">​</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:1.4382em;\"><span></span></span></span></span></span><span class=\"mspace\" style=\"margin-right:0.1667em;\"></span><span class=\"mord mathnormal\" style=\"margin-right:0.1389em;\">P</span><span class=\"mopen\">(</span><span class=\"mord mathnormal\" style=\"margin-right:0.1076em;\">f</span><span class=\"mclose\">)</span><span class=\"mspace\" style=\"margin-right:0.1667em;\"></span><span class=\"mop\">lo<span style=\"margin-right:0.0139em;\">g</span></span><span class=\"mspace\" style=\"margin-right:0.1667em;\"></span><span class=\"minner\"><span class=\"mopen delimcenter\" style=\"top:0em;\"><span class=\"delimsizing size3\">(</span></span><span class=\"mord\"><span class=\"mopen nulldelimiter\"></span><span class=\"mfrac\"><span class=\"vlist-t vlist-t2\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:1.427em;\"><span style=\"top:-2.314em;\"><span class=\"pstrut\" style=\"height:3em;\"></span><span class=\"mord\"><span class=\"mord mathnormal\">Q</span><span class=\"mopen\">(</span><span class=\"mord mathnormal\" style=\"margin-right:0.1076em;\">f</span><span class=\"mclose\">)</span></span></span><span style=\"top:-3.23em;\"><span class=\"pstrut\" style=\"height:3em;\"></span><span class=\"frac-line\" style=\"border-bottom-width:0.04em;\"></span></span><span style=\"top:-3.677em;\"><span class=\"pstrut\" style=\"height:3em;\"></span><span class=\"mord\"><span class=\"mord mathnormal\" style=\"margin-right:0.1389em;\">P</span><span class=\"mopen\">(</span><span class=\"mord mathnormal\" style=\"margin-right:0.1076em;\">f</span><span class=\"mclose\">)</span></span></span></span><span class=\"vlist-s\">​</span></span><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.936em;\"><span></span></span></span></span></span><span class=\"mclose nulldelimiter\"></span></span><span class=\"mclose delimcenter\" style=\"top:0em;\"><span class=\"delimsizing size3\">)</span></span></span></span></span></span></span></div><p>We provide two different options:</p><ul><li><strong>Individual:</strong> we measure the KL-divergence for each user separately, and then we average.</li><li><strong>Global:</strong> we measure the distributions for the whole network.</li></ul><p>The metric measures the information gain achieved by the estimated distribution.</p><h3>Parameters</h3><p>Both metrics receive the same parameters:</p><ul><li><code>feature</code>: the name of the features we are going to use.</li><li><code>userFeature</code>: true if the studied features are user features, false if they are information pieces features.</li><li><code>unique</code>: true if we just count each time a user receives a piece once, false otherwise.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/features.rst",
+        "sha256": "5e8dac6df55fa32f24901161f39b62bcbf0d566d3ff40486d5b42f7272f8e214",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/features.html",
+        "page": "diffusion-feature-metrics.html"
+      }
+    },
+    "diffusion-features:Feature recall": {
+      "title": "Feature recall",
+      "anchor": "feature-recall",
+      "text": "For each user in the network, this metric computes the proportion of features in the network which have been received. Then, this values are averaged to obtain the metric.\n\nParameters\n^^^^^^^^^^\nBoth metrics receive the same parameters:\n\n* :code:`feature`: the name of the features we are going to use.\n* :code:`userFeature`: true if the studied features are user features, false if they are information pieces features.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n    Feature recall:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false",
+      "html": "<p>For each user in the network, this metric computes the proportion of features in the network which have been received. Then, this values are averaged to obtain the metric.</p><h3>Parameters</h3><p>Both metrics receive the same parameters:</p><ul><li><code>feature</code>: the name of the features we are going to use.</li><li><code>userFeature</code>: true if the studied features are user features, false if they are information pieces features.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/features.rst",
+        "sha256": "5e8dac6df55fa32f24901161f39b62bcbf0d566d3ff40486d5b42f7272f8e214",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/features.html",
+        "page": "diffusion-feature-metrics.html"
+      }
+    },
+    "diffusion-features:Feature user entropy": {
+      "title": "Feature user entropy",
+      "anchor": "feature-user-entropy",
+      "text": "For each possible value of a feature, this metric counts the number of users who have received it, and computes the entropy of the distribution.\n\nParameters\n^^^^^^^^^^\nBoth metrics receive the same parameters:\n\n* :code:`feature`: the name of the features we are going to use.\n* :code:`userFeature`: true if the studied features are user features, false if they are information pieces features.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n    Feature user entropy:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false",
+      "html": "<p>For each possible value of a feature, this metric counts the number of users who have received it, and computes the entropy of the distribution.</p><h3>Parameters</h3><p>Both metrics receive the same parameters:</p><ul><li><code>feature</code>: the name of the features we are going to use.</li><li><code>userFeature</code>: true if the studied features are user features, false if they are information pieces features.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/features.rst",
+        "sha256": "5e8dac6df55fa32f24901161f39b62bcbf0d566d3ff40486d5b42f7272f8e214",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/features.html",
+        "page": "diffusion-feature-metrics.html"
+      }
+    },
+    "diffusion-features:Feature user Gini complement": {
+      "title": "Feature user Gini complement",
+      "anchor": "feature-user-gini-complement",
+      "text": "For each possible value of a feature, this metric counts the number of users who have received it, and computes the Gini complement of the distribution, to determine how balanced the distribution is.\n\nParameters\n^^^^^^^^^^\nBoth metrics receive the same parameters:\n\n* :code:`feature`: the name of the features we are going to use.\n* :code:`userFeature`: true if the studied features are user features, false if they are information pieces features.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n    Feature user Gini complement:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false",
+      "html": "<p>For each possible value of a feature, this metric counts the number of users who have received it, and computes the Gini complement of the distribution, to determine how balanced the distribution is.</p><h3>Parameters</h3><p>Both metrics receive the same parameters:</p><ul><li><code>feature</code>: the name of the features we are going to use.</li><li><code>userFeature</code>: true if the studied features are user features, false if they are information pieces features.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/features.rst",
+        "sha256": "5e8dac6df55fa32f24901161f39b62bcbf0d566d3ff40486d5b42f7272f8e214",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/features.html",
+        "page": "diffusion-feature-metrics.html"
+      }
+    },
+    "diffusion-features:User-feature count": {
+      "title": "User-feature count",
+      "anchor": "user-feature-count",
+      "text": "This metric measures the number of different (user,feature) pairs which are observed during the diffusion. The (user, feature) pair is only observed if the user receives a content with the corresponding feature.\n\nParameters\n^^^^^^^^^^\nBoth metrics receive the same parameters:\n\n* :code:`feature`: the name of the features we are going to use.\n* :code:`userFeature`: true if the studied features are user features, false if they are information pieces features.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n    User-feature count:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false",
+      "html": "<p>This metric measures the number of different (user,feature) pairs which are observed during the diffusion. The (user, feature) pair is only observed if the user receives a content with the corresponding feature.</p><h3>Parameters</h3><p>Both metrics receive the same parameters:</p><ul><li><code>feature</code>: the name of the features we are going to use.</li><li><code>userFeature</code>: true if the studied features are user features, false if they are information pieces features.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/features.rst",
+        "sha256": "5e8dac6df55fa32f24901161f39b62bcbf0d566d3ff40486d5b42f7272f8e214",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/features.html",
+        "page": "diffusion-feature-metrics.html"
+      }
+    },
+    "diffusion-features:User-feature Gini complement": {
+      "title": "User-feature Gini complement",
+      "anchor": "user-feature-gini-complement",
+      "text": "This metric measures the number of times that different (user,feature) pairs which are observed during the diffusion. The (user, feature) pair is only observed if the user receives a content with the corresponding feature. Then, this metric determines how balanced the distribution over those pairs is.\n\nParameters\n^^^^^^^^^^\nBoth metrics receive the same parameters:\n\n* :code:`feature`: the name of the features we are going to use.\n* :code:`userFeature`: true if the studied features are user features, false if they are information pieces features.\n* :code:`unique`: true if we just count each time a user receives a piece once, false otherwise.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n    User-feature Gini complement:\n      feature:\n        type: string\n        value: feature_name\n      userFeature:\n        type: boolean\n        value: true/false\n      unique:\n        type: boolean\n        value: true/false",
+      "html": "<p>This metric measures the number of times that different (user,feature) pairs which are observed during the diffusion. The (user, feature) pair is only observed if the user receives a content with the corresponding feature. Then, this metric determines how balanced the distribution over those pairs is.</p><h3>Parameters</h3><p>Both metrics receive the same parameters:</p><ul><li><code>feature</code>: the name of the features we are going to use.</li><li><code>userFeature</code>: true if the studied features are user features, false if they are information pieces features.</li><li><code>unique</code>: true if we just count each time a user receives a piece once, false otherwise.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/metrics/features.rst",
+        "sha256": "5e8dac6df55fa32f24901161f39b62bcbf0d566d3ff40486d5b42f7272f8e214",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/metrics/features.html",
+        "page": "diffusion-feature-metrics.html"
+      }
+    }
+  }
+}

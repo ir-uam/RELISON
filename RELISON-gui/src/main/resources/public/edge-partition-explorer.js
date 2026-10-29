@@ -309,6 +309,7 @@ async function detectEdgePartition() {
     if (existing) {
         selectEdgePartitionResult(existing.partitionId);
         setEdgePartitionStatus("Selected existing edge partition.");
+        if (typeof NodiTutorials !== "undefined") NodiTutorials.actionCompleted?.({ type: "edge-partition", graphKey: graph, graphRevision: revision || 0, label: existing.partitionId });
         return;
     }
     setEdgePartitionStatus("Detecting edge groups…", "busy");
@@ -326,6 +327,7 @@ async function detectEdgePartition() {
         setEdgePartitionStatus("Found " + result.groups.length + " groups across " + edgeCount + " edges.");
         syncEdgePartitionControls();
         refreshAfterCompute();
+        if (typeof NodiTutorials !== "undefined") NodiTutorials.actionCompleted?.({ type: "edge-partition", graphKey: graph, graphRevision: revision || 0, label: result.partitionId });
     } catch (error) {
         setEdgePartitionStatus(error.message, "error");
     } finally {
