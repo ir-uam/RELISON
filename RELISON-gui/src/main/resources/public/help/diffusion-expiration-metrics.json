@@ -1,0 +1,100 @@
+{
+  "source": {
+    "path": "docs/source/diffusion/protocols/expiration.rst",
+    "sha256": "356e56aef5b0193bafcb249490f1fb9914906aee31ae85eec2609317a50e946c",
+    "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/expiration.html",
+    "page": "diffusion-expiration.html"
+  },
+  "metrics": {
+    "Infinite time": {
+      "label": "Infinite time",
+      "section": "diffusion-expiration:Infinite time"
+    },
+    "All not propagated": {
+      "label": "All not propagated",
+      "section": "diffusion-expiration:All not propagated"
+    },
+    "Timed": {
+      "label": "Timed",
+      "section": "diffusion-expiration:Timed"
+    },
+    "Exponential decay": {
+      "label": "Exponential decay",
+      "section": "diffusion-expiration:Exponential decay"
+    }
+  },
+  "sections": {
+    "diffusion-expiration:All not propagated": {
+      "title": "All not propagated",
+      "anchor": "all-not-propagated",
+      "text": "Under this expiration mechanism, every user-generated content which has been received but not repropagated is discarded.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  expiration:\n    name: All not propagated",
+      "html": "<p>Under this expiration mechanism, every user-generated content which has been received but not repropagated is discarded.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/expiration.rst",
+        "sha256": "356e56aef5b0193bafcb249490f1fb9914906aee31ae85eec2609317a50e946c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/expiration.html",
+        "page": "diffusion-expiration.html"
+      }
+    },
+    "diffusion-expiration:All not real propagated": {
+      "title": "All not real propagated",
+      "anchor": "all-not-real-propagated",
+      "text": "Under this expiration mechanism, the only information pieces that can still be shared in the future are those which were actually shared during a previous diffusion process.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  expiration:\n    name: All not real propagated",
+      "html": "<p>Under this expiration mechanism, the only information pieces that can still be shared in the future are those which were actually shared during a previous diffusion process.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/expiration.rst",
+        "sha256": "356e56aef5b0193bafcb249490f1fb9914906aee31ae85eec2609317a50e946c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/expiration.html",
+        "page": "diffusion-expiration.html"
+      }
+    },
+    "diffusion-expiration:All not real propagated with timestamp": {
+      "title": "All not real propagated with timestamp",
+      "anchor": "all-not-real-propagated-with-timestamp",
+      "text": "This expiration mechanism follows the `All not real propagated` one, but with a twist. Under this expiration mechanism, the only information pieces that can still be shared in the future are those which were actually shared during a previous diffusion process if and only if the timestamp of the \nrepropagation has not yet passed.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  expiration:\n    name: All not real propagated timestamp",
+      "html": "<p>This expiration mechanism follows the `All not real propagated` one, but with a twist. Under this expiration mechanism, the only information pieces that can still be shared in the future are those which were actually shared during a previous diffusion process if and only if the timestamp of the repropagation has not yet passed.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/expiration.rst",
+        "sha256": "356e56aef5b0193bafcb249490f1fb9914906aee31ae85eec2609317a50e946c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/expiration.html",
+        "page": "diffusion-expiration.html"
+      }
+    },
+    "diffusion-expiration:Exponential decay": {
+      "title": "Exponential decay",
+      "anchor": "exponential-decay",
+      "text": "In this expiration mechanism, each information piece has a probability of staying on the list over time, following and exponential distribution: The probability that an information piece can still be propagated after :math:`t` iterations is:\n\n.. math::\n  \n  p(i) = e^{-\\lambda t}\n\nwhere :math:`\\lambda` is what we call the \"half-life\" of the content, i.e. the time required for the piece to have a 50% probability of being removed.\n\nParameters\n^^^^^^^^^^\n* :code:`half-life`: the time required for the piece to have a 50% probability of being discarded.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  expiration:\n    name: Exponential decay\n    params:\n      half-life:\n        type: double\n        value: value",
+      "html": "<p>In this expiration mechanism, each information piece has a probability of staying on the list over time, following and exponential distribution: The probability that an information piece can still be propagated after <span class=\"katex\"><span class=\"katex-mathml\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>t</mi></mrow><annotation encoding=\"application/x-tex\">t</annotation></semantics></math></span><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"katex-base\"><span class=\"katex-strut\" style=\"height:0.6151em;\"></span><span class=\"mord mathnormal\">t</span></span></span></span> iterations is:</p><div class=\"metric-help-equation\" tabindex=\"0\" aria-label=\"Formula\"><span class=\"katex-display\"><span class=\"katex\"><span class=\"katex-mathml\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>p</mi><mo stretchy=\"false\">(</mo><mi>i</mi><mo stretchy=\"false\">)</mo><mo>=</mo><msup><mi>e</mi><mrow><mo>−</mo><mi>λ</mi><mi>t</mi></mrow></msup></mrow><annotation encoding=\"application/x-tex\">p(i) = e^{-\\lambda t}</annotation></semantics></math></span><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"katex-base\"><span class=\"katex-strut\" style=\"height:1em;vertical-align:-0.25em;\"></span><span class=\"mord mathnormal\">p</span><span class=\"mopen\">(</span><span class=\"mord mathnormal\">i</span><span class=\"mclose\">)</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span><span class=\"mrel\">=</span><span class=\"mspace\" style=\"margin-right:0.2778em;\"></span></span><span class=\"katex-base\"><span class=\"katex-strut\" style=\"height:0.8991em;\"></span><span class=\"mord\"><span class=\"mord mathnormal\">e</span><span class=\"msupsub\"><span class=\"vlist-t\"><span class=\"vlist-r\"><span class=\"vlist\" style=\"height:0.8991em;\"><span style=\"top:-3.113em;margin-right:0.05em;\"><span class=\"pstrut\" style=\"height:2.7em;\"></span><span class=\"katex-sizing reset-size6 size3 mtight\"><span class=\"mord mtight\"><span class=\"mord mtight\">−</span><span class=\"mord mathnormal mtight\">λ</span><span class=\"mord mathnormal mtight\">t</span></span></span></span></span></span></span></span></span></span></span></span></span></div><p>where <span class=\"katex\"><span class=\"katex-mathml\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>λ</mi></mrow><annotation encoding=\"application/x-tex\">\\lambda</annotation></semantics></math></span><span class=\"katex-html\" aria-hidden=\"true\"><span class=\"katex-base\"><span class=\"katex-strut\" style=\"height:0.6944em;\"></span><span class=\"mord mathnormal\">λ</span></span></span></span> is what we call the &quot;half-life&quot; of the content, i.e. the time required for the piece to have a 50% probability of being removed.</p><h3>Parameters</h3><ul><li><code>half-life</code>: the time required for the piece to have a 50% probability of being discarded.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/expiration.rst",
+        "sha256": "356e56aef5b0193bafcb249490f1fb9914906aee31ae85eec2609317a50e946c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/expiration.html",
+        "page": "diffusion-expiration.html"
+      }
+    },
+    "diffusion-expiration:Infinite time": {
+      "title": "Infinite time",
+      "anchor": "infinite-time",
+      "text": "In this expiration mechanism, information pieces are never discarded: once the user has received them, they remain in the received list until the user decides to share it.\n\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  expiration:\n    name: Infinite time",
+      "html": "<p>In this expiration mechanism, information pieces are never discarded: once the user has received them, they remain in the received list until the user decides to share it.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/expiration.rst",
+        "sha256": "356e56aef5b0193bafcb249490f1fb9914906aee31ae85eec2609317a50e946c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/expiration.html",
+        "page": "diffusion-expiration.html"
+      }
+    },
+    "diffusion-expiration:Timed": {
+      "title": "Timed",
+      "anchor": "timed",
+      "text": "When this expiration mechanism is used, a received information piece has to be shared before a fixed time has passed. Otherwise, it is discarded.\n\nParameters\n^^^^^^^^^^\n* :code:`max-time`: the number of iterations before an information piece is discarded.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n\n  expiration:\n    name: Timed\n    params:\n      max-time:\n        type: int\n        value: value",
+      "html": "<p>When this expiration mechanism is used, a received information piece has to be shared before a fixed time has passed. Otherwise, it is discarded.</p><h3>Parameters</h3><ul><li><code>max-time</code>: the number of iterations before an information piece is discarded.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/expiration.rst",
+        "sha256": "356e56aef5b0193bafcb249490f1fb9914906aee31ae85eec2609317a50e946c",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/expiration.html",
+        "page": "diffusion-expiration.html"
+      }
+    }
+  }
+}

@@ -40,6 +40,10 @@
 .nodi-guide { position: fixed; z-index: 1602; width: min(390px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 12px; background: transparent; color: var(--text); filter: drop-shadow(0 8px 16px #0003); }
 .nodi-guide-head { display: flex; gap: 10px; align-items: center; margin-bottom: 13px; padding-right: 3px; }
 .nodi-guide-head .nodi-avatar { width: 96px; height: 96px; }
+.nodi-guide-head .nodi-avatar:is(
+    [data-nodi-face="explore"], [data-nodi-face="compute"], [data-nodi-face="compare"], [data-nodi-face="attention"],
+    [data-nodi-face="path"], [data-nodi-face="discover"], [data-nodi-face="wait"], [data-nodi-face="reassure"], [data-nodi-face="diffusion"]
+) { width: 120px; height: 120px; }
 .nodi-speaker { display: grid; gap: 3px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); }
 .nodi-speaker strong { font-size: 18px; }
 .nodi-speaker span { font-size: 12px; color: var(--muted); }
@@ -55,6 +59,7 @@
 .nodi-guide-navigation { display: flex; gap: 7px; margin-left: auto; }
 .nodi-guide-footer button { padding: 6px 9px; font-size: 12px; border-radius: 16px; }
 .nodi-guide-footer .nodi-motion-toggle { padding: 5px; }
+.nodi-guide-action { margin: 12px 0; padding: 9px 12px; border-left: 3px solid var(--accent); border-radius: 5px; background: var(--panel-2); color: var(--text); line-height: 1.5; }
 .nodi-guide-footer .nodi-all { margin-right: auto; padding-left: 0; padding-right: 0; border: 0; background: transparent; color: var(--muted); }
 .nodi-highlight { position: fixed; z-index: 1601; pointer-events: none; border: 2px solid var(--accent); border-radius: 7px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent); }
 @media (max-width: 600px) {
@@ -74,6 +79,15 @@
     [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="explain"] img { animation: nodi-nod 4.4s ease-in-out infinite; }
     [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="suggest"] img { animation: nodi-idea 4.6s ease-in-out infinite; }
     [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="celebrate"] img { animation: nodi-cheer 1.2s ease-in-out 2; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="explore"] img { animation: nodi-inspect 5.4s ease-in-out infinite; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="compute"] img { animation: nodi-focus 4.8s ease-in-out infinite; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="compare"] img { animation: nodi-weigh 6s ease-in-out infinite; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="attention"] img { animation: nodi-settle 700ms ease-out 1; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="path"] img { animation: nodi-inspect 6.2s ease-in-out infinite; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="discover"] img { animation: nodi-idea 5s ease-in-out infinite; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="wait"] img { animation: nodi-focus 6.5s ease-in-out infinite; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="reassure"] img { animation: nodi-nod 1.8s ease-in-out 1; }
+    [data-nodi-motion="on"] .nodi-avatar[data-nodi-face="diffusion"] img { animation: nodi-focus 4.8s ease-in-out infinite; }
     /* The import greeting finishes by itself; the toolbar stays still while working. */
     #nodi-welcome[data-nodi-motion="on"] .nodi-avatar img { animation: nodi-wave 2.4s ease-in-out 1; }
     @keyframes nodi-appear { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -101,5 +115,22 @@
         45% { transform: translateY(-8px) rotate(-6deg); }
         68% { transform: translateY(-3px) rotate(5deg); }
         85% { transform: translateY(1px) scale(1.02, .98); }
+    }
+    @keyframes nodi-inspect {
+        0%, 15%, 85%, 100% { transform: translateY(0) rotate(0); }
+        40%, 60% { transform: translateY(-2px) rotate(-2deg); }
+    }
+    @keyframes nodi-focus {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-2px) scale(1.015); }
+    }
+    @keyframes nodi-weigh {
+        0%, 10%, 50%, 90%, 100% { transform: rotate(0); }
+        25% { transform: rotate(-2deg); }
+        75% { transform: rotate(2deg); }
+    }
+    @keyframes nodi-settle {
+        from { transform: translateY(-3px) rotate(-2deg); }
+        to { transform: translateY(0) rotate(0); }
     }
 }

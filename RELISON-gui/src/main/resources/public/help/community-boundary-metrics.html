@@ -1,0 +1,328 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RELISON Community boundary metrics</title><link rel="stylesheet" href="katex/katex.min.css"><style>body{max-width:1000px;margin:36px auto;padding:0 24px;font:16px/1.7 system-ui;color:#17283a}h1,h2,h3{line-height:1.3}section{border-top:1px solid #ccd7e2;margin-top:36px;padding-top:20px}.metric-help-equation{overflow:auto;padding:14px 0}.katex{font-size:1.05em}.katex-display,.katex-display>.katex{text-align:left}a{color:#1767ac}code{background:#eef3f8;padding:2px 4px}table{border-collapse:collapse}td,th{border:1px solid #ccd7e2;padding:8px;text-align:left}</style></head><body><nav><a href="metrics.html">All help documentation</a></nav><h1>Community boundary metrics</h1><p>Descriptions, formulas, parameters and references from the project documentation. YAML configuration examples are omitted.</p><p><code>RELISON-sna/COMMUNITY_BOUNDARY_METRICS.md</code></p><nav><a href="#boundarynodes">BoundaryNodes</a> · <a href="#boundarynoderatio">BoundaryNodeRatio</a> · <a href="#neighboringcommunities">NeighboringCommunities</a> · <a href="#internalvolumefraction">InternalVolumeFraction</a> · <a href="#conductance">Conductance</a> · <a href="#edgeexpansion">EdgeExpansion</a> · <a href="#modularitycontribution">ModularityContribution</a> · <a href="#direction-and-weights">Direction and weights</a> · <a href="#modularity-contribution">Modularity contribution</a> · <a href="#sources">Sources</a></nav><section id="boundarynodes"><h2>BoundaryNodes</h2><p>Distinct members incident to at least one edge crossing the community boundary.</p>
+<h2>Direction and weights</h2>
+<p>Boundary metrics accept OUT, IN or UND. In directed graphs, these select outgoing
+connections, incoming connections, or both. Boundary-node and neighboring-community
+counts take unions for UND so a node or community is counted once. Undirected
+graphs ignore the orientation. MUTUAL is not supported.</p>
+<p>The last four classes accept a weighted flag, defaulting to false. Weighted mode
+requires finite nonnegative weights and uses each parallel edge&#39;s own weight.
+Unweighted mode counts each physical edge, including parallel edges, once.
+Boundary-node and neighboring-community metrics are structural counts: zero-weight
+edges still establish a boundary connection.</p>
+<p>For internal volume, an undirected internal edge contributes two incidences,
+including a loop. A directed internal edge contributes one in OUT/IN mode or two
+in UND mode. This is a ratio of aggregated volumes, not an average of node ratios.</p>
+<p>Conductance uses T = V minus C. Its directed variants are explicitly defined as:</p>
+<ul>
+<li>OUT: cut(C,T) / min(outVolume(C), inVolume(T)).</li>
+<li>IN: cut(T,C) / min(inVolume(C), outVolume(T)).</li>
+<li>UND: combined crossing mass / min(combined in/out volume(C), combined in/out volume(T)).</li>
+</ul>
+<p>These directed variants are implementation conventions extending the symmetric
+undirected definition. They are documented explicitly in the class Javadoc.
+Expansion uses this community&#39;s size as its denominator, rather than the smaller
+of the two sides&#39; sizes.</p>
+<p>Internal-volume fraction and conductance return NaN for zero-volume denominators;
+expansion returns NaN for an empty community. In the GUI, undefined values become
+JSON nulls, display as a dash, are excluded from finite-value averages, and export
+as empty CSV cells. No undefined result is converted to zero.</p>
+<h2>Sources</h2>
+<p>The relevant formulas and directed conventions are also recorded in the Java
+comments, together with these citations:</p>
+<ul>
+<li>Conductance: <a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cuts.conductance.html">NetworkX reference definition</a>; Fan Chung, <em>Spectral Graph Theory</em>, AMS (1997), ISBN 0-8218-0315-8.</li>
+<li>Community-size-normalized expansion: Yang and Leskovec, <em>Defining and Evaluating Network Communities based on Ground-truth</em>, ICDM (2012), Section II: <a href="https://arxiv.org/abs/1205.6233">arXiv:1205.6233</a>.</li>
+<li>Modularity decomposition: Clauset, Newman and Moore, <em>Finding community structure in very large networks</em>, Phys. Rev. E 70, 066111 (2004): <a href="https://doi.org/10.1103/PhysRevE.70.066111">DOI</a>.</li>
+<li>Directed modularity: Leicht and Newman, <em>Community Structure in Directed Networks</em>, Phys. Rev. Lett. 100, 118703 (2008): <a href="https://doi.org/10.1103/PhysRevLett.100.118703">DOI</a>.</li>
+<li>Resolution: Reichardt and Bornholdt, <em>Statistical Mechanics of Community Detection</em>, Phys. Rev. E 74, 016110 (2006): <a href="https://doi.org/10.1103/PhysRevE.74.016110">DOI</a>.</li>
+</ul>
+</section>
+<section id="boundarynoderatio"><h2>BoundaryNodeRatio</h2><p>Boundary-node count divided by the community size; zero for an empty community.</p>
+<h2>Direction and weights</h2>
+<p>Boundary metrics accept OUT, IN or UND. In directed graphs, these select outgoing
+connections, incoming connections, or both. Boundary-node and neighboring-community
+counts take unions for UND so a node or community is counted once. Undirected
+graphs ignore the orientation. MUTUAL is not supported.</p>
+<p>The last four classes accept a weighted flag, defaulting to false. Weighted mode
+requires finite nonnegative weights and uses each parallel edge&#39;s own weight.
+Unweighted mode counts each physical edge, including parallel edges, once.
+Boundary-node and neighboring-community metrics are structural counts: zero-weight
+edges still establish a boundary connection.</p>
+<p>For internal volume, an undirected internal edge contributes two incidences,
+including a loop. A directed internal edge contributes one in OUT/IN mode or two
+in UND mode. This is a ratio of aggregated volumes, not an average of node ratios.</p>
+<p>Conductance uses T = V minus C. Its directed variants are explicitly defined as:</p>
+<ul>
+<li>OUT: cut(C,T) / min(outVolume(C), inVolume(T)).</li>
+<li>IN: cut(T,C) / min(inVolume(C), outVolume(T)).</li>
+<li>UND: combined crossing mass / min(combined in/out volume(C), combined in/out volume(T)).</li>
+</ul>
+<p>These directed variants are implementation conventions extending the symmetric
+undirected definition. They are documented explicitly in the class Javadoc.
+Expansion uses this community&#39;s size as its denominator, rather than the smaller
+of the two sides&#39; sizes.</p>
+<p>Internal-volume fraction and conductance return NaN for zero-volume denominators;
+expansion returns NaN for an empty community. In the GUI, undefined values become
+JSON nulls, display as a dash, are excluded from finite-value averages, and export
+as empty CSV cells. No undefined result is converted to zero.</p>
+<h2>Sources</h2>
+<p>The relevant formulas and directed conventions are also recorded in the Java
+comments, together with these citations:</p>
+<ul>
+<li>Conductance: <a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cuts.conductance.html">NetworkX reference definition</a>; Fan Chung, <em>Spectral Graph Theory</em>, AMS (1997), ISBN 0-8218-0315-8.</li>
+<li>Community-size-normalized expansion: Yang and Leskovec, <em>Defining and Evaluating Network Communities based on Ground-truth</em>, ICDM (2012), Section II: <a href="https://arxiv.org/abs/1205.6233">arXiv:1205.6233</a>.</li>
+<li>Modularity decomposition: Clauset, Newman and Moore, <em>Finding community structure in very large networks</em>, Phys. Rev. E 70, 066111 (2004): <a href="https://doi.org/10.1103/PhysRevE.70.066111">DOI</a>.</li>
+<li>Directed modularity: Leicht and Newman, <em>Community Structure in Directed Networks</em>, Phys. Rev. Lett. 100, 118703 (2008): <a href="https://doi.org/10.1103/PhysRevLett.100.118703">DOI</a>.</li>
+<li>Resolution: Reichardt and Bornholdt, <em>Statistical Mechanics of Community Detection</em>, Phys. Rev. E 74, 016110 (2006): <a href="https://doi.org/10.1103/PhysRevE.74.016110">DOI</a>.</li>
+</ul>
+</section>
+<section id="neighboringcommunities"><h2>NeighboringCommunities</h2><p>Number of distinct other community IDs reached across the boundary, excluding unassigned nodes. This differs from the existing community degree, which counts inter-community edges.</p>
+<h2>Direction and weights</h2>
+<p>Boundary metrics accept OUT, IN or UND. In directed graphs, these select outgoing
+connections, incoming connections, or both. Boundary-node and neighboring-community
+counts take unions for UND so a node or community is counted once. Undirected
+graphs ignore the orientation. MUTUAL is not supported.</p>
+<p>The last four classes accept a weighted flag, defaulting to false. Weighted mode
+requires finite nonnegative weights and uses each parallel edge&#39;s own weight.
+Unweighted mode counts each physical edge, including parallel edges, once.
+Boundary-node and neighboring-community metrics are structural counts: zero-weight
+edges still establish a boundary connection.</p>
+<p>For internal volume, an undirected internal edge contributes two incidences,
+including a loop. A directed internal edge contributes one in OUT/IN mode or two
+in UND mode. This is a ratio of aggregated volumes, not an average of node ratios.</p>
+<p>Conductance uses T = V minus C. Its directed variants are explicitly defined as:</p>
+<ul>
+<li>OUT: cut(C,T) / min(outVolume(C), inVolume(T)).</li>
+<li>IN: cut(T,C) / min(inVolume(C), outVolume(T)).</li>
+<li>UND: combined crossing mass / min(combined in/out volume(C), combined in/out volume(T)).</li>
+</ul>
+<p>These directed variants are implementation conventions extending the symmetric
+undirected definition. They are documented explicitly in the class Javadoc.
+Expansion uses this community&#39;s size as its denominator, rather than the smaller
+of the two sides&#39; sizes.</p>
+<p>Internal-volume fraction and conductance return NaN for zero-volume denominators;
+expansion returns NaN for an empty community. In the GUI, undefined values become
+JSON nulls, display as a dash, are excluded from finite-value averages, and export
+as empty CSV cells. No undefined result is converted to zero.</p>
+<h2>Sources</h2>
+<p>The relevant formulas and directed conventions are also recorded in the Java
+comments, together with these citations:</p>
+<ul>
+<li>Conductance: <a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cuts.conductance.html">NetworkX reference definition</a>; Fan Chung, <em>Spectral Graph Theory</em>, AMS (1997), ISBN 0-8218-0315-8.</li>
+<li>Community-size-normalized expansion: Yang and Leskovec, <em>Defining and Evaluating Network Communities based on Ground-truth</em>, ICDM (2012), Section II: <a href="https://arxiv.org/abs/1205.6233">arXiv:1205.6233</a>.</li>
+<li>Modularity decomposition: Clauset, Newman and Moore, <em>Finding community structure in very large networks</em>, Phys. Rev. E 70, 066111 (2004): <a href="https://doi.org/10.1103/PhysRevE.70.066111">DOI</a>.</li>
+<li>Directed modularity: Leicht and Newman, <em>Community Structure in Directed Networks</em>, Phys. Rev. Lett. 100, 118703 (2008): <a href="https://doi.org/10.1103/PhysRevLett.100.118703">DOI</a>.</li>
+<li>Resolution: Reichardt and Bornholdt, <em>Statistical Mechanics of Community Detection</em>, Phys. Rev. E 74, 016110 (2006): <a href="https://doi.org/10.1103/PhysRevE.74.016110">DOI</a>.</li>
+</ul>
+</section>
+<section id="internalvolumefraction"><h2>InternalVolumeFraction</h2><p>Internal degree incidences divided by all degree incidences of the members; weighted mode uses strengths.</p>
+<h2>Direction and weights</h2>
+<p>Boundary metrics accept OUT, IN or UND. In directed graphs, these select outgoing
+connections, incoming connections, or both. Boundary-node and neighboring-community
+counts take unions for UND so a node or community is counted once. Undirected
+graphs ignore the orientation. MUTUAL is not supported.</p>
+<p>The last four classes accept a weighted flag, defaulting to false. Weighted mode
+requires finite nonnegative weights and uses each parallel edge&#39;s own weight.
+Unweighted mode counts each physical edge, including parallel edges, once.
+Boundary-node and neighboring-community metrics are structural counts: zero-weight
+edges still establish a boundary connection.</p>
+<p>For internal volume, an undirected internal edge contributes two incidences,
+including a loop. A directed internal edge contributes one in OUT/IN mode or two
+in UND mode. This is a ratio of aggregated volumes, not an average of node ratios.</p>
+<p>Conductance uses T = V minus C. Its directed variants are explicitly defined as:</p>
+<ul>
+<li>OUT: cut(C,T) / min(outVolume(C), inVolume(T)).</li>
+<li>IN: cut(T,C) / min(inVolume(C), outVolume(T)).</li>
+<li>UND: combined crossing mass / min(combined in/out volume(C), combined in/out volume(T)).</li>
+</ul>
+<p>These directed variants are implementation conventions extending the symmetric
+undirected definition. They are documented explicitly in the class Javadoc.
+Expansion uses this community&#39;s size as its denominator, rather than the smaller
+of the two sides&#39; sizes.</p>
+<p>Internal-volume fraction and conductance return NaN for zero-volume denominators;
+expansion returns NaN for an empty community. In the GUI, undefined values become
+JSON nulls, display as a dash, are excluded from finite-value averages, and export
+as empty CSV cells. No undefined result is converted to zero.</p>
+<h2>Sources</h2>
+<p>The relevant formulas and directed conventions are also recorded in the Java
+comments, together with these citations:</p>
+<ul>
+<li>Conductance: <a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cuts.conductance.html">NetworkX reference definition</a>; Fan Chung, <em>Spectral Graph Theory</em>, AMS (1997), ISBN 0-8218-0315-8.</li>
+<li>Community-size-normalized expansion: Yang and Leskovec, <em>Defining and Evaluating Network Communities based on Ground-truth</em>, ICDM (2012), Section II: <a href="https://arxiv.org/abs/1205.6233">arXiv:1205.6233</a>.</li>
+<li>Modularity decomposition: Clauset, Newman and Moore, <em>Finding community structure in very large networks</em>, Phys. Rev. E 70, 066111 (2004): <a href="https://doi.org/10.1103/PhysRevE.70.066111">DOI</a>.</li>
+<li>Directed modularity: Leicht and Newman, <em>Community Structure in Directed Networks</em>, Phys. Rev. Lett. 100, 118703 (2008): <a href="https://doi.org/10.1103/PhysRevLett.100.118703">DOI</a>.</li>
+<li>Resolution: Reichardt and Bornholdt, <em>Statistical Mechanics of Community Detection</em>, Phys. Rev. E 74, 016110 (2006): <a href="https://doi.org/10.1103/PhysRevE.74.016110">DOI</a>.</li>
+</ul>
+</section>
+<section id="conductance"><h2>Conductance</h2><p>Undirected boundary mass divided by the smaller of community and complement volumes.</p>
+<h2>Direction and weights</h2>
+<p>Boundary metrics accept OUT, IN or UND. In directed graphs, these select outgoing
+connections, incoming connections, or both. Boundary-node and neighboring-community
+counts take unions for UND so a node or community is counted once. Undirected
+graphs ignore the orientation. MUTUAL is not supported.</p>
+<p>The last four classes accept a weighted flag, defaulting to false. Weighted mode
+requires finite nonnegative weights and uses each parallel edge&#39;s own weight.
+Unweighted mode counts each physical edge, including parallel edges, once.
+Boundary-node and neighboring-community metrics are structural counts: zero-weight
+edges still establish a boundary connection.</p>
+<p>For internal volume, an undirected internal edge contributes two incidences,
+including a loop. A directed internal edge contributes one in OUT/IN mode or two
+in UND mode. This is a ratio of aggregated volumes, not an average of node ratios.</p>
+<p>Conductance uses T = V minus C. Its directed variants are explicitly defined as:</p>
+<ul>
+<li>OUT: cut(C,T) / min(outVolume(C), inVolume(T)).</li>
+<li>IN: cut(T,C) / min(inVolume(C), outVolume(T)).</li>
+<li>UND: combined crossing mass / min(combined in/out volume(C), combined in/out volume(T)).</li>
+</ul>
+<p>These directed variants are implementation conventions extending the symmetric
+undirected definition. They are documented explicitly in the class Javadoc.
+Expansion uses this community&#39;s size as its denominator, rather than the smaller
+of the two sides&#39; sizes.</p>
+<p>Internal-volume fraction and conductance return NaN for zero-volume denominators;
+expansion returns NaN for an empty community. In the GUI, undefined values become
+JSON nulls, display as a dash, are excluded from finite-value averages, and export
+as empty CSV cells. No undefined result is converted to zero.</p>
+<h2>Sources</h2>
+<p>The relevant formulas and directed conventions are also recorded in the Java
+comments, together with these citations:</p>
+<ul>
+<li>Conductance: <a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cuts.conductance.html">NetworkX reference definition</a>; Fan Chung, <em>Spectral Graph Theory</em>, AMS (1997), ISBN 0-8218-0315-8.</li>
+<li>Community-size-normalized expansion: Yang and Leskovec, <em>Defining and Evaluating Network Communities based on Ground-truth</em>, ICDM (2012), Section II: <a href="https://arxiv.org/abs/1205.6233">arXiv:1205.6233</a>.</li>
+<li>Modularity decomposition: Clauset, Newman and Moore, <em>Finding community structure in very large networks</em>, Phys. Rev. E 70, 066111 (2004): <a href="https://doi.org/10.1103/PhysRevE.70.066111">DOI</a>.</li>
+<li>Directed modularity: Leicht and Newman, <em>Community Structure in Directed Networks</em>, Phys. Rev. Lett. 100, 118703 (2008): <a href="https://doi.org/10.1103/PhysRevLett.100.118703">DOI</a>.</li>
+<li>Resolution: Reichardt and Bornholdt, <em>Statistical Mechanics of Community Detection</em>, Phys. Rev. E 74, 016110 (2006): <a href="https://doi.org/10.1103/PhysRevE.74.016110">DOI</a>.</li>
+</ul>
+</section>
+<section id="edgeexpansion"><h2>EdgeExpansion</h2><p>Boundary mass divided by this community&#39;s size.</p>
+<h2>Direction and weights</h2>
+<p>Boundary metrics accept OUT, IN or UND. In directed graphs, these select outgoing
+connections, incoming connections, or both. Boundary-node and neighboring-community
+counts take unions for UND so a node or community is counted once. Undirected
+graphs ignore the orientation. MUTUAL is not supported.</p>
+<p>The last four classes accept a weighted flag, defaulting to false. Weighted mode
+requires finite nonnegative weights and uses each parallel edge&#39;s own weight.
+Unweighted mode counts each physical edge, including parallel edges, once.
+Boundary-node and neighboring-community metrics are structural counts: zero-weight
+edges still establish a boundary connection.</p>
+<p>For internal volume, an undirected internal edge contributes two incidences,
+including a loop. A directed internal edge contributes one in OUT/IN mode or two
+in UND mode. This is a ratio of aggregated volumes, not an average of node ratios.</p>
+<p>Conductance uses T = V minus C. Its directed variants are explicitly defined as:</p>
+<ul>
+<li>OUT: cut(C,T) / min(outVolume(C), inVolume(T)).</li>
+<li>IN: cut(T,C) / min(inVolume(C), outVolume(T)).</li>
+<li>UND: combined crossing mass / min(combined in/out volume(C), combined in/out volume(T)).</li>
+</ul>
+<p>These directed variants are implementation conventions extending the symmetric
+undirected definition. They are documented explicitly in the class Javadoc.
+Expansion uses this community&#39;s size as its denominator, rather than the smaller
+of the two sides&#39; sizes.</p>
+<p>Internal-volume fraction and conductance return NaN for zero-volume denominators;
+expansion returns NaN for an empty community. In the GUI, undefined values become
+JSON nulls, display as a dash, are excluded from finite-value averages, and export
+as empty CSV cells. No undefined result is converted to zero.</p>
+<h2>Sources</h2>
+<p>The relevant formulas and directed conventions are also recorded in the Java
+comments, together with these citations:</p>
+<ul>
+<li>Conductance: <a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cuts.conductance.html">NetworkX reference definition</a>; Fan Chung, <em>Spectral Graph Theory</em>, AMS (1997), ISBN 0-8218-0315-8.</li>
+<li>Community-size-normalized expansion: Yang and Leskovec, <em>Defining and Evaluating Network Communities based on Ground-truth</em>, ICDM (2012), Section II: <a href="https://arxiv.org/abs/1205.6233">arXiv:1205.6233</a>.</li>
+<li>Modularity decomposition: Clauset, Newman and Moore, <em>Finding community structure in very large networks</em>, Phys. Rev. E 70, 066111 (2004): <a href="https://doi.org/10.1103/PhysRevE.70.066111">DOI</a>.</li>
+<li>Directed modularity: Leicht and Newman, <em>Community Structure in Directed Networks</em>, Phys. Rev. Lett. 100, 118703 (2008): <a href="https://doi.org/10.1103/PhysRevLett.100.118703">DOI</a>.</li>
+<li>Resolution: Reichardt and Bornholdt, <em>Statistical Mechanics of Community Detection</em>, Phys. Rev. E 74, 016110 (2006): <a href="https://doi.org/10.1103/PhysRevE.74.016110">DOI</a>.</li>
+</ul>
+</section>
+<section id="modularitycontribution"><h2>ModularityContribution</h2><p>Standard Newman modularity contribution, optionally weighted and with resolution gamma.</p>
+<h2>Direction and weights</h2>
+<p>Boundary metrics accept OUT, IN or UND. In directed graphs, these select outgoing
+connections, incoming connections, or both. Boundary-node and neighboring-community
+counts take unions for UND so a node or community is counted once. Undirected
+graphs ignore the orientation. MUTUAL is not supported.</p>
+<p>The last four classes accept a weighted flag, defaulting to false. Weighted mode
+requires finite nonnegative weights and uses each parallel edge&#39;s own weight.
+Unweighted mode counts each physical edge, including parallel edges, once.
+Boundary-node and neighboring-community metrics are structural counts: zero-weight
+edges still establish a boundary connection.</p>
+<p>For internal volume, an undirected internal edge contributes two incidences,
+including a loop. A directed internal edge contributes one in OUT/IN mode or two
+in UND mode. This is a ratio of aggregated volumes, not an average of node ratios.</p>
+<p>Conductance uses T = V minus C. Its directed variants are explicitly defined as:</p>
+<ul>
+<li>OUT: cut(C,T) / min(outVolume(C), inVolume(T)).</li>
+<li>IN: cut(T,C) / min(inVolume(C), outVolume(T)).</li>
+<li>UND: combined crossing mass / min(combined in/out volume(C), combined in/out volume(T)).</li>
+</ul>
+<p>These directed variants are implementation conventions extending the symmetric
+undirected definition. They are documented explicitly in the class Javadoc.
+Expansion uses this community&#39;s size as its denominator, rather than the smaller
+of the two sides&#39; sizes.</p>
+<p>Internal-volume fraction and conductance return NaN for zero-volume denominators;
+expansion returns NaN for an empty community. In the GUI, undefined values become
+JSON nulls, display as a dash, are excluded from finite-value averages, and export
+as empty CSV cells. No undefined result is converted to zero.</p>
+<h2>Modularity contribution</h2>
+<p>Let m be total graph edge mass, L_C internal edge mass, and gamma the resolution.
+Undirected contribution is L_C/m - gamma*(volume(C)/(2m))^2.
+Directed contribution is L_C/m - gamma*(outVolume(C)/m)*(inVolume(C)/m).
+Each loop contributes once to L_C; undirected degree volume counts it twice.
+A complete node partition is required. Zero graph mass yields zero.</p>
+<p>These contributions sum to standard Newman modularity. They do <strong>not</strong> sum to
+RELISON&#39;s existing differently normalized global <code>communities.graph.Modularity</code>
+score. The GUI identifies this metric as <strong>Modularity contribution (Newman)</strong>.</p>
+<h2>Sources</h2>
+<p>The relevant formulas and directed conventions are also recorded in the Java
+comments, together with these citations:</p>
+<ul>
+<li>Conductance: <a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cuts.conductance.html">NetworkX reference definition</a>; Fan Chung, <em>Spectral Graph Theory</em>, AMS (1997), ISBN 0-8218-0315-8.</li>
+<li>Community-size-normalized expansion: Yang and Leskovec, <em>Defining and Evaluating Network Communities based on Ground-truth</em>, ICDM (2012), Section II: <a href="https://arxiv.org/abs/1205.6233">arXiv:1205.6233</a>.</li>
+<li>Modularity decomposition: Clauset, Newman and Moore, <em>Finding community structure in very large networks</em>, Phys. Rev. E 70, 066111 (2004): <a href="https://doi.org/10.1103/PhysRevE.70.066111">DOI</a>.</li>
+<li>Directed modularity: Leicht and Newman, <em>Community Structure in Directed Networks</em>, Phys. Rev. Lett. 100, 118703 (2008): <a href="https://doi.org/10.1103/PhysRevLett.100.118703">DOI</a>.</li>
+<li>Resolution: Reichardt and Bornholdt, <em>Statistical Mechanics of Community Detection</em>, Phys. Rev. E 74, 016110 (2006): <a href="https://doi.org/10.1103/PhysRevE.74.016110">DOI</a>.</li>
+</ul>
+</section>
+<section id="direction-and-weights"><h2>Direction and weights</h2><p>Boundary metrics accept OUT, IN or UND. In directed graphs, these select outgoing
+connections, incoming connections, or both. Boundary-node and neighboring-community
+counts take unions for UND so a node or community is counted once. Undirected
+graphs ignore the orientation. MUTUAL is not supported.</p>
+<p>The last four classes accept a weighted flag, defaulting to false. Weighted mode
+requires finite nonnegative weights and uses each parallel edge&#39;s own weight.
+Unweighted mode counts each physical edge, including parallel edges, once.
+Boundary-node and neighboring-community metrics are structural counts: zero-weight
+edges still establish a boundary connection.</p>
+<p>For internal volume, an undirected internal edge contributes two incidences,
+including a loop. A directed internal edge contributes one in OUT/IN mode or two
+in UND mode. This is a ratio of aggregated volumes, not an average of node ratios.</p>
+<p>Conductance uses T = V minus C. Its directed variants are explicitly defined as:</p>
+<ul>
+<li>OUT: cut(C,T) / min(outVolume(C), inVolume(T)).</li>
+<li>IN: cut(T,C) / min(inVolume(C), outVolume(T)).</li>
+<li>UND: combined crossing mass / min(combined in/out volume(C), combined in/out volume(T)).</li>
+</ul>
+<p>These directed variants are implementation conventions extending the symmetric
+undirected definition. They are documented explicitly in the class Javadoc.
+Expansion uses this community&#39;s size as its denominator, rather than the smaller
+of the two sides&#39; sizes.</p>
+<p>Internal-volume fraction and conductance return NaN for zero-volume denominators;
+expansion returns NaN for an empty community. In the GUI, undefined values become
+JSON nulls, display as a dash, are excluded from finite-value averages, and export
+as empty CSV cells. No undefined result is converted to zero.</p>
+</section>
+<section id="modularity-contribution"><h2>Modularity contribution</h2><p>Let m be total graph edge mass, L_C internal edge mass, and gamma the resolution.
+Undirected contribution is L_C/m - gamma*(volume(C)/(2m))^2.
+Directed contribution is L_C/m - gamma*(outVolume(C)/m)*(inVolume(C)/m).
+Each loop contributes once to L_C; undirected degree volume counts it twice.
+A complete node partition is required. Zero graph mass yields zero.</p>
+<p>These contributions sum to standard Newman modularity. They do <strong>not</strong> sum to
+RELISON&#39;s existing differently normalized global <code>communities.graph.Modularity</code>
+score. The GUI identifies this metric as <strong>Modularity contribution (Newman)</strong>.</p>
+</section>
+<section id="sources"><h2>Sources</h2><p>The relevant formulas and directed conventions are also recorded in the Java
+comments, together with these citations:</p>
+<ul>
+<li>Conductance: <a href="https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cuts.conductance.html">NetworkX reference definition</a>; Fan Chung, <em>Spectral Graph Theory</em>, AMS (1997), ISBN 0-8218-0315-8.</li>
+<li>Community-size-normalized expansion: Yang and Leskovec, <em>Defining and Evaluating Network Communities based on Ground-truth</em>, ICDM (2012), Section II: <a href="https://arxiv.org/abs/1205.6233">arXiv:1205.6233</a>.</li>
+<li>Modularity decomposition: Clauset, Newman and Moore, <em>Finding community structure in very large networks</em>, Phys. Rev. E 70, 066111 (2004): <a href="https://doi.org/10.1103/PhysRevE.70.066111">DOI</a>.</li>
+<li>Directed modularity: Leicht and Newman, <em>Community Structure in Directed Networks</em>, Phys. Rev. Lett. 100, 118703 (2008): <a href="https://doi.org/10.1103/PhysRevLett.100.118703">DOI</a>.</li>
+<li>Resolution: Reichardt and Bornholdt, <em>Statistical Mechanics of Community Detection</em>, Phys. Rev. E 74, 016110 (2006): <a href="https://doi.org/10.1103/PhysRevE.74.016110">DOI</a>.</li>
+</ul>
+</section></body></html>

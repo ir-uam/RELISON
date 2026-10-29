@@ -79,6 +79,7 @@ function buildAverageTable(tableId, rows, recKeys) {
     const tbody = document.createElement("tbody");
     entries.forEach(row => {
         const tr = document.createElement("tr");
+        tr.dataset.metricLabel = row.label;
         columns.forEach(column => {
             const value = column.value(row);
             const td = tdText(column.numeric ? (value == null ? "" : fmt(value)) : value || "—");

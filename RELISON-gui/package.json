@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Reproducible local browser dependencies for the RELISON GUI",
   "scripts": {
+    "build:help": "node scripts/build-metric-help.mjs",
     "build:vendor": "node scripts/build-vendor.mjs",
     "test": "node --test src/test/js/*.test.cjs"
   },
@@ -20,6 +21,8 @@
     "globe.gl": "2.46.2",
     "graphology": "0.25.4",
     "graphology-library": "0.8.0",
+    "jsdom": "27.0.1",
+    "katex": "0.19.1",
     "leaflet": "1.9.4",
     "marked": "18.1.2",
     "pdfmake": "0.2.20",

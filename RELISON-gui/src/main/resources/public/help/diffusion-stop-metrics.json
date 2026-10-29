@@ -1,0 +1,124 @@
+{
+  "source": {
+    "path": "docs/source/diffusion/protocols/stop.rst",
+    "sha256": "24d816d746b9f3ff1b95e763eeca1f79ae915dbb79608bcf7fd8454982d70408",
+    "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/stop.html",
+    "page": "diffusion-stop.html"
+  },
+  "metrics": {
+    "Num. iter": {
+      "label": "Number of iterations",
+      "section": "diffusion-stop:Num. Iter"
+    },
+    "No more new": {
+      "label": "No more new information",
+      "section": "diffusion-stop:No more new"
+    },
+    "No more propagated": {
+      "label": "No more propagated information",
+      "section": "diffusion-stop:No more propagated"
+    },
+    "Total propagated": {
+      "label": "Total propagated reached",
+      "section": "diffusion-stop:Total propagated"
+    },
+    "No more timestamps": {
+      "label": "No more timestamps",
+      "section": "diffusion-stop:No more timestamps"
+    },
+    "Max. timestamp": {
+      "label": "Max. timestamp",
+      "section": "diffusion-stop:Max. timestamp"
+    },
+    "No more timestamps nor propagated": {
+      "label": "No more timestamps nor propagation",
+      "section": "diffusion-stop:No more timestamps nor propagated information"
+    }
+  },
+  "sections": {
+    "diffusion-stop:Max. timestamp": {
+      "title": "Max. timestamp",
+      "anchor": "max-timestamp",
+      "text": "The simulation stops a) when a certain timestamp is reached or b) when no more timestamps are available.\n\nParameters\n^^^^^^^^^^\n* :code:`max`: the maximum timestamp.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n  \n  stop:\n    Max. timestamp:\n      max:\n        type: long\n        value: maximum_timestamp",
+      "html": "<p>The simulation stops a) when a certain timestamp is reached or b) when no more timestamps are available.</p><h3>Parameters</h3><ul><li><code>max</code>: the maximum timestamp.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/stop.rst",
+        "sha256": "24d816d746b9f3ff1b95e763eeca1f79ae915dbb79608bcf7fd8454982d70408",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/stop.html",
+        "page": "diffusion-stop.html"
+      }
+    },
+    "diffusion-stop:No more new": {
+      "title": "No more new",
+      "anchor": "no-more-new",
+      "text": "The simulation stops when no more new information is propagated (i.e. people might still propagate information, but\nthe recipients already know that information).\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n  \n  stop:\n    No more new:",
+      "html": "<p>The simulation stops when no more new information is propagated (i.e. people might still propagate information, but the recipients already know that information).</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/stop.rst",
+        "sha256": "24d816d746b9f3ff1b95e763eeca1f79ae915dbb79608bcf7fd8454982d70408",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/stop.html",
+        "page": "diffusion-stop.html"
+      }
+    },
+    "diffusion-stop:No more propagated": {
+      "title": "No more propagated",
+      "anchor": "no-more-propagated",
+      "text": "The simulation stops when no information has been propagated during the last iteration.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n  \n  stop:\n    No more propagated:",
+      "html": "<p>The simulation stops when no information has been propagated during the last iteration.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/stop.rst",
+        "sha256": "24d816d746b9f3ff1b95e763eeca1f79ae915dbb79608bcf7fd8454982d70408",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/stop.html",
+        "page": "diffusion-stop.html"
+      }
+    },
+    "diffusion-stop:No more timestamps": {
+      "title": "No more timestamps",
+      "anchor": "no-more-timestamps",
+      "text": "The simulation stops when no more timestamps are available.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n  \n  stop:\n    No more timestamps:",
+      "html": "<p>The simulation stops when no more timestamps are available.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/stop.rst",
+        "sha256": "24d816d746b9f3ff1b95e763eeca1f79ae915dbb79608bcf7fd8454982d70408",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/stop.html",
+        "page": "diffusion-stop.html"
+      }
+    },
+    "diffusion-stop:No more timestamps nor propagated information": {
+      "title": "No more timestamps nor propagated information",
+      "anchor": "no-more-timestamps-nor-propagated-information",
+      "text": "The simulation stops when no more timestamps are available or when users are not propagating information to others.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n  \n  stop:\n    No more timestamps nor propagated:",
+      "html": "<p>The simulation stops when no more timestamps are available or when users are not propagating information to others.</p>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/stop.rst",
+        "sha256": "24d816d746b9f3ff1b95e763eeca1f79ae915dbb79608bcf7fd8454982d70408",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/stop.html",
+        "page": "diffusion-stop.html"
+      }
+    },
+    "diffusion-stop:Num. Iter": {
+      "title": "Num. Iter",
+      "anchor": "num-iter",
+      "text": "The simulation stops when a fixed number of iterations have passed.\n\nParameters\n^^^^^^^^^^\n* :code:`numIter`: the number of simulation iterations to run.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n  \n  stop:\n    Num. iter:\n      numIter:\n        type: int\n        value: max_iter",
+      "html": "<p>The simulation stops when a fixed number of iterations have passed.</p><h3>Parameters</h3><ul><li><code>numIter</code>: the number of simulation iterations to run.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/stop.rst",
+        "sha256": "24d816d746b9f3ff1b95e763eeca1f79ae915dbb79608bcf7fd8454982d70408",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/stop.html",
+        "page": "diffusion-stop.html"
+      }
+    },
+    "diffusion-stop:Total propagated": {
+      "title": "Total propagated",
+      "anchor": "total-propagated",
+      "text": "The simulation stops when a fixed amount of pieces have been propagated.\n\nParameters\n^^^^^^^^^^\n* :code:`limit`: the number of pieces which need to be propagated.\n\nConfiguration file\n^^^^^^^^^^^^^^^^^^\n\n.. code:: yaml\n  \n  stop:\n    Num. iter:\n      limit:\n        type: long\n        value: num_pieces",
+      "html": "<p>The simulation stops when a fixed amount of pieces have been propagated.</p><h3>Parameters</h3><ul><li><code>limit</code>: the number of pieces which need to be propagated.</li></ul>",
+      "source": {
+        "path": "docs/source/diffusion/protocols/stop.rst",
+        "sha256": "24d816d746b9f3ff1b95e763eeca1f79ae915dbb79608bcf7fd8454982d70408",
+        "url": "https://relison.readthedocs.io/en/latest/diffusion/protocols/stop.html",
+        "page": "diffusion-stop.html"
+      }
+    }
+  }
+}

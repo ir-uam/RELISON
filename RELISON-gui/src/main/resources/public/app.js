@@ -1019,6 +1019,7 @@ function applyLoadedGraph(data, multigraph) {
     updateOverview(data.stats);
     if (state.renderer) state.renderer.refresh();
     refreshAfterCompute();
+    if (typeof NodiTutorials !== "undefined") NodiTutorials.actionCompleted?.({ type: "network", graphKey: state.graph, graphRevision: state.networkRevision || 0 });
 }
 
 /* --------------------------- graph generation ------------------------- */
@@ -4101,6 +4102,7 @@ async function loadCatalog() {
         renderIndividualCommunityParams("attribute-indiv-comm-params", $("attribute-indiv-comm-metric").value, true);
         renderParams("attribute-global-comm-params", "communityGlobal", $("attribute-global-comm-metric").value);
         syncAttributeCommunityMetricControls();
+        if (typeof NodiMetricHelp !== "undefined") NodiMetricHelp.sync();
     } catch (e) {
         setStatus("Could not load metric catalog: " + e.message, "error");
     }
@@ -4189,6 +4191,7 @@ function syncEdgeAttributeMetricControls() {
         renderEdgeAttributeMetricParams(global);
         $(global ? "btn-edge-attribute-global" : "btn-edge-attribute-indiv").disabled = !attributes.length && !jobBusy(global ? "btn-edge-attribute-global" : "btn-edge-attribute-indiv");
     }
+    if (typeof NodiMetricHelp !== "undefined") NodiMetricHelp.sync();
 }
 function renderEdgeAttributeMetricParams(global, force = false) {
     const prefix = "edge-attribute-" + (global ? "global" : "indiv"), metric = $(prefix + "-metric").value;
@@ -4358,12 +4361,14 @@ async function runVertexMetric() {
     if (jobBusy("btn-vertex")) return cancelJob("btn-vertex");
     if (!requireGraph()) return;
     const metric = $("vertex-metric").value;
+    const graph = state.graph, graphId = state.graphId, graphRevision = state.networkRevision || 0;
     setStatus("Computing " + metric + "…", "busy");
     const signal = beginJob("btn-vertex", "vertex");
     try {
         const res = await api("/api/metrics/vertex",
             { ...jsonBody({ graphId: state.graphId, metric, params: collectParams("vertex-params") }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
+        if (signal?.aborted || graph !== state.graph || graphId !== state.graphId || graphRevision !== (state.networkRevision || 0)) return;
         const values = numericMap(res.values);
         if (!state.metricOrder.includes(res.label)) state.metricOrder.push(res.label);
         state.metricData[res.label] = values;
@@ -4383,6 +4388,7 @@ async function runVertexMetric() {
         }
         refreshAfterCompute();
         setStatus("Computed " + res.label + ".");
+        if (!signal?.aborted && typeof NodiTutorials !== "undefined") NodiTutorials.actionCompleted?.({ type: "node-metric", graphKey: graph, graphRevision, label: res.label, values });
     } catch (e) {
         if (isAbort(e)) return;
         setStatus(e.message, "error");
@@ -4490,6 +4496,7 @@ async function detectCommunity() {
         selectCommunityPartition(existing);
         $("community-result").textContent = existing + " — " + communityRows().length + " communities";
         setStatus("Selected existing partition: " + existing + ".");
+        if (typeof NodiTutorials !== "undefined") NodiTutorials.actionCompleted?.({ type: "community", graphKey: graph, graphRevision: revision || 0, label: existing });
         return;
     }
     setStatus("Detecting communities (" + algorithm + ")…", "busy");
@@ -4498,7 +4505,7 @@ async function detectCommunity() {
         const res = await api("/api/communities",
             { ...jsonBody({ graphId, algorithm, params }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
-        if (graphId !== state.graphId || graph !== state.graph || revision !== state.networkRevision) return;
+        if (signal?.aborted || graphId !== state.graphId || graph !== state.graph || revision !== state.networkRevision) return;
         state.communityData[res.algorithm] = res.values;
         communityDetected(res.algorithm, algorithm, params, res.numCommunities);
         rebuildAppearanceOptions();
@@ -4518,6 +4525,7 @@ async function detectCommunity() {
         applyReducers();
         refreshAfterCompute();
         setStatus("Detected " + res.numCommunities + " communities.");
+        if (typeof NodiTutorials !== "undefined") NodiTutorials.actionCompleted?.({ type: "community", graphKey: graph, graphRevision: revision || 0, label: res.algorithm });
     } catch (e) {
         if (isAbort(e)) return;
         setStatus(e.message, "error");
@@ -5284,7 +5292,8 @@ function updatePanels(tab) {
     $("left").style.display = showLeft ? "" : "none";
     $("right").style.display = showRight ? "" : "none";
     // The metric blocks were designed for the old 300px right column, so widen the left one on that tab.
-    const leftWidth = tab === "metrics" ? "300px" : "270px";
+    const leftWidth = ["metrics", "recommend", "diffusion"].includes(tab) ? "300px" : "270px";
+    if (typeof NodiMetricHelp !== "undefined") NodiMetricHelp.workspaceChanged(leftWidth, tab === "recommend" || tab === "diffusion" || (tab === "metrics" && showLeft), tab);
     const cols = [showLeft ? leftWidth : null, "1fr", showRight ? "300px" : null].filter(Boolean).join(" ");
     $("layout").style.gridTemplateColumns = cols;
 
@@ -5335,6 +5344,7 @@ function refreshAfterCompute() {
     refreshNetworkView();
     if (state.activeTab === "metrics") renderMetricsDashboard();
     if (typeof refreshCommunityExplorer === "function") refreshCommunityExplorer();
+    if (typeof NodiTutorials !== "undefined") NodiTutorials.contextChanged?.();
 }
 
 /* ---------------------------- table models -------------------------- */
@@ -7933,6 +7943,7 @@ async function loadRecCatalog() {
         const cat = await api("/api/recommendation/catalog");
         state.defs.recommendation = indexById(cat);
         fillCommunitySelect("rec-algo", cat);   // grouped like the community algorithms
+        if (typeof NodiMetricHelp !== "undefined") NodiMetricHelp.sync();
         renderParams("rec-params", "recommendation", $("rec-algo").value);
         onRecModeChange();
         state.rec.catalogLoaded = true;
@@ -8034,6 +8045,7 @@ async function applyRecommendation() {
     if (!requireGraph()) return;
     if (state.multigraph) { setStatus("Recommendation is not available for multigraphs.", "error"); return; }
     const algorithm = $("rec-algo").value;
+    const graph = state.graph, graphId = state.graphId, graphRevision = state.networkRevision || 0;
     const mode = $("rec-mode").value;
     const cutoff = Math.max(1, parseInt($("rec-cutoff").value, 10) || 10);
     const reciprocal = $("rec-reciprocal").checked;
@@ -8043,9 +8055,11 @@ async function applyRecommendation() {
         const res = await api("/api/recommendation/run", { ...jsonBody(
             { graphId: state.graphId, algorithm, mode, cutoff, reciprocal, params: collectParams("rec-params") }), signal });
         if (res.cancelled) { setStatus("Stopped."); return; }
+        if (signal?.aborted || graph !== state.graph || graphId !== state.graphId || graphRevision !== (state.networkRevision || 0)) return;
         state.rec.models[res.key] = { label: res.label, mode: res.mode, cutoff: res.cutoff, edges: res.edges };
         activateRecommendation(res.key);
         setStatus("Applied " + res.label + " — " + res.count + " recommended link(s).");
+        if (typeof NodiTutorials !== "undefined") NodiTutorials.actionCompleted?.({ type: "recommendation", graphKey: graph, graphRevision, label: res.label });
     } catch (e) {
         if (isAbort(e)) return;
         setStatus(e.message, "error");
@@ -8700,6 +8714,7 @@ async function loadDiffusionCatalog() {
         fillSelect("diff-sight", cat.sight);
         fillSelect("diff-stop", cat.stop);
         fillCommunitySelect("diff-metrics", cat.metric);   // grouped multiselect of metrics to compute
+        if (typeof NodiMetricHelp !== "undefined") NodiMetricHelp.sync();
 
         renderParams("diff-protocol-params", "protocol", $("diff-protocol").value);
         renderParams("diff-selection-params", "selection", $("diff-selection").value);
@@ -8715,6 +8730,7 @@ async function loadDiffusionCatalog() {
 }
 
 function onDiffProtocolType() {
+    if (typeof NodiMetricHelp !== "undefined") NodiMetricHelp.close(false);
     const custom = $("diff-protocol-type").value === "custom";
     toggleHidden("diff-preset-wrap", custom);
     toggleHidden("diff-custom-wrap", !custom);
@@ -9108,7 +9124,7 @@ function buildDiffMetricsRequest() {
 async function runDiffusion() {
     if (jobBusy("btn-diff-run")) return cancelJob("btn-diff-run");
     if (!requireGraph()) return;
-    const runGraphId = state.graphId, runGraph = state.graph;
+    const runGraphId = state.graphId, runGraph = state.graph, runRevision = state.networkRevision || 0;
     if (!state.diffusion.pieces.length) { setStatus("Add at least one information piece to run a simulation.", "error"); return; }
     // When "apply filters to simulation" is on, only the pieces passing the table filters are simulated.
     let simPieces = null;
@@ -9163,6 +9179,7 @@ async function runDiffusion() {
         if (simPieces) body.pieces = simPieces;   // filtered subset overrides the persisted (full) set for this run
         const res = await api("/api/diffusion/run", { ...jsonBody(body), signal });
         if (res.cancelled) { $("diff-status").textContent = "Stopped."; setStatus("Stopped."); return; }
+        if (signal?.aborted || runGraph !== state.graph || runGraphId !== state.graphId || runRevision !== (state.networkRevision || 0)) return;
         state.diffusion.result = res;
         state.diffusion.recKey = runRecKey;   // remember which recommendation to overlay
         buildDiffLegend();
@@ -9195,6 +9212,7 @@ async function runDiffusion() {
         } else {
             setStatus("Diffusion finished (" + res.numIterations + " iterations).");
         }
+        if (typeof NodiTutorials !== "undefined") NodiTutorials.actionCompleted?.({ type: "diffusion", graphKey: runGraph, graphRevision: runRevision, label: baseLabel });
     } catch (e) {
         if (isAbort(e)) { $("diff-status").textContent = "Stopped."; return; }
         $("diff-status").textContent = e.message;
@@ -11393,11 +11411,14 @@ DiffusionWorkspace.setup();
 switchTab(state.activeTab); // start on the Import tab with the side panels hidden
 loadCatalog();
 initDebugConsole();
+NodiMetricHelp.init();
 let nodiStorage;
 try { nodiStorage = localStorage; } catch (_) { /* Tutorials also work without browser storage. */ }
 NodiTutorials.init({
+    onOpen: () => NodiMetricHelp.close(false),
     storage: nodiStorage,
-    getContext: () => ({ tab: state.activeTab, hasGraph: !!state.graph, multigraph: state.multigraph }),
+    getContext: () => ({ tab: state.activeTab, hasGraph: !!state.graph, multigraph: state.multigraph,
+        graphKey: state.graph, graphRevision: state.networkRevision || 0, nodeMetrics: state.metricData || {} }),
     navigate: step => {
         if (debugConsole.on) toggleDebugView();
         if (step.tab && step.tab !== state.activeTab) {
@@ -11412,6 +11433,20 @@ NodiTutorials.init({
             switchSubtab("nodes");
             if (!metricWorkspaceComputeOpen) $("metric-compute-toggle").click();
         }
+        if (["node-summary", "node-rankings", "node-ranking-table", "node-distributions"].includes(step.view)) {
+            switchSubtab("nodes");
+            const view = METRIC_WORKSPACE_VIEWS.get("nodes");
+            if (view && step.result && Object.hasOwn(state.metricData, step.result.label)) {
+                view.metric = step.result.label;
+                view.mode = step.view === "node-summary" ? "summary" : step.view === "node-distributions" ? "distributions" : "rankings";
+                view.rankingSource = "original"; view.distributionSources = ["original"];
+                view.statisticsSource = "original";
+                view.type = "histogram"; view.binSize = null;
+                refreshMetricWorkspace();
+                if (step.view === "node-ranking-table") $("node-topk-table").closest("details").open = true;
+            }
+        }
+        if (step.tab === "recommend") switchRecSubtab("links");
         if (step.tab === "diffusion" && step.view) switchDiffSubtab(step.view);
     },
 });

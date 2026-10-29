@@ -1,0 +1,308 @@
+{
+  "source": {
+    "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+    "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+    "url": null,
+    "page": "edge-partition-metrics.html"
+  },
+  "metrics": {
+    "num-groups": {
+      "label": "Number of groups",
+      "section": "NumberOfGroups"
+    },
+    "nonempty-groups": {
+      "label": "Number of nonempty groups",
+      "section": "NumberOfGroups"
+    },
+    "assignment-coverage": {
+      "label": "Assignment coverage",
+      "section": "AssignmentCoverage"
+    },
+    "group-size-gini": {
+      "label": "Group size Gini",
+      "section": "GroupSizeGini"
+    },
+    "group-weight-gini": {
+      "label": "Group weight Gini",
+      "section": "GroupWeightGini"
+    },
+    "group-size-entropy": {
+      "label": "Group size entropy (bits)",
+      "section": "GroupSizeEntropy"
+    },
+    "node-mixing-ratio": {
+      "label": "Node mixing ratio",
+      "section": "NodeMixingRatio"
+    },
+    "mean-node-participation": {
+      "label": "Mean node participation",
+      "section": "MeanNodeParticipation"
+    }
+  },
+  "sections": {
+    "Size": {
+      "title": "Size",
+      "anchor": "size",
+      "text": "Number of edges assigned to the group.\n\nParallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.",
+      "html": "<p>Number of edges assigned to the group.</p>\n<p>Parallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "EdgeShare": {
+      "title": "EdgeShare",
+      "anchor": "edgeshare",
+      "text": "Group edge count / total graph edge count.\n\nParallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.",
+      "html": "<p>Group edge count / total graph edge count.</p>\n<p>Parallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "NodeCoverage": {
+      "title": "NodeCoverage",
+      "anchor": "nodecoverage",
+      "text": "Distinct endpoints covered by the group. Optional `EdgeOrientation.OUT` or `IN` counts distinct sources or targets for directed graphs; undirected graphs always count all endpoints.\n\nParallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.",
+      "html": "<p>Distinct endpoints covered by the group. Optional <code>EdgeOrientation.OUT</code> or <code>IN</code> counts distinct sources or targets for directed graphs; undirected graphs always count all endpoints.</p>\n<p>Parallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "TotalWeight": {
+      "title": "TotalWeight",
+      "anchor": "totalweight",
+      "text": "Sum of the group's signed, finite edge weights. Unweighted edges contribute one.\n\nParallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.",
+      "html": "<p>Sum of the group&#39;s signed, finite edge weights. Unweighted edges contribute one.</p>\n<p>Parallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "SharedNodes": {
+      "title": "SharedNodes",
+      "anchor": "sharednodes",
+      "text": "Covered nodes incident to edges assigned to at least one other group.\n\nParallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.",
+      "html": "<p>Covered nodes incident to edges assigned to at least one other group.</p>\n<p>Parallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "SharedNodeRatio": {
+      "title": "SharedNodeRatio",
+      "anchor": "sharednoderatio",
+      "text": "Shared nodes / covered nodes.\n\nParallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.",
+      "html": "<p>Shared nodes / covered nodes.</p>\n<p>Parallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "GroupDegree": {
+      "title": "GroupDegree",
+      "anchor": "groupdegree",
+      "text": "Number of distinct other groups sharing an endpoint with this group.\n\nParallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.",
+      "html": "<p>Number of distinct other groups sharing an endpoint with this group.</p>\n<p>Parallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "Components": {
+      "title": "Components",
+      "anchor": "components",
+      "text": "Number of weakly connected components using the group's edges.\n\nParallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.",
+      "html": "<p>Number of weakly connected components using the group&#39;s edges.</p>\n<p>Parallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "LargestComponentShare": {
+      "title": "LargestComponentShare",
+      "anchor": "largestcomponentshare",
+      "text": "Covered nodes in the largest weak component / covered nodes.\n\nParallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.",
+      "html": "<p>Covered nodes in the largest weak component / covered nodes.</p>\n<p>Parallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "IndividualEdgePartitionGraphMetric": {
+      "title": "IndividualEdgePartitionGraphMetric",
+      "anchor": "individualedgepartitiongraphmetric",
+      "text": "Applies a supplied graph metric to the subgraph containing only the group's edges and their endpoints.\n\nParallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.",
+      "html": "<p>Applies a supplied graph metric to the subgraph containing only the group&#39;s edges and their endpoints.</p>\n<p>Parallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "NumberOfGroups": {
+      "title": "NumberOfGroups",
+      "anchor": "numberofgroups",
+      "text": "Declared groups, including empty groups. Pass `true` to count only nonempty groups.\n\nThe two Gini metrics use RELISON's normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.",
+      "html": "<p>Declared groups, including empty groups. Pass <code>true</code> to count only nonempty groups.</p>\n<p>The two Gini metrics use RELISON&#39;s normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "AssignmentCoverage": {
+      "title": "AssignmentCoverage",
+      "anchor": "assignmentcoverage",
+      "text": "Assigned edges / all graph edges.\n\nThe two Gini metrics use RELISON's normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.",
+      "html": "<p>Assigned edges / all graph edges.</p>\n<p>The two Gini metrics use RELISON&#39;s normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "GroupSizeGini": {
+      "title": "GroupSizeGini",
+      "anchor": "groupsizegini",
+      "text": "Normalized Gini inequality across group edge counts, including empty groups.\n\nThe two Gini metrics use RELISON's normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.",
+      "html": "<p>Normalized Gini inequality across group edge counts, including empty groups.</p>\n<p>The two Gini metrics use RELISON&#39;s normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "GroupWeightGini": {
+      "title": "GroupWeightGini",
+      "anchor": "groupweightgini",
+      "text": "Normalized Gini inequality across group weight sums, including empty groups. Negative or non-finite assigned edge weights are rejected.\n\nThe two Gini metrics use RELISON's normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.",
+      "html": "<p>Normalized Gini inequality across group weight sums, including empty groups. Negative or non-finite assigned edge weights are rejected.</p>\n<p>The two Gini metrics use RELISON&#39;s normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "GroupSizeEntropy": {
+      "title": "GroupSizeEntropy",
+      "anchor": "groupsizeentropy",
+      "text": "Shannon entropy in bits, with probabilities given by group size / assigned edge count.\n\nThe two Gini metrics use RELISON's normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.",
+      "html": "<p>Shannon entropy in bits, with probabilities given by group size / assigned edge count.</p>\n<p>The two Gini metrics use RELISON&#39;s normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "NodeMixingRatio": {
+      "title": "NodeMixingRatio",
+      "anchor": "nodemixingratio",
+      "text": "Nonisolated graph nodes incident to two or more groups / all nonisolated graph nodes.\n\nThe two Gini metrics use RELISON's normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.",
+      "html": "<p>Nonisolated graph nodes incident to two or more groups / all nonisolated graph nodes.</p>\n<p>The two Gini metrics use RELISON&#39;s normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "MeanNodeParticipation": {
+      "title": "MeanNodeParticipation",
+      "anchor": "meannodeparticipation",
+      "text": "Average number of assigned groups per nonisolated graph node.\n\nThe two Gini metrics use RELISON's normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.",
+      "html": "<p>Average number of assigned groups per nonisolated graph node.</p>\n<p>The two Gini metrics use RELISON&#39;s normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "Individual metrics": {
+      "title": "Individual metrics",
+      "anchor": "individual-metrics",
+      "text": "## Individual metrics\n\n| Class | Definition |\n| --- | --- |\n| `Size` | Number of edges assigned to the group. |\n| `EdgeShare` | Group edge count / total graph edge count. |\n| `NodeCoverage` | Distinct endpoints covered by the group. Optional `EdgeOrientation.OUT` or `IN` counts distinct sources or targets for directed graphs; undirected graphs always count all endpoints. |\n| `TotalWeight` | Sum of the group's signed, finite edge weights. Unweighted edges contribute one. |\n| `SharedNodes` | Covered nodes incident to edges assigned to at least one other group. |\n| `SharedNodeRatio` | Shared nodes / covered nodes. |\n| `GroupDegree` | Number of distinct other groups sharing an endpoint with this group. |\n| `Components` | Number of weakly connected components using the group's edges. |\n| `LargestComponentShare` | Covered nodes in the largest weak component / covered nodes. |\n| `IndividualEdgePartitionGraphMetric` | Applies a supplied graph metric to the subgraph containing only the group's edges and their endpoints. |\n\nParallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.",
+      "html": "<table>\n<thead>\n<tr>\n<th>Class</th>\n<th>Definition</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>Size</code></td>\n<td>Number of edges assigned to the group.</td>\n</tr>\n<tr>\n<td><code>EdgeShare</code></td>\n<td>Group edge count / total graph edge count.</td>\n</tr>\n<tr>\n<td><code>NodeCoverage</code></td>\n<td>Distinct endpoints covered by the group. Optional <code>EdgeOrientation.OUT</code> or <code>IN</code> counts distinct sources or targets for directed graphs; undirected graphs always count all endpoints.</td>\n</tr>\n<tr>\n<td><code>TotalWeight</code></td>\n<td>Sum of the group&#39;s signed, finite edge weights. Unweighted edges contribute one.</td>\n</tr>\n<tr>\n<td><code>SharedNodes</code></td>\n<td>Covered nodes incident to edges assigned to at least one other group.</td>\n</tr>\n<tr>\n<td><code>SharedNodeRatio</code></td>\n<td>Shared nodes / covered nodes.</td>\n</tr>\n<tr>\n<td><code>GroupDegree</code></td>\n<td>Number of distinct other groups sharing an endpoint with this group.</td>\n</tr>\n<tr>\n<td><code>Components</code></td>\n<td>Number of weakly connected components using the group&#39;s edges.</td>\n</tr>\n<tr>\n<td><code>LargestComponentShare</code></td>\n<td>Covered nodes in the largest weak component / covered nodes.</td>\n</tr>\n<tr>\n<td><code>IndividualEdgePartitionGraphMetric</code></td>\n<td>Applies a supplied graph metric to the subgraph containing only the group&#39;s edges and their endpoints.</td>\n</tr>\n</tbody></table>\n<p>Parallel edges count separately in edge counts and weights. Endpoint counts count\neach node once, including nodes incident to self-loops. Connectivity ignores\ndirection and multiplicity but retains all covered nodes. Empty groups have zero\nfor the basic individual metrics, including shares and connectivity.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "Global metrics": {
+      "title": "Global metrics",
+      "anchor": "global-metrics",
+      "text": "## Global metrics\n\n| Class | Definition |\n| --- | --- |\n| `NumberOfGroups` | Declared groups, including empty groups. Pass `true` to count only nonempty groups. |\n| `AssignmentCoverage` | Assigned edges / all graph edges. |\n| `GroupSizeGini` | Normalized Gini inequality across group edge counts, including empty groups. |\n| `GroupWeightGini` | Normalized Gini inequality across group weight sums, including empty groups. Negative or non-finite assigned edge weights are rejected. |\n| `GroupSizeEntropy` | Shannon entropy in bits, with probabilities given by group size / assigned edge count. |\n| `NodeMixingRatio` | Nonisolated graph nodes incident to two or more groups / all nonisolated graph nodes. |\n| `MeanNodeParticipation` | Average number of assigned groups per nonisolated graph node. |\n\nThe two Gini metrics use RELISON's normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.",
+      "html": "<table>\n<thead>\n<tr>\n<th>Class</th>\n<th>Definition</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>NumberOfGroups</code></td>\n<td>Declared groups, including empty groups. Pass <code>true</code> to count only nonempty groups.</td>\n</tr>\n<tr>\n<td><code>AssignmentCoverage</code></td>\n<td>Assigned edges / all graph edges.</td>\n</tr>\n<tr>\n<td><code>GroupSizeGini</code></td>\n<td>Normalized Gini inequality across group edge counts, including empty groups.</td>\n</tr>\n<tr>\n<td><code>GroupWeightGini</code></td>\n<td>Normalized Gini inequality across group weight sums, including empty groups. Negative or non-finite assigned edge weights are rejected.</td>\n</tr>\n<tr>\n<td><code>GroupSizeEntropy</code></td>\n<td>Shannon entropy in bits, with probabilities given by group size / assigned edge count.</td>\n</tr>\n<tr>\n<td><code>NodeMixingRatio</code></td>\n<td>Nonisolated graph nodes incident to two or more groups / all nonisolated graph nodes.</td>\n</tr>\n<tr>\n<td><code>MeanNodeParticipation</code></td>\n<td>Average number of assigned groups per nonisolated graph node.</td>\n</tr>\n</tbody></table>\n<p>The two Gini metrics use RELISON&#39;s normalized Gini coefficient: zero means equal\ngroup mass and one means maximal inequality. They return zero for zero total mass\nor fewer than two groups. Entropy and assignment coverage return zero when their\ndenominator is zero. Mixing and participation include nonisolated nodes whose\nedges are all unassigned, with zero participation; isolates are excluded.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "Restricted graph metrics": {
+      "title": "Restricted graph metrics",
+      "anchor": "restricted-graph-metrics",
+      "text": "## Restricted graph metrics\n\n`EdgePartitionSubgraphGenerator` preserves direction, weights, edge types,\nparallel edges, loops, and available attributes. It excludes edges from other\ngroups even when both endpoints occur in the selected group. The graph metric\nsupplier is called for each group so graph-specific caches are never shared.\nExisting graph metrics retain their usual interpretation and graph-type support.\nUndefined empty-graph values are represented as NaN by the library.\n\nEdge references must refer to edges in the supplied graph. Count-only metrics\nassume the partition belongs to the current graph, just as community metrics do.\nMetrics that inspect edges validate membership against the live graph and resolve\nstable multigraph ids to their current parallel-edge indices.",
+      "html": "<p><code>EdgePartitionSubgraphGenerator</code> preserves direction, weights, edge types,\nparallel edges, loops, and available attributes. It excludes edges from other\ngroups even when both endpoints occur in the selected group. The graph metric\nsupplier is called for each group so graph-specific caches are never shared.\nExisting graph metrics retain their usual interpretation and graph-type support.\nUndefined empty-graph values are represented as NaN by the library.</p>\n<p>Edge references must refer to edges in the supplied graph. Count-only metrics\nassume the partition belongs to the current graph, just as community metrics do.\nMetrics that inspect edges validate membership against the live graph and resolve\nstable multigraph ids to their current parallel-edge indices.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "Computation cost": {
+      "title": "Computation cost",
+      "anchor": "computation-cost",
+      "text": "## Computation cost\n\nSize and edge share read stored group sizes and the graph's edge counter: O(1)\nfor one group and O(number of groups) for all groups. Declared group count is O(1).\nNonempty group count, assignment coverage and size entropy use only group counts;\nsize Gini additionally sorts these counts. None traverses the network's edges or\nbuilds node memberships.\n\nOther metrics request only the snapshot detail they use: edge lists for weights\nand intra-partition graph metrics, endpoint sets for coverage and connectivity,\nand node-to-group memberships for overlap metrics. Weight Gini reads each assigned\nedge weight once. Intra-partition metrics retain the underlying graph metric's\ncomputation cost.",
+      "html": "<p>Size and edge share read stored group sizes and the graph&#39;s edge counter: O(1)\nfor one group and O(number of groups) for all groups. Declared group count is O(1).\nNonempty group count, assignment coverage and size entropy use only group counts;\nsize Gini additionally sorts these counts. None traverses the network&#39;s edges or\nbuilds node memberships.</p>\n<p>Other metrics request only the snapshot detail they use: edge lists for weights\nand intra-partition graph metrics, endpoint sets for coverage and connectivity,\nand node-to-group memberships for overlap metrics. Weight Gini reads each assigned\nedge weight once. Intra-partition metrics retain the underlying graph metric&#39;s\ncomputation cost.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    },
+    "GUI": {
+      "title": "GUI",
+      "anchor": "gui",
+      "text": "## GUI\n\nDetect partitions in **Edge partitions**, then compute their metrics in\n**Metrics → Edge partition metrics**. Multiple partitions can be retained during\nthe loaded-graph session. Global values, finite per-group averages, and individual\nvalues are shown in the Metrics tab and can be exported to CSV; computed group\nvalues are also columns in the edge-group table and properties in its inspector.\nGraph metrics are available with the prefix **Intra-partition** and retain their\nparameter controls. Undefined results appear as a dash and are excluded from GUI\naverages. Structural graph edits invalidate retained partitions and their results.\nThe inspector reuses group-edge and endpoint indexes. Metric computation updates\nthe metric chart once and refreshes the inspector when its tab is opened.\n\nNonnumeric edge attributes are available directly in the **Edge partitions** tab's\nexploration selector under **Edge attributes**, and are grouped lazily when selected.\nNetwork and Metrics edge-partition selectors include only explicitly detected\npartitions, excluding these direct attribute groups. Use **By edge attribute** in\nNetwork and **Edge attribute metrics** in Metrics for attributes; the explorer's\n**View in Metrics** button opens attribute metrics when an attribute is selected.\nThe detection controls offer **Numeric edge attribute bins**\nwith a positive bin width. `EdgeAttributePartitionDetector(attribute, binWidth)`\nprovides the same binning in RELISON-sna: intervals are anchored at zero and are\nlower-inclusive, upper-exclusive; missing values share an Unknown group. Attribute\nedits invalidate cached groups of that attribute. Renaming a string/categorical\ngroup updates its edge values and rebuilds its partition, merging equal categories.",
+      "html": "<p>Detect partitions in <strong>Edge partitions</strong>, then compute their metrics in\n<strong>Metrics → Edge partition metrics</strong>. Multiple partitions can be retained during\nthe loaded-graph session. Global values, finite per-group averages, and individual\nvalues are shown in the Metrics tab and can be exported to CSV; computed group\nvalues are also columns in the edge-group table and properties in its inspector.\nGraph metrics are available with the prefix <strong>Intra-partition</strong> and retain their\nparameter controls. Undefined results appear as a dash and are excluded from GUI\naverages. Structural graph edits invalidate retained partitions and their results.\nThe inspector reuses group-edge and endpoint indexes. Metric computation updates\nthe metric chart once and refreshes the inspector when its tab is opened.</p>\n<p>Nonnumeric edge attributes are available directly in the <strong>Edge partitions</strong> tab&#39;s\nexploration selector under <strong>Edge attributes</strong>, and are grouped lazily when selected.\nNetwork and Metrics edge-partition selectors include only explicitly detected\npartitions, excluding these direct attribute groups. Use <strong>By edge attribute</strong> in\nNetwork and <strong>Edge attribute metrics</strong> in Metrics for attributes; the explorer&#39;s\n<strong>View in Metrics</strong> button opens attribute metrics when an attribute is selected.\nThe detection controls offer <strong>Numeric edge attribute bins</strong>\nwith a positive bin width. <code>EdgeAttributePartitionDetector(attribute, binWidth)</code>\nprovides the same binning in RELISON-sna: intervals are anchored at zero and are\nlower-inclusive, upper-exclusive; missing values share an Unknown group. Attribute\nedits invalidate cached groups of that attribute. Renaming a string/categorical\ngroup updates its edge values and rebuilds its partition, merging equal categories.</p>\n",
+      "source": {
+        "path": "RELISON-sna/EDGE_PARTITION_METRICS.md",
+        "sha256": "637277dfd82c24a95e769031219ce28211eca9a065ec9959f36a44b0f026b542",
+        "url": null,
+        "page": "edge-partition-metrics.html"
+      }
+    }
+  }
+}

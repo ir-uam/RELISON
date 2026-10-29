@@ -1,0 +1,36 @@
+.node-metric-picker { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
+.node-metric-picker select { flex: 1; min-width: 0; }
+.node-metric-picker button { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 30px; height: 30px; margin: 0; padding: 4px; }
+.node-metric-picker select[multiple] + button { align-self: flex-start; }
+.node-metric-help { position: fixed; top: calc(var(--topbar-h) + var(--tabbar-h) + 10px); left: calc(var(--left-panel-width) + 12px); bottom: 12px; z-index: 1550; width: min(720px, calc(100vw - var(--left-panel-width) - 24px)); overflow-y: auto; overscroll-behavior: contain; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--panel-2); color: var(--text); box-shadow: 0 14px 46px #0004; }
+.node-metric-help-header { display: flex; align-items: center; gap: 12px; padding: 6px 0 16px; }
+.node-metric-help-header .nodi-avatar { width: 112px; height: 112px; }
+.node-metric-help-header .nodi-speaker { flex: 1; min-width: 0; }
+.node-metric-help-actions { display: flex; align-self: flex-start; align-items: center; gap: 6px; margin-left: auto; }
+.node-metric-help-actions button { margin: 0; }
+.node-metric-help-actions .nodi-motion-toggle { padding: 5px; }
+.node-metric-help-header .nodi-dismiss { width: auto; margin: 0; }
+.node-metric-help .nodi-speech { margin-top: 8px; }
+.node-metric-help h2 { margin: 0 0 10px; font-size: 21px; }
+.node-metric-help h2:focus { outline: none; }
+.node-metric-help h3 { margin: 22px 0 8px; font-size: 15px; }
+.node-metric-help p, .node-metric-help li { line-height: 1.7; }
+.node-metric-help ul { padding-left: 20px; }
+.node-metric-help li + li { margin-top: 6px; }
+.node-metric-help a { color: var(--accent); }
+.node-metric-help code { padding: 1px 4px; border-radius: 4px; background: var(--panel-2); }
+.node-metric-help-intro { font-size: 12px; color: var(--muted); }
+.node-metric-help-status { margin: 0; }
+.node-metric-help-footer { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; }
+.node-metric-help-footer a { display: inline-block; line-height: 1.6; }
+.node-metric-help button { width: auto; }
+.node-metric-help :focus-visible, .node-metric-picker :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.node-metric-help .metric-help-equation { max-width: 100%; overflow-x: auto; padding: 12px 2px; margin: 10px 0; }
+.node-metric-help .katex { font-size: 1.05em; color: inherit; }
+.node-metric-help .katex-display { margin: 0; text-align: left; }
+.node-metric-help .katex-display > .katex { text-align: left; }
+@media (max-width: 700px) {
+    .node-metric-help { left: 12px; width: calc(100vw - 24px); padding: 12px; }
+    .node-metric-help-header .nodi-avatar { width: 88px; height: 88px; }
+    .node-metric-help .nodi-speech { padding: 15px; }
+}
